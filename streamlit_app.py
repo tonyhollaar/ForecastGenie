@@ -14,6 +14,7 @@ import math
 import plotly.express as px
 from sklearn.linear_model import LinearRegression
 from pmdarima.arima import auto_arima
+from statsmodels.tsa.statespace.sarimax import SARIMAX
 from sklearn.model_selection import ParameterGrid
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import TimeSeriesSplit
@@ -42,15 +43,40 @@ st.set_page_config(page_title="ForecastGenie",
 ###############################################################################
 # FUNCTIONS
 ###############################################################################
-@st.cache_data
-def convert_df(my_dataframe):
-   return my_dataframe.to_csv(index=False).encode('utf-8')
+def evaluate_sarimax_model(order, seasonal_order, exog_train, exog_test, endog_train, endog_test):
+   """
+   Train and evaluate SARIMAX model on test data.
+   
+   Parameters:
+       order (tuple): Order of the SARIMAX model (p,d,q).
+       seasonal_order (tuple): Seasonal order of the SARIMAX model (P,D,Q,s).
+       exog_train (pd.DataFrame): Exogenous variables training data.
+       exog_test (pd.DataFrame): Exogenous variables test data.
+       endog_train (pd.DataFrame): Endogenous variable training data.
+       endog_test (pd.DataFrame): Endogenous variable test data.
+   
+   Returns:
+       rmse (float): Root mean squared error of the model on test data.
+       r2 (float): Coefficient of determination (R-squared) of the model on test data.
+       preds_df (pd.DataFrame): DataFrame of predicted and actual values on test data.
+   """
+   # Fit the model
+   model = sm.tsa.statespace.SARIMAX(endog=endog_train, exog=exog_train, order=order, seasonal_order=seasonal_order)
+   results = model.fit()
+   # Generate predictions
+   y_pred = results.predict(start=endog_test.index[0], end=endog_test.index[-1], exog=exog_test)
+   preds_df = pd.DataFrame({'Actual': endog_test.squeeze(), 'Predicted': y_pred.squeeze()}, index=endog_test.index)
+   # Calculate percentage difference between actual and predicted values and add it as a new column
+   preds_df = preds_df.assign(Percentage_Diff = ((preds_df['Predicted'] - preds_df['Actual']) / preds_df['Actual']))
+   # Calculate MAPE and add it as a new column
+   preds_df = preds_df.assign(MAPE = abs(preds_df['Percentage_Diff']))   
+   return preds_df   
 
-# create a title with custom background color and header size
+
 def my_title(my_string, my_background_color="#45B8AC"):
     st.markdown(f'<h3 style="color:#FFFFFF; background-color:{my_background_color}; padding:5px; border-radius: 5px;"> <center> {my_string} </center> </h3>', unsafe_allow_html=True)
 
-def my_header(my_string, my_style="#8c8c8c"):
+def my_header(my_string, my_style="#217CD0"):
     #st.markdown(f'<h2 style="text-align:center"> {my_string} </h2>', unsafe_allow_html=True)
     st.markdown(f'<h2 style="color:{my_style};"> <center> {my_string} </center> </h2>', unsafe_allow_html=True)
 
@@ -70,30 +96,141 @@ def wait(seconds):
         
 @st.cache_data
 def my_holiday_name_func(my_date):
-  # function to get the holiday name from package calendar
-  holiday_name = cal.holidays(start = my_date, end = my_date, return_name = True)
-  if len(holiday_name) < 1:
-    holiday_name = ""
-    return holiday_name
-  else: 
-   return holiday_name[0]  
+    """
+    This function takes a date as input and returns the name of the holiday that falls on that date.
 
-@st.cache_data
-def evaluate_linear_regression_model(X_train, y_train, X_test, y_test):
-    # Create linear regression object
-    regr = LinearRegression(fit_intercept=True)
+    Parameters:
+    -----------
+    my_date : str
+        The date for which the holiday name is to be returned. The date should be in the format 'YYYY-MM-DD'.
+
+    Returns:
+    --------
+    str:
+        The name of the holiday that falls on the given date. If there is no holiday on that date, an empty string is returned.
+
+    Examples:
+    ---------
+    >>> my_holiday_name_func('2022-07-04')
+    'Independence Day'
+    >>> my_holiday_name_func('2022-12-25')
+    'Christmas Day'
+    >>> my_holiday_name_func('2022-09-05')
+    'Labor Day'
+    """    
+    holiday_name = cal.holidays(start = my_date, end = my_date, return_name = True)
+    if len(holiday_name) < 1:
+      holiday_name = ""
+      return holiday_name
+    else: 
+     return holiday_name[0]
+
+def my_metrics(my_df):
+   mape = my_df['MAPE'].mean()
+   mse = mean_squared_error(my_df['Actual'], my_df['Predicted'])
+   rmse = np.sqrt(mse)
+   r2 = r2_score(my_df['Actual'], my_df['Predicted'])
+   return mape, rmse, r2
+
+def display_my_metrics(my_df, model_name="Linear Regression"):
+    """
+    Displays the evaluation metrics for a given model using the provided dataframe of predicted and actual values.
+    
+    Parameters:
+    -----------
+    my_df : pandas.DataFrame
+        Dataframe containing columns 'Actual' and 'Predicted' for the actual and predicted values, respectively.
+    model_name : str, default='Linear Regression'
+        Name of the model being evaluated. This will be displayed as the title of the expander containing the metrics.
+    
+    Returns:
+    --------
+    None
+    """
+    # put all metrics and graph in expander for linear regression e.g. benchmark model
+    st.markdown(f'<h2 style="text-align:center">{model_name}</h2></p>', unsafe_allow_html=True)
+    # define vertical spacings
+    col0, col1, col2, col3, col4 = st.columns([2, 3, 3, 3, 1])
+    # Display the evaluation metrics
+    mape, rmse, r2 = my_metrics(my_df)
+    with col1:  
+        st.metric(':red[**MAPE:**]', delta=None, value = "{:.2%}".format(mape))
+    with col2:
+        st.metric(':red[**RMSE:**]', delta = None, value = round(rmse,2))
+    with col3: 
+        st.metric(':green[**R-squared:**]',  delta=None, value= round(r2, 2))
+
+def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs):
+    """
+    Evaluate a regression model on test data.
+
+    Parameters:
+        X_train (pd.DataFrame): Training input data.
+        y_train (pd.DataFrame): Training output data.
+        X_test (pd.DataFrame): Test input data.
+        y_test (pd.DataFrame): Test output data.
+        model_type (str): Type of regression model to use. Default is "linear".
+        **kwargs: Optional keyword arguments to pass to the regression model.
+
+    Returns:
+        df_preds (pd.DataFrame): DataFrame of predicted and actual values on test data.
+    """
     # Train the model using the training sets
-    # note: first fit X then Y in that order
-    regr.fit(X_train, y_train)
-    y_pred = regr.predict(X_test)
-    # Calculate evaluation metrics
-    mse = mean_squared_error(y_test, y_pred)
-    rmse = np.sqrt(mse)
-    r2 = r2_score(y_test, y_pred)
-    return y_pred, mse, rmse, r2
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    # Create dataframe for insample predictions versus actual
+    df_preds = pd.DataFrame({'Actual': y_test.squeeze(), 'Predicted': y_pred.squeeze()})
+    # set the index to just the date portion of the datetime index
+    df_preds.index = df_preds.index.date
+    # Calculate percentage difference between actual and predicted values and add it as a new column
+    df_preds = df_preds.assign(Percentage_Diff = ((df_preds['Predicted'] - df_preds['Actual']) / df_preds['Actual']))
+    # Calculate MAPE and add it as a new column
+    df_preds = df_preds.assign(MAPE = abs(df_preds['Percentage_Diff']))   
+    return df_preds
+
+def create_streamlit_model_card(X_train, y_train, X_test, y_test, model, model_name="your model name"):
+    """
+    Creates a Streamlit expander card displaying metrics, a graph, and a dataframe for a given model.
+    
+    Parameters:
+    -----------
+    X_train: numpy.ndarray or pandas.DataFrame
+        The training set inputs.
+    y_train: numpy.ndarray or pandas.Series
+        The training set outputs.
+    X_test: numpy.ndarray or pandas.DataFrame
+        The test set inputs.
+    y_test: numpy.ndarray or pandas.Series
+        The test set outputs.
+    model: estimator object
+        The trained machine learning model to evaluate.
+    model_name: str, default="your model name"
+        The name of the machine learning model being evaluated. This will be displayed in the expander header.
+    **kwargs: optional keyword arguments
+        Additional keyword arguments to be passed to the evaluate_regression_model() function.
+        
+    Returns:
+    --------
+    None
+    """
+    # Evaluate the insample test-set performance linear regression model
+    df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test)
+    mape, rmse, r2 = my_metrics(df_preds)
+    
+    with st.expander(':information_source: '+ model_name, expanded=True):
+        display_my_metrics(my_df=df_preds, model_name=model_name)
+        # plot graph with actual versus insample predictions
+        plot_actual_vs_predicted(df_preds)
+        # show the dataframe
+        st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+        # create download button for forecast results to .csv
+        download_csv_button(df_preds, my_file="f'forecast_{model_name}_model.csv'")
 
 @st.cache_data
 def load_data():
+    """
+    This function loads data from a CSV file and returns a pandas DataFrame object.
+    """
     df = pd.read_csv(uploaded_file, parse_dates=['date'])
     return df
 
@@ -115,87 +252,65 @@ def create_df_pred(y_test, y_pred, show_df_streamlit=True):
            return df_preds
     except:
         st.warning('error in create_df_pred function')
-   
-@st.cache_data
-def my_metrics(my_df):
-   mape = my_df['MAPE'].mean()
-   mse = mean_squared_error(my_df['Actual'], my_df['Predicted'])
-   rmse = np.sqrt(mse)
-   r2 = r2_score(my_df['Actual'], my_df['Predicted'])
-   return mape, mse, rmse, r2
-  
-def my_download_button(my_df, my_file="forecast_model.csv"):
+
+def convert_df(my_dataframe):
+   return my_dataframe.to_csv(index=False).encode('utf-8')    
+
+def download_csv_button(my_df, my_file="forecast_model.csv"):
      # create download button for forecast results to .csv
      csv = convert_df(my_df)
      col1, col2, col3 = st.columns([2,2,2])
      with col2: 
-         st.download_button(":arrow_down: Download",
+         st.download_button(":arrow_down: Download", 
                             csv,
                             my_file,
                             "text/csv",
-                            key='download-csv_arimax',
+                            #key='download-csv_arimax', -> streamlit automatically assigns key if not defined
                             help = "Download your forecast to .CSV file")
-@st.cache_data   
-def my_plot(X_test, preds):
-    # LINEPLOT WITH PLOTLY
-    # Plot the predictions versus actual results
-    # Combine X_test, y_test and y_pred into a single DataFrame
-    df_X_test = X_test.copy()
-    df_X_test['Actual'] = y_test
-    df_X_test['Insample Prediction'] = preds
-    
+
+def plot_actual_vs_predicted(df_preds):
     # Define the color palette
     colors = ['#5276A7', '#60B49F']
     # Create the figure with easy on eyes colors
-    fig = px.line(df_X_test, x=X_test.index, y=['Actual', 'Insample Prediction'],
-                  color_discrete_sequence=colors)
-    
+    fig = px.line(df_preds, x=df_preds.index, y=['Actual', 'Predicted'], color_discrete_sequence=colors)
     # Update the layout of the figure
-    fig.update_layout(
-        title='',
-        xaxis_title='',
-        yaxis_title='',
-        legend_title='Legend',
-        font=dict(family='Arial', size=12, color='#707070'),
-        yaxis=dict(gridcolor='#E1E1E1', range=[0, max(df_X_test['Actual'])]),
-        xaxis=dict(gridcolor='#E1E1E1'))
+    fig.update_layout(legend_title='Legend',
+                      font=dict(family='Arial', size=12, color='#707070'),
+                      yaxis=dict(gridcolor='#E1E1E1', range=[0, df_preds['Actual'].max()]),
+                      xaxis=dict(gridcolor='#E1E1E1'),
+                      legend=dict(yanchor="bottom", y=0.0, xanchor="center", x=0.99))
     # Set the line colors
-    for i in range(len(colors)):
-        fig.data[i].line.color = colors[i]
-    fig.update_layout(legend=dict(yanchor="bottom",
-                                  y=0.0,
-                                  xanchor="center",
-                                  x=0.99))
-    
+    for i, color in enumerate(colors):
+        fig.data[i].line.color = color
+        if fig.data[i].name == 'Predicted':
+              fig.data[i].line.dash = 'dot' # dash styles options: ['solid', 'dot', 'dash', 'longdash', 'dashdot', 'longdashdot']
     # Render the chart in Streamlit
-    st.plotly_chart(fig, use_container_width=True)     
+    st.plotly_chart(fig, use_container_width=True)
 
-def train_my_models(y_train, X_train, X_test, y_test, selected_models):
-    # title of model on model-card
-    st.markdown('<h2 style="text-align:center"> ARIMAX </h2></p>', unsafe_allow_html=True)
-    # create vertical spacing columns    
-    col0, col1, col2, col3, col4 = st.columns([2, 3, 3, 3, 1])                    
-    # calculate metrics
-    arimax_model = auto_arima(y_train, X=X_train, seasonal=True, m=12, suppress_warnings=True, 
-                              stepwise=True, 
-                              param_distributions=param_subset['ARIMAX'], 
-                              n_iter=10)
-
-    # Display the evaluation metrics
-    preds = arimax_model.predict(n_periods = len(X_test), X = X_test)
-    my_df = create_df_pred(y_test, preds, False)  
-    # apply custom function my_metrics to dataframe
-    mape, mse, rmse, r2 = my_metrics(my_df)
-    with col1:
-        st.metric(':red[**MAPE:**]', delta=None, value = "{:.2%}".format(mape))
-    with col2:
-        st.metric(':red[**RMSE:**]', delta = None, value = round(rmse,2))
-    with col3: 
-        st.metric(':green[**R-squared:**]',  delta=None, value= round(r2, 2))
-    
-    # call function to plot    
-    # my_plot(X_test, preds)  
-    return my_df, preds
+# =============================================================================
+# def train_my_models(y_train, X_train, X_test, y_test, selected_models):
+#     # title of model on model-card
+#     st.markdown('<h2 style="text-align:center"> ARIMAX </h2></p>', unsafe_allow_html=True)
+#     # create vertical spacing columns    
+#     col0, col1, col2, col3, col4 = st.columns([2, 3, 3, 3, 1])                    
+#     # calculate metrics
+#     arimax_model = auto_arima(y_train, X=X_train, seasonal=True, m=12, suppress_warnings=True, 
+#                               stepwise=True, 
+#                               param_distributions=param_subset['ARIMAX'], 
+#                               n_iter=10)
+#     # Display the evaluation metrics
+#     preds = arimax_model.predict(n_periods = len(X_test), X = X_test)
+#     my_df = create_df_pred(y_test, preds, False)  
+#     # apply custom function my_metrics to dataframe
+#     mape, mse, rmse, r2 = my_metrics(my_df)
+#     with col1:
+#         st.metric(':red[**MAPE:**]', delta=None, value = "{:.2%}".format(mape))
+#     with col2:
+#         st.metric(':red[**RMSE:**]', delta = None, value = round(rmse,2))
+#     with col3: 
+#         st.metric(':green[**R-squared:**]',  delta=None, value= round(r2, 2))
+#     return my_df, preds
+# =============================================================================
 
 @st.cache_data   
 # remove datatypes object - e.g. descriptive columns not used in modeling
@@ -226,20 +341,34 @@ def update_dataframe(df, model_name, mape):
         new_row = {"Model": model_name, "MAPE": "{:.2f}%".format(mape*100)}
         df = df.append(new_row, ignore_index=True)
     return df
-
 # Define a function to initialize the dataframe
+# check if the dataframe already exists in the session state. 
+# If it does, it will return that dataframe. If it does not exist, 
+# it will create a new one, store it in the session state, and return it.
 def initialize_dataframe():
-    df = pd.DataFrame(columns=["Model", "MAPE"])
-    return df
-
+    if "df" in session_state:
+        return session_state["df"]
+    else:
+        df = pd.DataFrame(columns=["Model", "MAPE"])
+        session_state["df"] = df
+        return df
+    
 # Initialize the dataframe using SessionState
 session_state = st.session_state.setdefault("state", {})
-if "df" not in session_state:
-    session_state["df"] = initialize_dataframe() 
+session_state.setdefault("df", pd.DataFrame(columns=["Model", "MAPE"]))
+
+# Get the current dataframe from the session state
+df = session_state["df"]
+# =============================================================================
+# if "df" not in session_state:
+#     session_state["df"] = initialize_dataframe() 
+# =============================================================================
+
 
 ###############################################################################
 # Create Left-Sidebar Streamlit App
 ###############################################################################
+# TITLE PAGE + SIDEBAR TITLE
 with st.sidebar:   
         st.markdown(f'<h1 style="color:#45B8AC;"> <center> ForecastGenie™️ </center> </h1>', unsafe_allow_html=True)         
 # set the title of page
@@ -248,6 +377,7 @@ st.markdown(f'<h1 style="color:#45B8AC;"> <center> ForecastGenie™️ </center>
 # add vertical spacing
 st.write("")
 
+# ABOUT SIDEBAR MENU
 with st.sidebar.expander(':information_source: About', expanded=False):
     st.write('''Hi :wave: **Welcome** to the ForecastGenie app created with Streamlit :smiley:
             
@@ -257,7 +387,7 @@ with st.sidebar.expander(':information_source: About', expanded=False):
                 - Upload your .csv file that contains your **date** (X) column and your target variable of interest (Y)  
             ''')
     st.markdown('---')
-    
+    # DISPLAY LOGO
     col1, col2, col3 = st.columns([1,3,2])
     with col2:
         st.image('./images/logo_dark.png', caption="Developed by")  
@@ -268,7 +398,6 @@ with st.sidebar.expander(':information_source: About', expanded=False):
 ###############################################################################
 # 1. Create Button to Load Dataset (.CSV format)
 ###############################################################################
-#st.markdown(f'<h1> <center>  1. Load Dataset 🚀 </center> </h1>', unsafe_allow_html=True)
 my_title("1. Load Dataset 🚀 ", "#2CB8A1")
 with st.sidebar:
     my_title("Load Dataset 🚀 ", "#2CB8A1")
@@ -534,7 +663,6 @@ if uploaded_file is not None:
     local_df.index = pd.to_datetime(local_df['date'])
     local_df.drop(columns='date', inplace=True)
 
-    
     with st.expander(':information_source: I removed the following descriptive columns automatically from analysis'):
         local_df = remove_object_columns(local_df)
     
@@ -575,6 +703,10 @@ if uploaded_file is not None:
         perc_train_set = "{:.2f}%".format(((len(df)-my_insample_forecast_steps)/len(df))*100)
         st.info(f"the sample-sizes of the train/test split equals :green[**{perc_train_set}**] and :green[**{perc_test_set}**] ")
     
+    ######################################################################################################
+    # define dynamic user picked test-set size / train size for X,y, X_train, X_test, y_train, y_test
+    # based on user picked my_insample_forecast_steps
+    ######################################################################################################
     X = local_df.iloc[:, 1:]
     y = local_df.iloc[:, 0:1]
     X_train = local_df.iloc[:, 1:][:(len(df)-my_insample_forecast_steps)]
@@ -652,6 +784,7 @@ if uploaded_file is not None:
                 
                 # Show the plot
                 st.plotly_chart(fig)
+                
         # PCA feature selection
         pca = PCA(n_components=5)
         pca.fit(X)
@@ -695,198 +828,175 @@ if uploaded_file is not None:
     st.plotly_chart(fig)
     
     #feature_selection_user = st.multiselect("favorite features", list(selected_features_mi))
+    
     ##############################################################
     # SELECT YOUR FAVORITE FEATURES TO INCLUDE IN MODELING
     ##############################################################
     selected_cols = ["total_traffic"] + list(selected_features_mi)
     st.info(f'the columns you selected are: {selected_cols}')
-    df_filtered = local_df[selected_cols].copy(deep=True)
-    st.write('df')
-    st.write(df)
-    st.write(df.dtypes)
+# =============================================================================
+#     df_filtered = local_df[selected_cols].copy(deep=True)
+# 
+#     # CHANGE DATAFRAME TO ONLY FILTERED COLUMNS
+#     #The pmarima library does not automatically perform dummy coding for boolean variables, so you would need to convert them to integers yourself before passing them to the arimax function
+# # =============================================================================
+# #     def convert_uint8_to_bool(df):
+# #         uint8_cols = df.select_dtypes(include="uint8").columns
+# #         bool_cols = {col: bool for col in uint8_cols}
+# #         return df.astype(bool_cols)
+# # =============================================================================
 
-    # CHANGE DATAFRAME TO ONLY FILTERED COLUMNS
-    def convert_uint8_to_bool(df):
-        uint8_cols = df.select_dtypes(include="uint8").columns
-        bool_cols = {col: bool for col in uint8_cols}
-        return df.astype(bool_cols)
-    df_filtered = convert_uint8_to_bool(df_filtered)
-    st.write('df filtered')
-    st.write(df_filtered)
-    st.write(df_filtered.dtypes)
-    
-    X = df_filtered.iloc[:, 1:]
-    y = df_filtered.iloc[:, 0:1]
-    X_train = df_filtered.iloc[:, 1:][:(len(df_filtered)-my_insample_forecast_steps)]
-    X_test = df_filtered.iloc[:, 1:][(len(df_filtered)-my_insample_forecast_steps):]
-    # set endogenous variable train/test split
-    y_train = df_filtered.iloc[:, 0:1][:(len(df_filtered)-my_insample_forecast_steps)]
-    y_test = df_filtered.iloc[:, 0:1][(len(df_filtered)-my_insample_forecast_steps):]
-    
-    ###############################################################################
-    # 5. Evaluate Model Performance
-    ###############################################################################
+#     X = df_filtered.iloc[:, 1:]
+#     y = df_filtered.iloc[:, 0:1]
+#     X_train = df_filtered.iloc[:, 1:][:(len(df_filtered)-my_insample_forecast_steps)]
+#     X_test = df_filtered.iloc[:, 1:][(len(df_filtered)-my_insample_forecast_steps):]
+#     # set endogenous variable train/test split
+#     y_train = df_filtered.iloc[:, 0:1][:(len(df_filtered)-my_insample_forecast_steps)]
+#     y_test = df_filtered.iloc[:, 0:1][(len(df_filtered)-my_insample_forecast_steps):]
+# =============================================================================
+# =============================================================================
+#     
+#     ###############################################################################
+#     # 5. Evaluate Model Performance
+#     ###############################################################################
+#     my_title("5. Evaluate Model Performance 🔎", "#0072B2")
+#     with st.sidebar:
+#         my_title("Evaluate Model Performance 🔎", "#0072B2")
+#     ####################################
+#     # create checkboxes
+#     col1, col2, col3, col4 = st.columns([1,5,5,1])
+#     with st.form('model_train_form'):
+#         # set title
+#         my_header('''Add Models to Evaluation''')
+#         # set vertical spacers
+#         col1, col2, col3 = st.columns([4,2,4])
+#         # define all models you want user to choose from
+#         models = [('Linear Regression', 'Arimax')]
+#         # create a checkbox in column 2 
+#         with col2:
+#             selected_models = [model_name for model_name, _ in models if st.checkbox(model_name)]
+#         st.info(':information_source: This will require time to train... Click the **"Submit"** button and grab coffee ☕ or tea 🍵')
+#         with col2: 
+#             #train_models_btn = st.button('Train selected models', type="primary")
+#             train_models_btn = st.form_submit_button("Submit")
+#             # the code block to train the selected models will only be executed if both the button has been clicked and the list of selected models is not empty.
+#             selected_models = st.session_state.get("selected_models", [])
+#     if train_models_btn==False:
+#         pass
+#     elif train_models_btn==True:
+#         #***********************************
+#         # Linear Regression Model
+#         #***********************************
+#         create_streamlit_model_card(X_train, y_train, X_test, y_test, model=LinearRegression(fit_intercept=True), model_name="Linear Regression")
+# 
+# =============================================================================
+###############################################################################
+# 5. Evaluate Model Performance
+###############################################################################
+if uploaded_file is not None:
     my_title("5. Evaluate Model Performance 🔎", "#0072B2")
     with st.sidebar:
         my_title("Evaluate Model Performance 🔎", "#0072B2")
-    
-    #***********************************
-    # Benchmark Linear Regression Model
-    #***********************************
-    # Evaluate the insample test-set performance linear regression model
-    y_pred, mse, rmse, r2 = evaluate_linear_regression_model(X_train, y_train, X_test, y_test)
-    # Create dataframe for insample predictions versus actual
-    df_preds = pd.DataFrame({'Actual': y_test.squeeze(), 'Predicted': y_pred.squeeze()})
-    # set the index to just the date portion of the datetime index
-    df_preds.index = df_preds.index.date
-    # Calculate percentage difference between actual and predicted values and add it as a new column
-    df_preds = df_preds.assign(Percentage_Diff = ((df_preds['Predicted'] - df_preds['Actual']) / df_preds['Actual']))
-    
-    # Calculate MAPE and add it as a new column
-    df_preds = df_preds.assign(MAPE = abs(df_preds['Percentage_Diff']))
-    # Calculate overall MAPE
-    mape = df_preds['MAPE'].mean()
-    
-    # put all metrics and graph in expander for linear regression e.g. benchmark model
-    with st.expander(':information_source: LRM ', expanded=True):
-        st.markdown('<h2 style="text-align:center"> Linear Regression </h2></p>', unsafe_allow_html=True)
-        # show metrics
-        col0, col1, col2, col3, col4 = st.columns([2, 3, 3, 3, 1])
-        # Display the evaluation metrics
-        with col1: 
-            st.metric(':red[**MAPE:**]', delta=None, value = "{:.2%}".format(mape))
-        with col2:
-            st.metric(':red[**RMSE:**]', delta = None, value = round(rmse,2))
-        with col3: 
-            st.metric(':green[**R-squared:**]',  delta=None, value= round(r2, 2))
         
-        # show model linear regression result metrics MAPE in sidebar
-        model_name = "Linear Regression"
-        #mape = mape
-        session_state["df"] = update_dataframe(session_state["df"], model_name, mape)
-        # Display the updated table in Streamlit
-        with st.sidebar:
-            # Display the updated table in Streamlit
-            st.dataframe(session_state["df"])
-
-        ################################################################
-        # Create the line chart with Plotly
-        ################################################################
-        # Plot the predictions versus actual results
-        # Combine X_test, y_test and y_pred into a single DataFrame
-        
-        df_X_test = X_test.copy()
-        df_X_test['Actual'] = y_test
-        df_X_test['Insample Prediction'] = y_pred
-        #???? has independent variables next to actual and insample columns added
-        # check to optimize
-        #st.write(df_X_test)
-        #????
-        # Define the color palette
-        colors = ['#5276A7', '#60B49F']
-        # Create the figure with easy on eyes colors
-        fig = px.line(df_X_test, x=X_test.index, y=['Actual', 'Insample Prediction'],
-                      color_discrete_sequence=colors)
-        # Update the layout of the figure
-        fig.update_layout(
-            title='',
-            xaxis_title='',
-            yaxis_title='',
-            legend_title='Legend',
-            font=dict(family='Arial', size=12, color='#707070'),
-            yaxis=dict(gridcolor='#E1E1E1'),
-            xaxis=dict(gridcolor='#E1E1E1'))
-        # Set the line colors
-        for i in range(len(colors)):
-            fig.data[i].line.color = colors[i]
-        fig.update_layout(yaxis=dict(gridcolor='#E1E1E1', range=[0, max(df_X_test['Actual'])]),
-                          xaxis=dict(gridcolor='#E1E1E1'),
-                          legend=dict(yanchor="bottom",
-                                      y=0.0,
-                                      xanchor="center",
-                                      x=0.99))
-        # Render the chart in Streamlit
-        st.plotly_chart(fig, use_container_width=True)     
-        # show the dataframe
-        st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
-        
-        #####################################################################
-        # DOWNLOAD BUTTON
-        #####################################################################
-        # create download button for forecast results to .csv
-        csv = convert_df(df_preds)
-        col1, col2, col3 = st.columns([2,2,2])
-        with col2: 
-            st.download_button(":arrow_down: Download",
-                               csv,
-                               "forecast_linear_regression_model.csv",
-                               "text/csv",
-                               key='download-csv_lrm',
-                               help = "Download your in-sample forecast to .CSV file")
-
-if uploaded_file is not None:    
-    #col1, col2, col3, col4 = st.columns([1,5,5,1])
+    ################################################
+    # Create a User Form to Select Model(s) to train
+    ################################################
+    
     with st.form('model_train_form'):
         # set title
-        my_header('''Add Models to Evaluation''')
+        my_header('''Add Models to Evaluation ✅''')
+       
+        # define all models you want user to choose from
+        models = [('Linear Regression', LinearRegression(fit_intercept=True)), ('SARIMAX', SARIMAX(y_train))]
+        # create a checkbox for each model
+        selected_models = []
+        for model_name, model in models:
+      
+            if st.checkbox(model_name):
+                selected_models.append((model_name, model))
         # set vertical spacers
         col1, col2, col3 = st.columns([4,2,4])
-        # define all models you want user to choose from
-        models = [('ARIMAX', None)]
-        # create a checkbox in column 2 
         with col2:
-            selected_models = [model_name for model_name, _ in models if st.checkbox(model_name)]
-        param_grid = {
-                        'ARIMAX': {
-                            'order': [(1, 1, 1), (2, 1, 1)],
-                            'seasonal_order': [(1, 0, 0, 12), (0, 1, 0, 12)]
-                        },
-                        'Prophet': {
-                            'changepoint_prior_scale': [0.001, 0.01, 0.1],
-                            'seasonality_prior_scale': [0.01, 0.1, 1.0]
-                        }
-                    }
+            train_models_btn = st.form_submit_button("Submit", type="primary")
         
-        # create a subset of hyperparameters to search over
-        param_subset = {model_name: {k: param_grid[model_name][k][:2] for k in param_grid[model_name]} for model_name in selected_models}
-
-        st.info(':information_source: This will require time to train... Click the **"Submit"** button and grab coffee ☕ or tea 🍵')
-        with col2: 
-            #train_models_btn = st.button('Train selected models', type="primary")
-            train_models_btn = st.form_submit_button("Submit")
-            # the code block to train the selected models will only be executed if both the button has been clicked and the list of selected models is not empty.
-            selected_models = st.session_state.get("selected_models", [])
-    if train_models_btn==False:
-        pass
-    elif train_models_btn==True:
-        # APPLY MY CUSTOM FUNCTION
-        with st.expander(':information_source: ARIMAX', expanded=True):
-            my_df, preds = train_my_models(y_train, X_train, X_test, y_test, selected_models)
-            st.dataframe(my_df.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
-            my_download_button(my_df, my_file="forecast_arima_model.csv")
-            # Update the dataframe with the new results
-            mape, mse, rmse, r2 = my_metrics(my_df)
-
-        # show model ARIMAX result metrics MAPE in sidebar
-        #if st.button('test'):
-        with st.sidebar:
-            model_name = "ARIMAX"
-            #mape = mape
-            session_state["df"] = update_dataframe(session_state["df"], model_name, mape)
-        #else:
-        #    pass  
+        # the code block to train the selected models will only be executed if both the button has been clicked and the list of selected models is not empty.
+        if train_models_btn and not selected_models:
+            st.warning("Please select at least one model to train!🏋️‍♂️")
+    if train_models_btn and selected_models:
+        # iterate over all models and if user selected checkbox for model the model(s) is/are trained
+        for model_name, model in selected_models:
+            if model_name == "Linear Regression":
+                create_streamlit_model_card(X_train, y_train, X_test, y_test, model=model, model_name=model_name)
+            if model_name == "SARIMAX":
+                st.info(':information_source: This might require some time to train... you can grab a coffee ☕ or tea 🍵')
+                import statsmodels.api as sm
+                preds_df = evaluate_sarimax_model(order=(1,1,1), seasonal_order=(1,1,1,12), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
+                st.dataframe(preds_df)    
+                display_my_metrics(preds_df, "SARIMAX")
 # =============================================================================
+# # =============================================================================        
+#         # show model linear regression result metrics MAPE in sidebar
+#         model_name = "Linear Regression"
+#         #mape = mape
+# # =============================================================================
+# #         session_state["df"] = update_dataframe(session_state["df"], model_name, mape)
+# #         # Display the updated table in Streamlit
+# #         with st.sidebar:
+# #             # Display the updated table in Streamlit
+# #             st.dataframe(session_state["df"])
+# # =============================================================================
+#         # Update the dataframe with the new model results        
+#         df = update_dataframe(df, model_name, mape)
+#         # Store the updated dataframe back in the session state
+#         session_state["df"] = df
+# =============================================================================
+
+# =============================================================================
+#         param_grid = {
+#                         'ARIMAX': {
+#                             'order': [(1, 1, 1), (2, 1, 1)],
+#                             'seasonal_order': [(1, 0, 0, 12), (0, 1, 0, 12)]
+#                         },
+#                         'Prophet': {
+#                             'changepoint_prior_scale': [0.001, 0.01, 0.1],
+#                             'seasonality_prior_scale': [0.01, 0.1, 1.0]
+#                         }
+#                     }
+#         
+#         # create a subset of hyperparameters to search over
+#         param_subset = {model_name: {k: param_grid[model_name][k][:2] for k in param_grid[model_name]} for model_name in selected_models}
+# 
+#         
+#         # APPLY MY CUSTOM FUNCTION
+#         with st.expander(':information_source: ARIMAX', expanded=True):
+#             my_df, preds = train_my_models(y_train, X_train, X_test, y_test, selected_models)
+#             st.dataframe(my_df.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+#             download_csv_button(my_df, my_file="forecast_arima_model.csv")
+#           
+#         # show model ARIMAX result metrics MAPE in sidebar
 #         with st.sidebar:
-#             element.dataframe(df_metrics)
+#             model_name = "ARIMAX"
 # =============================================================================
-    else:
-        # if button to train models is not clicked -> do nothing
-        pass
-else:
-    # if no .csv is uploaded -> do nothing
-    pass
-
-
+# =============================================================================
+#             #mape = mape
+#             # Update the dataframe with the new results
+#             mape, mse, rmse, r2 = my_metrics(my_df)
+#             session_state["df"] = update_dataframe(session_state["df"], model_name, mape)
+#             # Display the updated table in Streamlit
+#             st.dataframe(session_state["df"])
+# =============================================================================
+# =============================================================================
+#         mape, mse, rmse, r2 = my_metrics(my_df)        
+#         df = update_dataframe(df, model_name, mape)
+#         session_state["df"] = df
+#     else:
+#         # if button to train models is not clicked -> do nothing
+#         pass
+# else:
+#     # if no .csv is uploaded -> do nothing
+#     pass
+# 
+# =============================================================================
 ##############################################################################
 # 6. Forecast
 ##############################################################################
@@ -907,7 +1017,6 @@ if uploaded_file is not None:
             day = max_date.day
             start_date_calendar = df['date'].min()
             end_date_calendar = df['date'].max()
-            
             
             col1, col2 = st.columns(2)
             with col1: 
