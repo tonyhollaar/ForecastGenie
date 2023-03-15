@@ -41,6 +41,14 @@ st.set_page_config(page_title="ForecastGenie",
                    layout="centered", # "centered" or "wide"
                    page_icon="🌀", 
                    initial_sidebar_state="auto") # "auto" or "expanded" or "collapsed"
+
+###############################################################################
+# SET VARIABLES
+###############################################################################
+# create an empty dictionary to store the results of the models
+# that I call after I train the models to display on sidebar under hedaer "Evaluate Models"
+metrics_dict = {}
+
 ###############################################################################
 # FUNCTIONS
 ###############################################################################
@@ -119,9 +127,6 @@ def my_holiday_name_func(my_date):
       return holiday_name
     else: 
      return holiday_name[0]
-
-# create an empty dictionary to store the results
-metrics_dict = {}
 
 def my_metrics(my_df, model_name):
    mape = my_df['MAPE'].mean()
@@ -219,7 +224,7 @@ def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, mo
     
     # add the results to sidebar for quick overview for user  
     # set as global variable to be used in code outside function
-    results_df = results_df.append({'model_name': model_name, 'mape': '{:.2%}'.format(mape)}, ignore_index=True)
+    results_df = results_df.append({'model_name': model_name, 'mape': '{:.2%}'.format(mape),'rmse': rmse, 'r2':r2}, ignore_index=True)
     
     with st.expander(':information_source: '+ model_name, expanded=True):
         display_my_metrics(my_df=df_preds, model_name=model_name)
@@ -304,53 +309,6 @@ def remove_object_columns(df):
     st.write(obj_cols_to_remove)
     df = df.drop(columns=obj_cols_to_remove)
     return df
-
-###############################################################################
-# I want the dataframe with model name and metrics in sidebar to 
-# update when additional model(s) are trained
-###############################################################################
-# =============================================================================
-# # Define a function to update the dataframe
-# def update_dataframe(df, model_name, mape):
-#     # Check if model already exists in dataframe
-#     if model_name in df["Model"].tolist():
-#         # Replace the row
-#         df.loc[df['Model'] == model_name, 'MAPE'] = "{:.2f}%".format(mape*100)
-#     else:
-#         # Add new row
-#         new_row = {"Model": model_name, "MAPE": "{:.2f}%".format(mape*100)}
-#         df = df.append(new_row, ignore_index=True)
-#     return df
-# 
-# # Define a function to initialize the dataframe
-# # check if the dataframe already exists in the session state. 
-# # If it does, it will return that dataframe. If it does not exist, 
-# # it will create a new one, store it in the session state, and return it.
-# def initialize_dataframe():
-#     if "df" in session_state:
-#         return session_state["df"]
-#     else:
-#         df = pd.DataFrame(columns=["Model", "MAPE"])
-#         session_state["df"] = df
-#         return df
-#     
-# # Initialize the dataframe using SessionState
-# session_state = st.session_state.setdefault("state", {})
-# session_state.setdefault("df", pd.DataFrame(columns=["Model", "MAPE"]))
-# 
-# # Get the current dataframe from the session state
-# df = session_state["df"]
-# 
-# if "df" not in session_state:
-#     session_state["df"] = initialize_dataframe() 
-#     
-# # Update the dataframe with the new results
-# #mape, mse, rmse, r2 = my_metrics(my_df)
-# session_state["df"] = update_dataframe(session_state["df"], 'Linear Regression', 'test_mape')
-# # Display the updated table in Streamlit
-# st.dataframe(session_state["df"])
-# =============================================================================
-
 
 ###############################################################################
 # Create Left-Sidebar Streamlit App
@@ -637,6 +595,7 @@ if uploaded_file is not None:
         st.write('**re-order dataframe TODO**')
         st.dataframe(df)     
         download_csv_button(df, my_file="dataframe_incl_features.csv", help_message="Download your dataset incl. features to .CSV")    
+    
     ###############################################################################
     # 3. Prepare Data (split into training/test)
     ###############################################################################
@@ -659,7 +618,7 @@ if uploaded_file is not None:
         my_subheader('How many days you want to use as your test-set?')
         st.caption(f'<h6> <center> *NOTE: A commonly used ratio is 80:20 split between train and test </center> <h6>', unsafe_allow_html=True)
 
-        #### create sliders for user insample test-size (/train-size automatically as well)
+        # create sliders for user insample test-size (/train-size automatically as well)
         def update(change):
             if change == 'steps':
                 st.session_state.steps = st.session_state.steps
@@ -692,8 +651,6 @@ if uploaded_file is not None:
         perc_test_set = "{:.2f}%".format((my_insample_forecast_steps/len(df))*100)
         perc_train_set = "{:.2f}%".format(((len(df)-my_insample_forecast_steps)/len(df))*100)
        
-        
-    
         ######################################################################################################
         # define dynamic user picked test-set size / train size for X,y, X_train, X_test, y_train, y_test
         # based on user picked my_insample_forecast_steps
@@ -742,6 +699,7 @@ if uploaded_file is not None:
         st.plotly_chart(fig2, use_container_width=True)
         
         st.warning(f":information_source: train/test split equals :green[**{perc_train_set}**] and :green[**{perc_test_set}**] ")
+    
     ###############################################################################
     # 4. Feature Selection
     ###############################################################################
@@ -860,77 +818,36 @@ if uploaded_file is not None:
     ##############################################################
     selected_cols = ["total_traffic"] + list(selected_features_mi)
     st.info(f'the columns you selected are: {selected_cols}')
-# =============================================================================
-#     df_filtered = local_df[selected_cols].copy(deep=True)
-# 
-#     # CHANGE DATAFRAME TO ONLY FILTERED COLUMNS
-#     #The pmarima library does not automatically perform dummy coding for boolean variables, so you would need to convert them to integers yourself before passing them to the arimax function
-# # =============================================================================
-# #     def convert_uint8_to_bool(df):
-# #         uint8_cols = df.select_dtypes(include="uint8").columns
-# #         bool_cols = {col: bool for col in uint8_cols}
-# #         return df.astype(bool_cols)
-# # =============================================================================
 
-#     X = df_filtered.iloc[:, 1:]
-#     y = df_filtered.iloc[:, 0:1]
-#     X_train = df_filtered.iloc[:, 1:][:(len(df_filtered)-my_insample_forecast_steps)]
-#     X_test = df_filtered.iloc[:, 1:][(len(df_filtered)-my_insample_forecast_steps):]
-#     # set endogenous variable train/test split
-#     y_train = df_filtered.iloc[:, 0:1][:(len(df_filtered)-my_insample_forecast_steps)]
-#     y_test = df_filtered.iloc[:, 0:1][(len(df_filtered)-my_insample_forecast_steps):]
-# =============================================================================
-# =============================================================================
-#     
-#     ###############################################################################
-#     # 5. Evaluate Model Performance
-#     ###############################################################################
-#     my_title("5. Evaluate Model Performance 🔎", "#0072B2")
-#     with st.sidebar:
-#         my_title("Evaluate Model Performance 🔎", "#0072B2")
-#     ####################################
-#     # create checkboxes
-#     col1, col2, col3, col4 = st.columns([1,5,5,1])
-#     with st.form('model_train_form'):
-#         # set title
-#         my_header('''Add Models to Evaluation''')
-#         # set vertical spacers
-#         col1, col2, col3 = st.columns([4,2,4])
-#         # define all models you want user to choose from
-#         models = [('Linear Regression', 'Arimax')]
-#         # create a checkbox in column 2 
-#         with col2:
-#             selected_models = [model_name for model_name, _ in models if st.checkbox(model_name)]
-#         st.info(':information_source: This will require time to train... Click the **"Submit"** button and grab coffee ☕ or tea 🍵')
-#         with col2: 
-#             #train_models_btn = st.button('Train selected models', type="primary")
-#             train_models_btn = st.form_submit_button("Submit")
-#             # the code block to train the selected models will only be executed if both the button has been clicked and the list of selected models is not empty.
-#             selected_models = st.session_state.get("selected_models", [])
-#     if train_models_btn==False:
-#         pass
-#     elif train_models_btn==True:
-#         #***********************************
-#         # Linear Regression Model
-#         #***********************************
-#         create_streamlit_model_card(X_train, y_train, X_test, y_test, model=LinearRegression(fit_intercept=True), model_name="Linear Regression")
-# 
-# =============================================================================
 ###############################################################################
 # 5. Evaluate Model Performance
 ###############################################################################
 if uploaded_file is not None:
-    my_title("5. Evaluate Model Performance 🔎", "#0072B2")
+    my_title("5. Select Models 🔢", "#0072B2")
     with st.sidebar:
-        my_title("Evaluate Model Performance 🔎", "#0072B2")
-        
+        my_title("Select Models 🔢", "#0072B2")
+    with st.expander('🗒️ Linear Regression', expanded=True):
+        st.markdown('''
+                    `Linear regression` is a statistical method used to analyze the relationship between a dependent variable and one or more independent variables. 
+                    It involves finding a line or curve that best fits the data and can be used to make predictions. 
+                    The method assumes that the relationship between the variables is linear and that errors are uncorrelated.
+                    
+                    To find this line, we use a technique called least squares regression, which involves finding the line that minimizes the sum of the squared differences between the predicted values and the actual values. 
+                    The line is described by the equation:  
+                    
+                    $$\\large Y = \\beta_0 + \\beta_1 X$$
+                
+                    where:
+                    - $Y$ is the dependent variable
+                    - $X$ is the independent variable
+                    - $\\beta_0$ is the intercept (the value of $Y$ when $X = 0$)
+                    - $\\beta_1$ is the slope (the change in $Y$ for a unit change in $X$)
+                    ''')
+
     ################################################
     # Create a User Form to Select Model(s) to train
     ################################################
-    with st.form('model_train_form'):
-        # set title
-        my_header('''Add Models to Evaluation''')
-       
+    with st.sidebar.form('model_train_form'):      
         # define all models you want user to choose from
         models = [('Linear Regression', LinearRegression(fit_intercept=True)), ('SARIMAX', SARIMAX(y_train))]
         # create a checkbox for each model
@@ -939,20 +856,32 @@ if uploaded_file is not None:
             if st.checkbox(model_name):
                 selected_models.append((model_name, model))
         # set vertical spacers
-        col1, col2, col3 = st.columns([4,2,4])
+        col1, col2, col3 = st.columns([2,3,2])
         with col2:
             train_models_btn = st.form_submit_button("Submit", type="primary")
-        # the code block to train the selected models will only be executed if both the button has been clicked and the list of selected models is not empty.
-        if train_models_btn and not selected_models:
-            st.warning("Please select at least one model to train!🏋️‍♂️")
+    #if nothing is selected by user display message to user to select models to train
+    if not train_models_btn and not selected_models:
+        st.warning("👈 Select your models to train in the sidebar!🏋️‍♂️") 
+    # the code block to train the selected models will only be executed if both the button has been clicked and the list of selected models is not empty.
+    elif not selected_models:
+        st.warning("👈 Please select at least 1 model to train from the sidebar, when pressing the **\"Submit\"** button!🏋️‍♂️")
+    
+    my_title("6. Evaluate Models 🔎", "#2CB8A1")
+    with st.sidebar:
+        my_title("Evaluate Models 🔎", "#2CB8A1")
+        
     if train_models_btn and selected_models:
         # Create a global pandas DataFrame to hold model_name and mape values
-        results_df = pd.DataFrame(columns=['model_name', 'mape'])
+        results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2'])
         # iterate over all models and if user selected checkbox for model the model(s) is/are trained
         for model_name, model in selected_models:
             if model_name == "Linear Regression":
                 create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df,  model=model, model_name=model_name)
-                results_df = results_df.append({'model_name': 'Linear Regression', 'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape'])}, ignore_index=True)
+                #results_df = results_df.append({'model_name': 'Linear Regression', 'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape'])}, 'rmse': rmse, 'r2':r2, ignore_index=True)
+                results_df = results_df.append({'model_name': 'Linear Regression', 
+                                                'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
+                                                'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']), 
+                                                'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2'])}, ignore_index=True)
             if model_name == "SARIMAX":
                 with st.expander(':information_source: '+ model_name, expanded=True):
                     with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):
@@ -970,75 +899,12 @@ if uploaded_file is not None:
         # Show the results dataframe in the sidebar if there is at least one model selected
         if len(selected_models) > 0:
             st.sidebar.dataframe(results_df)
-# =============================================================================
-# # =============================================================================        
-#         # show model linear regression result metrics MAPE in sidebar
-#         model_name = "Linear Regression"
-#         #mape = mape
-# # =============================================================================
-# #         session_state["df"] = update_dataframe(session_state["df"], model_name, mape)
-# #         # Display the updated table in Streamlit
-# #         with st.sidebar:
-# #             # Display the updated table in Streamlit
-# #             st.dataframe(session_state["df"])
-# # =============================================================================
-#         # Update the dataframe with the new model results        
-#         df = update_dataframe(df, model_name, mape)
-#         # Store the updated dataframe back in the session state
-#         session_state["df"] = df
-# =============================================================================
 
-# =============================================================================
-#         param_grid = {
-#                         'ARIMAX': {
-#                             'order': [(1, 1, 1), (2, 1, 1)],
-#                             'seasonal_order': [(1, 0, 0, 12), (0, 1, 0, 12)]
-#                         },
-#                         'Prophet': {
-#                             'changepoint_prior_scale': [0.001, 0.01, 0.1],
-#                             'seasonality_prior_scale': [0.01, 0.1, 1.0]
-#                         }
-#                     }
-#         
-#         # create a subset of hyperparameters to search over
-#         param_subset = {model_name: {k: param_grid[model_name][k][:2] for k in param_grid[model_name]} for model_name in selected_models}
-# 
-#         
-#         # APPLY MY CUSTOM FUNCTION
-#         with st.expander(':information_source: ARIMAX', expanded=True):
-#             my_df, preds = train_my_models(y_train, X_train, X_test, y_test, selected_models)
-#             st.dataframe(my_df.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
-#             download_csv_button(my_df, my_file="forecast_arima_model.csv")
-#           
-#         # show model ARIMAX result metrics MAPE in sidebar
-#         with st.sidebar:
-#             model_name = "ARIMAX"
-# =============================================================================
-# =============================================================================
-#             #mape = mape
-#             # Update the dataframe with the new results
-#             mape, mse, rmse, r2 = my_metrics(my_df)
-#             session_state["df"] = update_dataframe(session_state["df"], model_name, mape)
-#             # Display the updated table in Streamlit
-#             st.dataframe(session_state["df"])
-# =============================================================================
-# =============================================================================
-#         mape, mse, rmse, r2 = my_metrics(my_df)        
-#         df = update_dataframe(df, model_name, mape)
-#         session_state["df"] = df
-#     else:
-#         # if button to train models is not clicked -> do nothing
-#         pass
-# else:
-#     # if no .csv is uploaded -> do nothing
-#     pass
-# 
-# =============================================================================
 ##############################################################################
 # 6. Forecast
 ##############################################################################
 if uploaded_file is not None:
-    my_title('6. Forecast 🔮', "#48466D")   
+    my_title('7. Forecast 🔮', "#48466D")   
     with st.sidebar:
         my_title('Forecast 🔮', "#48466D")                    
         with st.expander("📆 ", expanded=True):
