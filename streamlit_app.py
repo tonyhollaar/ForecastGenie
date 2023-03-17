@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Streamlit App to Forecast Website Traffic
-Created on Mon Mar  6 17:02:34 2023
+Created on Mon Mar 6 17:02:34 2023
 @author: tholl
 """
 # Import required packages
@@ -83,20 +83,25 @@ def evaluate_sarimax_model(order, seasonal_order, exog_train, exog_test, endog_t
 
 def my_title(my_string, my_background_color="#45B8AC"):
     st.markdown(f'<h3 style="color:#FFFFFF; background-color:{my_background_color}; padding:5px; border-radius: 5px;"> <center> {my_string} </center> </h3>', unsafe_allow_html=True)
+
 def my_header(my_string, my_style="#217CD0"):
     #st.markdown(f'<h2 style="text-align:center"> {my_string} </h2>', unsafe_allow_html=True)
     st.markdown(f'<h2 style="color:{my_style};"> <center> {my_string} </center> </h2>', unsafe_allow_html=True)
+
 def my_subheader(my_string, my_style="#217CD0", my_size=5):
     st.markdown(f'<h{my_size} style="color:{my_style};"> <center> {my_string} </center> </h{my_size}>', unsafe_allow_html=True)
+
 def my_subheader_metric(string1, color1="#cfd7c2", metric=0, color2="#FF0000", my_style="#000000", my_size=5):
     metric_rounded = "{:.2%}".format(metric)
     metric_formatted = f"<span style='color:{color2}'>{metric_rounded}</span>"
     string1 = string1.replace(f"{metric}", f"<span style='color:{color1}'>{metric_rounded}</span>")
     st.markdown(f'<h{my_size} style="color:{my_style};"> <center> {string1} {metric_formatted} </center> </h{my_size}>', unsafe_allow_html=True)
+
 def wait(seconds):
     start_time = time.time()
     with st.spinner(f"Please wait... {int(time.time() - start_time)} seconds passed"):
         time.sleep(seconds)     
+
 @st.cache_data
 def my_holiday_name_func(my_date):
     """
@@ -175,18 +180,38 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
         X_test (pd.DataFrame): Test input data.
         y_test (pd.DataFrame): Test output data.
         model_type (str): Type of regression model to use. Default is "linear".
+        lag (str): Lag for seasonal naive model. Options are "day", "week", "month", and "year". Default is None.
         **kwargs: Optional keyword arguments to pass to the regression model.
 
     Returns:
         df_preds (pd.DataFrame): DataFrame of predicted and actual values on test data.
     """
-    # Train the model using the training sets
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
+    # this is for the baseline Naive Model to get a sense of how the model will perform for y_t-1 just having lag of itself 
+    # e.g. a day, a week or a month
+    if 'lag' in kwargs and kwargs['lag'] is not None:
+        lag = kwargs['lag']
+        if lag == 'day':
+            y_pred = y_test.shift(1) # .fillna(method='bfill') # method{‘backfill’,‘ffill’, None}, default None
+        elif lag == 'week':
+            y_pred = y_test.shift(7) #.fillna(method='bfill')
+        elif lag == 'month':
+            y_pred = y_test.shift(30) #.fillna(method='bfill')
+        elif lag == 'year':
+            y_pred = y_test.shift(365) #.fillna(method='bfill')
+        elif lag == 'custom':
+            y_pred = y_test.shift(custom_lag_value)
+        else:
+            raise ValueError('Invalid value for "lag". Must be "day", "week", "month", or "year".')
+    else:
+        # Train the model using the training sets
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
     # Create dataframe for insample predictions versus actual
     df_preds = pd.DataFrame({'Actual': y_test.squeeze(), 'Predicted': y_pred.squeeze()})
     # set the index to just the date portion of the datetime index
     df_preds.index = df_preds.index.date
+    # Drop rows with N/A values
+    df_preds.dropna(inplace=True)
     # Calculate percentage difference between actual and predicted values and add it as a new column
     df_preds = df_preds.assign(Percentage_Diff = ((df_preds['Predicted'] - df_preds['Actual']) / df_preds['Actual']))
     # Calculate MAPE and add it as a new column
@@ -311,7 +336,7 @@ def remove_object_columns(df):
     return df
 
 ###############################################################################
-# Create Left-Sidebar Streamlit App
+# Create Left-Sidebar Streamlit App with Title + About Information
 ###############################################################################
 # TITLE PAGE + SIDEBAR TITLE
 with st.sidebar:   
@@ -408,11 +433,99 @@ if uploaded_file is not None:
             df_graph = df_graph.set_index('date')
             ## display/plot graph of dataframe
             st.line_chart(df_graph)
-            
     ###############################################################################
-    # 2. Feature Engineering
+    # 2. Data Cleaning
+    ############################################################################### 
+    my_title("2. Data Cleaning 🧹", "#C58FE4")
+    with st.sidebar:
+        my_title("Data Cleaning 🧹 ", "#C58FE4")        
+        st.info('Please select options below:')
+    #########################################################    
+    with st.expander('� Missing Values', expanded=True):
+        #########################################################
+        my_subheader('Handling missing values')
+        #########################################################    
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+
+        # Create matrix of missing values
+        missing_matrix = df.isnull()
+        
+        # Create Plotly Express figure
+        my_subheader('Missing Values Matrix Plot', my_style="#333333", my_size=6)
+        fig = px.imshow(missing_matrix,
+                        labels=dict(x="Variables", y="Observations"),
+                        x=missing_matrix.columns,
+                        y=missing_matrix.index,
+                        color_continuous_scale='Viridis',
+                        title='')
+        # Set Plotly configuration options
+        fig.update_layout(width=400, height=400)
+        fig.update_traces(showlegend=False)
+        
+        # Display Plotly Express figure in Streamlit
+        st.plotly_chart(fig, use_container_width=True)
+         
+        # Create a copy of the original DataFrame with NaN cells highlighted in yellow
+        highlighted_df = df.style.highlight_null(null_color='yellow')
+        
+        # Display original DataFrame with highlighted NaN cells
+        st.write('## Original DataFrame')
+        styled_html = highlighted_df.render()
+        styled_html = f'<div style="height: 400px; overflow-y: auto;">{styled_html}</div>'
+        container_html = f'<div style="display: flex; justify-content: center;">{styled_html}</div>'
+        st.write(container_html, unsafe_allow_html=True)
+             
+        # check if there are no dates skipped for daily data
+        missing_dates = pd.date_range(start=df['date'].min(), end=df['date'].max()).difference(df['date'])
+        if missing_dates.shape[0] == 0:
+            st.info('Pweh 😅, no dates are skipped in your dataframe!')
+
+        # Create table of missing values by date
+        missing_values_table = pd.DataFrame(columns=['Date', 'Missing Value'])
+        for date in df['date']:
+            if df[df['date'] == date].isnull().values.any():
+                missing_value = df[df['date'] == date].iloc[0, 1] # Extract missing value based on column position
+                missing_values_table = missing_values_table.append({'Date': date, 'Missing Value': missing_value}, ignore_index=True)
+        
+        # Display missing values by date table       
+        my_subheader('Missing Values by Date', my_style="#333333", my_size=6)
+        st.table(missing_values_table)
+        #******************************************************************
+        # resample dates
+        #******************************************************************
+        # set date column as index
+        df_total.set_index('date', inplace=True)
+        # resample to daily frequency and fill in missing values with NaNs
+        daily_df = df_total.resample('D').asfreq()
+
+        # get user input for filling method
+        fill_method = st.sidebar.selectbox('Select filling method:', ['backfill', 'forwardfill', 'mean', 'median'])
+        
+        # handle missing values based on user input
+        if fill_method == 'backfill':
+            df_total = df_total.bfill()
+        elif fill_method == 'forwardfill':
+            df_total = df_total.ffill()
+        elif fill_method == 'mean':
+            df_total.iloc[:,1] = df_total.iloc[:,1].fillna(df_total.iloc[:,1].mean())
+        elif fill_method == 'median':
+            df_total.iloc[:,1]  = df_total.iloc[:,1] .fillna(df_total.iloc[:,1].median())
+        
+        # display cleaned dataframe in Streamlit
+        st.write('Cleaned Dataframe:')
+        st.write(df_total)        
+    
+    with st.expander('', expanded=True):
+        #########################################################
+        my_subheader('Handling outliers 😇😈😇')
+        #########################################################
+        
+        
     ###############################################################################
-    my_title("2. Feature Engineering 🧰", "#FF6F61")
+    # 3. Feature Engineering
+    ###############################################################################
+    my_title("3. Feature Engineering 🧰", "#FF6F61")
     with st.sidebar:
         my_title("Feature Engineering 🧰", "#FF6F61")  
         st.info(''' Select your explanatory variables''')
@@ -597,9 +710,9 @@ if uploaded_file is not None:
         download_csv_button(df, my_file="dataframe_incl_features.csv", help_message="Download your dataset incl. features to .CSV")    
     
     ###############################################################################
-    # 3. Prepare Data (split into training/test)
+    # 4. Prepare Data (split into training/test)
     ###############################################################################
-    my_title('3. Prepare Data 🧪', "#FFB347")
+    my_title('4. Prepare Data 🧪', "#FFB347")
     with st.sidebar:
         my_title('Prepare Data 🧪', "#FFB347")
     
@@ -701,9 +814,9 @@ if uploaded_file is not None:
         st.warning(f":information_source: train/test split equals :green[**{perc_train_set}**] and :green[**{perc_test_set}**] ")
     
     ###############################################################################
-    # 4. Feature Selection
+    # 5. Feature Selection
     ###############################################################################
-    my_title('4. Feature Selection 🍏🍐🍋', "#CBB4D4")
+    my_title('5. Feature Selection 🍏🍐🍋', "#CBB4D4")
     with st.sidebar:
         my_title('Feature Selection 🍏🍐🍋', "#CBB4D4")
     st.info('Let\'s review your top features to use in analysis ')
@@ -820,20 +933,47 @@ if uploaded_file is not None:
     st.info(f'the columns you selected are: {selected_cols}')
 
 ###############################################################################
-# 5. Evaluate Model Performance
+# 6. Select Models
 ###############################################################################
 if uploaded_file is not None:
-    my_title("5. Select Models 🔢", "#0072B2")
+    my_title("6. Select Models 🔢", "#0072B2")
     with st.sidebar:
         my_title("Select Models 🔢", "#0072B2")
-    with st.expander('🗒️ Linear Regression', expanded=True):
+    with st.expander('🗒️ Naive Model', expanded=True):
+        st.markdown('''
+                    The `Naive Model` is one of the simplest forecasting models in time series analysis. 
+                    It assumes that the value of a variable at any given time is equal to the value of the variable at the previous time period. 
+                    This means that this model is a special case of an **A**uto**R**egressive model of order 1, also known as $AR(1)$.  
+                    
+                    The Naive Model is useful as a baseline model to compare more complex forecasting models, such as ARIMA, exponential smoothing, or machine learning algorithms. 
+                    It is also useful when the underlying data generating process is highly unstable or unpredictable, and when there is no trend, seasonality, or other patterns to capture.
+                    The Naive Model can be expressed as a simple equation:
+                    
+                    $\hat{y}_{t} = y_{t-1}$
+                    
+                    where:
+                    - $y_t$ is the value of the variable at time $t$
+                    - $y_{t-1}$ is the value of the variable at time $_{t-1}$.  
+                    
+                    The Naive Model can be extended to incorporate seasonal effects, by introducing a lag period corresponding to the length of the seasonal cycle. 
+                    For example, if the time series has a weekly seasonality, the Naive Model with a lag of one week is equivalent to the model with a lag of seven days, and is given by:
+                    
+                    $\hat{y}_{t} = y_{t-7}$
+                    
+                    where:
+                    - $y_t$ is the value of the variable at time $t$
+                    - $y_{t-7}$is the value of the variable at time $_{t-7}$ (i.e., one week ago).
+                    
+                    In general, the lag value for the seasonal Naive Model should be determined based on the length of the seasonal cycle in the data, and can be estimated using visual inspection, autocorrelation analysis, or domain knowledge.
+                                        ''')
+    with st.expander('🗒️ Linear Regression', expanded=False):
         st.markdown('''
                     `Linear regression` is a statistical method used to analyze the relationship between a dependent variable and one or more independent variables. 
                     It involves finding a line or curve that best fits the data and can be used to make predictions. 
                     The method assumes that the relationship between the variables is linear and that errors are uncorrelated.
                     
                     To find this line, we use a technique called least squares regression, which involves finding the line that minimizes the sum of the squared differences between the predicted values and the actual values. 
-                    The line is described by the equation:  
+                    The line is described by the equation:
                     
                     $$\\large Y = \\beta_0 + \\beta_1 X$$
                 
@@ -843,22 +983,72 @@ if uploaded_file is not None:
                     - $\\beta_0$ is the intercept (the value of $Y$ when $X = 0$)
                     - $\\beta_1$ is the slope (the change in $Y$ for a unit change in $X$)
                     ''')
+    with st.expander('🗒️ SARIMAX', expanded=False):
+        st.markdown('''
+                    `SARIMAX`, or **S**easonal **A**utoregressive **I**ntegrated **M**oving **A**verage with e**X**ogenous variables, is a popular time series forecasting model.
+                    The ARIMA model is a time series forecasting model that uses past values of a variable to predict future values. 
+                    SARIMAX extends ARIMA by incorporating seasonal patterns and adding exogenous variables that can impact the variable being forecasted.
+                    
+                    - ***p, d, q***: These parameters refer to the autoregressive, integrated, and moving average components, respectively, in the non-seasonal part of the model. They represent the order of the AR, I, and MA terms, respectively.
+                    - ***P, D, Q***: These parameters refer to the autoregressive, integrated, and moving average components, respectively, in the seasonal part of the model. They represent the order of the seasonal AR, I, and MA terms, respectively.
+                    - ***m***: This parameter represents the number of time periods in a season.
+                    - ***Exogenous Variables***: These are external factors that can impact the variable being forecasted. They are included in the model as additional inputs.  
+            
+                    $$\\large  y(t) = c + \sum_{i=1}^{p} \phi_i y(t-i) + \sum_{j=1}^{P} \delta_j y(t-jm) - \sum_{k=1}^{q}  \\theta_k e(t-k) $$   
+                    
+                    $$\\large - \sum_{l=1}^{Q}  \Delta_l e(t-lm) + \sum_{m=1}^{k} \\beta_m x_m(t) + e(t) $$
 
+                    And here's a breakdown of each term in the equation:
+                
+                    - $y(t)$: The value of the variable being forecasted at time $t$.
+                    - $c$: A constant term.
+                    - $\phi_1, \dots, \phi_p$: Autoregressive coefficients for the non-seasonal component, where $p$ is the order of the non-seasonal autoregressive component.
+                    - $\delta_1, \dots, \delta_P$: Autoregressive coefficients for the seasonal component, where $P$ is the order of the seasonal autoregressive component and $m$ is the number of time periods in a season.
+                    - $e(t)$: The error term at time $t$.
+                    - $\\theta_1, \dots, \\theta_q$: Moving average coefficients for the non-seasonal component, where $q$ is the order of the non-seasonal moving average component.
+                    - $\Delta_1, \dots, \Delta_Q$: Moving average coefficients for the seasonal component, where $Q$ is the order of the seasonal moving average component and $m$ is the number of time periods in a season.
+                    - $x_1(t), \dots, x_k(t)$: Exogenous variables at time $t$.
+                    - $\\beta_1$, $\dots$, $\\beta_k$: Coefficients for the exogenous variables.
+                    - $\sum$: The summation operator, used to add up terms over a range of values.
+                    - $i, j, k, l, m$: Index variables used in the summation.
+                    '''
+                    )
     ################################################
     # Create a User Form to Select Model(s) to train
     ################################################
-    with st.sidebar.form('model_train_form'):      
+    with st.sidebar.form('model_train_form'):
+
         # define all models you want user to choose from
-        models = [('Linear Regression', LinearRegression(fit_intercept=True)), ('SARIMAX', SARIMAX(y_train))]
+        models = [('Naive Model', None),('Linear Regression', LinearRegression(fit_intercept=True)), ('SARIMAX', SARIMAX(y_train))]
+        
         # create a checkbox for each model
         selected_models = []
         for model_name, model in models:
             if st.checkbox(model_name):
                 selected_models.append((model_name, model))
+
+            if model_name == "Naive Model":
+                    custom_lag_value = None
+                    lag = st.sidebar.selectbox('*Select your seasonal **lag** for the Naive Model:*', ['None', 'Day', 'Week', 'Month', 'Year', 'Custom'])
+                    if lag == 'None':
+                        lag = None
+                        if custom_lag_value != None:
+                            custom_lag_value = None
+                    elif lag == 'Custom':
+                            lag = lag.lower()
+                            custom_lag_value  = int(st.sidebar.text_input("Enter a value:", value=5))
+                    else:
+                        # lag is lowercase string of selection from user in selectbox
+                        lag = lag.lower()
+            else:
+                st.sidebar.empty()
+            
+                
         # set vertical spacers
         col1, col2, col3 = st.columns([2,3,2])
         with col2:
             train_models_btn = st.form_submit_button("Submit", type="primary")
+    
     #if nothing is selected by user display message to user to select models to train
     if not train_models_btn and not selected_models:
         st.warning("👈 Select your models to train in the sidebar!🏋️‍♂️") 
@@ -866,7 +1056,9 @@ if uploaded_file is not None:
     elif not selected_models:
         st.warning("👈 Please select at least 1 model to train from the sidebar, when pressing the **\"Submit\"** button!🏋️‍♂️")
     
-    my_title("6. Evaluate Models 🔎", "#2CB8A1")
+    ###############################################################################
+    my_title("7. Evaluate Models 🔎", "#2CB8A1")
+    ###############################################################################
     with st.sidebar:
         my_title("Evaluate Models 🔎", "#2CB8A1")
         
@@ -875,9 +1067,27 @@ if uploaded_file is not None:
         results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2'])
         # iterate over all models and if user selected checkbox for model the model(s) is/are trained
         for model_name, model in selected_models:
+            if model_name == "Naive Model":
+                with st.expander(':information_source: '+ model_name, expanded=True):
+                   try:
+                     df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test, lag=lag, custom_lag_value=custom_lag_value)
+                     display_my_metrics(df_preds, "Naive Model")
+                     # plot graph with actual versus insample predictions
+                     plot_actual_vs_predicted(df_preds)
+                     # show the dataframe
+                     st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                     # create download button for forecast results to .csv
+                     download_csv_button(df_preds, my_file="f'forecast_{model_name}_model.csv'", help_message="Download your **Naive** model results to .CSV")
+                     mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
+                     # display evaluation results on sidebar of streamlit_model_card
+                     results_df = results_df.append({'model_name': 'Naive Model', 
+                                                     'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
+                                                     'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']), 
+                                                     'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2'])}, ignore_index=True)
+                   except:
+                       st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
             if model_name == "Linear Regression":
                 create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df,  model=model, model_name=model_name)
-                #results_df = results_df.append({'model_name': 'Linear Regression', 'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape'])}, 'rmse': rmse, 'r2':r2, ignore_index=True)
                 results_df = results_df.append({'model_name': 'Linear Regression', 
                                                 'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
                                                 'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']), 
@@ -895,13 +1105,16 @@ if uploaded_file is not None:
                         download_csv_button(preds_df, my_file="f'forecast_{model_name}_model.csv'", help_message="Download your **SARIMAX** model results to .CSV")
                         mape, rmse, r2 = my_metrics(preds_df, model_name=model_name)
                         # display evaluation results on sidebar of streamlit_model_card
-                        results_df = results_df.append({'model_name': 'ARIMAX', 'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape'])}, ignore_index=True)
+                        results_df = results_df.append({'model_name': 'SARIMAX', 
+                                                        'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
+                                                        'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
+                                                        'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2'])}, ignore_index=True)
         # Show the results dataframe in the sidebar if there is at least one model selected
         if len(selected_models) > 0:
             st.sidebar.dataframe(results_df)
 
 ##############################################################################
-# 6. Forecast
+# 8. Forecast
 ##############################################################################
 if uploaded_file is not None:
     my_title('7. Forecast 🔮', "#48466D")   
@@ -928,3 +1141,4 @@ if uploaded_file is not None:
                 st.markdown(f'<h4 style="color: #48466D; background-color: #F0F2F6; padding: 12px; border-radius: 5px;"><center> Select End Date:</center></h4>', unsafe_allow_html=True)
             with col2:
                 end_date_calendar = st.date_input("", (datetime.date(year, month, day) + datetime.timedelta(days=90)))
+
