@@ -16,7 +16,7 @@ import seaborn as sns
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+#from statsmodels.graphics.tsaplots import plot_pacf
 from statsmodels.tsa.stattools import acf, pacf
 # https://www.statsmodels.org/dev/generated/statsmodels.tsa.stattools.pacf.html#statsmodels.tsa.stattools.pacf
 from statsmodels.tsa.seasonal import seasonal_decompose
@@ -434,7 +434,9 @@ def plot_overview(df, y):
     # Histogram
     fig.add_trace(px.histogram(df, x=y_colname, title='Histogram').data[0], row=6, col=1)
     # Update layout
-    fig.update_layout(height=1600, title='Overview of Patterns')
+    st.markdown('---')
+    my_subheader('Overview of Patterns', my_size=3)
+    fig.update_layout(height=1600, title='')
     # Display in Streamlit app
     st.plotly_chart(fig, use_container_width=True)
 
@@ -446,12 +448,32 @@ def calc_pacf(data, nlags, method):
 
 # Define function to plot PACF
 def plot_pacf(data, nlags, method):
+    '''
+    Plots the partial autocorrelation function (PACF) for a given time series data.
+
+    Parameters:
+    -----------
+    data : pandas.DataFrame
+        The time series data to plot the PACF for.
+    nlags : int
+        The number of lags to include in the PACF plot.
+    method : str
+        The method to use for calculating the PACF. Can be one of "yw" (default), "ols", "ywunbiased", "ywmle", or "ld".
+
+    Returns:
+    --------
+    None.
+
+    Notes:
+    ------
+    This function drops any rows from the input data that contain NaN values before calculating the PACF.
+    The PACF plot includes shaded regions representing the 95% and 99% confidence intervals.
+    '''
     
+    st.markdown('<p style="text-align:center; color: #707070">Partial Autocorrelation (PACF)</p>', unsafe_allow_html=True)
     if data.isna().sum().sum() > 0:
         st.error('''**Warning** ⚠️:              
                  Data contains **NaN** values. **NaN** values were dropped in copy of dataframe to be able to plot below PACF. ''')
-        
-    
     # Drop NaN values if any
     data = data.dropna(axis=0)
     data = data.to_numpy()
@@ -466,17 +488,46 @@ def plot_pacf(data, nlags, method):
         # Color lines based on confidence intervals
         conf95 = 1.96 / np.sqrt(len(data))
         conf99 = 2.58 / np.sqrt(len(data))
+        # define the background shape and color for the 95% confidence band
+        conf_interval_95_background = go.layout.Shape(
+                                        type='rect',
+                                        xref='x',
+                                        yref='y',
+                                        x0=0.5, #lag0 is y with itself so confidence interval starts from lag1 and I want to show a little over lag1 visually so 0.5
+                                        y0=-conf95,
+                                        x1=nlags+1,
+                                        y1=conf95,
+                                        fillcolor='rgba(68, 114, 196, 0.3)',
+                                        line=dict(width=0),
+                                        opacity=0.5
+                                    )
+        # define the background shape and color for the 99% confidence band
+        conf_interval_99_background = go.layout.Shape(
+                                        type='rect',
+                                        xref='x',
+                                        yref='y',
+                                        x0=0.5, #lag0 is y with itself so confidence interval starts from lag1 and I want to show a little over lag1 visually so 0.5
+                                        y0=-conf99,
+                                        x1=nlags+1,
+                                        y1=conf99,
+                                        fillcolor='rgba(68, 114, 196, 0.3)',
+                                        line=dict(width=0),
+                                        opacity=0.4
+                                    )
+        # if absolute value of lag is larger than confidence band 99% then color 'darkred'
         if abs(pacf_vals[i]) > conf99:
             trace.line.color = 'darkred'
             trace.name += ' (>|99%|)'
+        # else if absolute value of lag is larger than confidence band 95% then color 'lightcoral'
         elif abs(pacf_vals[i]) > conf95:
             trace.line.color = 'lightcoral'
             trace.name += ' (>|95%|)'
         traces.append(trace)
     # Set layout of PACF plot
-    layout = go.Layout(title='Partial Autocorrelation (PACF)',
+    layout = go.Layout(title='',
                        xaxis=dict(title='Lag'),
                        yaxis=dict(title='Partial Autocorrelation'),
+                       margin=dict(l=50, r=50, t=0, b=50),
                        shapes=[{'type': 'line', 'x0': -1, 'y0': conf95,
                                 'x1': nlags + 1, 'y1': conf95,
                                 'line': {'color': 'gray', 'dash': 'dash', 'width': 1},
@@ -490,13 +541,152 @@ def plot_pacf(data, nlags, method):
                                 'name': '99% Confidence Interval'},
                                {'type': 'line', 'x0': -1, 'y0': -conf99,
                                 'x1': nlags + 1, 'y1': -conf99,
-                                'line': {'color': 'gray', 'dash': 'dot', 'width': 1}}],
-                       showlegend=True)
+                                'line': {'color': 'gray', 'dash': 'dot', 'width': 1}}, 
+                               conf_interval_95_background, 
+                               conf_interval_99_background],
+                       showlegend=True,
+                       )
+    #layout.shapes.append(conf_interval)
     # Create figure with PACF plot
     fig = go.Figure(data=traces, layout=layout)
     st.plotly_chart(fig)
 
+def calc_acf(data, nlags):
+    '''
+    Calculates the autocorrelation function (ACF) for a given time series data.
 
+    Parameters:
+    -----------
+    data : numpy.ndarray
+        The time series data to calculate the ACF for.
+    nlags : int
+        The number of lags to include in the ACF calculation.
+
+    Returns:
+    --------
+    acf_vals : numpy.ndarray
+        The ACF values for the specified number of lags.
+    '''
+    # Calculate the mean of the input data
+    mean = np.mean(data)
+    # Calculate the autocovariance for each lag
+    acovf = np.zeros(nlags + 1)
+    for k in range(nlags + 1):
+        sum = 0.0
+        for i in range(k, len(data)):
+            sum += (data[i] - mean) * (data[i - k] - mean)
+        acovf[k] = sum / (len(data) - k)
+    # Calculate the ACF by normalizing the autocovariance with the variance
+    acf_vals = np.zeros(nlags + 1)
+    var = np.var(data)
+    acf_vals[0] = 1.0
+    for k in range(1, nlags + 1):
+        acf_vals[k] = acovf[k] / var
+    return acf_vals
+
+def plot_acf(data, nlags):
+    '''
+    Plots the autocorrelation function (ACF) for a given time series data.
+
+    Parameters:
+    -----------
+    data : pandas.DataFrame
+        The time series data to plot the ACF for.
+    nlags : int
+        The number of lags to include in the ACF plot.
+
+    Returns:
+    --------
+    None.
+
+    Notes:
+    ------
+    This function drops any rows from the input data that contain NaN values before calculating the ACF.
+    The ACF plot includes shaded regions representing the 95% and 99% confidence intervals.
+    '''
+    st.markdown('<p style="text-align:center; color: #707070">Autocorrelation (ACF)</p>', unsafe_allow_html=True)
+    if data.isna().sum().sum() > 0:
+        st.error('''**Warning** ⚠️:              
+                 Data contains **NaN** values. **NaN** values were dropped in copy of dataframe to be able to plot below ACF. ''')
+    # Drop NaN values if any
+    data = data.dropna(axis=0)
+    data = data.to_numpy()
+    # Calculate ACF
+    acf_vals = calc_acf(data, nlags)
+    # Create trace for ACF plot
+    traces = []
+    for i in range(nlags + 1):
+        trace = go.Scatter(x=[i, i], y=[0, acf_vals[i]],
+                           mode='lines+markers', name='Lag {}'.format(i),
+                           line=dict(color='blue', width=1))
+        # Color lines based on confidence intervals
+        conf95 = 1.96 / np.sqrt(len(data))
+        conf99 = 2.58 / np.sqrt(len(data))
+        if abs(acf_vals[i]) > conf99:
+            trace.line.color = 'darkred'
+            trace.name += ' (>|99%|)'
+        elif abs(acf_vals[i]) > conf95:
+            trace.line.color = 'lightcoral'
+            trace.name += ' (>|95%|)'
+        traces.append(trace)
+    
+    # define the background shape and color for the 95% confidence band
+    conf_interval_95_background = go.layout.Shape(
+                                                    type='rect',
+                                                    xref='x',
+                                                    yref='y',
+                                                    x0=0.5, #lag0 is y with itself so confidence interval starts from lag1 and I want to show a little over lag1 visually so 0.5
+                                                    y0=-conf95,
+                                                    x1=nlags+1,
+                                                    y1=conf95,
+                                                    fillcolor='rgba(68, 114, 196, 0.3)',
+                                                    line=dict(width=0),
+                                                    opacity=0.5
+                                                )
+    # define the background shape and color for the 99% confidence band
+    conf_interval_99_background = go.layout.Shape(
+                                                    type='rect',
+                                                    xref='x',
+                                                    yref='y',
+                                                    x0=0.5, #lag0 is y with itself so confidence interval starts from lag1 and I want to show a little over lag1 visually so 0.5
+                                                    y0=-conf99,
+                                                    x1=nlags+1,
+                                                    y1=conf99,
+                                                    fillcolor='rgba(68, 114, 196, 0.3)',
+                                                    line=dict(width=0),
+                                                    opacity=0.4
+                                                )
+    # Set layout of ACF plot
+    layout = go.Layout(
+                       title='',
+                       xaxis=dict(title='Lag'),
+                       yaxis=dict(title='Autocorrelation'),
+                       margin=dict(l=50, r=50, t=0, b=50),
+                       shapes=[
+                               {'type': 'line', 'x0': -1, 'y0': conf95,
+                                'x1': nlags + 1, 'y1': conf95,
+                                'line': {'color': 'gray', 'dash': 'dash', 'width': 1},
+                                'name': '95% Confidence Interval'},
+                               {'type': 'line', 'x0': -1, 'y0': -conf95,
+                                'x1': nlags + 1, 'y1': -conf95,
+                                'line': {'color': 'gray', 'dash': 'dash', 'width': 1}},
+                               {'type': 'line', 'x0': -1, 'y0': conf99,
+                                'x1': nlags + 1, 'y1': conf99,
+                                'line': {'color': 'gray', 'dash': 'dot', 'width': 1},
+                                'name': '99% Confidence Interval'},
+                               {'type': 'line', 'x0': -1, 'y0': -conf99,
+                                'x1': nlags + 1, 'y1': -conf99,
+                                'line': {'color': 'gray', 'dash': 'dot', 'width': 1}},
+                               conf_interval_95_background, 
+                               conf_interval_99_background,
+                             ]
+                       )
+    
+    # Define Figure
+    fig = go.Figure(data=traces, layout=layout)
+    # Plot ACF with Streamlit Plotly 
+    st.plotly_chart(fig)    
+    
 ###############################################################################
 # Create Left-Sidebar Streamlit App with Title + About Information
 ###############################################################################
@@ -563,9 +753,9 @@ if uploaded_file is not None:
     st.info('''🗨️ **Great!** your data is loaded, lets take a look :eyes: shall we...''')
     
     # set title
-    my_title('2. Exploratory Data Analysis', my_background_color="#217CD0")
+    my_title('2. Exploratory Data Analysis 🕵️‍♂️', my_background_color="#217CD0")
     with st.sidebar:
-        my_title("Exploratory Data Analysis", "#217CD0")
+        my_title("Exploratory Data Analysis	🕵️‍♂️", "#217CD0")
         
         # Create sliders in sidebar for the parameters of PACF Plot
         st.write("")
@@ -638,13 +828,56 @@ if uploaded_file is not None:
             fig.add_shape(type='rect', x0=0, y0=-1.96/np.sqrt(len(df)), x1=lags, y1=1.96/np.sqrt(len(df)), fillcolor="blue", opacity=0.1, line=dict(width=0))
             fig.update_layout(title=f'Autocorrelation Plot ({df.columns[0]} vs {y})', xaxis_title='Lag', yaxis_title='Autocorrelation')
             st.plotly_chart(fig, use_container_width=True)
-          
+
+    with st.expander('PACF'): 
         # use function to plot Partial ACF 
         data = df_raw.iloc[:,1]
         plot_pacf(data,nlags=nlags, method=method)
+        # Dynamic explanation
+        col1, col2, col3 = st.columns([4,4,4])
+        with col2:
+            show_pacf_btn = st.button(f'PACF Details', use_container_width=True, type='secondary')
+        if show_pacf_btn == True:
+           
+                my_subheader('Partial Autocorrelation Function (PACF)')
+                st.info('''
+                The :green[**partial autocorrelation function**] (PACF) is a plot of the partial correlation coefficients between a time series and its lags. 
+                The PACF can help us determine the order of an autoregressive (AR) model by identifying the lag beyond which the autocorrelations are effectively zero.
+                
+                The :green[**PACF**] plot helps us identify the important lags that are related to a time series. It measures the correlation between a point in the time series and a lagged version of itself while controlling for the effects of all the other lags that come before it.
+                In other words, the PACF plot shows us the strength and direction of the relationship between a point in the time series and a specific lag, independent of the other lags. 
+                A significant partial correlation coefficient at a particular lag suggests that the lag is an important predictor of the time series.
+                
+                If a particular lag has a partial autocorrelation coefficient that falls outside of the :green[**95%**] or :green[**99%**] confidence interval, it suggests that this lag is a significant predictor of the time series. The next step would be to consider including that lag in the autoregressive model to improve its predictive accuracy.
+                However, it is important to note that including too many lags in the model can lead to overfitting, which can reduce the model's ability to generalize to new data. Therefore, it is recommended to use a combination of statistical measures and domain knowledge to select the optimal number of lags to include in the model.
+                On the other hand, if none of the lags have significant partial autocorrelation coefficients, it suggests that the time series is not well explained by an autoregressive model. In this case, alternative modeling techniques such as moving average (MA) or autoregressive integrated moving average (ARIMA) may be more appropriate.
+                Or you could just flip a coin and hope for the best. But I don't recommend it...
+                
+                The partial autocorrelation plot (PACF) is a tool used to investigate the relationship between an observation in a time series with its lagged values, while controlling for the effects of intermediate lags. Here's a brief explanation of how to interpret a PACF plot:  
+                - The horizontal axis shows the lag values (i.e., how many time steps back we're looking).
+                - The vertical axis shows the correlation coefficient, which ranges from **-1** to **1**. A value of :green[**1**] indicates a :green[**perfect positive correlation**], while a value of :red[**-1**] indicates a :red[**perfect negative correlation**]. A value of **0** indicates **no correlation**.
+                - Each bar in the plot represents the correlation between the observation and the corresponding lag value. The height of the bar indicates the strength of the correlation. 
+                  If the bar extends beyond the dotted line (which represents the 95% confidence interval), the correlation is statistically significant.  
+            
+                Here are some key points to keep in mind when interpreting a PACF plot:  
+                - *The first lag (lag 0) is always 1*, since an observation is perfectly correlated with itself.
+                -  *A significant spike* at a particular lag indicates that there may be some **useful information** in that lagged value for predicting the current observation. 
+                  This can be used to guide the selection of lag values in time series forecasting models.
+                - *A sharp drop* in the PACF plot after a certain lag suggests that the lags beyond that point **are not useful** for prediction, and can be safely ignored.
+                
+                An analogy would be:   
+                Imagine you are watching a magic show where the magician pulls a rabbit out of a hat. Now, imagine that the magician can do this trick with different sized hats. If you were trying to figure out how the magician does this trick, you might start by looking for clues in the size of the hats.
+                Similarly, the PACF plot is like a magic show where we are trying to figure out the "trick" that is causing our time series data to behave the way it does. 
+                The plot shows us how strong the relationship is between each point in the time series and its past values, while controlling for the effects of all the other past values. 
+                It's like looking at different sized hats to see which one the magician used to pull out the rabbit.
+
+                If the PACF plot shows a strong relationship between a point in the time series and its past values at a certain lag (or hat size), it suggests that this past value is an important predictor of the time series. 
+                On the other hand, if there is no significant relationship between a point and its past values, it suggests that the time series may not be well explained by past values alone, and we may need to look for other "tricks" to understand it.
+                In summary, the PACF plot helps us identify important past values of our time series that can help us understand its behavior and make predictions about its future values.
+                ''')
 
         # plot ACF        
-        acf_plot(df_raw)
+        plot_acf(data, nlags=nlags)
     
     ###############################################################################
     # 3. Data Cleaning
