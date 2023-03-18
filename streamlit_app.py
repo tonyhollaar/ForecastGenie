@@ -11,9 +11,16 @@ import numpy as np
 import datetime
 import time
 import math
+import matplotlib.pyplot as plt
+import seaborn as sns
 import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+from statsmodels.tsa.stattools import acf, pacf
+# https://www.statsmodels.org/dev/generated/statsmodels.tsa.stattools.pacf.html#statsmodels.tsa.stattools.pacf
+from statsmodels.tsa.seasonal import seasonal_decompose
 from sklearn.linear_model import LinearRegression
-#from pmdarima.arima import auto_arima
 import statsmodels.api as sm
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from sklearn.model_selection import ParameterGrid
@@ -24,7 +31,6 @@ from sklearn.preprocessing import StandardScaler
 #from tensorflow.keras.models import Sequential
 #from tensorflow.keras.layers import LSTM, Dense
 from sklearn.feature_selection import mutual_info_classif
-import plotly.graph_objects as go
 from sklearn.decomposition import PCA
 from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
 from pandas.tseries.offsets import BDay
@@ -34,6 +40,7 @@ from pandas.tseries.holiday import(
                                     next_monday, nearest_workday, sunday_to_monday,
                                     EasterMonday, GoodFriday, Easter
                                   )
+    
 #########################################################################
 # set/modify standard page configuration
 #########################################################################
@@ -260,13 +267,12 @@ def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, mo
         # create download button for forecast results to .csv
         download_csv_button(df_preds, my_file="f'forecast_{model_name}_model.csv'", help_message=f'Download your **{model_name}** model results to .CSV')
 
-@st.cache_data
 def load_data():
     """
     This function loads data from a CSV file and returns a pandas DataFrame object.
     """
-    df = pd.read_csv(uploaded_file, parse_dates=['date'])
-    return df
+    df_raw = pd.read_csv(uploaded_file, parse_dates=['date'])
+    return df_raw
 
 @st.cache_data   
 def create_df_pred(y_test, y_pred, show_df_streamlit=True):
@@ -299,7 +305,7 @@ def download_csv_button(my_df, my_file="forecast_model.csv", help_message = 'Dow
                             csv,
                             my_file,
                             "text/csv",
-                            #key='download-csv_arimax', -> streamlit automatically assigns key if not defined
+                            #key='', -> streamlit automatically assigns key if not defined
                             help = help_message)
 
 def plot_actual_vs_predicted(df_preds):
@@ -334,6 +340,162 @@ def remove_object_columns(df):
     st.write(obj_cols_to_remove)
     df = df.drop(columns=obj_cols_to_remove)
     return df
+
+def copy_df_date_index(my_df, datetime_to_date=True, date_to_index=True):
+    # create a deepcopy of dataframe
+    my_df_copy = my_df.copy(deep=True)
+    if datetime_to_date == True:
+        # convert the datetime to date (excl time 00:00:00)
+        my_df_copy['date'] = pd.to_datetime(my_df['date']).dt.date
+    if date_to_index == True:
+        # set the index instead of 0,1,2... to date
+        my_df_copy = my_df_copy.set_index('date')
+    return my_df_copy
+
+def resample_missing_dates(df):
+    """
+    Resamples a pandas DataFrame to a specified frequency, fills in missing values with NaNs,
+    and inserts missing dates as rows with NaN values. Also displays a message if there are
+    missing dates in the data.
+    
+    Parameters:
+    df (pandas DataFrame): The DataFrame to be resampled
+    
+    Returns:
+    pandas DataFrame: The resampled DataFrame with missing dates inserted
+    
+    """
+    # Define a dictionary of possible frequencies and their corresponding offsets
+    freq_dict = {'daily': 'D', 'weekly': 'W', 'monthly': 'M', 'quarterly': 'Q', 'yearly': 'Y'}
+
+    # Ask the user to select the frequency of the data
+    freq = st.sidebar.selectbox('Select the frequency of the data', list(freq_dict.keys()))
+    
+    # Resample the data to the specified frequency and fill in missing values with NaNs
+    resampled_df = df.set_index('date').resample(freq_dict[freq]).asfreq()
+    
+    # Find missing dates and insert them as rows with NaN values
+    missing_dates = pd.date_range(start=resampled_df.index.min(), end=resampled_df.index.max(), freq=freq_dict[freq]).difference(resampled_df.index)
+    new_df = resampled_df.reindex(resampled_df.index.union(missing_dates)).sort_index()
+    
+    # Display a message if there are missing dates in the data
+    if len(missing_dates) > 0:
+        st.write("The missing dates are:")
+        st.write(missing_dates)
+    
+    # Reset the index and rename the columns
+    return new_df.reset_index().rename(columns={'index': 'date'})
+
+def my_fill_method(df, fill_method):
+    # handle missing values based on user input
+    if fill_method == 'backfill':
+        df.iloc[:,1] = df.iloc[:,1].bfill()
+    elif fill_method == 'forwardfill':
+        df.iloc[:,1] = df.iloc[:,1].ffill()
+    elif fill_method == 'mean':
+        df.iloc[:,1] = df.iloc[:,1].fillna(df.iloc[:,1].mean())
+    elif fill_method == 'median':
+        df.iloc[:,1]  = df.iloc[:,1] .fillna(df.iloc[:,1].median())
+    return df
+
+
+def plot_overview(df, y):
+    """
+    Plot an overview of daily, weekly, monthly, quarterly, and yearly patterns
+    for a given dataframe and column.
+    """
+    y_column_index = df.columns.get_loc(y)
+    y_colname = df.columns[y_column_index]
+    # Create subplots
+    fig = make_subplots(rows=6, cols=1,
+                        subplot_titles=('Daily Pattern', 
+                                        'Weekly Pattern', 
+                                        'Monthly Pattern',
+                                        'Quarterly Pattern', 
+                                        'Yearly Pattern', 
+                                        'Histogram',
+                                        #'Autocorrelation'
+                                        ))
+
+    # Daily Pattern
+    fig.add_trace(px.line(df, x='date', y=y_colname, title='Daily Pattern').data[0], row=1, col=1)
+    # Weekly Pattern
+    df_weekly = df.resample('W', on='date').mean().reset_index()
+    fig.add_trace(px.line(df_weekly, x='date', y=y_colname, title='Weekly Pattern').data[0], row=2, col=1)
+    # Monthly Pattern
+    df_monthly = df.resample('M', on='date').mean().reset_index()
+    fig.add_trace(px.line(df_monthly, x='date', y=y_colname, title='Monthly Pattern').data[0], row=3, col=1)
+    # Quarterly Pattern
+    df_quarterly = df.resample('Q', on='date').mean().reset_index()
+    fig.add_trace(px.line(df_quarterly, x='date', y=y_colname, title='Quarterly Pattern').data[0], row=4, col=1)
+    # Yearly Pattern
+    df_yearly = df.resample('Y', on='date').mean().reset_index()
+    fig.add_trace(px.line(df_yearly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=5, col=1)
+    # Histogram
+    fig.add_trace(px.histogram(df, x=y_colname, title='Histogram').data[0], row=6, col=1)
+    # Update layout
+    fig.update_layout(height=1600, title='Overview of Patterns')
+    # Display in Streamlit app
+    st.plotly_chart(fig, use_container_width=True)
+
+#################### PACF GRAPH ###########################################
+# Define functions to calculate PACF
+#################### PACF GRAPH ###########################################
+def calc_pacf(data, nlags, method):
+    return pacf(data, nlags=nlags, method=method)
+
+# Define function to plot PACF
+def plot_pacf(data, nlags, method):
+    
+    if data.isna().sum().sum() > 0:
+        st.error('''**Warning** ⚠️:              
+                 Data contains **NaN** values. **NaN** values were dropped in copy of dataframe to be able to plot below PACF. ''')
+        
+    
+    # Drop NaN values if any
+    data = data.dropna(axis=0)
+    data = data.to_numpy()
+    # Calculate PACF
+    pacf_vals = calc_pacf(data, nlags, method)
+    # Create trace for PACF plot
+    traces = []
+    for i in range(nlags + 1):
+        trace = go.Scatter(x=[i, i], y=[0, pacf_vals[i]],
+                           mode='lines+markers', name='Lag {}'.format(i),
+                           line=dict(color='green', width=1))
+        # Color lines based on confidence intervals
+        conf95 = 1.96 / np.sqrt(len(data))
+        conf99 = 2.58 / np.sqrt(len(data))
+        if abs(pacf_vals[i]) > conf99:
+            trace.line.color = 'darkred'
+            trace.name += ' (>|99%|)'
+        elif abs(pacf_vals[i]) > conf95:
+            trace.line.color = 'lightcoral'
+            trace.name += ' (>|95%|)'
+        traces.append(trace)
+    # Set layout of PACF plot
+    layout = go.Layout(title='Partial Autocorrelation (PACF)',
+                       xaxis=dict(title='Lag'),
+                       yaxis=dict(title='Partial Autocorrelation'),
+                       shapes=[{'type': 'line', 'x0': -1, 'y0': conf95,
+                                'x1': nlags + 1, 'y1': conf95,
+                                'line': {'color': 'gray', 'dash': 'dash', 'width': 1},
+                                'name': '95% Confidence Interval'},
+                               {'type': 'line', 'x0': -1, 'y0': -conf95,
+                                'x1': nlags + 1, 'y1': -conf95,
+                                'line': {'color': 'gray', 'dash': 'dash', 'width': 1}},
+                               {'type': 'line', 'x0': -1, 'y0': conf99,
+                                'x1': nlags + 1, 'y1': conf99,
+                                'line': {'color': 'gray', 'dash': 'dot', 'width': 1},
+                                'name': '99% Confidence Interval'},
+                               {'type': 'line', 'x0': -1, 'y0': -conf99,
+                                'x1': nlags + 1, 'y1': -conf99,
+                                'line': {'color': 'gray', 'dash': 'dot', 'width': 1}}],
+                       showlegend=True)
+    # Create figure with PACF plot
+    fig = go.Figure(data=traces, layout=layout)
+    st.plotly_chart(fig)
+
 
 ###############################################################################
 # Create Left-Sidebar Streamlit App with Title + About Information
@@ -370,7 +532,7 @@ with st.sidebar.expander(':information_source: About', expanded=False):
 ###############################################################################
 my_title("1. Load Dataset 🚀 ", "#2CB8A1")
 with st.sidebar:
-    my_title("Load Dataset 🚀 ", "#2CB8A1")
+    my_title("Load Dataset 🚀 ", "#2CB8A1") # 2CB8A1
     uploaded_file = st.file_uploader("upload your .CSV file", label_visibility="collapsed")
 
 # if nothing is uploaded yet by user run below code
@@ -386,71 +548,131 @@ if uploaded_file is None:
 # if user uploaded csv file run below code
 # wrap all code inside this related to data analysis / modeling
 if uploaded_file is not None:   
-    # only keep date and total_traffic
-    df = load_data()
-    df_graph = df.copy(deep=True)
-    df_total = df.copy(deep=True)
+    # define dataframe from  custom function to read from uploaded read_csv file
+    df_raw = load_data()
+    df_graph = df_raw.copy(deep=True)
+    df_total = df_raw.copy(deep=True)
    
     # if loaded dataframe succesfully run below
     # set minimum date
-    df_min = df.iloc[:,0].min().date()
+    df_min = df_raw.iloc[:,0].min().date()
     # set maximum date
-    df_max = df.iloc[:,0].max().date()
-    # create dataframe from custom built function
-    df = load_data()
-    ## show message to user data loaded
-    st.info('''🗨️ **Great Work!** your data is loaded, lets take a look :eyes: shall we...''')
+    df_max = df_raw.iloc[:,0].max().date()
+
+    ## show message to user data if .csv file is loaded
+    st.info('''🗨️ **Great!** your data is loaded, lets take a look :eyes: shall we...''')
     
+    # set title
+    my_title('2. Exploratory Data Analysis', my_background_color="#217CD0")
+    with st.sidebar:
+        my_title("Exploratory Data Analysis", "#217CD0")
+        
+        # Create sliders in sidebar for the parameters of PACF Plot
+        st.write("")
+        my_subheader('PACF Plot Parameters')
+        col1, col2, col3 = st.columns([3,1,3])
+        # Set default values for parameters
+        default_lags = 30
+        default_method = "ols"  
+        with col1:
+            nlags = st.slider("*Select Number of lags*", min_value=1, max_value=50, value=default_lags)
+        with col3:
+            method = st.selectbox("*Method*", ["ols", "yw", "ywadjusted", "ld", "ldadjusted"], index=0)
+            
     # create expandable card with data exploration information
     with st.expander(':arrow_down: EDA', expanded=True):
-        # set header
-        my_header("Exploratory Data Analysis")
         # create 3 columns for spacing
         col1, col2, col3 = st.columns([1,3,1])
         # display df shape and date range min/max for user
-        col2.markdown(f"<center>Your <b>dataframe</b> has <b><font color='#0F52BA'>{df.shape[0]}</b></font> \
-                      rows and <b><font color='#0F52BA'>{df.shape[1]}</b></font> columns <br> with date range: \
-                      <b><font color='#FF5733'>{df_min}</b></font> to <b><font color='#FF5733'>{df_max}</font></b>.</center>", 
+        col2.markdown(f"<center>Your <b>dataframe</b> has <b><font color='#555555'>{df_raw.shape[0]}</b></font> \
+                      rows and <b><font color='#555555'>{df_raw.shape[1]}</b></font> columns <br> with date range: \
+                      <b><font color='#555555'>{df_min}</b></font> to <b><font color='#555555'>{df_max}</font></b>.</center>", 
                       unsafe_allow_html=True)
         # add a vertical linespace
         st.write("")
-        # set two column spacers
-        col1, col2 = st.columns([2,3])
-        with col1:    
-            # show dataframe
-            # set the date as the index of the pandas dataframe
-            show_df = df.copy(deep=True)
-            # convert the datetime to date (excl time 00:00:00)
-            show_df['date'] = pd.to_datetime(show_df['date']).dt.date
-            # set the index instead of 0,1,2... to date
-            show_df = show_df.set_index('date')
-            # display the dataframe in streamlit
-            st.dataframe(show_df, use_container_width=True)
+        df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
+        # set caption
+        st.caption('')
+        
+        #############################################################################
+        ## display/plot graph of dataframe
+        fig = px.line(df_graph,
+                      x=df_graph.index,
+                      y=df_graph.columns,
+                      #labels=dict(x="Date", y="y"),
+                      title='')
+                      
+        # Set Plotly configuration options
+        fig.update_layout(width=800, height=400, xaxis=dict(title='Date'), yaxis=dict(title='', rangemode='tozero'), legend=dict(x=0.9, y=0.9))
+        # set line color and width
+        fig.update_traces(line=dict(color='#217CD0', width=2))
+        
+        # Display Plotly Express figure in Streamlit
+        st.plotly_chart(fig, use_container_width=True)
+        
+        #############################################################################
+        # Create a button that toggles the display of the DataFrame
+        #############################################################################
+        col1, col2, col3 = st.columns([4,4,4])
         with col2:
-            # set caption
-            st.caption('')
-            ## create graph
-            df_graph = df_graph.set_index('date')
-            ## display/plot graph of dataframe
-            st.line_chart(df_graph)
+            show_df_btn = st.button(f'Show DataFrame', use_container_width=True, type='secondary')
+        if show_df_btn == True:
+            # display the dataframe in streamlit
+            st.dataframe(df_graph, use_container_width=True)
+            
+        #############################################################################
+        # Call function for plotting Graphs of Seasonal Patterns D/W/M/Q/Y in Plotly Charts
+        #############################################################################
+        plot_overview(df_raw, y='total_traffic')
+       
+        def acf_plot(df):
+            y = df.columns[1]
+            # Compute autocorrelation
+            lags = len(df) - 1
+            acf_vals = acf(df.iloc[:, 0], nlags=lags)
+            # Create plot
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=np.arange(lags+1), y=acf_vals))
+            fig.add_shape(type='line', x0=0, y0=-1.96/np.sqrt(len(df)), x1=lags, y1=-1.96/np.sqrt(len(df)), line=dict(color='red'))
+            fig.add_shape(type='line', x0=0, y0=1.96/np.sqrt(len(df)), x1=lags, y1=1.96/np.sqrt(len(df)), line=dict(color='red'))
+            fig.add_shape(type='rect', x0=0, y0=-1.96/np.sqrt(len(df)), x1=lags, y1=1.96/np.sqrt(len(df)), fillcolor="blue", opacity=0.1, line=dict(width=0))
+            fig.update_layout(title=f'Autocorrelation Plot ({df.columns[0]} vs {y})', xaxis_title='Lag', yaxis_title='Autocorrelation')
+            st.plotly_chart(fig, use_container_width=True)
+          
+        # use function to plot Partial ACF 
+        data = df_raw.iloc[:,1]
+        plot_pacf(data,nlags=nlags, method=method)
+
+        # plot ACF        
+        acf_plot(df_raw)
+    
     ###############################################################################
-    # 2. Data Cleaning
+    # 3. Data Cleaning
     ############################################################################### 
-    my_title("2. Data Cleaning 🧹", "#C58FE4")
+    my_title("2. Data Cleaning 🧹", "#440154")
     with st.sidebar:
-        my_title("Data Cleaning 🧹 ", "#C58FE4")        
-        st.info('Please select options below:')
-    #########################################################    
-    with st.expander('� Missing Values', expanded=True):
-        #########################################################
+        my_title("Data Cleaning 🧹 ", "#440154")        
+        st.info('Please select options below:')    
+    
+    with st.expander('Missing Values', expanded=True):
+        #*************************************************
         my_subheader('Handling missing values')
-        #########################################################    
-        import matplotlib.pyplot as plt
-        import seaborn as sns
+        #*************************************************    
+        # Apply function to resample missing dates based on user set frequency
+        # freq = daily, weekly, monthly, quarterly, yearly
+        df_cleaned_dates = resample_missing_dates(df_raw)
 
         # Create matrix of missing values
-        missing_matrix = df.isnull()
-        
+        missing_matrix = df_cleaned_dates.isnull()
+ 
+        # check if there are no dates skipped for daily data
+        missing_dates = pd.date_range(start=df_raw['date'].min(), end=df_raw['date'].max()).difference(df_raw['date'])
+        if missing_dates.shape[0] == 0:
+            st.info('Pweh 😅, no dates are skipped in your dataframe!')
+        else:
+            st.warning(f'Oh No...🙁 {missing_dates.shape[0]} dates are skipped in your dataframe, lets fix this!')
+            st.write(missing_dates)
+            
         # Create Plotly Express figure
         my_subheader('Missing Values Matrix Plot', my_style="#333333", my_size=6)
         fig = px.imshow(missing_matrix,
@@ -465,62 +687,44 @@ if uploaded_file is not None:
         
         # Display Plotly Express figure in Streamlit
         st.plotly_chart(fig, use_container_width=True)
-         
-        # Create a copy of the original DataFrame with NaN cells highlighted in yellow
-        highlighted_df = df.style.highlight_null(null_color='yellow')
-        
-        # Display original DataFrame with highlighted NaN cells
-        st.write('## Original DataFrame')
-        styled_html = highlighted_df.render()
-        styled_html = f'<div style="height: 400px; overflow-y: auto;">{styled_html}</div>'
-        container_html = f'<div style="display: flex; justify-content: center;">{styled_html}</div>'
-        st.write(container_html, unsafe_allow_html=True)
-             
-        # check if there are no dates skipped for daily data
-        missing_dates = pd.date_range(start=df['date'].min(), end=df['date'].max()).difference(df['date'])
-        if missing_dates.shape[0] == 0:
-            st.info('Pweh 😅, no dates are skipped in your dataframe!')
-
-        # Create table of missing values by date
-        missing_values_table = pd.DataFrame(columns=['Date', 'Missing Value'])
-        for date in df['date']:
-            if df[df['date'] == date].isnull().values.any():
-                missing_value = df[df['date'] == date].iloc[0, 1] # Extract missing value based on column position
-                missing_values_table = missing_values_table.append({'Date': date, 'Missing Value': missing_value}, ignore_index=True)
-        
-        # Display missing values by date table       
-        my_subheader('Missing Values by Date', my_style="#333333", my_size=6)
-        st.table(missing_values_table)
+       
         #******************************************************************
-        # resample dates
+        # IMPUTE MISSING VALUES WITH FILL METHOD
         #******************************************************************
-        # set date column as index
-        df_total.set_index('date', inplace=True)
-        # resample to daily frequency and fill in missing values with NaNs
-        daily_df = df_total.resample('D').asfreq()
-
         # get user input for filling method
-        fill_method = st.sidebar.selectbox('Select filling method:', ['backfill', 'forwardfill', 'mean', 'median'])
-        
-        # handle missing values based on user input
-        if fill_method == 'backfill':
-            df_total = df_total.bfill()
-        elif fill_method == 'forwardfill':
-            df_total = df_total.ffill()
-        elif fill_method == 'mean':
-            df_total.iloc[:,1] = df_total.iloc[:,1].fillna(df_total.iloc[:,1].mean())
-        elif fill_method == 'median':
-            df_total.iloc[:,1]  = df_total.iloc[:,1] .fillna(df_total.iloc[:,1].median())
-        
+        fill_method = st.sidebar.selectbox('Select filling method for missing values:', ['backfill', 'forwardfill', 'mean', 'median'])
+        df_clean = my_fill_method(df_cleaned_dates, fill_method)
+
+        # Display original DataFrame with highlighted NaN cells
+        # Create a copy of the original DataFrame with NaN cells highlighted in yellow
+        col1, col2, col3, col4, col5 = st.columns([2, 0.5, 2, 0.5, 2])
+        with col1:
+            # highlight NaN values in yellow in dataframe
+            highlighted_df = df_graph.style.highlight_null(null_color='yellow').format(precision=0)
+            st.write('**Original DataFrame😐**')
+            # show original dataframe unchanged but with highlighted missing NaN values
+            st.write(highlighted_df)
+        with col2:
+            st.write('➡️')
+        with col3:
+            # Display the dates and the number of missing values associated with them
+            my_subheader('Missing Values by Date😖', my_style="#333333", my_size=6)
+            # Filter the DataFrame to include only rows with missing values
+            missing_df = copy_df_date_index(df_raw.loc[df_raw.iloc[:,1].isna(), df_raw.columns], datetime_to_date=True, date_to_index=True)
+            st.write(missing_df)
+        with col4:
+            st.write('➡️')
         # display cleaned dataframe in Streamlit
-        st.write('Cleaned Dataframe:')
-        st.write(df_total)        
-    
-    with st.expander('', expanded=True):
-        #########################################################
+        with col5:
+            st.write('**Cleaned Dataframe😄**')
+            # fix the datetime to date and set date column as index column
+            df_clean_show = copy_df_date_index(df_clean, datetime_to_date=True, date_to_index=True)
+            # show the cleaned dataframe with if needed dates inserted if skipped to NaN and then the values inserted with impute method user selected backfill/forward fill/mean/median
+            st.write(df_clean_show)
+    #########################################################
+    with st.expander('Outliers', expanded=True):
         my_subheader('Handling outliers 😇😈😇')
-        #########################################################
-        
+    #########################################################
         
     ###############################################################################
     # 3. Feature Engineering
@@ -546,8 +750,8 @@ if uploaded_file is not None:
                 
     with st.expander("📌", expanded=True):
         my_header('Special Calendar Days')
-        start_date_calendar = df['date'].min()
-        end_date_calendar = df['date'].max()
+        start_date_calendar = df_clean['date'].min()
+        end_date_calendar = df_clean['date'].max()
         st.markdown('---')
         df_exogenous_vars = pd.DataFrame({'date': pd.date_range(start = start_date_calendar, 
                                                                 end = end_date_calendar)})
@@ -652,12 +856,13 @@ if uploaded_file is not None:
         ###############################################################################
         # Reorder Columns to logical order e.g. value | description of value
         ###############################################################################
+        # ??? improve this dynamically ???
         df_exogenous_vars = df_exogenous_vars[['date', 'holiday', 'holiday_desc', 'calendar_event', 'calendar_event_desc', 'pay_day','pay_day_desc']]
         
         ###############################################################################
-        # combine exogenous vars with df_total
+        # combine exogenous vars with df_total | df_clean?
         ###############################################################################
-        df_total_incl_exogenous = pd.merge(df_total, df_exogenous_vars, on='date', how='left' )
+        df_total_incl_exogenous = pd.merge(df_clean, df_exogenous_vars, on='date', how='left' )
         df = df_total_incl_exogenous.copy(deep=True)
         
         ##############################
@@ -783,8 +988,8 @@ if uploaded_file is not None:
         # Create a figure with a scatter plot of the train/test split
         #############################################################
         fig2 = go.Figure()
-        fig2.add_trace(go.Scatter(x=local_df.index[:len(df)-my_insample_forecast_steps], y=local_df.iloc[:len(df)-my_insample_forecast_steps, 0], mode='lines', name='Train', line=dict(color='#217CD0')))
-        fig2.add_trace(go.Scatter(x=local_df.index[len(df)-my_insample_forecast_steps:], y=local_df.iloc[len(df)-my_insample_forecast_steps:, 0], mode='lines', name='Test', line=dict(color='#FFA500')))
+        fig2.add_trace(go.Scatter(x=local_df.index[:len(df)-my_insample_forecast_steps], y=local_df.iloc[:len(df) - my_insample_forecast_steps, 0], mode='lines', name='Train', line=dict(color='#217CD0')))
+        fig2.add_trace(go.Scatter(x=local_df.index[len(df)-my_insample_forecast_steps:], y=local_df.iloc[len(df) - my_insample_forecast_steps:, 0], mode='lines', name='Test', line=dict(color='#FFA500')))
         fig2.update_layout(title='',
                            yaxis=dict(range=[0, 
                                              local_df.iloc[:, 0].max()*1.1]),
@@ -939,7 +1144,7 @@ if uploaded_file is not None:
     my_title("6. Select Models 🔢", "#0072B2")
     with st.sidebar:
         my_title("Select Models 🔢", "#0072B2")
-    with st.expander('🗒️ Naive Model', expanded=True):
+    with st.expander('🗒️ Naive Model', expanded=False):
         st.markdown('''
                     The `Naive Model` is one of the simplest forecasting models in time series analysis. 
                     It assumes that the value of a variable at any given time is equal to the value of the variable at the previous time period. 
@@ -1043,7 +1248,6 @@ if uploaded_file is not None:
             else:
                 st.sidebar.empty()
             
-                
         # set vertical spacers
         col1, col2, col3 = st.columns([2,3,2])
         with col2:
