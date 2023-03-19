@@ -352,7 +352,7 @@ def copy_df_date_index(my_df, datetime_to_date=True, date_to_index=True):
         my_df_copy = my_df_copy.set_index('date')
     return my_df_copy
 
-def resample_missing_dates(df):
+def resample_missing_dates(df, freq_dict, freq):
     """
     Resamples a pandas DataFrame to a specified frequency, fills in missing values with NaNs,
     and inserts missing dates as rows with NaN values. Also displays a message if there are
@@ -365,12 +365,6 @@ def resample_missing_dates(df):
     pandas DataFrame: The resampled DataFrame with missing dates inserted
     
     """
-    # Define a dictionary of possible frequencies and their corresponding offsets
-    freq_dict = {'daily': 'D', 'weekly': 'W', 'monthly': 'M', 'quarterly': 'Q', 'yearly': 'Y'}
-
-    # Ask the user to select the frequency of the data
-    freq = st.sidebar.selectbox('Select the frequency of the data', list(freq_dict.keys()))
-    
     # Resample the data to the specified frequency and fill in missing values with NaNs
     resampled_df = df.set_index('date').resample(freq_dict[freq]).asfreq()
     
@@ -758,7 +752,7 @@ if uploaded_file is not None:
     df_max = df_raw.iloc[:,0].max().date()
 
     ## show message to user data if .csv file is loaded
-    st.info('''🗨️ **Great!** your data is loaded, lets take a look :eyes: shall we...''')
+    st.success('''🗨️ **Great!** your data is loaded, lets take a look :eyes: shall we...''')
     
     # set title
     my_title('2. Exploratory Data Analysis 🕵️‍♂️', my_background_color="#217CD0")
@@ -773,13 +767,17 @@ if uploaded_file is not None:
             default_lags = 30
             default_method = "yw"  
             with col1:
-                nlags = st.slider("*Select Number of lags*", min_value=1, max_value=50, value=default_lags)
+                nlags_acf = st.slider("*Lags ACF*", min_value=1, max_value=(len(df_raw)-1), value=default_lags)
+            col1, col2, col3 = st.columns([4,1,4])
+            with col1:
+                nlags_pacf = st.slider("*Lags PACF*", min_value=1, max_value=int((len(df_raw)-2)/2), value=default_lags)
             with col3:
-                method = st.selectbox("*Method*", [ 'ols', 'ols-inefficient', 'ols-adjusted', 'yw', 'ywa', 'ld', 'ywadjusted', 'yw_adjusted', 'ywm', 'ywmle', 'yw_mle', 'lda', 'ldadjusted', 'ld_adjusted', 'ldb', 'ldbiased', 'ld_biased'], index=0)
+                method_pacf = st.selectbox("*Method PACF*", [ 'ols', 'ols-inefficient', 'ols-adjusted', 'yw', 'ywa', 'ld', 'ywadjusted', 'yw_adjusted', 'ywm', 'ywmle', 'yw_mle', 'lda', 'ldadjusted', 'ld_adjusted', 'ldb', 'ldbiased', 'ld_biased'], index=0)
             col1, col2, col3 = st.columns([4,4,4])
             with col2:
                 # create button in sidebar for the ACF and PACF Plot Parameters
-                acf_pacf_btn = st.form_submit_button("Submit", type="primary")
+                st.write("")
+                acf_pacf_btn = st.form_submit_button("Submit", type="secondary")
     # create expandable card with data exploration information
     with st.expander(':arrow_down: EDA', expanded=True):
         # create 3 columns for spacing
@@ -832,80 +830,99 @@ if uploaded_file is not None:
             data = df_raw.iloc[:,1]
             
             # Plot ACF        
-            plot_acf(data, nlags=nlags)
+            plot_acf(data, nlags=nlags_acf)
             
             # Plot PACF
-            plot_pacf(data,nlags=nlags, method=method)
+            plot_pacf(data, nlags=nlags_pacf, method=method_pacf)
         else:
-            st.info(':arrow_left: Click \"**Submit**\" button to plot the **AutoCorrelation-** and **Partial AutoCorrelation Function**')
+            st.warning(':arrow_left: Click \"**Submit**\" button to plot the **AutoCorrelation-** and **Partial AutoCorrelation Function**')
         # If user clicks button, more explanation on the ACF and PACF plot is displayed
-        col1, col2, col3 = st.columns([4,4,4])
-        with col2:
-            show_pacf_btn = st.button(f'PACF Details', use_container_width=True, type='secondary')
-        if show_pacf_btn == True:   
+        col1, col2, col3 = st.columns([4,1,4])
+        with col1:
+            show_acf_info_btn = st.button(f'Learn more about ACF plots', use_container_width=True, type='secondary')
+        with col3:
+            show_pacf_info_btn = st.button(f'Learn more about PACF plots', use_container_width=True, type='secondary')
+        if show_pacf_info_btn == True:   
                 my_subheader('Partial Autocorrelation Function (PACF)')
-                st.info('''
-                The :green[**partial autocorrelation function**] (PACF) is a plot of the partial correlation coefficients between a time series and its lags. 
-                The PACF can help us determine the order of an autoregressive (AR) model by identifying the lag beyond which the autocorrelations are effectively zero.
-                
-                The :green[**PACF**] plot helps us identify the important lags that are related to a time series. It measures the correlation between a point in the time series and a lagged version of itself while controlling for the effects of all the other lags that come before it.
-                In other words, the PACF plot shows us the strength and direction of the relationship between a point in the time series and a specific lag, independent of the other lags. 
-                A significant partial correlation coefficient at a particular lag suggests that the lag is an important predictor of the time series.
-                
-                If a particular lag has a partial autocorrelation coefficient that falls outside of the :green[**95%**] or :green[**99%**] confidence interval, it suggests that this lag is a significant predictor of the time series. The next step would be to consider including that lag in the autoregressive model to improve its predictive accuracy.
-                However, it is important to note that including too many lags in the model can lead to overfitting, which can reduce the model's ability to generalize to new data. Therefore, it is recommended to use a combination of statistical measures and domain knowledge to select the optimal number of lags to include in the model.
-                On the other hand, if none of the lags have significant partial autocorrelation coefficients, it suggests that the time series is not well explained by an autoregressive model. In this case, alternative modeling techniques such as moving average (MA) or autoregressive integrated moving average (ARIMA) may be more appropriate.
-                Or you could just flip a coin and hope for the best. But I don't recommend it...
-                
-                The partial autocorrelation plot (PACF) is a tool used to investigate the relationship between an observation in a time series with its lagged values, while controlling for the effects of intermediate lags. Here's a brief explanation of how to interpret a PACF plot:  
-                - The horizontal axis shows the lag values (i.e., how many time steps back we're looking).
-                - The vertical axis shows the correlation coefficient, which ranges from **-1** to **1**. A value of :green[**1**] indicates a :green[**perfect positive correlation**], while a value of :red[**-1**] indicates a :red[**perfect negative correlation**]. A value of **0** indicates **no correlation**.
-                - Each bar in the plot represents the correlation between the observation and the corresponding lag value. The height of the bar indicates the strength of the correlation. 
-                  If the bar extends beyond the dotted line (which represents the 95% confidence interval), the correlation is statistically significant.  
-            
-                Here are some key points to keep in mind when interpreting a PACF plot:  
-                - *The first lag (lag 0) is always 1*, since an observation is perfectly correlated with itself.
-                -  *A significant spike* at a particular lag indicates that there may be some **useful information** in that lagged value for predicting the current observation. 
-                  This can be used to guide the selection of lag values in time series forecasting models.
-                - *A sharp drop* in the PACF plot after a certain lag suggests that the lags beyond that point **are not useful** for prediction, and can be safely ignored.  
-                
-                An analogy would be:   
-                Imagine you are watching a magic show where the magician pulls a rabbit out of a hat. Now, imagine that the magician can do this trick with different sized hats. If you were trying to figure out how the magician does this trick, you might start by looking for clues in the size of the hats.
-                Similarly, the PACF plot is like a magic show where we are trying to figure out the "trick" that is causing our time series data to behave the way it does. 
-                The plot shows us how strong the relationship is between each point in the time series and its past values, while controlling for the effects of all the other past values. 
-                It's like looking at different sized hats to see which one the magician used to pull out the rabbit.
 
-                If the PACF plot shows a strong relationship between a point in the time series and its past values at a certain lag (or hat size), it suggests that this past value is an important predictor of the time series. 
-                On the other hand, if there is no significant relationship between a point and its past values, it suggests that the time series may not be well explained by past values alone, and we may need to look for other "tricks" to understand it.
-                In summary, the PACF plot helps us identify important past values of our time series that can help us understand its behavior and make predictions about its future values.
-                ''')
+                st.markdown('''
+                            The **partial autocorrelation function (PACF)** is a plot of the partial correlation coefficients between a time series and its lags. 
+                            The PACF can help us determine the order of an autoregressive (AR) model by identifying the lag beyond which the autocorrelations are effectively zero.
+                            
+                            The **PACF plot** helps us identify the important lags that are related to a time series. It measures the correlation between a point in the time series and a lagged version of itself while controlling for the effects of all the other lags that come before it.
+                            In other words, the PACF plot shows us the strength and direction of the relationship between a point in the time series and a specific lag, independent of the other lags. 
+                            A significant partial correlation coefficient at a particular lag suggests that the lag is an important predictor of the time series.
+                            
+                            If a particular lag has a partial autocorrelation coefficient that falls outside of the **95%** or **99%** confidence interval, it suggests that this lag is a significant predictor of the time series. 
+                            The next step would be to consider including that lag in the autoregressive model to improve its predictive accuracy.
+                            However, it is important to note that including too many lags in the model can lead to overfitting, which can reduce the model's ability to generalize to new data. 
+                            Therefore, it is recommended to use a combination of statistical measures and domain knowledge to select the optimal number of lags to include in the model.
+                            
+                            On the other hand, if none of the lags have significant partial autocorrelation coefficients, it suggests that the time series is not well explained by an autoregressive model. 
+                            In this case, alternative modeling techniques such as moving average (MA) or autoregressive integrated moving average (ARIMA) may be more appropriate. 
+                            Or you could just flip a coin and hope for the best. But I don\'t recommend it...
+                            ''')
+                st.write('')
+                my_subheader('How to interpret a PACF plot')
+                st.markdown('''
+                            The partial autocorrelation plot (PACF) is a tool used to investigate the relationship between an observation in a time series with its lagged values, while controlling for the effects of intermediate lags. Here's a brief explanation of how to interpret a PACF plot:  
+                            
+                            - The horizontal axis shows the lag values (i.e., how many time steps back we\'re looking).
+                            - The vertical axis shows the correlation coefficient, which ranges from **-1** to **1**. 
+                              A value of :green[**1**] indicates a :green[**perfect positive correlation**], while a value of :red[**-1**] indicates a :red[**perfect negative correlation**]. A value of **0** indicates **no correlation**.
+                            - Each bar in the plot represents the correlation between the observation and the corresponding lag value. The height of the bar indicates the strength of the correlation. 
+                              If the bar extends beyond the dotted line (which represents the 95% confidence interval), the correlation is statistically significant.  
+                            ''')
+                st.write('')                           
+                my_subheader('Key Points:')  
+                st.markdown('''                            
+                            - **The first lag (lag 0) is always 1**, since an observation is perfectly correlated with itself.
+                            - A significant spike at a particular lag indicates that there may be some **useful information** in that lagged value for predicting the current observation. 
+                              This can be used to guide the selection of lag values in time series forecasting models.
+                            - A sharp drop in the PACF plot after a certain lag suggests that the lags beyond that point **are not useful** for prediction, and can be safely ignored.
+                            ''')
+                st.write('')
+                my_subheader('An analogy')
+                st.markdown('''
+                            Imagine you are watching a magic show where the magician pulls a rabbit out of a hat. Now, imagine that the magician can do this trick with different sized hats. If you were trying to figure out how the magician does this trick, you might start by looking for clues in the size of the hats.
+                            Similarly, the PACF plot is like a magic show where we are trying to figure out the "trick" that is causing our time series data to behave the way it does. 
+                            The plot shows us how strong the relationship is between each point in the time series and its past values, while controlling for the effects of all the other past values. 
+                            It's like looking at different sized hats to see which one the magician used to pull out the rabbit.
+            
+                            If the PACF plot shows a strong relationship between a point in the time series and its past values at a certain lag (or hat size), it suggests that this past value is an important predictor of the time series. 
+                            On the other hand, if there is no significant relationship between a point and its past values, it suggests that the time series may not be well explained by past values alone, and we may need to look for other "tricks" to understand it.
+                            In summary, the PACF plot helps us identify important past values of our time series that can help us understand its behavior and make predictions about its future values.
+                            ''')
 
     ###############################################################################
     # 3. Data Cleaning
     ############################################################################### 
     my_title("2. Data Cleaning 🧹", "#440154")
     with st.sidebar:
-        my_title("Data Cleaning 🧹 ", "#440154")        
-        st.info('Please select options below:')    
-    
+        my_title("Data Cleaning 🧹 ", "#440154")
+        with st.form('data_cleaning'):
+            # get user input for filling method
+            fill_method = st.selectbox('Select filling method for missing values:', ['backfill', 'forwardfill', 'mean', 'median'])
+            # Define a dictionary of possible frequencies and their corresponding offsets
+            freq_dict = {'daily': 'D', 'weekly': 'W', 'monthly': 'M', 'quarterly': 'Q', 'yearly': 'Y'}
+            # Ask the user to select the frequency of the data
+            freq = st.selectbox('Select the frequency of the data', list(freq_dict.keys()))
+            col1, col2, col3 = st.columns([4,4,4])
+            with col2:       
+                data_cleaning_btn = st.form_submit_button("Submit", type="secondary")
     with st.expander('Missing Values', expanded=True):
         #*************************************************
         my_subheader('Handling missing values')
         #*************************************************    
         # Apply function to resample missing dates based on user set frequency
         # freq = daily, weekly, monthly, quarterly, yearly
-        df_cleaned_dates = resample_missing_dates(df_raw)
+        df_cleaned_dates = resample_missing_dates(df_raw, freq_dict=freq_dict, freq=freq)
 
         # Create matrix of missing values
         missing_matrix = df_cleaned_dates.isnull()
  
         # check if there are no dates skipped for daily data
         missing_dates = pd.date_range(start=df_raw['date'].min(), end=df_raw['date'].max()).difference(df_raw['date'])
-        if missing_dates.shape[0] == 0:
-            st.info('Pweh 😅, no dates are skipped in your dataframe!')
-        else:
-            st.warning(f'Oh No...🙁 {missing_dates.shape[0]} dates are skipped in your dataframe, lets fix this!')
-            st.write(missing_dates)
             
         # Create Plotly Express figure
         my_subheader('Missing Values Matrix Plot', my_style="#333333", my_size=6)
@@ -916,17 +933,20 @@ if uploaded_file is not None:
                         color_continuous_scale='Viridis',
                         title='')
         # Set Plotly configuration options
-        fig.update_layout(width=400, height=400)
+        fig.update_layout(width=400, height=400, margin=dict(l=50, r=50, t=0, b=50))
         fig.update_traces(showlegend=False)
-        
         # Display Plotly Express figure in Streamlit
         st.plotly_chart(fig, use_container_width=True)
-       
+        
+        if missing_dates.shape[0] == 0:
+            st.success('Pweh 😅, no dates are skipped in your dataframe!')
+        else:
+            st.warning(f'Oh No...🙁 {missing_dates.shape[0]} dates are skipped in your dataframe, lets fix this!')
+            st.write(missing_dates)
+        
         #******************************************************************
         # IMPUTE MISSING VALUES WITH FILL METHOD
         #******************************************************************
-        # get user input for filling method
-        fill_method = st.sidebar.selectbox('Select filling method for missing values:', ['backfill', 'forwardfill', 'mean', 'median'])
         df_clean = my_fill_method(df_cleaned_dates, fill_method)
 
         # Display original DataFrame with highlighted NaN cells
@@ -1264,7 +1284,7 @@ if uploaded_file is not None:
     Mutual Information: This method measures the dependence between two variables, such as the target variable and each feature. It selects the features that have the highest mutual information with the target variable.
     Lasso Regression: This method performs both feature selection and regularization by adding a penalty term to the objective function that encourages sparsity in the coefficients.''')
     try:
-        with st.expander('RFECV'):
+        with st.expander('RFECV', expanded=True):
                 my_subheader('Recursive Feature Elimination with Cross-Validation')
                 # Scale the features
                 scaler = StandardScaler()
@@ -1485,7 +1505,7 @@ if uploaded_file is not None:
         # set vertical spacers
         col1, col2, col3 = st.columns([2,3,2])
         with col2:
-            train_models_btn = st.form_submit_button("Submit", type="primary")
+            train_models_btn = st.form_submit_button("Submit", type="secondary")
     
     #if nothing is selected by user display message to user to select models to train
     if not train_models_btn and not selected_models:
