@@ -413,8 +413,7 @@ def plot_overview(df, y):
                                         'Monthly Pattern',
                                         'Quarterly Pattern', 
                                         'Yearly Pattern', 
-                                        'Histogram',
-                                        #'Autocorrelation'
+                                        'Histogram'
                                         ))
 
     # Daily Pattern
@@ -546,9 +545,12 @@ def plot_pacf(data, nlags, method):
                                conf_interval_99_background],
                        showlegend=True,
                        )
-    #layout.shapes.append(conf_interval)
+
     # Create figure with PACF plot
     fig = go.Figure(data=traces, layout=layout)
+    # add legend
+    fig.update_layout(
+        legend=dict(title='Lag (conf. interval)'))
     st.plotly_chart(fig)
 
 def calc_acf(data, nlags):
@@ -681,9 +683,14 @@ def plot_acf(data, nlags):
                                conf_interval_99_background,
                              ]
                        )
+
     
     # Define Figure
     fig = go.Figure(data=traces, layout=layout)
+
+    # add legend
+    fig.update_layout(
+        legend=dict(title='Lag (conf. interval)'))
     # Plot ACF with Streamlit Plotly 
     st.plotly_chart(fig)    
     
@@ -723,7 +730,8 @@ with st.sidebar.expander(':information_source: About', expanded=False):
 my_title("1. Load Dataset 🚀 ", "#2CB8A1")
 with st.sidebar:
     my_title("Load Dataset 🚀 ", "#2CB8A1") # 2CB8A1
-    uploaded_file = st.file_uploader("upload your .CSV file", label_visibility="collapsed")
+    with st.expander('', expanded=True):
+        uploaded_file = st.file_uploader("upload your .CSV file", label_visibility="collapsed")
 
 # if nothing is uploaded yet by user run below code
 if uploaded_file is None:
@@ -756,19 +764,22 @@ if uploaded_file is not None:
     my_title('2. Exploratory Data Analysis 🕵️‍♂️', my_background_color="#217CD0")
     with st.sidebar:
         my_title("Exploratory Data Analysis	🕵️‍♂️", "#217CD0")
-        
-        # Create sliders in sidebar for the parameters of PACF Plot
-        st.write("")
-        my_subheader('PACF Plot Parameters')
-        col1, col2, col3 = st.columns([3,1,3])
-        # Set default values for parameters
-        default_lags = 30
-        default_method = "ols"  
-        with col1:
-            nlags = st.slider("*Select Number of lags*", min_value=1, max_value=50, value=default_lags)
-        with col3:
-            method = st.selectbox("*Method*", ["ols", "yw", "ywadjusted", "ld", "ldadjusted"], index=0)
-            
+        with st.form('eda'):
+            # Create sliders in sidebar for the parameters of PACF Plot
+            st.write("")
+            my_subheader('ACF/PACF Plot Parameters')
+            col1, col2, col3 = st.columns([4,1,4])
+            # Set default values for parameters
+            default_lags = 30
+            default_method = "yw"  
+            with col1:
+                nlags = st.slider("*Select Number of lags*", min_value=1, max_value=50, value=default_lags)
+            with col3:
+                method = st.selectbox("*Method*", [ 'ols', 'ols-inefficient', 'ols-adjusted', 'yw', 'ywa', 'ld', 'ywadjusted', 'yw_adjusted', 'ywm', 'ywmle', 'yw_mle', 'lda', 'ldadjusted', 'ld_adjusted', 'ldb', 'ldbiased', 'ld_biased'], index=0)
+            col1, col2, col3 = st.columns([4,4,4])
+            with col2:
+                # create button in sidebar for the ACF and PACF Plot Parameters
+                acf_pacf_btn = st.form_submit_button("Submit", type="primary")
     # create expandable card with data exploration information
     with st.expander(':arrow_down: EDA', expanded=True):
         # create 3 columns for spacing
@@ -815,30 +826,23 @@ if uploaded_file is not None:
         #############################################################################
         plot_overview(df_raw, y='total_traffic')
        
-        def acf_plot(df):
-            y = df.columns[1]
-            # Compute autocorrelation
-            lags = len(df) - 1
-            acf_vals = acf(df.iloc[:, 0], nlags=lags)
-            # Create plot
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=np.arange(lags+1), y=acf_vals))
-            fig.add_shape(type='line', x0=0, y0=-1.96/np.sqrt(len(df)), x1=lags, y1=-1.96/np.sqrt(len(df)), line=dict(color='red'))
-            fig.add_shape(type='line', x0=0, y0=1.96/np.sqrt(len(df)), x1=lags, y1=1.96/np.sqrt(len(df)), line=dict(color='red'))
-            fig.add_shape(type='rect', x0=0, y0=-1.96/np.sqrt(len(df)), x1=lags, y1=1.96/np.sqrt(len(df)), fillcolor="blue", opacity=0.1, line=dict(width=0))
-            fig.update_layout(title=f'Autocorrelation Plot ({df.columns[0]} vs {y})', xaxis_title='Lag', yaxis_title='Autocorrelation')
-            st.plotly_chart(fig, use_container_width=True)
-
-    with st.expander('PACF'): 
-        # use function to plot Partial ACF 
-        data = df_raw.iloc[:,1]
-        plot_pacf(data,nlags=nlags, method=method)
-        # Dynamic explanation
+    with st.expander('ACF & PACF Plots', expanded=True): 
+        if acf_pacf_btn == True:
+            # use function to plot Partial ACF 
+            data = df_raw.iloc[:,1]
+            
+            # Plot ACF        
+            plot_acf(data, nlags=nlags)
+            
+            # Plot PACF
+            plot_pacf(data,nlags=nlags, method=method)
+        else:
+            st.info(':arrow_left: Click \"**Submit**\" button to plot the **AutoCorrelation-** and **Partial AutoCorrelation Function**')
+        # If user clicks button, more explanation on the ACF and PACF plot is displayed
         col1, col2, col3 = st.columns([4,4,4])
         with col2:
             show_pacf_btn = st.button(f'PACF Details', use_container_width=True, type='secondary')
-        if show_pacf_btn == True:
-           
+        if show_pacf_btn == True:   
                 my_subheader('Partial Autocorrelation Function (PACF)')
                 st.info('''
                 The :green[**partial autocorrelation function**] (PACF) is a plot of the partial correlation coefficients between a time series and its lags. 
@@ -863,7 +867,7 @@ if uploaded_file is not None:
                 - *The first lag (lag 0) is always 1*, since an observation is perfectly correlated with itself.
                 -  *A significant spike* at a particular lag indicates that there may be some **useful information** in that lagged value for predicting the current observation. 
                   This can be used to guide the selection of lag values in time series forecasting models.
-                - *A sharp drop* in the PACF plot after a certain lag suggests that the lags beyond that point **are not useful** for prediction, and can be safely ignored.
+                - *A sharp drop* in the PACF plot after a certain lag suggests that the lags beyond that point **are not useful** for prediction, and can be safely ignored.  
                 
                 An analogy would be:   
                 Imagine you are watching a magic show where the magician pulls a rabbit out of a hat. Now, imagine that the magician can do this trick with different sized hats. If you were trying to figure out how the magician does this trick, you might start by looking for clues in the size of the hats.
@@ -876,9 +880,6 @@ if uploaded_file is not None:
                 In summary, the PACF plot helps us identify important past values of our time series that can help us understand its behavior and make predictions about its future values.
                 ''')
 
-        # plot ACF        
-        plot_acf(data, nlags=nlags)
-    
     ###############################################################################
     # 3. Data Cleaning
     ############################################################################### 
