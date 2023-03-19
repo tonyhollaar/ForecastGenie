@@ -349,7 +349,8 @@ def remove_object_columns(df):
     return df
 
 def copy_df_date_index(my_df, datetime_to_date=True, date_to_index=True):
-    # create a deepcopy of dataframe
+    # create a deep copy of dataframe e.g. completely new copy of the DataFrame is created with its own memory space
+    # This means that any changes made to the new copy will not affect the original DataFrame.
     my_df_copy = my_df.copy(deep=True)
     if datetime_to_date == True:
         # convert the datetime to date (excl time 00:00:00)
@@ -1102,7 +1103,6 @@ if uploaded_file is not None:
         #******************************************************************
         # IMPUTE MISSING VALUES WITH FILL METHOD
         #******************************************************************
-        
         df_clean = my_fill_method(df_cleaned_dates, fill_method, custom_fill_value)
 
         # Display original DataFrame with highlighted NaN cells
@@ -1137,15 +1137,15 @@ if uploaded_file is not None:
         col1, col2, col3 = st.columns([2,6,2])
         with col2:
             download_csv_button(df_clean_show, my_file="df_imputed_missing_values.csv", set_index=True, help_message='Download cleaner dataframe to .CSV')
-    
+
     #########################################################
     with st.expander('Outliers', expanded=True):
+        # set page subheader with custum function
         my_subheader('Handling outliers 😇😈😇')
-        
+
         # define function to generate form and sliders for outlier detection and handling
         ##############################################################################
         with st.sidebar:
-            
             # display form and sliders for outlier handling method
             method, contamination, random_state = outlier_form()
         
@@ -1155,13 +1155,13 @@ if uploaded_file is not None:
                                  y=df_clean_show.iloc[:,0], 
                                  mode='markers', 
                                  name='Before'))
-        data_cleaned = handle_outliers(df_clean_show, 
+        df_cleaned_outliers = handle_outliers(df_clean_show, 
                                        method, 
                                        contamination, 
                                        random_state)
         # add scatterplot
-        fig.add_trace(go.Scatter(x=data_cleaned.index, 
-                                 y= data_cleaned.iloc[:,0], 
+        fig.add_trace(go.Scatter(x=df_cleaned_outliers.index, 
+                                 y= df_cleaned_outliers.iloc[:,0], 
                                  mode='markers', 
                                  name='After'))
         # show the outlier plot 
@@ -1174,9 +1174,13 @@ if uploaded_file is not None:
             show_df_cleaned_outliers = st.button(f'Show DataFrame', key='df_cleaned_outliers_download_btn', use_container_width=True, type='secondary')
         if show_df_cleaned_outliers == True:
             # display the cleaned dataframe + optional changes in outliers made by user in streamlit
-            st.dataframe(data_cleaned, use_container_width=True)
+            st.dataframe(df_cleaned_outliers, use_container_width=True)
             # create a download button to download the .csv file of the cleaned dataframe
-            download_csv_button(data_cleaned, my_file="df_cleaned.csv", set_index=True)
+            download_csv_button(df_cleaned_outliers, my_file="df_cleaned_outliers.csv", set_index=True)
+    
+    # reset the index again
+    df_cleaned_outliers.reset_index(inplace=True)
+    st.write(df_cleaned_outliers)
     ###############################################################################
     # 3. Feature Engineering
     ###############################################################################
@@ -1201,8 +1205,8 @@ if uploaded_file is not None:
                 
     with st.expander("📌", expanded=True):
         my_header('Special Calendar Days')
-        start_date_calendar = df_clean['date'].min()
-        end_date_calendar = df_clean['date'].max()
+        start_date_calendar = df_cleaned_outliers['date'].min()
+        end_date_calendar = df_cleaned_outliers['date'].max()
         st.markdown('---')
         df_exogenous_vars = pd.DataFrame({'date': pd.date_range(start = start_date_calendar, 
                                                                 end = end_date_calendar)})
@@ -1313,7 +1317,7 @@ if uploaded_file is not None:
         ###############################################################################
         # combine exogenous vars with df_total | df_clean?
         ###############################################################################
-        df_total_incl_exogenous = pd.merge(df_clean, df_exogenous_vars, on='date', how='left' )
+        df_total_incl_exogenous = pd.merge(df_cleaned_outliers, df_exogenous_vars, on='date', how='left' )
         df = df_total_incl_exogenous.copy(deep=True)
         
         ##############################
