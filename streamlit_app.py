@@ -60,35 +60,16 @@ metrics_dict = {}
 ###############################################################################
 # FUNCTIONS
 ###############################################################################
-def evaluate_sarimax_model(order, seasonal_order, exog_train, exog_test, endog_train, endog_test):
-   """
-   Train and evaluate SARIMAX model on test data.
-   
-   Parameters:
-       order (tuple): Order of the SARIMAX model (p,d,q).
-       seasonal_order (tuple): Seasonal order of the SARIMAX model (P,D,Q,s).
-       exog_train (pd.DataFrame): Exogenous variables training data.
-       exog_test (pd.DataFrame): Exogenous variables test data.
-       endog_train (pd.DataFrame): Endogenous variable training data.
-       endog_test (pd.DataFrame): Endogenous variable test data.
-   
-   Returns:
-       rmse (float): Root mean squared error of the model on test data.
-       r2 (float): Coefficient of determination (R-squared) of the model on test data.
-       preds_df (pd.DataFrame): DataFrame of predicted and actual values on test data.
-   """
-   # Fit the model
-   model = sm.tsa.statespace.SARIMAX(endog=endog_train, exog=exog_train, order=order, seasonal_order=seasonal_order)
-   results = model.fit()
-   # Generate predictions
-   y_pred = results.predict(start=endog_test.index[0], end=endog_test.index[-1], exog=exog_test)
-   preds_df = pd.DataFrame({'Actual': endog_test.squeeze(), 'Predicted': y_pred.squeeze()}, index=endog_test.index)
-   # Calculate percentage difference between actual and predicted values and add it as a new column
-   preds_df = preds_df.assign(Percentage_Diff = ((preds_df['Predicted'] - preds_df['Actual']) / preds_df['Actual']))
-   # Calculate MAPE and add it as a new column
-   preds_df = preds_df.assign(MAPE = abs(preds_df['Percentage_Diff']))   
-   return preds_df   
-
+# define a function to create a dummy dataset with seasonality
+def create_dummy_data():
+    # generate dates for one year
+    dates = pd.date_range(start='2022-01-01', end='2022-12-31', freq='D')
+    # generate random values for y with a sinusoidal pattern
+    y = [i + 5 * (i % 7) * ((i // 30) % 2) * ((i // 90) % 2) * ((i // 180) % 2) for i in range(365)]
+    # create dataframe
+    df = pd.DataFrame({'date': dates, 'y': y})
+    return df
+ 
 def my_title(my_string, my_background_color="#45B8AC"):
     st.markdown(f'<h3 style="color:#FFFFFF; background-color:{my_background_color}; padding:5px; border-radius: 5px;"> <center> {my_string} </center> </h3>', unsafe_allow_html=True)
 
@@ -225,6 +206,36 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
     # Calculate MAPE and add it as a new column
     df_preds = df_preds.assign(MAPE = abs(df_preds['Percentage_Diff']))   
     return df_preds
+
+
+def evaluate_sarimax_model(order, seasonal_order, exog_train, exog_test, endog_train, endog_test):
+   """
+   Train and evaluate SARIMAX model on test data.
+   
+   Parameters:
+       order (tuple): Order of the SARIMAX model (p,d,q).
+       seasonal_order (tuple): Seasonal order of the SARIMAX model (P,D,Q,s).
+       exog_train (pd.DataFrame): Exogenous variables training data.
+       exog_test (pd.DataFrame): Exogenous variables test data.
+       endog_train (pd.DataFrame): Endogenous variable training data.
+       endog_test (pd.DataFrame): Endogenous variable test data.
+   
+   Returns:
+       rmse (float): Root mean squared error of the model on test data.
+       r2 (float): Coefficient of determination (R-squared) of the model on test data.
+       preds_df (pd.DataFrame): DataFrame of predicted and actual values on test data.
+   """
+   # Fit the model
+   model = sm.tsa.statespace.SARIMAX(endog=endog_train, exog=exog_train, order=order, seasonal_order=seasonal_order)
+   results = model.fit()
+   # Generate predictions
+   y_pred = results.predict(start=endog_test.index[0], end=endog_test.index[-1], exog=exog_test)
+   preds_df = pd.DataFrame({'Actual': endog_test.squeeze(), 'Predicted': y_pred.squeeze()}, index=endog_test.index)
+   # Calculate percentage difference between actual and predicted values and add it as a new column
+   preds_df = preds_df.assign(Percentage_Diff = ((preds_df['Predicted'] - preds_df['Actual']) / preds_df['Actual']))
+   # Calculate MAPE and add it as a new column
+   preds_df = preds_df.assign(MAPE = abs(preds_df['Percentage_Diff']))   
+   return preds_df  
 
 def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, model, model_name):
     """
@@ -794,7 +805,7 @@ if uploaded_file is None:
         st.info('''👈 **Please upload a .CSV file with:**  
                  - first column named: **$date$** with format: **$mm-dd-yyyy$**  
                  - second column the target variable: $y$''')
-
+      
 # if user uploaded csv file run below code
 # wrap all code inside this related to data analysis / modeling
 if uploaded_file is not None:   
@@ -825,8 +836,8 @@ if uploaded_file is not None:
             # Set default values for parameters
             default_lags = 30
             default_method = "yw"  
-            with col1:
-                nlags_acf = st.slider("*Lags ACF*", min_value=1, max_value=(len(df_raw)-1), value=default_lags)
+            
+            nlags_acf = st.slider("*Lags ACF*", min_value=1, max_value=(len(df_raw)-1), value=default_lags)
             col1, col2, col3 = st.columns([4,1,4])
             with col1:
                 nlags_pacf = st.slider("*Lags PACF*", min_value=1, max_value=int((len(df_raw)-2)/2), value=default_lags)
@@ -885,7 +896,7 @@ if uploaded_file is not None:
         #############################################################################
         # Call function for plotting Graphs of Seasonal Patterns D/W/M/Q/Y in Plotly Charts
         #############################################################################
-        plot_overview(df_raw, y='total_traffic')
+        plot_overview(df_raw, y=df_raw.columns[1])
        
     with st.expander('Autocorrelation Plots (ACF & PACF) with optional Differencing applied', expanded=True): 
         
@@ -1038,7 +1049,7 @@ if uploaded_file is not None:
     ###############################################################################
     # 3. Data Cleaning
     ############################################################################### 
-    my_title("2. Data Cleaning 🧹", "#440154")
+    my_title("3. Data Cleaning 🧹", "#440154")
     with st.sidebar:
         my_title("Data Cleaning 🧹 ", "#440154")
         # with your form have a button to click and values are updated in streamlit
@@ -1059,7 +1070,7 @@ if uploaded_file is not None:
                 data_cleaning_btn = st.form_submit_button("Submit", type="secondary")
     with st.expander('Missing Values', expanded=True):
         #*************************************************
-        my_subheader('Handling missing values')
+        my_subheader('Handling missing values', my_style="#440154")
         #*************************************************    
         # Apply function to resample missing dates based on user set frequency
         # freq = daily, weekly, monthly, quarterly, yearly
@@ -1141,7 +1152,7 @@ if uploaded_file is not None:
     #########################################################
     with st.expander('Outliers', expanded=True):
         # set page subheader with custum function
-        my_subheader('Handling outliers 😇😈😇')
+        my_subheader('Handling outliers 😇😈😇', my_style="#440154")
 
         # define function to generate form and sliders for outlier detection and handling
         ##############################################################################
@@ -1178,13 +1189,15 @@ if uploaded_file is not None:
             # create a download button to download the .csv file of the cleaned dataframe
             download_csv_button(df_cleaned_outliers, my_file="df_cleaned_outliers.csv", set_index=True)
     
-    # reset the index again
-    df_cleaned_outliers.reset_index(inplace=True)
-    st.write(df_cleaned_outliers)
+    # reset the index again to have index instead of date column as index for further processing
+    df_cleaned_outliers_with_index = df_cleaned_outliers.copy(deep=True)
+    df_cleaned_outliers_with_index.reset_index(inplace=True)
+    # convert 'date' column to datetime in both DataFrames
+    df_cleaned_outliers_with_index['date'] = pd.to_datetime(df_cleaned_outliers_with_index['date'])
     ###############################################################################
-    # 3. Feature Engineering
+    # 4. Feature Engineering
     ###############################################################################
-    my_title("3. Feature Engineering 🧰", "#FF6F61")
+    my_title("4. Feature Engineering 🧰", "#FF6F61")
     with st.sidebar:
         my_title("Feature Engineering 🧰", "#FF6F61")  
         st.info(''' Select your explanatory variables''')
@@ -1205,8 +1218,8 @@ if uploaded_file is not None:
                 
     with st.expander("📌", expanded=True):
         my_header('Special Calendar Days')
-        start_date_calendar = df_cleaned_outliers['date'].min()
-        end_date_calendar = df_cleaned_outliers['date'].max()
+        start_date_calendar = df_cleaned_outliers_with_index['date'].min()
+        end_date_calendar = df_cleaned_outliers_with_index['date'].max()
         st.markdown('---')
         df_exogenous_vars = pd.DataFrame({'date': pd.date_range(start = start_date_calendar, 
                                                                 end = end_date_calendar)})
@@ -1317,7 +1330,7 @@ if uploaded_file is not None:
         ###############################################################################
         # combine exogenous vars with df_total | df_clean?
         ###############################################################################
-        df_total_incl_exogenous = pd.merge(df_cleaned_outliers, df_exogenous_vars, on='date', how='left' )
+        df_total_incl_exogenous = pd.merge(df_cleaned_outliers_with_index, df_exogenous_vars, on='date', how='left' )
         df = df_total_incl_exogenous.copy(deep=True)
         
         ##############################
@@ -1365,14 +1378,13 @@ if uploaded_file is not None:
             df = pd.concat([df, dum_day], axis=1)    
         st.markdown('---')
         # SHOW DATAFRAME
-        st.write('**re-order dataframe TODO**')
         st.dataframe(df)     
         download_csv_button(df, my_file="dataframe_incl_features.csv", help_message="Download your dataset incl. features to .CSV")    
     
     ###############################################################################
-    # 4. Prepare Data (split into training/test)
+    # 5. Prepare Data (split into training/test)
     ###############################################################################
-    my_title('4. Prepare Data 🧪', "#FFB347")
+    my_title('5. Prepare Data 🧪', "#FFB347")
     with st.sidebar:
         my_title('Prepare Data 🧪', "#FFB347")
     
@@ -1473,97 +1485,156 @@ if uploaded_file is not None:
         st.warning(f":information_source: train/test split equals :green[**{perc_train_set}**] and :green[**{perc_test_set}**] ")
     
     ###############################################################################
-    # 5. Feature Selection
+    # 6. Feature Selection
     ###############################################################################
-    my_title('5. Feature Selection 🍏🍐🍋', "#CBB4D4")
+    my_title('6. Feature Selection 🍏🍐🍋', "#7B52AB ")
     with st.sidebar:
-        my_title('Feature Selection 🍏🍐🍋', "#CBB4D4")
-    st.info('Let\'s review your top features to use in analysis ')
-    st.info('''    Recursive Feature Elimination (RFE): This method involves recursively removing features and building a model on the remaining features. It then ranks the features based on their importance and eliminates the least important feature.
-    Principal Component Analysis (PCA): This method transforms the original set of features into a smaller set of features, called principal components, that capture most of the variability in the data.
-    Mutual Information: This method measures the dependence between two variables, such as the target variable and each feature. It selects the features that have the highest mutual information with the target variable.
-    Lasso Regression: This method performs both feature selection and regularization by adding a penalty term to the objective function that encourages sparsity in the coefficients.''')
+        my_title('Feature Selection 🍏🍐🍋', "#7B52AB ")
+        with st.form('rfe'):
+             my_subheader('Recursive Feature Elimination', my_size=4, my_style='#7B52AB')
+             # Add a slider to select the number of n_splits for the RFE method
+             timeseriessplit = st.slider('Set the number of timeseries splits (n_splits)', min_value=2, max_value=5, value=5)
+             # Add a slider to select the number of features to be selected by the RFECV algorithm
+             num_features = st.slider('Select the desired number of features', min_value=1, max_value=len(X.columns), value=len(X.columns))
+             col1, col2, col3 = st.columns([4,4,4])
+             with col2:       
+                 rfe_btn = st.form_submit_button("Submit", type="secondary")
+     
+    with st.expander('', expanded=True):
+        st.markdown('''Let\'s **review** your **top features** to use in analysis with **three feature selection methods**:  
+                    - Recursive Feature Elimination with Cross-Validation  
+                    - Principal Component Analysis  
+                    - Mutual Information  
+                    ''')
+    
     try:
-        with st.expander('RFECV', expanded=True):
-                my_subheader('Recursive Feature Elimination with Cross-Validation')
+        with st.expander('🎨 RFECV', expanded=True):
+                #my_subheader('Recursive Feature Elimination with Cross-Validation', my_style="#7B52AB ")
                 # Scale the features
                 scaler = StandardScaler()
+                # scales the input features so that they have zero mean and unit variance. 
+                # This is achieved by computing the mean and standard deviation of each feature in the training data, and then subtracting the mean and dividing by the standard deviation for each feature.
                 X_scaled = scaler.fit_transform(X)
-                
-                # Set up the time series cross validation
-                st.info(':information_source: The n_splits parameter in TimeSeriesSplit determines the number of splits to be made in the data. In other words, how many times the data is split into training and testing sets. It ensures that the testing set contains only data points that are more recent than the training set. The default value of n_splits is 5')
-                timeseriessplit = st.slider('timeseries split', min_value=2, max_value=5, value=5)
+                # define the time series splits set by user in sidebar slider      
                 tscv = TimeSeriesSplit(n_splits=timeseriessplit)
-                
                 # Set up the linear regression model
                 lr = LinearRegression()
-                
                 # Set up the recursive feature elimination with cross validation
                 rfecv = RFECV(estimator=lr, step=1, cv=tscv, scoring='neg_mean_squared_error', n_jobs=-1)
-                
                 # Fit the feature selection model
                 rfecv.fit(X_scaled, y)
-                
-                # Print the selected features
+                # Define the selected features
+                if num_features is not None:
+                    selected_features = X.columns[rfecv.ranking_ <= num_features]
+                else:
+                    selected_features = X.columns[rfecv.support_]
+                # Get the feature ranking
+                feature_rankings = pd.Series(rfecv.ranking_, index=X.columns).rename('Ranking')
+                # Sort the feature rankings in descending order
+                sorted_rankings = feature_rankings.sort_values(ascending=True)
+                # Create a dataframe with feature rankings and selected features
+                df_ranking = pd.DataFrame({'Features': sorted_rankings.index, 'Ranking': sorted_rankings})
+                # Sort the dataframe by ranking
+                df_ranking = df_ranking.sort_values('Ranking', ascending=True)
+                # Highlight selected features
+                df_ranking['Selected'] = np.where(df_ranking['Features'].isin(selected_features), 'Yes', 'No')
+                # Create the plot
+                fig = px.scatter(df_ranking, x='Features', y='Ranking', color='Selected', hover_data=['Ranking'])
+                fig.update_layout(
+                                title={
+                                    'text': 'Recursive Feature Elimination with Cross-Validation (RFECV)',
+                                    'x': 0.5,
+                                    'y': 0.95,
+                                    'xanchor': 'center',
+                                    'yanchor': 'top'},
+                                xaxis_title='Features',
+                                yaxis_title='Ranking',
+                                legend_title='Selected',
+                                xaxis_tickangle=-45  # set the tickangle to -90 degrees
+                                )
+                # Show the plot
+                st.plotly_chart(fig, use_container_width=True)
+                                
+                # show the ranking and selected features dataframes side by side
                 col1, col2, col3, col4 = st.columns([1,2,2,1])
-                selected_features = X.columns[rfecv.support_]
                 with col2:
                     st.write(':blue[**Selected features:**]', selected_features)
-                
                 # Print the feature rankings
                 with col3: 
                     feature_rankings = pd.Series(rfecv.ranking_, index=X.columns).rename('Ranking')
                     st.write(':blue[**Feature rankings:**]')
                     st.write(feature_rankings.sort_values())
-                    
-                # Get the feature ranking
-                feature_rankings = pd.Series(rfecv.ranking_, index=X.columns).rename('Ranking')
+                # alternatively show 1 dataframe with ranking and selected yes/no
+                #st.dataframe(df_ranking, use_container_width=True)
                 
-                # Create a dataframe with feature rankings and selected features
-                df_ranking = pd.DataFrame({'Features': feature_rankings.index, 'Ranking': feature_rankings})
-                
-                # Highlight selected features
-                df_ranking['Selected'] = np.where(df_ranking['Features'].isin(selected_features), 'Yes', 'No')
-                
-                # Create the plot
-                fig = px.scatter(df_ranking, x='Features', y='Ranking', color='Selected', hover_data=['Ranking'])
-                fig.update_layout(
-                    title={
-                        'text': 'Recursive Feature Elimination with Cross-Validation (RFECV)',
-                        'x': 0.5,
-                        'y': 0.95,
-                        'xanchor': 'center',
-                        'yanchor': 'top'},
-                    xaxis_title='Features',
-                    yaxis_title='Ranking',
-                    legend_title='Selected'
-                )
-                
-                # Show the plot
-                st.plotly_chart(fig)
-                
-        # PCA feature selection
-        pca = PCA(n_components=5)
-        pca.fit(X)
-        X_pca = pca.transform(X)
-        selected_features_pca = ['PC1', 'PC2', 'PC3', 'PC4', 'PC5']
-        feature_names = X.columns
-        # Create plot
-        fig = go.Figure()
-        fig.add_trace(go.Bar(x=pca.explained_variance_ratio_, y=feature_names[pca.components_.argmax(axis=1)], 
-                             orientation='h', text=np.round(pca.explained_variance_ratio_ * 100, 2), textposition='auto'))
-        fig.update_layout(title='PCA Feature Selection', xaxis_title='Explained Variance Ratio', yaxis_title='Feature Name')
-        # Display plot in Streamlit
-        st.plotly_chart(fig)
-        # show user info about how to interpret the graph
-        st.info('''When you fit a PCA model, it calculates the amount of variance that is captured by each principal component. \
-                The variance ratio is the fraction of the total variance in the data that is explained by each principal component. \
-                The sum of the variance ratios of all the principal components equals 1. 
-                The variance ratio is expressed as a percentage by multiplying it by 100, so it can be easily interpreted. \
-                For example, a variance ratio of 0.75 means that 75% of the total variance in the data is captured by the corresponding principal component.''')
     except:
-        st.write(':red[Error: Recursive Feature Elimination with Cross-Validation could not execute...please adjust your selection criteria]')
-    
+        st.warning(':red[**ERROR**: Recursive Feature Elimination with Cross-Validation could not execute...please adjust your selection criteria]')
+             
+# =============================================================================
+#                 # create button
+#                 st.info('''Recursive Feature Elimination (RFE): This method involves recursively removing features and building a model on the remaining features. It then ranks the features based on their importance and eliminates the least important feature.
+#                 Principal Component Analysis (PCA): This method transforms the original set of features into a smaller set of features, called principal components, that capture most of the variability in the data.
+#                 Mutual Information: This method measures the dependence between two variables, such as the target variable and each feature. It selects the features that have the highest mutual information with the target variable.
+#                 Lasso Regression: This method performs both feature selection and regularization by adding a penalty term to the objective function that encourages sparsity in the coefficients.''')
+#                 
+# =============================================================================
+
+    # =============================================================================        
+    # PCA feature selection
+    # =============================================================================
+    with st.sidebar:    
+        with st.form('pca'):
+            my_subheader('Principal Component Analysis', my_size=4, my_style='#7B52AB')
+            # Add a slider to select the number of features to be selected by the PCA algorithm
+            num_features_pca = st.slider('Select the desired number of features', min_value=1, max_value=len(X.columns), value=len(X.columns))
+            col1, col2, col3 = st.columns([4,4,4])
+            with col2:       
+                pca_btn = st.form_submit_button("Submit", type="secondary")
+    try:
+        with st.expander('PCA', expanded=True):
+            #my_subheader('Principal Component Analysis', my_size=4, my_style='#7B52AB')
+            pca = PCA(n_components=num_features_pca)
+            pca.fit(X)
+            X_pca = pca.transform(X)
+            selected_features_pca = ['PC{}'.format(i+1) for i in range(num_features_pca)]
+            feature_names = X.columns
+            
+            # Sort features by explained variance ratio
+            sorted_idx = np.argsort(pca.explained_variance_ratio_)[::-1]
+            sorted_features = feature_names[sorted_idx]
+            
+            # Create plot
+            fig = go.Figure()
+            fig.add_trace(go.Bar(x=pca.explained_variance_ratio_[sorted_idx], y=sorted_features, 
+                                 orientation='h', text=np.round(pca.explained_variance_ratio_[sorted_idx] * 100, 2), textposition='auto'))
+            fig.update_layout(title={
+                                    'text': 'Principal Component Analysis Feature Selection',
+                                    'x': 0.5,
+                                    'y': 0.95,
+                                    'xanchor': 'center',
+                                    'yanchor': 'top'
+                                    },
+                              xaxis_title='Explained Variance Ratio', yaxis_title='Feature Name')
+            # Display plot in Streamlit
+            st.plotly_chart(fig)
+            
+            show_pca_info_btn = st.button(f'About PCA plot', use_container_width=True, type='secondary')
+            if show_pca_info_btn == True:
+                st.write('')
+                # show user info about how to interpret the graph
+                st.markdown('''When you fit a **PCA** model, it calculates the amount of variance that is captured by each principal component.
+                        The variance ratio is the fraction of the total variance in the data that is explained by each principal component.
+                        The sum of the variance ratios of all the principal components equals 1.
+                        The variance ratio is expressed as a percentage by multiplying it by 100, so it can be easily interpreted.  
+                        ''')
+                st.markdown('''
+                                For example, a variance ratio of 0.75 means that 75% of the total variance in the data is captured by the corresponding principal component.
+                                ''')
+    except:
+        st.warning(':red[**ERROR**: Principal Component Analysis could not execute...please adjust your selection criteria]')
+    ########################################
+    # Mutual Information Feature Selection
+    ########################################
     # Add slider to select number of top features
     st.sidebar.info('*Select number of top features:*')
     num_features = st.sidebar.slider("**value**", min_value=1, max_value=len(X.columns), value=len(X.columns), step=1, label_visibility="collapsed")
@@ -1592,10 +1663,10 @@ if uploaded_file is not None:
     st.info(f'the columns you selected are: {selected_cols}')
 
 ###############################################################################
-# 6. Train Models
+# 7. Train Models
 ###############################################################################
 if uploaded_file is not None:
-    my_title("6. Train Models 🔢", "#0072B2")
+    my_title("7. Train Models 🔢", "#0072B2")
     with st.sidebar:
         my_title("Train Models 🔢", "#0072B2")
     with st.expander('🗒️ Naive Model', expanded=False):
@@ -1675,7 +1746,6 @@ if uploaded_file is not None:
     # Create a User Form to Select Model(s) to train
     ################################################
     with st.sidebar.form('model_train_form'):
-
         # define all models you want user to choose from
         models = [('Naive Model', None),('Linear Regression', LinearRegression(fit_intercept=True)), ('SARIMAX', SARIMAX(y_train))]
         
@@ -1713,11 +1783,12 @@ if uploaded_file is not None:
         st.warning("👈 Please select at least 1 model to train from the sidebar, when pressing the **\"Submit\"** button!🏋️‍♂️")
     
     ###############################################################################
-    my_title("7. Evaluate Models 🔎", "#2CB8A1")
+    my_title("8. Evaluate Models 🔎", "#2CB8A1")
     ###############################################################################
     with st.sidebar:
         my_title("Evaluate Models 🔎", "#2CB8A1")
-        
+    if not train_models_btn and not selected_models:
+        st.info('Train your models before evaluation results show up **here...**')
     if train_models_btn and selected_models:
         # Create a global pandas DataFrame to hold model_name and mape values
         results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2'])
@@ -1773,7 +1844,7 @@ if uploaded_file is not None:
 # 8. Forecast
 ##############################################################################
 if uploaded_file is not None:
-    my_title('7. Forecast 🔮', "#48466D")   
+    my_title('9. Forecast 🔮', "#48466D")   
     with st.sidebar:
         my_title('Forecast 🔮', "#48466D")                    
         with st.expander("📆 ", expanded=True):
