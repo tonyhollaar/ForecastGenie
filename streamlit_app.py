@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Streamlit App to Forecast Website Traffic
+Streamlit App: ForecastGenie_TM 
+Forecast y based on timeseries date
 Created on Mon Mar 6 17:02:34 2023
 @author: tholl
 """
@@ -771,20 +772,23 @@ st.write("")
 
 # ABOUT SIDEBAR MENU
 with st.sidebar.expander(':information_source: About', expanded=False):
+
     st.write('''Hi :wave: **Welcome** to the ForecastGenie app created with Streamlit :smiley:
             
                 \n**What does it do?**  
-                - Forecast your Time Series Dataset - for example predict your future daily website `visits`!  
+                - Analyze, Clean, Select Top Features, Train/Test and Forecast your Time Series Dataset!  
                 \n**What do you need?**  
-                - Upload your .csv file that contains your **date** (X) column and your target variable of interest (Y)  
+                - Upload your `.CSV` file that contains your **date** (X) column and your target variable of interest (Y)  
             ''')
+
     st.markdown('---')
     # DISPLAY LOGO
     col1, col2, col3 = st.columns([1,3,2])
     with col2:
         st.image('./images/logo_dark.png', caption="Developed by")  
         # added spaces to align website link with logo in horizontal center
-        st.markdown(f'<h5 style="color:#217CD0;"><center><a href="https://www.tonyhollaar.com/">www.tonyhollaar.com</a></center></h5>', unsafe_allow_html=True)
+        st.markdown(f'<h6 style="color:#217CD0;"><center><a href="https://www.tonyhollaar.com/">www.tonyhollaar.com</a></center></h5>', unsafe_allow_html=True)
+        st.caption(f'<h7><center> ForecastGenie version: 1.0 <br>  Release date: 03-20-2023  </center></h7>', unsafe_allow_html=True)
     st.markdown('---')
 
 ###############################################################################
@@ -1401,7 +1405,7 @@ if uploaded_file is not None:
     # USER TO SET the insample forecast days 
     with st.expander("", expanded=True):
         my_subheader('How many days you want to use as your test-set?')
-        st.caption(f'<h6> <center> *NOTE: A commonly used ratio is 80:20 split between train and test </center> <h6>', unsafe_allow_html=True)
+        st.caption(f'<h6> <center> ✂️ A commonly used ratio is 80:20 split between train and test </center> <h6>', unsafe_allow_html=True)
 
         # create sliders for user insample test-size (/train-size automatically as well)
         def update(change):
@@ -1492,10 +1496,10 @@ if uploaded_file is not None:
         my_title('Feature Selection 🍏🍐🍋', "#7B52AB ")
         with st.form('rfe'):
              my_subheader('Recursive Feature Elimination', my_size=4, my_style='#7B52AB')
-             # Add a slider to select the number of n_splits for the RFE method
-             timeseriessplit = st.slider('Set the number of timeseries splits (n_splits)', min_value=2, max_value=5, value=5)
              # Add a slider to select the number of features to be selected by the RFECV algorithm
-             num_features = st.slider('Select the desired number of features', min_value=1, max_value=len(X.columns), value=len(X.columns))
+             num_features = st.slider('Select the desired number of features', min_value=1, max_value=len(X.columns), value=5)
+             # Add a slider to select the number of n_splits for the RFE method
+             timeseriessplit = st.slider('Number of splits for cross-validation', min_value=2, max_value=5, value=5)
              col1, col2, col3 = st.columns([4,4,4])
              with col2:       
                  rfe_btn = st.form_submit_button("Submit", type="secondary")
@@ -1567,18 +1571,20 @@ if uploaded_file is not None:
                 # alternatively show 1 dataframe with ranking and selected yes/no
                 #st.dataframe(df_ranking, use_container_width=True)
                 
+                # show user selected columns
+                selected_cols_rfe = list(selected_features)
+                st.info(f'Top {len(selected_cols_rfe)} features selected with RFECV: {selected_cols_rfe}')
+                
+                show_rfe_info_btn = st.button(f'About RFE plot', use_container_width=True, type='secondary')
+                if show_rfe_info_btn == True:
+                    st.write('')
+                    # show user info about how to interpret the graph
+                    st.markdown('''**Recursive Feature Elimination** involves recursively removing features and building a model on the remaining features. It then **ranks the features** based on their importance and **eliminates** the **least important feature**.
+                                ''')
+              
     except:
         st.warning(':red[**ERROR**: Recursive Feature Elimination with Cross-Validation could not execute...please adjust your selection criteria]')
              
-# =============================================================================
-#                 # create button
-#                 st.info('''Recursive Feature Elimination (RFE): This method involves recursively removing features and building a model on the remaining features. It then ranks the features based on their importance and eliminates the least important feature.
-#                 Principal Component Analysis (PCA): This method transforms the original set of features into a smaller set of features, called principal components, that capture most of the variability in the data.
-#                 Mutual Information: This method measures the dependence between two variables, such as the target variable and each feature. It selects the features that have the highest mutual information with the target variable.
-#                 Lasso Regression: This method performs both feature selection and regularization by adding a penalty term to the objective function that encourages sparsity in the coefficients.''')
-#                 
-# =============================================================================
-
     # =============================================================================        
     # PCA feature selection
     # =============================================================================
@@ -1586,12 +1592,12 @@ if uploaded_file is not None:
         with st.form('pca'):
             my_subheader('Principal Component Analysis', my_size=4, my_style='#7B52AB')
             # Add a slider to select the number of features to be selected by the PCA algorithm
-            num_features_pca = st.slider('Select the desired number of features', min_value=1, max_value=len(X.columns), value=len(X.columns))
+            num_features_pca = st.slider('Select the desired number of features', min_value=1, max_value=len(X.columns), value=5)
             col1, col2, col3 = st.columns([4,4,4])
             with col2:       
                 pca_btn = st.form_submit_button("Submit", type="secondary")
     try:
-        with st.expander('PCA', expanded=True):
+        with st.expander('🧮 PCA', expanded=True):
             #my_subheader('Principal Component Analysis', my_size=4, my_style='#7B52AB')
             pca = PCA(n_components=num_features_pca)
             pca.fit(X)
@@ -1608,7 +1614,7 @@ if uploaded_file is not None:
             fig.add_trace(go.Bar(x=pca.explained_variance_ratio_[sorted_idx], y=sorted_features, 
                                  orientation='h', text=np.round(pca.explained_variance_ratio_[sorted_idx] * 100, 2), textposition='auto'))
             fig.update_layout(title={
-                                    'text': 'Principal Component Analysis Feature Selection',
+                                    'text': f'Top {len(sorted_features)} <br> Principal Component Analysis Feature Selection',
                                     'x': 0.5,
                                     'y': 0.95,
                                     'xanchor': 'center',
@@ -1617,6 +1623,10 @@ if uploaded_file is not None:
                               xaxis_title='Explained Variance Ratio', yaxis_title='Feature Name')
             # Display plot in Streamlit
             st.plotly_chart(fig)
+            
+            # show top x features selected
+            selected_cols_pca = sorted_features.tolist() 
+            st.info(f'Top {len(selected_cols_pca)} features selected with PCA: {selected_cols_pca}')
             
             show_pca_info_btn = st.button(f'About PCA plot', use_container_width=True, type='secondary')
             if show_pca_info_btn == True:
@@ -1628,40 +1638,77 @@ if uploaded_file is not None:
                         The variance ratio is expressed as a percentage by multiplying it by 100, so it can be easily interpreted.  
                         ''')
                 st.markdown('''
-                                For example, a variance ratio of 0.75 means that 75% of the total variance in the data is captured by the corresponding principal component.
-                                ''')
+                            For example, a variance ratio of 0.75 means that 75% of the total variance in the data is captured by the corresponding principal component.
+                            ''')
     except:
         st.warning(':red[**ERROR**: Principal Component Analysis could not execute...please adjust your selection criteria]')
     ########################################
     # Mutual Information Feature Selection
     ########################################
-    # Add slider to select number of top features
-    st.sidebar.info('*Select number of top features:*')
-    num_features = st.sidebar.slider("**value**", min_value=1, max_value=len(X.columns), value=len(X.columns), step=1, label_visibility="collapsed")
-    
-    # Mutual information feature selection
-    mutual_info = mutual_info_classif(X, y, random_state=42)
-    selected_features_mi = X.columns[np.argsort(mutual_info)[::-1]][:num_features]
-    
-    # Create plot
-    fig = go.Figure()
-    fig.add_trace(go.Bar(x=mutual_info[np.argsort(mutual_info)[::-1]][:num_features],
-                         y=selected_features_mi, 
-                         orientation='h',
-                         text=[f'{val:.2f}' for val in mutual_info[np.argsort(mutual_info)[::-1]][:num_features]],
-                         textposition='inside'))
-    fig.update_layout(title=f'Top {num_features} Mutual Information Feature Selection')
-    
-    # Display plot in Streamlit
-    st.plotly_chart(fig)
-    
-    #feature_selection_user = st.multiselect("favorite features", list(selected_features_mi))
-    ##############################################################
-    # SELECT YOUR FAVORITE FEATURES TO INCLUDE IN MODELING
-    ##############################################################
-    selected_cols = ["total_traffic"] + list(selected_features_mi)
-    st.info(f'the columns you selected are: {selected_cols}')
+    try: 
+        with st.sidebar:
+            with st.form('mifs'):
+                my_subheader('Mutual Information', my_size=4, my_style='#7B52AB')
+                # Add slider to select number of top features
+                num_features = st.slider("*Select number of top features:*", min_value=1, max_value=len(X.columns), value=5, step=1)
+                col1, col2, col3 = st.columns([4,4,4])
+                with col2:       
+                    mifs_btn = st.form_submit_button("Submit", type="secondary")
+        with st.expander('🎏 MIFS', expanded=True):
+            # Mutual information feature selection
+            mutual_info = mutual_info_classif(X, y, random_state=42)
+            selected_features_mi = X.columns[np.argsort(mutual_info)[::-1]][:num_features]
+            
+            # Create plot
+            fig = go.Figure()
+            fig.add_trace(go.Bar(x=mutual_info[np.argsort(mutual_info)[::-1]][:num_features],
+                                 y=selected_features_mi, 
+                                 orientation='h',
+                                 text=[f'{val:.2f}' for val in mutual_info[np.argsort(mutual_info)[::-1]][:num_features]],
+                                 textposition='inside'))
+            fig.update_layout(title={'text': f'Top {num_features} <br> Mutual Information Feature Selection',
+                                    'x': 0.5,
+                                    'y': 0.95,
+                                    'xanchor': 'center',
+                                    'yanchor': 'top'})
+            # Display plot in Streamlit
+            st.plotly_chart(fig)
+            
+            ##############################################################
+            # SELECT YOUR FAVORITE FEATURES TO INCLUDE IN MODELING
+            ##############################################################
+            # combine your y variable name and names of X variables in columns
+            #selected_cols = list(y.columns) + list(selected_features_mi)
+            
+            # Mutual Information Selection
+            selected_cols_mifs = list(selected_features_mi)
+            st.info(f'Top {num_features} features selected with MIFS: {selected_cols_mifs}')
+    except: 
+        st.warning(':red[**ERROR**: Mutual Information Feature Selection could not execute...please adjust your selection criteria]')
+        
 
+    with st.sidebar:        
+        with st.form('top_features'):
+            my_subheader('Select Features 🟡🟢🟣 ', my_size=4, my_style='#7B52AB')
+            # combine list of features selected from feature selection methods and only keep unique features excluding duplicate features
+            total_features = np.unique(selected_cols_rfe + selected_cols_pca + selected_cols_mifs)
+            # combine 3 feature selection methods and show to user in multi-selectbox to adjust as needed
+            feature_selection_user = st.multiselect("favorite features", list(total_features),  list(total_features), label_visibility="collapsed")
+            col1, col2, col3 = st.columns([4,4,4])
+            with col2:       
+                top_features_btn = st.form_submit_button("Submit", type="secondary")
+                
+    ######################################################################################################
+    # redefine dynamic user picked features for X,y, X_train, X_test, y_train, y_test
+    ######################################################################################################
+    X = local_df.loc[:, feature_selection_user]
+    y = local_df.iloc[:, 0:1]
+    X_train = X[:(len(df)-my_insample_forecast_steps)]
+    X_test = X[(len(df)-my_insample_forecast_steps):]
+    # set endogenous variable train/test split
+    y_train = y[:(len(df)-my_insample_forecast_steps)]
+    y_test = y[(len(df)-my_insample_forecast_steps):]           
+                
 ###############################################################################
 # 7. Train Models
 ###############################################################################
