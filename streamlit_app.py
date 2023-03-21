@@ -10,6 +10,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import datetime
+from datetime import timedelta
 import time
 import math
 import matplotlib.pyplot as plt
@@ -61,6 +62,158 @@ metrics_dict = {}
 ###############################################################################
 # FUNCTIONS
 ###############################################################################
+def plot_forecast(df_actual, df_forecast, title=''):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df_actual.index, y=df_actual.iloc[:,0], name='Actual', mode='lines'))
+    fig.add_trace(go.Scatter(x=df_forecast.index, y=df_forecast['forecast'], name='Forecast', mode='lines', line=dict(dash='dot', color='#87CEEB'))) # dash styles: ['solid', 'dot', 'dash', 'longdash', 'dashdot', 'longdashdot'] 
+    fig.update_layout(title=title, legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.99))
+    st.plotly_chart(fig, use_container_width=True)
+
+def create_date_features(df, year_dummies=True, month_dummies=True, day_dummies=True):
+    '''
+    This function creates dummy variables for year, month, and day of week from a date column in a pandas DataFrame.
+
+    Parameters:
+    df (pandas.DataFrame): Input DataFrame containing a date column.
+    year_dummies (bool): Flag to indicate if year dummy variables are needed. Default is True.
+    month_dummies (bool): Flag to indicate if month dummy variables are needed. Default is True.
+    day_dummies (bool): Flag to indicate if day of week dummy variables are needed. Default is True.
+
+    Returns:
+    pandas.DataFrame: A new DataFrame with added dummy variables.
+    '''
+    if year_dummies:
+        df['year'] = df['date'].dt.year
+        dum_year = pd.get_dummies(df['year'], columns=['year'], drop_first=True, prefix='year', prefix_sep='_')
+        df = pd.concat([df, dum_year], axis=1)
+
+    if month_dummies:
+        month_dict = {1:'January', 2:'February', 3:'March', 4:'April', 5:'May', 6:'June', 7:'July', 8:'August', 9:'September', 10:'October', 11:'November', 12:'December'}
+        df['month'] = df['date'].dt.month.apply(lambda x: month_dict.get(x))
+        dum_month = pd.get_dummies(df['month'], columns=['month'], drop_first=True, prefix='', prefix_sep='')
+        df = pd.concat([df, dum_month], axis=1)
+
+    if day_dummies:
+        week_dict = {0:'Monday', 1:'Tuesday', 2:'Wednesday', 3:'Thursday', 4:'Friday', 5:'Saturday', 6:'Sunday'}
+        df['day'] = df['date'].dt.weekday.apply(lambda x: week_dict.get(x))
+        dum_day = pd.get_dummies(df['day'], columns=['day'], drop_first=True, prefix='', prefix_sep='')
+        df = pd.concat([df, dum_day], axis=1)
+    # Drop any duplicate columns based on their column names
+    df = df.loc[:,~df.columns.duplicated()]
+    
+    return df
+
+# define calendar
+cal = calendar()
+
+def create_calendar_special_days(df, start_date_calendar=None,  end_date_calendar=None, select_all_days=True):
+    """
+    # source: https://practicaldatascience.co.uk/data-science/how-to-create-an-ecommerce-trading-calendar-using-pandas
+    Create a trading calendar for an ecommerce business in the UK.
+    
+    Parameters:
+    df (pd.DataFrame): Cleaned DataFrame containing order data with index
+    select_all_days (bool): Whether to select all days or only specific special days
+    
+    Returns:
+    df_exogenous_vars (pd.DataFrame): DataFrame containing trading calendar with holiday and event columns
+    """
+    ###############################################
+    # Define variables
+    ###############################################
+    if start_date_calendar == None:
+        start_date_calendar = df['date'].min()
+    else:
+        start_date_calendar = start_date_calendar
+    if end_date_calendar == None:
+        end_date_calendar = df['date'].max()
+    else:
+        end_date_calendar = end_date_calendar
+    #st.markdown('---')
+    df_exogenous_vars = pd.DataFrame({'date': pd.date_range(start = start_date_calendar, end = end_date_calendar)})
+    holidays = cal.holidays(start=start_date_calendar, end=end_date_calendar)
+    # holiday = true/ otherwise false
+    df_exogenous_vars['holiday'] = (df_exogenous_vars['date'].isin(holidays)).apply(lambda x: 1 if x==True else 0)
+    # create column for holiday description
+    df_exogenous_vars['holiday_desc'] = df_exogenous_vars['date'].apply(lambda x: my_holiday_name_func(x))
+    class UKEcommerceTradingCalendar(AbstractHolidayCalendar):
+        rules = []
+        # Seasonal trading events
+        # only add Holiday if user checkmarked checkbox (e.g. equals True) 
+        if jan_sales:
+            rules.append(Holiday('January sale', month = 1, day = 1))
+        if val_day_lod:
+            rules.append(Holiday('Valentine\'s Day [last order date]', month = 2, day = 14, offset = BDay(-2)))
+        if val_day:
+            rules.append(Holiday('Valentine\'s Day', month = 2, day = 14))
+        if mother_day_lod:
+            rules.append(Holiday('Mother\'s Day [last order date]', month = 5, day = 1, offset = BDay(-2)))
+        if mother_day:
+            rules.append(Holiday('Mother\'s Day', month = 5, day = 1, offset = pd.DateOffset(weekday = SU(2))))
+        if father_day_lod:
+            rules.append(Holiday('Father\'s Day [last order date]', month = 6, day = 1, offset = BDay(-2)))
+        if father_day:
+            rules.append(Holiday('Father\'s Day', month = 6, day = 1, offset = pd.DateOffset(weekday = SU(3))))
+        if black_friday_lod:
+            rules.append(Holiday("Black Friday [sale starts]", month = 11, day = 1, offset = [pd.DateOffset(weekday = SA(4)), BDay(-5)]))
+        if black_friday:
+            rules.append(Holiday('Black Friday', month = 11, day = 1, offset = pd.DateOffset(weekday = FR(4))))
+        if cyber_monday:
+            rules.append(Holiday("Cyber Monday", month = 11, day = 1, offset = [pd.DateOffset(weekday = SA(4)), pd.DateOffset(2)]))
+        if christmas_day:
+            rules.append(Holiday('Christmas Day [last order date]', month = 12, day = 25, offset = BDay(-2)))
+        if boxing_day:
+            rules.append(Holiday('Boxing Day sale', month = 12, day = 26))       
+    calendar = UKEcommerceTradingCalendar()
+    start = df_exogenous_vars.date.min()
+    end = df_exogenous_vars.date.max()
+    events = calendar.holidays(start = start, end = end, return_name = True)
+    events = events.reset_index(name = 'calendar_event_desc').rename(columns = {'index': 'date'})
+    df_exogenous_vars = df_exogenous_vars.merge(events, on = 'date', how = 'left').fillna('')
+    # source: https://splunktool.com/holiday-calendar-in-pandas-dataframe
+    ###############################################
+    # Create Pay Days 
+    ###############################################
+    class UKEcommerceTradingCalendar(AbstractHolidayCalendar):
+        rules = []
+        # Pay days(based on fourth Friday of the month)
+        if pay_days == True:
+            rules = [
+                    Holiday('January Pay Day', month = 1, day = 31, offset = BDay(-1)),
+                    Holiday('February Pay Day', month = 2, day = 28, offset = BDay(-1)),
+                    Holiday('March Pay Day', month = 3, day = 31, offset = BDay(-1)),
+                    Holiday('April Pay Day', month = 4, day = 30, offset = BDay(-1)),
+                    Holiday('May Pay Day', month = 5, day = 31, offset = BDay(-1)),
+                    Holiday('June Pay Day', month = 6, day = 30, offset = BDay(-1)),
+                    Holiday('July Pay Day', month = 7, day = 31, offset = BDay(-1)),
+                    Holiday('August Pay Day', month = 8, day = 31, offset = BDay(-1)),
+                    Holiday('September Pay Day', month = 9, day = 30, offset = BDay(-1)),
+                    Holiday('October Pay Day', month = 10, day = 31, offset = BDay(-1)),
+                    Holiday('November Pay Day', month = 11, day = 30, offset = BDay(-1)),
+                    Holiday('December Pay Day', month = 12, day = 31, offset = BDay(-1))
+                    ]
+    calendar = UKEcommerceTradingCalendar()
+    start = df_exogenous_vars.date.min()
+    end = df_exogenous_vars.date.max()
+    events = calendar.holidays(start = start, end = end, return_name = True)
+    events = events.reset_index(name = 'pay_day_desc').rename(columns = {'index': 'date'})
+    df_exogenous_vars = df_exogenous_vars.merge(events, on = 'date', how = 'left').fillna('')
+    df_exogenous_vars['pay_day'] = df_exogenous_vars['pay_day_desc'].apply(lambda x: 1 if len(x) > 1 else 0)
+    # add boolean
+    df_exogenous_vars['calendar_event'] = df_exogenous_vars['calendar_event_desc'].apply(lambda x: 1 if len(x)>1 else 0)
+    ###############################################################################
+    # Reorder Columns to logical order e.g. value | description of value
+    ###############################################################################
+    # ??? improve this dynamically ???
+    df_exogenous_vars = df_exogenous_vars[['date', 'holiday', 'holiday_desc', 'calendar_event', 'calendar_event_desc', 'pay_day','pay_day_desc']]
+    ###############################################################################
+    # combine exogenous vars with df_total | df_clean?
+    ###############################################################################
+    df_total_incl_exogenous = pd.merge(df, df_exogenous_vars, on='date', how='left' )
+    df = df_total_incl_exogenous.copy(deep=True)
+    return df 
+
+
 # define a function to create a dummy dataset with seasonality
 def create_dummy_data():
     # generate dates for one year
@@ -208,7 +361,6 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
     df_preds = df_preds.assign(MAPE = abs(df_preds['Percentage_Diff']))   
     return df_preds
 
-
 def evaluate_sarimax_model(order, seasonal_order, exog_train, exog_test, endog_train, endog_test):
    """
    Train and evaluate SARIMAX model on test data.
@@ -279,6 +431,24 @@ def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, mo
         st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
         # create download button for forecast results to .csv
         download_csv_button(df_preds, my_file="f'forecast_{model_name}_model.csv'", help_message=f'Download your **{model_name}** model results to .CSV')
+
+def create_forecast_model_card(results_df, model, model_name):
+    df_preds = results_df.iloc[0]
+
+    # add the results to sidebar for quick overview for user  
+    # set as global variable to be used in code outside function
+    #results_df = results_df.append({'model_name': model_name, 'mape': '{:.2%}'.format(mape),'rmse': rmse, 'r2':r2}, ignore_index=True)
+    
+    with st.expander(':information_source: '+ model_name, expanded=True):
+        #display_my_metrics(my_df=df_preds, model_name=model_name)
+        # plot graph with actual versus insample predictions
+        plot_actual_vs_predicted(df_preds)
+        # show the dataframe
+        st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+        # create download button for forecast results to .csv
+        download_csv_button(df_preds, my_file="f'forecast_{model_name}_model.csv'", help_message=f'Download your **{model_name}** model results to .CSV')
+
+
 
 def load_data():
     """
@@ -413,7 +583,6 @@ def my_fill_method(df, fill_method, custom_fill_value=None):
     elif fill_method == 'custom':
         df.iloc[:,1]  = df.iloc[:,1].fillna(custom_fill_value)
     return df
-
 
 def plot_overview(df, y):
     """
@@ -772,7 +941,6 @@ st.write("")
 
 # ABOUT SIDEBAR MENU
 with st.sidebar.expander(':information_source: About', expanded=False):
-
     st.write('''Hi :wave: **Welcome** to the ForecastGenie app created with Streamlit :smiley:
             
                 \n**What does it do?**  
@@ -877,13 +1045,11 @@ if uploaded_file is not None:
                       x=df_graph.index,
                       y=df_graph.columns,
                       #labels=dict(x="Date", y="y"),
-                      title='')
-                      
+                      title='')         
         # Set Plotly configuration options
         fig.update_layout(width=800, height=400, xaxis=dict(title='Date'), yaxis=dict(title='', rangemode='tozero'), legend=dict(x=0.9, y=0.9))
         # set line color and width
         fig.update_traces(line=dict(color='#217CD0', width=2))
-        
         # Display Plotly Express figure in Streamlit
         st.plotly_chart(fig, use_container_width=True)
         
@@ -903,7 +1069,6 @@ if uploaded_file is not None:
         plot_overview(df_raw, y=df_raw.columns[1])
        
     with st.expander('Autocorrelation Plots (ACF & PACF) with optional Differencing applied', expanded=True): 
-        
         # Create the plot using Plotly Express and difference timeseries 1st order, 2nd order or 3rd order differencing
         def df_differencing(df, selection):
             ##### DIFFERENCING #####
@@ -1222,25 +1387,13 @@ if uploaded_file is not None:
                 
     with st.expander("📌", expanded=True):
         my_header('Special Calendar Days')
-        start_date_calendar = df_cleaned_outliers_with_index['date'].min()
-        end_date_calendar = df_cleaned_outliers_with_index['date'].max()
-        st.markdown('---')
-        df_exogenous_vars = pd.DataFrame({'date': pd.date_range(start = start_date_calendar, 
-                                                                end = end_date_calendar)})
-        cal = calendar()
-        holidays = cal.holidays(start=start_date_calendar, end=end_date_calendar)
-        # holiday = true/ otherwise false
-        df_exogenous_vars['holiday'] = (df_exogenous_vars['date'].isin(holidays)).apply(lambda x: 1 if x==True else 0)
         
-        # create column for holiday description
-        df_exogenous_vars['holiday_desc'] = df_exogenous_vars['date'].apply(lambda x: my_holiday_name_func(x))
         my_subheader("🎁 Pick your special days to include: ")
         st.write("")
+        ###############################################
+        # create checkboxes for special days on page
+        ###############################################
         col0, col1, col2, col3 = st.columns([6,12,12,1])
-        
-        ###############################################
-        # create checkboxes for special days
-        ###############################################
         with col1:
             jan_sales = st.checkbox('January Sale', value=select_all_days)
             val_day_lod = st.checkbox('Valentine\'s Day [last order date]', value=select_all_days)
@@ -1256,87 +1409,11 @@ if uploaded_file is not None:
             cyber_monday = st.checkbox('Cyber Monday', value=select_all_days)
             christmas_day = st.checkbox('Christmas Day [last order date]', value=select_all_days)
             boxing_day = st.checkbox('Boxing Day sale', value=select_all_days)
-        # source: https://practicaldatascience.co.uk/data-science/how-to-create-an-ecommerce-trading-calendar-using-pandas
-        class UKEcommerceTradingCalendar(AbstractHolidayCalendar):
-            rules = []
-            # Seasonal trading events
-            # only add Holiday if user checkmarked checkbox (e.g. equals True) 
-            if jan_sales:
-                rules.append(Holiday('January sale', month = 1, day = 1))
-            if val_day_lod:
-                rules.append(Holiday('Valentine\'s Day [last order date]', month = 2, day = 14, offset = BDay(-2)))
-            if val_day:
-                rules.append(Holiday('Valentine\'s Day', month = 2, day = 14))
-            if mother_day_lod:
-                rules.append(Holiday('Mother\'s Day [last order date]', month = 5, day = 1, offset = BDay(-2)))
-            if mother_day:
-                rules.append(Holiday('Mother\'s Day', month = 5, day = 1, offset = pd.DateOffset(weekday = SU(2))))
-            if father_day_lod:
-                rules.append(Holiday('Father\'s Day [last order date]', month = 6, day = 1, offset = BDay(-2)))
-            if father_day:
-                rules.append(Holiday('Father\'s Day', month = 6, day = 1, offset = pd.DateOffset(weekday = SU(3))))
-            if black_friday_lod:
-                rules.append(Holiday("Black Friday [sale starts]", month = 11, day = 1, offset = [pd.DateOffset(weekday = SA(4)), BDay(-5)]))
-            if black_friday:
-                rules.append(Holiday('Black Friday', month = 11, day = 1, offset = pd.DateOffset(weekday = FR(4))))
-            if cyber_monday:
-                rules.append(Holiday("Cyber Monday", month = 11, day = 1, offset = [pd.DateOffset(weekday = SA(4)), pd.DateOffset(2)]))
-            if christmas_day:
-                rules.append(Holiday('Christmas Day [last order date]', month = 12, day = 25, offset = BDay(-2)))
-            if boxing_day:
-                rules.append(Holiday('Boxing Day sale', month = 12, day = 26))
-                      
-        calendar = UKEcommerceTradingCalendar()
-        start = df_exogenous_vars.date.min()
-        end = df_exogenous_vars.date.max()
-        events = calendar.holidays(start = start, end = end, return_name = True)
-        events = events.reset_index(name = 'calendar_event_desc').rename(columns = {'index': 'date'})
-        df_exogenous_vars = df_exogenous_vars.merge(events, on = 'date', how = 'left').fillna('')
-        # source: https://splunktool.com/holiday-calendar-in-pandas-dataframe
         
-        ###############################################
-        # Create Pay Days 
-        ###############################################
-        class UKEcommerceTradingCalendar(AbstractHolidayCalendar):
-            rules = []
-            # Pay days(based on fourth Friday of the month)
-            if pay_days == True:
-                rules = [
-                        Holiday('January Pay Day', month = 1, day = 31, offset = BDay(-1)),
-                        Holiday('February Pay Day', month = 2, day = 28, offset = BDay(-1)),
-                        Holiday('March Pay Day', month = 3, day = 31, offset = BDay(-1)),
-                        Holiday('April Pay Day', month = 4, day = 30, offset = BDay(-1)),
-                        Holiday('May Pay Day', month = 5, day = 31, offset = BDay(-1)),
-                        Holiday('June Pay Day', month = 6, day = 30, offset = BDay(-1)),
-                        Holiday('July Pay Day', month = 7, day = 31, offset = BDay(-1)),
-                        Holiday('August Pay Day', month = 8, day = 31, offset = BDay(-1)),
-                        Holiday('September Pay Day', month = 9, day = 30, offset = BDay(-1)),
-                        Holiday('October Pay Day', month = 10, day = 31, offset = BDay(-1)),
-                        Holiday('November Pay Day', month = 11, day = 30, offset = BDay(-1)),
-                        Holiday('December Pay Day', month = 12, day = 31, offset = BDay(-1))
-                        ]
-        calendar = UKEcommerceTradingCalendar()
-        start = df_exogenous_vars.date.min()
-        end = df_exogenous_vars.date.max()
-        events = calendar.holidays(start = start, end = end, return_name = True)
-        events = events.reset_index(name = 'pay_day_desc').rename(columns = {'index': 'date'})
-        df_exogenous_vars = df_exogenous_vars.merge(events, on = 'date', how = 'left').fillna('')
-        df_exogenous_vars['pay_day'] = df_exogenous_vars['pay_day_desc'].apply(lambda x: 1 if len(x) > 1 else 0)
-        # add boolean
-        df_exogenous_vars['calendar_event'] = df_exogenous_vars['calendar_event_desc'].apply(lambda x: 1 if len(x)>1 else 0)
-        
-        ###############################################################################
-        # Reorder Columns to logical order e.g. value | description of value
-        ###############################################################################
-        # ??? improve this dynamically ???
-        df_exogenous_vars = df_exogenous_vars[['date', 'holiday', 'holiday_desc', 'calendar_event', 'calendar_event_desc', 'pay_day','pay_day_desc']]
-        
-        ###############################################################################
-        # combine exogenous vars with df_total | df_clean?
-        ###############################################################################
-        df_total_incl_exogenous = pd.merge(df_cleaned_outliers_with_index, df_exogenous_vars, on='date', how='left' )
-        df = df_total_incl_exogenous.copy(deep=True)
-        
+                       
+        # call very extensive function to create all days selected by users as features
+        df = create_calendar_special_days(df_cleaned_outliers_with_index)
+
         ##############################
         # Add Day/Month/Year Features
         ##############################
@@ -1354,32 +1431,9 @@ if uploaded_file is not None:
         with col3:
             day_dummies = st.checkbox('Day', value=select_all_seasonal)
         st.info(':information_source: **Note**: to prevent perfect multi-collinearity, leave-one-out is applied e.g. one year/month/day')
-        ##########
-        ## YEAR
-        ##########
-        if year_dummies:
-            df['year'] = df['date'].dt.year
-            dum_year =  pd.get_dummies(df['year'], columns = ['year'], drop_first=True, prefix='year', prefix_sep='_')
-            df = pd.concat([df, dum_year], axis=1)   
-        ##########
-        ## MONTH
-        ##########
-        if month_dummies:
-            month_dict = {1:'January', 2:'February', 3:'March', 4:'April', 5:'May', 6:'June', 7:'July', 8:'August', 9:'September', 10:'October', 11:'November', 12:'December'}
-            df['month'] = df['date'].dt.month.apply(lambda x:month_dict.get(x))
-            dum_month =  pd.get_dummies(df['month'], columns = ['month'], drop_first=True, prefix='', prefix_sep='')
-            df = pd.concat([df, dum_month], axis=1)                            
-        ##########
-        # DAY
-        ##########
-        # date.weekday() - Return the day of the week as an integer, where Monday is 0 and Sunday is 6
-        # convert 0 - 6 to weekday names
-        if day_dummies:
-            week_dict = {0:'Monday', 1:'Tuesday',2:'Wednesday', 3:'Thursday', 4: 'Friday', 5:'Saturday', 6:'Sunday'}
-            df['day'] = df['date'].dt.weekday.apply(lambda x: week_dict.get(x))
-            # get dummies
-            dum_day = pd.get_dummies(df['day'], columns = ['day'], drop_first=True, prefix='', prefix_sep='')
-            df = pd.concat([df, dum_day], axis=1)    
+       
+        # apply function to add year/month and day dummy variables
+        df = create_date_features(df, year_dummies=year_dummies, month_dummies=month_dummies, day_dummies=day_dummies)
         st.markdown('---')
         # SHOW DATAFRAME
         st.dataframe(df)     
@@ -1583,6 +1637,7 @@ if uploaded_file is not None:
                                 ''')
               
     except:
+        selected_cols_rfe= []
         st.warning(':red[**ERROR**: Recursive Feature Elimination with Cross-Validation could not execute...please adjust your selection criteria]')
              
     # =============================================================================        
@@ -1641,6 +1696,8 @@ if uploaded_file is not None:
                             For example, a variance ratio of 0.75 means that 75% of the total variance in the data is captured by the corresponding principal component.
                             ''')
     except:
+        # if list is empty
+        selected_cols_pca = []
         st.warning(':red[**ERROR**: Principal Component Analysis could not execute...please adjust your selection criteria]')
     ########################################
     # Mutual Information Feature Selection
@@ -1672,7 +1729,7 @@ if uploaded_file is not None:
                                     'xanchor': 'center',
                                     'yanchor': 'top'})
             # Display plot in Streamlit
-            st.plotly_chart(fig)
+            st.plotly_chart(fig, use_container_width=True)
             
             ##############################################################
             # SELECT YOUR FAVORITE FEATURES TO INCLUDE IN MODELING
@@ -1684,6 +1741,7 @@ if uploaded_file is not None:
             selected_cols_mifs = list(selected_features_mi)
             st.info(f'Top {num_features} features selected with MIFS: {selected_cols_mifs}')
     except: 
+        selected_cols_mifs = []
         st.warning(':red[**ERROR**: Mutual Information Feature Selection could not execute...please adjust your selection criteria]')
         
 
@@ -1708,7 +1766,28 @@ if uploaded_file is not None:
     # set endogenous variable train/test split
     y_train = y[:(len(df)-my_insample_forecast_steps)]
     y_test = y[(len(df)-my_insample_forecast_steps):]           
-                
+
+    with st.expander('🥇 Top Features Selected', expanded=True):
+        my_subheader('')
+        my_subheader('Your Feature Selection ', my_size=4, my_style='#7B52AB')
+        # create dataframe from list of features and specify column header
+        df_total_features = pd.DataFrame(total_features, columns = ['Top Features'])
+        st.dataframe(df_total_features, use_container_width=True)
+# =============================================================================
+#         # create vertical spacings
+#         col1, col2, col3 = st.columns([4,4,4])
+#         # within column 2 create a button for user to display the dataframe
+#         with col2:
+#             show_X_btn = st.button(f'Show DataFrame', use_container_width=True, type='secondary', key='show_df_features_btn')
+#         # if user clicks the button run below
+#         if show_X_btn == True:
+# =============================================================================
+        # display the dataframe in streamlit
+        st.dataframe(X)
+        col1, col2, col3 = st.columns([1,4,1])
+        with col2:
+            # create download button for forecast results to .csv
+            download_csv_button(X, my_file="f'features_dataframe.csv'", help_message="Download your **features** to .CSV")
 ###############################################################################
 # 7. Train Models
 ###############################################################################
@@ -1770,25 +1849,8 @@ if uploaded_file is not None:
                     - ***P, D, Q***: These parameters refer to the autoregressive, integrated, and moving average components, respectively, in the seasonal part of the model. They represent the order of the seasonal AR, I, and MA terms, respectively.
                     - ***m***: This parameter represents the number of time periods in a season.
                     - ***Exogenous Variables***: These are external factors that can impact the variable being forecasted. They are included in the model as additional inputs.  
-            
-                    $$\\large  y(t) = c + \sum_{i=1}^{p} \phi_i y(t-i) + \sum_{j=1}^{P} \delta_j y(t-jm) - \sum_{k=1}^{q}  \\theta_k e(t-k) $$   
-                    
-                    $$\\large - \sum_{l=1}^{Q}  \Delta_l e(t-lm) + \sum_{m=1}^{k} \\beta_m x_m(t) + e(t) $$
-
-                    And here's a breakdown of each term in the equation:
-                
-                    - $y(t)$: The value of the variable being forecasted at time $t$.
-                    - $c$: A constant term.
-                    - $\phi_1, \dots, \phi_p$: Autoregressive coefficients for the non-seasonal component, where $p$ is the order of the non-seasonal autoregressive component.
-                    - $\delta_1, \dots, \delta_P$: Autoregressive coefficients for the seasonal component, where $P$ is the order of the seasonal autoregressive component and $m$ is the number of time periods in a season.
-                    - $e(t)$: The error term at time $t$.
-                    - $\\theta_1, \dots, \\theta_q$: Moving average coefficients for the non-seasonal component, where $q$ is the order of the non-seasonal moving average component.
-                    - $\Delta_1, \dots, \Delta_Q$: Moving average coefficients for the seasonal component, where $Q$ is the order of the seasonal moving average component and $m$ is the number of time periods in a season.
-                    - $x_1(t), \dots, x_k(t)$: Exogenous variables at time $t$.
-                    - $\\beta_1$, $\dots$, $\\beta_k$: Coefficients for the exogenous variables.
-                    - $\sum$: The summation operator, used to add up terms over a range of values.
-                    - $i, j, k, l, m$: Index variables used in the summation.
                     ''')
+   
     ################################################
     # Create a User Form to Select Model(s) to train
     ################################################
@@ -1814,6 +1876,13 @@ if uploaded_file is not None:
                     else:
                         # lag is lowercase string of selection from user in selectbox
                         lag = lag.lower()
+# =============================================================================
+#             # If user selects SARIMAX I want user to be able to define p, d, q manually
+#             if model_name == "SARIMAX":
+#                 p =  st.text_input("p:", value=1, key='sarimax_p')
+#                 d =  st.text_input("d:", value=1, key='sarimax_d')
+#                 q =  st.text_input("d:", value=1, key='sarimax_d')
+# =============================================================================
             else:
                 st.sidebar.empty()
         
@@ -1861,13 +1930,17 @@ if uploaded_file is not None:
                    except:
                        st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
             if model_name == "Linear Regression":
+                # train the model
                 create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df,  model=model, model_name=model_name)
+                # append to sidebar table the results of the model train/test
                 results_df = results_df.append({'model_name': 'Linear Regression', 
                                                 'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
                                                 'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']), 
                                                 'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2'])}, ignore_index=True)
+                
+                
             if model_name == "SARIMAX":
-                with st.expander(':information_source: '+ model_name, expanded=True):
+                with st.expander(':information_source: ' + model_name, expanded=True):
                     with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):
                         preds_df = evaluate_sarimax_model(order=(1,1,1), seasonal_order=(1,1,1,12), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
                         display_my_metrics(preds_df, "SARIMAX")
@@ -1883,6 +1956,7 @@ if uploaded_file is not None:
                                                         'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
                                                         'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
                                                         'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2'])}, ignore_index=True)
+        
         # Show the results dataframe in the sidebar if there is at least one model selected
         if len(selected_models) > 0:
             st.sidebar.dataframe(results_df)
@@ -1891,28 +1965,165 @@ if uploaded_file is not None:
 # 8. Forecast
 ##############################################################################
 if uploaded_file is not None:
+    # DEFINE VARIABLES NEEDED FOR FORECAST
+    min_date = df['date'].min()
+    max_date = df['date'].max()
+    max_value_calendar=None
+    # define maximum value in dataset for year, month day
+    year = max_date.year
+    month = max_date.month
+    day = max_date.day
+    #start_date_calendar = df['date'].min()
+    
+    end_date_calendar = df['date'].max()
+    # end date dataframe + 1 day into future is start date of forecast
+    start_date_forecast = end_date_calendar + timedelta(days=1)
+    
     my_title('9. Forecast 🔮', "#48466D")   
     with st.sidebar:
         my_title('Forecast 🔮', "#48466D")                    
-        with st.expander("📆 ", expanded=True):
-            #my_header("Set Date Range Forecast 📆")
-            # set start date
-            start_date_calendar = df['date'].min()
-            end_date_calendar = df['date'].max()
-            # set end date 
-            max_date = df['date'].max()
-            # define maximum value in dataset for year, month day
-            year = max_date.year
-            month = max_date.month
-            day = max_date.day
-            start_date_calendar = df['date'].min()
-            end_date_calendar = df['date'].max()
-            
+        with st.form("📆 "):
+            st.subheader("SARIMAX Model Parameters")
+            p = st.number_input("Order (p):", value=1, min_value=0, max_value=10)
+            d = st.number_input("Differencing (d):", value=1, min_value=0, max_value=10)
+            q = st.number_input("Moving Average (q):", value=1, min_value=0, max_value=10)               
+            P = st.number_input("Seasonal Order (P):", value=1, min_value=0, max_value=10)
+            D = st.number_input("Seasonal Differencing (D):", value=1, min_value=0, max_value=10)
+            Q = st.number_input("Seasonal Moving Average (Q):", value=1, min_value=0, max_value=10)
+            s = st.number_input("Seasonal Periodicity (s):", value=12, min_value=1, max_value=24)
             col1, col2 = st.columns(2)
             with col1: 
                 st.write(" ")
                 st.write(" ")
                 st.markdown(f'<h4 style="color: #48466D; background-color: #F0F2F6; padding: 12px; border-radius: 5px;"><center> Select End Date:</center></h4>', unsafe_allow_html=True)
             with col2:
-                end_date_calendar = st.date_input("", (datetime.date(year, month, day) + datetime.timedelta(days=90)))
+                for model_name, model in selected_models:
+                    # if model is linear regression max out the time horizon
+                    if model_name == "Linear Regression":
+                        # max value is it depends on the length of the input data and the forecasting method used. Linear regression can only forecast as much as the input data if you're using it for time series forecasting.
+                        max_value_calendar = end_date_calendar + timedelta(days=len(df))
+                    if model_name == "SARIMAX":
+                        max_value_calendar=None
+                end_date_forecast = st.date_input("input forecast date", 
+                                                  value=start_date_forecast,
+                                                  min_value=start_date_forecast, 
+                                                  max_value=max_value_calendar, 
+                                                  label_visibility = 'hidden')            
+            # set spacers on sidebar
+            col1, col2, col3 = st.columns([2,3,2])
+            with col2:
+                # create submit button for the forecast
+                forecast_btn = st.form_submit_button("Submit", type="secondary")    
+ 
+    # when user clicks the forecast button then run below
+    if forecast_btn:
+        # iterate over each model name and model in list of lists
+        for model_name, model in selected_models:
+            # forecast using the trained model
+            if model_name == "Linear Regression": 
+                ####################################
+                # create a date range for your forecast
+                ####################################
+                future_dates = pd.date_range(start_date_forecast, end_date_forecast, freq='D')
+                # create dataframe with all X features
+                # first create all dates in dataframe with 'date' column
+                df_future_dates = future_dates.to_frame(index=False, name='date')
+                # add the special calendar days
+                df_future_dates = create_calendar_special_days(df_future_dates)
+                # add the year/month/day dummy variables
+                df_future_dates = create_date_features(df, year_dummies=year_dummies, month_dummies=month_dummies, day_dummies=day_dummies)
+                # select only features user selected from df e.g. slice df    
+                X_future = df_future_dates.loc[:, ['date']+feature_selection_user]
+                # set the 'date' column as the index again
+                X_future = copy_df_date_index(X_future, datetime_to_date=False, date_to_index=True)
+               
+                ###############################################
+                # note: specific code for linear regression forecast
+                ###############################################
+                # train the model on all data (X)
+                model.fit(X, y)
+                # forecast (y_hat with dtype numpy array)
+                y_forecast = model.predict(X_future) 
+                
+                ####################################
+                # convert numpy array y_forecast to a dataframe
+                df_forecast_lr = pd.DataFrame(y_forecast, columns = ['forecast'])
+                # create a dataframe with the DatetimeIndex as the index
+                df_future_dates_only = future_dates.to_frame(index=False, name='date')
+                # combine dataframe of date with y_forecast
+                df_forecast_lr = copy_df_date_index(df_future_dates_only.join(df_forecast_lr), datetime_to_date=False, date_to_index=True)
+                
+                # create forecast model score card
+                with st.expander(':information_source: ' + model_name + ' Forecast', expanded=True):   
+                    st.markdown(f'<h2 style="text-align:center">{model_name}</h2></p>', unsafe_allow_html=True)
+                    # Create the forecast plot
+                    plot_forecast(y, df_forecast_lr, title='Actual + Forecast')
+                    # set note that maximum chosen date can only be up to length of input data with Linear Regression Model
+                    #st.caption('Note: Linear Regression Model maximum end date depends on length of input data')
+                    # show dataframe / output of forecast in streamlit linear regression
+                    st.dataframe(df_forecast_lr, use_container_width=True)
+                    download_csv_button(df_forecast_lr, my_file="forecast_linear_regression_results.csv")
+                        
+            if model_name == "SARIMAX":
+                # define model parameters
+                order = (1,1,1)
+                seasonal_order = (1,1,1,12)
+
+                ####################################
+                # create a date range for your forecast
+                ####################################
+                future_dates = pd.date_range(start_date_forecast, end_date_forecast, freq='D')
+                # create dataframe with all X features
+                # first create all dates in dataframe with 'date' column
+                df_future_dates = future_dates.to_frame(index=False, name='date')
+                # add the special calendar days
+                df_future_dates = create_calendar_special_days(df_future_dates)
+                # add the year/month/day dummy variables
+                df_future_dates = create_date_features(df, year_dummies=year_dummies, month_dummies=month_dummies, day_dummies=day_dummies)
+                
+                # select only features user selected from df e.g. slice df    
+                X_future = df_future_dates.loc[:, ['date']+feature_selection_user]
+                # set the 'date' column as the index again
+                X_future = copy_df_date_index(X_future, datetime_to_date=False, date_to_index=True)
+                
+                # train the model on all data (X)
+                #from statsmodels.tsa.statespace.sarimax import SARIMAX
+                model = SARIMAX(endog = y, order=(p, d, q),  
+                                     seasonal_order=(P, D, Q, s), 
+                                     exog=X, 
+                                     enforce_invertibility=True, 
+                                     enforce_stationarity=True).fit()
+                # Forecast future values
+                #st.write((end_date_forecast-start_date_forecast.date()).days)
+                my_forecast_steps = (end_date_forecast-start_date_forecast.date()).days
+                #y_forecast = model_fit.predict(start=start_date_forecast, end=(start_date_forecast + timedelta(days=len(X_future)-1)), exog=X_future)
+                forecast_values = model.get_forecast(steps = my_forecast_steps, exog = X_future.iloc[:my_forecast_steps,:])
+                
+                # set the start date of forecasted value e.g. +7 days for new date
+                #from datetime import timedelta
+                start_date = max_date + timedelta(days=1)
+                # create pandas series before appending to the forecast dataframe
+                date_series = pd.date_range(start=start_date, end=None, periods= my_forecast_steps, freq='D')
+                
+                # create dataframe
+                df_forecast =  pd.DataFrame()
+                
+                # add date series to forecasting pandas dataframe
+                df_forecast['date'] = date_series.to_frame(index = False)
+                # convert forecast to integers (e.g. round it)
+                df_forecast[('forecast')] = forecast_values.predicted_mean.values.astype(int)                      
+                # set 'date' as the index of the dataframe
+                df_forecast_sarimax = copy_df_date_index(df_forecast)
+                
+                with st.expander(':information_source: ' + model_name + ' Forecast', expanded=True):   
+                    st.markdown(f'<h2 style="text-align:center">{model_name}</h2></p>', unsafe_allow_html=True)
+                    # Create the forecast plot
+                    plot_forecast(y, df_forecast_sarimax, title='Actual + Forecast')
+                    # set note that maximum chosen date can only be up to length of input data with Linear Regression Model
+                    #st.caption('Note: Linear Regression Model maximum end date depends on length of input data')
+                    # show dataframe / output of forecast in streamlit linear regression
+                    st.dataframe(df_forecast_sarimax, use_container_width=True)
+                    download_csv_button(df_forecast_sarimax, my_file="forecast_sarimax_results.csv")
+           
+                    
 
