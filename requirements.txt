@@ -1,10 +1,9 @@
 streamlit
 pandas
 numpy
-datetime
-timedelta
 matplotlib
 seaborn
 plotly
 statsmodels
-sklearn
+scikit-learn
+pandas-holidays
