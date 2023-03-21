@@ -3,7 +3,6 @@ pandas
 numpy
 datetime
 timedelta
-math
 matplotlib
 seaborn
 plotly
