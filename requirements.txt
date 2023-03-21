@@ -6,4 +6,4 @@ seaborn
 plotly
 statsmodels
 scikit-learn
-pandas-holidays
+git+https://github.com/peopledoc/pandas-holidays.git
