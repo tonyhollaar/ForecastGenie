@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 import datetime
 from datetime import timedelta
+import itertools
 import time
 import math
 import matplotlib.pyplot as plt
@@ -62,6 +63,24 @@ metrics_dict = {}
 ###############################################################################
 # FUNCTIONS
 ###############################################################################
+def get_feature_list(X):
+    """
+    Returns a comma-separated string of column names in a Pandas DataFrame.
+    
+    Parameters:
+    X (Pandas DataFrame): the input DataFrame to get the column names from.
+    
+    Returns:
+    A comma-separated string of column names in the input DataFrame.
+    
+    Example:
+    >>> X = pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
+    >>> get_feature_list(X)
+    'col1, col2'
+    """
+    return ', '.join(X.columns)
+
+
 def plot_forecast(df_actual, df_forecast, title=''):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df_actual.index, y=df_actual.iloc[:,0], name='Actual', mode='lines'))
@@ -421,7 +440,12 @@ def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, mo
     
     # add the results to sidebar for quick overview for user  
     # set as global variable to be used in code outside function
-    results_df = results_df.append({'model_name': model_name, 'mape': '{:.2%}'.format(mape),'rmse': rmse, 'r2':r2}, ignore_index=True)
+    results_df = results_df.append({'model_name': model_name, 
+                                    'mape': '{:.2%}'.format(mape),
+                                    'rmse': rmse, 
+                                    'r2':r2, 
+                                    'features':X.columns.tolist()}, 
+                                    ignore_index=True)
     
     with st.expander(':information_source: '+ model_name, expanded=True):
         display_my_metrics(my_df=df_preds, model_name=model_name)
@@ -430,15 +454,11 @@ def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, mo
         # show the dataframe
         st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
         # create download button for forecast results to .csv
-        download_csv_button(df_preds, my_file="f'forecast_{model_name}_model.csv'", help_message=f'Download your **{model_name}** model results to .CSV')
+        download_csv_button(df_preds, my_file="insample_forecast_linear_regression_results.csv", help_message=f'Download your **{model_name}** model results to .CSV')
 
 def create_forecast_model_card(results_df, model, model_name):
     df_preds = results_df.iloc[0]
-
-    # add the results to sidebar for quick overview for user  
-    # set as global variable to be used in code outside function
-    #results_df = results_df.append({'model_name': model_name, 'mape': '{:.2%}'.format(mape),'rmse': rmse, 'r2':r2}, ignore_index=True)
-    
+   
     with st.expander(':information_source: '+ model_name, expanded=True):
         #display_my_metrics(my_df=df_preds, model_name=model_name)
         # plot graph with actual versus insample predictions
@@ -447,8 +467,6 @@ def create_forecast_model_card(results_df, model, model_name):
         st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
         # create download button for forecast results to .csv
         download_csv_button(df_preds, my_file="f'forecast_{model_name}_model.csv'", help_message=f'Download your **{model_name}** model results to .CSV')
-
-
 
 def load_data():
     """
@@ -488,7 +506,7 @@ def download_csv_button(my_df, my_file="forecast_model.csv", help_message = 'Dow
          csv = convert_df_with_index(my_df)
      else:
          csv = convert_df(my_df)
-     col1, col2, col3 = st.columns([2,2,2])
+     col1, col2, col3 = st.columns([3,3,3])
      with col2: 
          st.download_button(":arrow_down: Download", 
                             csv,
@@ -573,13 +591,18 @@ def resample_missing_dates(df, freq_dict, freq):
 def my_fill_method(df, fill_method, custom_fill_value=None):
     # handle missing values based on user input
     if fill_method == 'backfill':
-        df.iloc[:,1] = df.iloc[:,1].bfill()
+        df.iloc[:,1] = df.iloc[:, 1].bfill()
     elif fill_method == 'forwardfill':
-        df.iloc[:,1] = df.iloc[:,1].ffill()
+        df.iloc[:,1] = df.iloc[:, 1].ffill()
     elif fill_method == 'mean':
-        df.iloc[:,1] = df.iloc[:,1].fillna(df.iloc[:,1].mean())
+        # rounding occurs to nearest decimal for filling in the average value of y
+        df.iloc[:,1] = df.iloc[:, 1].fillna(df.iloc[:,1].mean().round(0))
     elif fill_method == 'median':
-        df.iloc[:,1]  = df.iloc[:,1].fillna(df.iloc[:,1].median())
+        df.iloc[:,1]  = df.iloc[:, 1].fillna(df.iloc[:,1].median())
+    elif fill_method == 'mode':
+        # if True, only apply to numeric columns (numeric_only=False)
+        # Don’t consider counts of NaN/NaT (dropna=True)
+        df.iloc[:,1] = df.iloc[:, 1].fillna(df.iloc[:,1].mode(dropna=True)[0])
     elif fill_method == 'custom':
         df.iloc[:,1]  = df.iloc[:,1].fillna(custom_fill_value)
     return df
@@ -653,11 +676,10 @@ def plot_pacf(data, nlags, method):
     This function drops any rows from the input data that contain NaN values before calculating the PACF.
     The PACF plot includes shaded regions representing the 95% and 99% confidence intervals.
     '''
-    
-    st.markdown('<p style="text-align:center; color: #707070">Partial Autocorrelation (PACF)</p>', unsafe_allow_html=True)
     if data.isna().sum().sum() > 0:
         st.error('''**Warning** ⚠️:              
                  Data contains **NaN** values. **NaN** values were dropped in copy of dataframe to be able to plot below PACF. ''')
+    st.markdown('<p style="text-align:center; color: #707070">Partial Autocorrelation (PACF)</p>', unsafe_allow_html=True)
     # Drop NaN values if any
     data = data.dropna(axis=0)
     data = data.to_numpy()
@@ -791,10 +813,11 @@ def plot_acf(data, nlags):
     This function drops any rows from the input data that contain NaN values before calculating the ACF.
     The ACF plot includes shaded regions representing the 95% and 99% confidence intervals.
     '''
-    st.markdown('<p style="text-align:center; color: #707070">Autocorrelation (ACF)</p>', unsafe_allow_html=True)
     if data.isna().sum().sum() > 0:
         st.error('''**Warning** ⚠️:              
                  Data contains **NaN** values. **NaN** values were dropped in copy of dataframe to be able to plot below ACF. ''')
+    st.markdown('<p style="text-align:center; color: #707070">Autocorrelation (ACF)</p>', unsafe_allow_html=True)
+    
     # Drop NaN values if any
     data = data.dropna(axis=0)
     data = data.to_numpy()
@@ -1053,16 +1076,19 @@ if uploaded_file is not None:
         # Display Plotly Express figure in Streamlit
         st.plotly_chart(fig, use_container_width=True)
         
-        #############################################################################
-        # Create a button that toggles the display of the DataFrame
-        #############################################################################
-        col1, col2, col3 = st.columns([4,4,4])
-        with col2:
-            show_df_btn = st.button(f'Show DataFrame', use_container_width=True, type='secondary')
-        if show_df_btn == True:
-            # display the dataframe in streamlit
-            st.dataframe(df_graph, use_container_width=True)
-            
+# =============================================================================
+#         #############################################################################
+#         # Create a button that toggles the display of the DataFrame
+#         #############################################################################
+#         col1, col2, col3 = st.columns([4,4,4])
+#         with col2:
+#             show_df_btn = st.button(f'Show DataFrame', use_container_width=True, type='secondary')
+#         if show_df_btn == True:
+#             # display the dataframe in streamlit
+#             st.dataframe(df_graph, use_container_width=True)
+# =============================================================================
+        # show dataframe below graph        
+        st.dataframe(df_graph, use_container_width=True)
         #############################################################################
         # Call function for plotting Graphs of Seasonal Patterns D/W/M/Q/Y in Plotly Charts
         #############################################################################
@@ -1113,18 +1139,26 @@ if uploaded_file is not None:
         # Display the plot based on the user's selection
         fig, df_select_diff = df_differencing(df_raw, selection)
         st.plotly_chart(fig, use_container_width=True)
-        ############################## PACF ################################
+        
+        ############################## ACF & PACF ################################
+        # I want it to show ACF and PACF plots initially without differencing
+        # set data equal to the second column e.g. expecting first column 'date' 
+        data = df_select_diff
+        # Plot ACF        
+        plot_acf(data, nlags=nlags_acf)
+        # Plot PACF
+        plot_pacf(data, nlags=nlags_pacf, method=method_pacf)
+        
         if acf_pacf_btn == True:
             # set data equal to the second column e.g. expecting first column 'date' 
-            #data = df_raw.iloc[:,1]
             data = df_select_diff
             # Plot ACF        
             plot_acf(data, nlags=nlags_acf)
-            
             # Plot PACF
             plot_pacf(data, nlags=nlags_pacf, method=method_pacf)
         else:
             st.warning(':arrow_left: Click \"**Submit**\" button to plot the **AutoCorrelation-** and **Partial AutoCorrelation Function**')
+        
         # If user clicks button, more explanation on the ACF and PACF plot is displayed
         col1, col2, col3 = st.columns([5,5,5])
         with col1:
@@ -1225,7 +1259,7 @@ if uploaded_file is not None:
         with st.form('data_cleaning'):
             my_subheader('Handling Missing Data', my_size=4, my_style='#440154')
             # get user input for filling method
-            fill_method = st.selectbox('Select filling method for missing values:', ['backfill', 'forwardfill', 'mean', 'median', 'custom'])
+            fill_method = st.selectbox('Select filling method for missing values:', ['backfill', 'forwardfill', 'mean', 'median', 'mode', 'custom'])
             custom_fill_value = None 
             if fill_method == 'custom':
                 custom_fill_value = int(st.text_input('Enter custom value', value='0'))
@@ -1290,7 +1324,8 @@ if uploaded_file is not None:
         col1, col2, col3, col4, col5 = st.columns([2, 0.5, 2, 0.5, 2])
         with col1:
             # highlight NaN values in yellow in dataframe
-            highlighted_df = df_graph.style.highlight_null(null_color='yellow').format(precision=0)
+            # got warning: for part of code with `null_color='yellow'`:  `null_color` is deprecated: use `color` instead
+            highlighted_df = df_graph.style.highlight_null(color='yellow').format(precision=0)
             st.write('**Original DataFrame😐**')
             # show original dataframe unchanged but with highlighted missing NaN values
             st.write(highlighted_df)
@@ -1385,7 +1420,7 @@ if uploaded_file is not None:
             else:
                 st.write("*No Seasonal Days*") 
                 
-    with st.expander("📌", expanded=True):
+    with st.expander("📌 Calendar Features", expanded=True):
         my_header('Special Calendar Days')
         
         my_subheader("🎁 Pick your special days to include: ")
@@ -1457,9 +1492,9 @@ if uploaded_file is not None:
         local_df = remove_object_columns(local_df)
     
     # USER TO SET the insample forecast days 
-    with st.expander("", expanded=True):
-        my_subheader('How many days you want to use as your test-set?')
-        st.caption(f'<h6> <center> ✂️ A commonly used ratio is 80:20 split between train and test </center> <h6>', unsafe_allow_html=True)
+    with st.expander("✂️ Train/Test Split", expanded=True):
+        my_subheader('Set your Train/Test Split')
+        st.caption(f'<h6> <center> ℹ️ A commonly used ratio is 80:20 split between train and test </center> <h6>', unsafe_allow_html=True)
 
         # create sliders for user insample test-size (/train-size automatically as well)
         def update(change):
@@ -1540,7 +1575,7 @@ if uploaded_file is not None:
                             showarrow = False,
                             font = dict(color="grey", size = 15))
         st.plotly_chart(fig2, use_container_width=True)
-        st.warning(f":information_source: train/test split equals :green[**{perc_train_set}**] and :green[**{perc_test_set}**] ")
+        st.warning(f":information_source: train/test split currently equals :green[**{perc_train_set}**] and :green[**{perc_test_set}**] ")
     
     ###############################################################################
     # 6. Feature Selection
@@ -1558,7 +1593,7 @@ if uploaded_file is not None:
              with col2:       
                  rfe_btn = st.form_submit_button("Submit", type="secondary")
      
-    with st.expander('', expanded=True):
+    with st.expander(':information_source: Selection Methods', expanded=True):
         st.markdown('''Let\'s **review** your **top features** to use in analysis with **three feature selection methods**:  
                     - Recursive Feature Elimination with Cross-Validation  
                     - Principal Component Analysis  
@@ -1773,21 +1808,13 @@ if uploaded_file is not None:
         # create dataframe from list of features and specify column header
         df_total_features = pd.DataFrame(total_features, columns = ['Top Features'])
         st.dataframe(df_total_features, use_container_width=True)
-# =============================================================================
-#         # create vertical spacings
-#         col1, col2, col3 = st.columns([4,4,4])
-#         # within column 2 create a button for user to display the dataframe
-#         with col2:
-#             show_X_btn = st.button(f'Show DataFrame', use_container_width=True, type='secondary', key='show_df_features_btn')
-#         # if user clicks the button run below
-#         if show_X_btn == True:
-# =============================================================================
         # display the dataframe in streamlit
         st.dataframe(X)
         col1, col2, col3 = st.columns([1,4,1])
         with col2:
             # create download button for forecast results to .csv
-            download_csv_button(X, my_file="f'features_dataframe.csv'", help_message="Download your **features** to .CSV")
+            download_csv_button(X, my_file="features_dataframe.csv", help_message="Download your **features** to .CSV")
+
 ###############################################################################
 # 7. Train Models
 ###############################################################################
@@ -1847,7 +1874,7 @@ if uploaded_file is not None:
                     
                     - ***p, d, q***: These parameters refer to the autoregressive, integrated, and moving average components, respectively, in the non-seasonal part of the model. They represent the order of the AR, I, and MA terms, respectively.
                     - ***P, D, Q***: These parameters refer to the autoregressive, integrated, and moving average components, respectively, in the seasonal part of the model. They represent the order of the seasonal AR, I, and MA terms, respectively.
-                    - ***m***: This parameter represents the number of time periods in a season.
+                    - ***s***: This parameter represents the number of time periods in a season.
                     - ***Exogenous Variables***: These are external factors that can impact the variable being forecasted. They are included in the model as additional inputs.  
                     ''')
    
@@ -1857,38 +1884,52 @@ if uploaded_file is not None:
     with st.sidebar.form('model_train_form'):
         # define all models you want user to choose from
         models = [('Naive Model', None),('Linear Regression', LinearRegression(fit_intercept=True)), ('SARIMAX', SARIMAX(y_train))]
-        
         # create a checkbox for each model
         selected_models = []
+
+        
         for model_name, model in models:
             if st.checkbox(model_name):
                 selected_models.append((model_name, model))
             if model_name == "Naive Model":
                     custom_lag_value = None
-                    lag = st.sidebar.selectbox('*Select your seasonal **lag** for the Naive Model:*', ['None', 'Day', 'Week', 'Month', 'Year', 'Custom'])
-                    if lag == 'None':
-                        lag = None
-                        if custom_lag_value != None:
-                            custom_lag_value = None
-                    elif lag == 'Custom':
+                    with st.expander('Naive Model Parameter'):
+                        lag = st.selectbox('*Select seasonal **lag** for the Naive Model:*', ['None', 'Day', 'Week', 'Month', 'Year', 'Custom'])
+                        if lag == 'None':
+                            lag = None
+                            if custom_lag_value != None:
+                                custom_lag_value = None
+                        elif lag == 'Custom':
+                                lag = lag.lower()
+                                custom_lag_value  = int(st.sidebar.text_input("Enter a value:", value=5))
+                        else:
+                            # lag is lowercase string of selection from user in selectbox
                             lag = lag.lower()
-                            custom_lag_value  = int(st.sidebar.text_input("Enter a value:", value=5))
-                    else:
-                        # lag is lowercase string of selection from user in selectbox
-                        lag = lag.lower()
-# =============================================================================
-#             # If user selects SARIMAX I want user to be able to define p, d, q manually
-#             if model_name == "SARIMAX":
-#                 p =  st.text_input("p:", value=1, key='sarimax_p')
-#                 d =  st.text_input("d:", value=1, key='sarimax_d')
-#                 q =  st.text_input("d:", value=1, key='sarimax_d')
-# =============================================================================
+            if model_name == "SARIMAX":
+                with st.expander('SARIMAX Parameters'):
+                    col1, col2, col3 = st.columns([5,1,5])
+                    with col1:
+                        p = st.number_input("Order (p):", value=1, min_value=0, max_value=10)
+                        d = st.number_input("Differencing (d):", value=1, min_value=0, max_value=10)
+                        q = st.number_input("Moving Average (q):", value=1, min_value=0, max_value=10)   
+                    with col3:
+                        P = st.number_input("Seasonal Order (P):", value=1, min_value=0, max_value=10)
+                        D = st.number_input("Seasonal Differencing (D):", value=1, min_value=0, max_value=10)
+                        Q = st.number_input("Seasonal Moving Average (Q):", value=1, min_value=0, max_value=10)
+                        s = st.number_input("Seasonal Periodicity (s):", value=12, min_value=1, max_value=24)
+                    st.caption('SARIMAX Hyper-Parameters')
+                    col1, col2, col3 = st.columns([5,1,5])
+                    with col1:
+                        # Add a selectbox for selecting enforce_stationarity
+                        enforce_stationarity = st.selectbox('Enforce Stationarity', [True, False], index=0 )
+                    with col3:
+                        # Add a selectbox for selecting enforce_invertibility
+                        enforce_invertibility = st.selectbox('Enforce Invertibility', [True, False], index=0)
             else:
                 st.sidebar.empty()
         
-        # set vertical spacers
-        col1, col2, col3 = st.columns([2,3,2])
-        with col2:
+        col1, col2, col3 = st.columns([4,4,4])
+        with col2: 
             train_models_btn = st.form_submit_button("Submit", type="secondary")
     
     # if nothing is selected by user display message to user to select models to train
@@ -1901,13 +1942,19 @@ if uploaded_file is not None:
     ###############################################################################
     my_title("8. Evaluate Models 🔎", "#2CB8A1")
     ###############################################################################
+    # define variables needed
+    # create a list of independent variables selected by user prior used 
+    # for results dataframe when evaluating models which variables were included.
+    features_str = get_feature_list(X)
+    
     with st.sidebar:
         my_title("Evaluate Models 🔎", "#2CB8A1")
-    if not train_models_btn and not selected_models:
-        st.info('Train your models before evaluation results show up **here...**')
+        # if nothing is selected by user display message to user to select models to train
+        if not train_models_btn and not selected_models:
+            st.info(":information_source: Train your models first, before evaluation results show here...")
     if train_models_btn and selected_models:
         # Create a global pandas DataFrame to hold model_name and mape values
-        results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2'])
+        results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features'])
         # iterate over all models and if user selected checkbox for model the model(s) is/are trained
         for model_name, model in selected_models:
             if model_name == "Naive Model":
@@ -1920,13 +1967,14 @@ if uploaded_file is not None:
                      # show the dataframe
                      st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
                      # create download button for forecast results to .csv
-                     download_csv_button(df_preds, my_file="f'forecast_{model_name}_model.csv'", help_message="Download your **Naive** model results to .CSV")
+                     download_csv_button(df_preds, my_file="insample_forecast_naivemodel_results.csv", help_message="Download your **Naive** model results to .CSV")
                      mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
                      # display evaluation results on sidebar of streamlit_model_card
                      results_df = results_df.append({'model_name': 'Naive Model', 
                                                      'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
                                                      'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']), 
-                                                     'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2'])}, ignore_index=True)
+                                                     'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
+                                                     'features':features_str}, ignore_index=True)
                    except:
                        st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
             if model_name == "Linear Regression":
@@ -1936,31 +1984,182 @@ if uploaded_file is not None:
                 results_df = results_df.append({'model_name': 'Linear Regression', 
                                                 'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
                                                 'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']), 
-                                                'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2'])}, ignore_index=True)
-                
-                
+                                                'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
+                                                'features':features_str}, ignore_index=True)
             if model_name == "SARIMAX":
                 with st.expander(':information_source: ' + model_name, expanded=True):
                     with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):
-                        preds_df = evaluate_sarimax_model(order=(1,1,1), seasonal_order=(1,1,1,12), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
+                        # parameters have standard value but can be changed by user
+                        preds_df = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
                         display_my_metrics(preds_df, "SARIMAX")
                         # plot graph with actual versus insample predictions
                         plot_actual_vs_predicted(preds_df)
                         # show the dataframe
                         st.dataframe(preds_df.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
                         # create download button for forecast results to .csv
-                        download_csv_button(preds_df, my_file="f'forecast_{model_name}_model.csv'", help_message="Download your **SARIMAX** model results to .CSV")
+                        download_csv_button(preds_df, my_file="insample_forecast_sarimax_results.csv", help_message="Download your **SARIMAX** model results to .CSV")
+                        # define metrics for sarimax model
                         mape, rmse, r2 = my_metrics(preds_df, model_name=model_name)
                         # display evaluation results on sidebar of streamlit_model_card
                         results_df = results_df.append({'model_name': 'SARIMAX', 
                                                         'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
                                                         'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
-                                                        'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2'])}, ignore_index=True)
-        
+                                                        'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
+                                                        'features':features_str}, ignore_index=True)
+        ###################################################################################################################
+        # Add results_df to session state
+        ###################################################################################################################
+        if 'results_df' not in st.session_state:
+            st.session_state.results_df = results_df
+        else:
+            st.session_state.results_df = st.session_state.results_df.append(results_df, ignore_index=True)
+
         # Show the results dataframe in the sidebar if there is at least one model selected
         if len(selected_models) > 0:
             st.sidebar.dataframe(results_df)
+        # show on streamlit page the scoring results
+        with st.expander(':information_source: Test Results', expanded=True):
+            my_header(my_string='Modeling Test Results', my_style="#2CB8A1")
+            # create some empty newlines - for space between title and dataframe
+            st.write("")
+            st.write("")
+            # show the dataframe with all the historical results stored from 
+            # prior runs the cache e.g. called session_state in streamlit
+            # from all train/test results with models selected by user
+            st.write(st.session_state.results_df)
+            # download button
+            download_csv_button(results_df, my_file="Modeling Test Results.csv", help_message="Download your Modeling Test Results to .CSV")
+###########################################################################################################################
+# Hyper-parameter tuning
+###########################################################################################################################
+if uploaded_file is not None:
+    my_title('9. Hyper-parameter Tuning', "#88466D")
+    
+    # set variables needed
+    ######################
+    # initialize variable for sarimax parameters p,d,q
+    param_mini = None
+    # initialize variable for sarimax model parameters P,D,Q,s
+    param_seasonal_mini = None
+    # Set mini to positive infinity to ensure that the first value evaluated will become the minimum
+    # minimum metric score will be saved under variable mini while looping thorugh parameter grid
+    mini = float('+inf')
+    start_time = time.time()
+    # set function(s) needed
+    ######################
+    # Define a function to highlight the line with the minimum value
+    def highlight_min(s):
+        '''
+        highlight the minimum in a Series with green.
+        '''
+        is_min = s == s.min()
+        return ['background-color: green' if v else '' for v in is_min]
+    
+    # sidebar hyperparameter tuning
+    ################
+    with st.sidebar:
+         my_title('Hyper-parameter Tuning', "#88466D")                    
+         with st.form("hyper_parameter_tuning"):
+             st.info('Select evaluation metric for GridSearchCV:')
+             metric = st.selectbox('Select evaluation metric for GridSearchCV:', ['AIC', 'BIC', 'MSE', 'R2'], label_visibility='collapsed')
+             #metric = metric.lower() # lowercase metric to create for metric selection but need something else such as a class for it
+             with st.expander('SARIMAX GridSearch Parameters'):
+                 col1, col2, col3 = st.columns([5,1,5])
+                 with col1:
+                     p_max = st.number_input("Max Order (p):", value=3, min_value=1, max_value=10)
+                     d_max = st.number_input("Max Differencing (d):", value=2, min_value=1, max_value=10)
+                     q_max = st.number_input("Max Moving Average (q):", value=3, min_value=1, max_value=10)   
+                 with col3:
+                     P_max = st.number_input("Max Seasonal Order (P):", value=3, min_value=1, max_value=10)
+                     D_max = st.number_input("Max Seasonal Differencing (D):", value=2, min_value=1, max_value=10)
+                     Q_max = st.number_input("Max Seasonal Moving Average (Q):", value=3, min_value=1, max_value=10)
+                     s = st.number_input("Set Seasonal Periodicity (s):", value=7, min_value=1)
 
+             display_df = pd.DataFrame(columns=['SARIMAX (p,d,q)x(P,D,Q,s)', 'param', 'param_seasonal', metric])
+             # create vertical spacing columns
+             col1, col2, col3 = st.columns([4,4,4])
+             with col2: 
+                 # create submit button for the hyper-parameter tuning
+                 hp_tuning_btn = st.form_submit_button("Submit", type="secondary")    
+             
+    # if user clicks the hyper-parameter tuning button run code below
+    if hp_tuning_btn == True:
+        # Define the parameter grid to search
+        param_grid = {
+                        'order': [(p, d, q) for p, d, q in itertools.product(range(p_max), range(d_max), range(q_max))],
+                        'seasonal_order': [(p, d, q, s) for p, d, q in itertools.product(range(P_max), range(D_max), range(Q_max))]
+                      }
+        # Set up a progress bar
+        with st.spinner('Searching for optimal SARIMAX parameters...'):
+            ################################
+            # kick off the grid-search!
+            ################################
+            # set start time when grid-search is kicked-off to define total time it takes
+            # as computationaly intensive
+            start_time = time.time()
+            # Loop through each parameter combination in the parameter grid
+            for param, param_seasonal in itertools.product(param_grid['order'], param_grid['seasonal_order']):
+# =============================================================================
+#             # Loop through each parameter combination in the parameter grid
+#             for param in param_grid['order']:
+#                 for param_seasonal in param_grid['seasonal_order']:
+# =============================================================================
+                    try:
+                        # Create a SARIMAX model with the current parameter values
+                        mod = SARIMAX(y,
+                                      order=param,
+                                      seasonal_order=param_seasonal,
+                                      exog=X, 
+                                      enforce_stationarity=enforce_stationarity,
+                                      enforce_invertibility=enforce_invertibility)
+                        
+                        # Fit the model to the data
+                        results = mod.fit()
+                        
+                        # Check if the current model has a lower AIC than the previous models
+                        if results.aic < mini:
+                        #if results.metric < mini:
+                            # If so, update the mini value and the parameter values for the model with the lowest AIC
+                            mini = results.aic
+                            mini = results.metric
+                            param_mini = param
+                            param_seasonal_mini = param_seasonal
+                        
+                        
+                            # Build the message string with the current parameter values being evaluated along with the BIC score
+                            message = f'Evaluating parameters {param} and {param_seasonal} with {metric} score {"{:.2f}".format(mini)}'
+                            # show the message in streamlit app
+                            st.write(message)
+
+                        # Append a new row to the dataframe with the parameter values and AIC score
+                        display_df = display_df.append({'SARIMAX (p,d,q)x(P,D,Q,s)': f'{param} x {param_seasonal}', 
+                                                       'param': param, 
+                                                       'param_seasonal': param_seasonal, 
+                                                       metric: "{:.2f}".format(mini)}, 
+                                                       ignore_index=True)
+                    # If the model fails to fit, skip it and continue to the next model
+                    except:
+                        pass
+                         
+    # Add a 'Rank' column based on the AIC score and sort by ascending rank
+    # rank method: min: lowest rank in the group
+    # rank method: dense: like ‘min’, but rank always increases by 1 between groups.
+    display_df['Rank'] = display_df[metric].rank(method='dense').astype(int)
+    # sort values by rank
+    display_df = display_df.sort_values('Rank', ascending=True)
+    display_df.set_index('Rank', inplace=True)
+    
+    
+    # show user dataframe of gridsearch results ordered by ranking
+    st.dataframe(display_df, use_container_width=True)
+    # highlight the row green e.g. axis=1 with lowest aic score with custom function highlight_min
+    #st.dataframe(display_df.style.apply(highlight_min, axis=0), use_container_width=True)                     
+    if hp_tuning_btn == True:
+        end_time = time.time()
+        st.info(f"ℹ️ The search for your optimal hyper-parameters finished in {end_time - start_time:.2f} seconds")
+        # show user message of optimal parameters with gridsearch found
+        st.info(f'ℹ️ The set of parameters with the minimum {metric} is: SARIMA {display_df.iloc[0,0]} - with {metric}: {"{:.2f}".format(mini)}')
+    
 ##############################################################################
 # 8. Forecast
 ##############################################################################
@@ -1979,52 +2178,56 @@ if uploaded_file is not None:
     # end date dataframe + 1 day into future is start date of forecast
     start_date_forecast = end_date_calendar + timedelta(days=1)
     
-    my_title('9. Forecast 🔮', "#48466D")   
+    my_title('10. Forecast 🔮', "#48466D")   
     with st.sidebar:
         my_title('Forecast 🔮', "#48466D")                    
         with st.form("📆 "):
-            st.subheader("SARIMAX Model Parameters")
-            p = st.number_input("Order (p):", value=1, min_value=0, max_value=10)
-            d = st.number_input("Differencing (d):", value=1, min_value=0, max_value=10)
-            q = st.number_input("Moving Average (q):", value=1, min_value=0, max_value=10)               
-            P = st.number_input("Seasonal Order (P):", value=1, min_value=0, max_value=10)
-            D = st.number_input("Seasonal Differencing (D):", value=1, min_value=0, max_value=10)
-            Q = st.number_input("Seasonal Moving Average (Q):", value=1, min_value=0, max_value=10)
-            s = st.number_input("Seasonal Periodicity (s):", value=12, min_value=1, max_value=24)
-            col1, col2 = st.columns(2)
-            with col1: 
-                st.write(" ")
-                st.write(" ")
-                st.markdown(f'<h4 style="color: #48466D; background-color: #F0F2F6; padding: 12px; border-radius: 5px;"><center> Select End Date:</center></h4>', unsafe_allow_html=True)
-            with col2:
+            col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 7, 7, 1, 6, 7, 1])
+            with col2: 
+                st.markdown(f'<h5 style="color: #48466D; background-color: #F0F2F6; padding: 12px; border-radius: 5px;"><center> End Date:</center></h5>', unsafe_allow_html=True)
+            with col3:
                 for model_name, model in selected_models:
-                    # if model is linear regression max out the time horizon
+                    # if model is linear regression max out the time horizon to maximum possible
                     if model_name == "Linear Regression":
                         # max value is it depends on the length of the input data and the forecasting method used. Linear regression can only forecast as much as the input data if you're using it for time series forecasting.
                         max_value_calendar = end_date_calendar + timedelta(days=len(df))
                     if model_name == "SARIMAX":
-                        max_value_calendar=None
+                        max_value_calendar = None
+                # create user input box for entering date in a streamlit calendar widget
                 end_date_forecast = st.date_input("input forecast date", 
                                                   value=start_date_forecast,
                                                   min_value=start_date_forecast, 
                                                   max_value=max_value_calendar, 
-                                                  label_visibility = 'hidden')            
-            # set spacers on sidebar
-            col1, col2, col3 = st.columns([2,3,2])
+                                                  label_visibility = 'collapsed')   
+            with col5: 
+                # set text information for dropdown frequency
+                st.markdown(f'<h5 style="color: #48466D; background-color: #F0F2F6; padding: 12px; border-radius: 5px;"><center> Frequency:</center></h5>', unsafe_allow_html=True)
+            with col6:
+                # Define a dictionary of possible frequencies and their corresponding offsets
+                forecast_freq_dict = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
+                # Ask the user to select the frequency of the data
+                forecast_freq = st.selectbox('Select the frequency of the data', list(forecast_freq_dict.keys()), label_visibility='collapsed')
+                # get the value of the key e.g. D, W, M, Q or Y
+                forecast_freq_letter = forecast_freq_dict[forecast_freq]
+          
+            # create vertical spacing columns
+            st.write("")
+            col1, col2, col3 = st.columns([4,4,4])
             with col2:
                 # create submit button for the forecast
                 forecast_btn = st.form_submit_button("Submit", type="secondary")    
- 
+            
     # when user clicks the forecast button then run below
     if forecast_btn:
         # iterate over each model name and model in list of lists
         for model_name, model in selected_models:
             # forecast using the trained model
             if model_name == "Linear Regression": 
+                
                 ####################################
                 # create a date range for your forecast
                 ####################################
-                future_dates = pd.date_range(start_date_forecast, end_date_forecast, freq='D')
+                future_dates = pd.date_range(start_date_forecast, end_date_forecast, freq=forecast_freq_letter)
                 # create dataframe with all X features
                 # first create all dates in dataframe with 'date' column
                 df_future_dates = future_dates.to_frame(index=False, name='date')
@@ -2066,13 +2269,13 @@ if uploaded_file is not None:
                         
             if model_name == "SARIMAX":
                 # define model parameters
-                order = (1,1,1)
-                seasonal_order = (1,1,1,12)
+                order = (p,d,q)
+                seasonal_order = (P,D,Q,s)
 
                 ####################################
                 # create a date range for your forecast
                 ####################################
-                future_dates = pd.date_range(start_date_forecast, end_date_forecast, freq='D')
+                future_dates = pd.date_range(start_date_forecast, end_date_forecast, freq=forecast_freq_letter)
                 # create dataframe with all X features
                 # first create all dates in dataframe with 'date' column
                 df_future_dates = future_dates.to_frame(index=False, name='date')
@@ -2087,15 +2290,14 @@ if uploaded_file is not None:
                 X_future = copy_df_date_index(X_future, datetime_to_date=False, date_to_index=True)
                 
                 # train the model on all data (X)
-                #from statsmodels.tsa.statespace.sarimax import SARIMAX
                 model = SARIMAX(endog = y, order=(p, d, q),  
                                      seasonal_order=(P, D, Q, s), 
                                      exog=X, 
-                                     enforce_invertibility=True, 
-                                     enforce_stationarity=True).fit()
+                                     enforce_invertibility=enforce_invertibility, 
+                                     enforce_stationarity=enforce_stationarity).fit()
                 # Forecast future values
-                #st.write((end_date_forecast-start_date_forecast.date()).days)
                 my_forecast_steps = (end_date_forecast-start_date_forecast.date()).days
+                
                 #y_forecast = model_fit.predict(start=start_date_forecast, end=(start_date_forecast + timedelta(days=len(X_future)-1)), exog=X_future)
                 forecast_values = model.get_forecast(steps = my_forecast_steps, exog = X_future.iloc[:my_forecast_steps,:])
                 
@@ -2103,7 +2305,7 @@ if uploaded_file is not None:
                 #from datetime import timedelta
                 start_date = max_date + timedelta(days=1)
                 # create pandas series before appending to the forecast dataframe
-                date_series = pd.date_range(start=start_date, end=None, periods= my_forecast_steps, freq='D')
+                date_series = pd.date_range(start=start_date, end=None, periods= my_forecast_steps, freq=forecast_freq_letter)
                 
                 # create dataframe
                 df_forecast =  pd.DataFrame()
@@ -2124,6 +2326,5 @@ if uploaded_file is not None:
                     # show dataframe / output of forecast in streamlit linear regression
                     st.dataframe(df_forecast_sarimax, use_container_width=True)
                     download_csv_button(df_forecast_sarimax, my_file="forecast_sarimax_results.csv")
-           
-                    
-
+        
+   
