@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Streamlit App: ForecastGenie_TM 
-Forecast y based on timeseries date
-Created on Mon Mar 6 17:02:34 2023
+Forecast y based on timeseries data
 @author: tholl
 """
 # Import required packages
@@ -444,7 +443,9 @@ def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, mo
                                     'mape': '{:.2%}'.format(mape),
                                     'rmse': rmse, 
                                     'r2':r2, 
-                                    'features':X.columns.tolist()}, 
+                                    'features':X.columns.tolist(), 
+                                    'model settings': model
+                                    },
                                     ignore_index=True)
     
     with st.expander(':information_source: '+ model_name, expanded=True):
@@ -456,17 +457,19 @@ def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, mo
         # create download button for forecast results to .csv
         download_csv_button(df_preds, my_file="insample_forecast_linear_regression_results.csv", help_message=f'Download your **{model_name}** model results to .CSV')
 
-def create_forecast_model_card(results_df, model, model_name):
-    df_preds = results_df.iloc[0]
-   
-    with st.expander(':information_source: '+ model_name, expanded=True):
-        #display_my_metrics(my_df=df_preds, model_name=model_name)
-        # plot graph with actual versus insample predictions
-        plot_actual_vs_predicted(df_preds)
-        # show the dataframe
-        st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
-        # create download button for forecast results to .csv
-        download_csv_button(df_preds, my_file="f'forecast_{model_name}_model.csv'", help_message=f'Download your **{model_name}** model results to .CSV')
+# =============================================================================
+# def create_forecast_model_card(results_df, model, model_name):
+#     df_preds = results_df.iloc[0]
+#    
+#     with st.expander(':information_source: '+ model_name, expanded=True):
+#         #display_my_metrics(my_df=df_preds, model_name=model_name)
+#         # plot graph with actual versus insample predictions
+#         plot_actual_vs_predicted(df_preds)
+#         # show the dataframe
+#         st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+#         # create download button for forecast results to .csv
+#         download_csv_button(df_preds, my_file="f'forecast_{model_name}_model.csv'", help_message=f'Download your **{model_name}** model results to .CSV')
+# =============================================================================
 
 def load_data():
     """
@@ -1422,7 +1425,6 @@ if uploaded_file is not None:
                 
     with st.expander("📌 Calendar Features", expanded=True):
         my_header('Special Calendar Days')
-        
         my_subheader("🎁 Pick your special days to include: ")
         st.write("")
         ###############################################
@@ -1765,7 +1767,7 @@ if uploaded_file is not None:
                                     'yanchor': 'top'})
             # Display plot in Streamlit
             st.plotly_chart(fig, use_container_width=True)
-            
+         
             ##############################################################
             # SELECT YOUR FAVORITE FEATURES TO INCLUDE IN MODELING
             ##############################################################
@@ -1778,11 +1780,86 @@ if uploaded_file is not None:
     except: 
         selected_cols_mifs = []
         st.warning(':red[**ERROR**: Mutual Information Feature Selection could not execute...please adjust your selection criteria]')
+    ########################################
+    # Correlation Analysis
+    # Remove Highly Correlated Features
+    #######################################
+    try: 
+        with st.sidebar:
+            with st.form('correlation analysis'):
+                # set subheader of form
+                my_subheader('Correlation Analysis', my_size=4, my_style='#AB5252')
+                
+                # set slider threshold for correlation strength
+                corr_threshold = st.slider("Select correlation threshold", 
+                                           min_value=0.0, 
+                                           max_value=1.0, 
+                                           value=0.8, 
+                                           step=0.05, 
+                                           help='Set Correlation Threshold to determine which pair(s) of variables in the dataset are strongly correlated e.g. no correlation = 0, perfect correlation = 1')
+                
+                col1, col2, col3 = st.columns([4,4,4])
+                with col2:       
+                    corr_btn = st.form_submit_button("Submit", type="secondary")
+                    
+        with st.expander('Correlation Analysis'):
+            st.write("")
+            my_subheader(f'Highly Correlated Features', my_style="#08306B")
+            col1,col2,col3 = st.columns([5,2,5])
+            with col2:
+                st.caption(f'threshold >={corr_threshold*100:.0f}%')
+            # create a new dataframe with only features that have a correlation higher or equal to the threshold
+            corr_matrix = X.corr()
+            
+            features_to_keep = corr_matrix[abs(corr_matrix) >= corr_threshold].stack().reset_index().iloc[:, [0, 1]]
+            features_to_keep.columns = ['feature1', 'feature2']
+            features_to_keep = features_to_keep[features_to_keep['feature1'] != features_to_keep['feature2']]
+            
+            X_corr = X[features_to_keep['feature1'].unique()]
+            
+            # compute correlation matrix
+            corr_matrix = X_corr.corr()
         
+            # create heatmap using plotly express
+            fig = px.imshow(corr_matrix.values,
+                            color_continuous_scale="Blues",
+                            zmin=-1,
+                            zmax=1,
+                            labels=dict(x="Features", y="Features", color="Correlation"),
+                            x=corr_matrix.columns,
+                            y=corr_matrix.columns,
+                            origin='lower')
+        
+            # add text annotations to heatmap cells
+            for i in range(len(corr_matrix)):
+                for j in range(i+1, len(corr_matrix)):
+                    if abs(corr_matrix.iloc[i, j]) > corr_threshold:
+                        fig.add_annotation(x=i, y=j, text="{:.2f}".format(corr_matrix.iloc[i, j]),  font=dict(color='white'))
+        
+            # add colorbar title
+            fig.update_coloraxes(colorbar_title="Correlation")
+        
+            # set x and y axis labels to diagonal orientation
+            fig.update_xaxes(tickangle=-45, showticklabels=True)
+            fig.update_yaxes(tickangle=0, showticklabels=True)
+        
+            # adjust heatmap size and margins
+            fig.update_layout(
+                width=800,
+                height=800,
+                margin=dict(l=200, r=200, t=100, b=100)
+            )
+        
+            # show plotly figure in streamlit
+            st.plotly_chart(fig, use_container_width=True)
+    except:
+        st.warning(':red[**ERROR**: Error with Correlation Analysis...please adjust your selection criteria]')
+
+
 
     with st.sidebar:        
         with st.form('top_features'):
-            my_subheader('Select Features 🟡🟢🟣 ', my_size=4, my_style='#7B52AB')
+            my_subheader('Select Features 🟡🟢🟣 ', my_size=4, my_style='#52B57F')
             # combine list of features selected from feature selection methods and only keep unique features excluding duplicate features
             total_features = np.unique(selected_cols_rfe + selected_cols_pca + selected_cols_mifs)
             # combine 3 feature selection methods and show to user in multi-selectbox to adjust as needed
@@ -1887,7 +1964,6 @@ if uploaded_file is not None:
         # create a checkbox for each model
         selected_models = []
 
-        
         for model_name, model in models:
             if st.checkbox(model_name):
                 selected_models.append((model_name, model))
@@ -1916,7 +1992,7 @@ if uploaded_file is not None:
                         P = st.number_input("Seasonal Order (P):", value=1, min_value=0, max_value=10)
                         D = st.number_input("Seasonal Differencing (D):", value=1, min_value=0, max_value=10)
                         Q = st.number_input("Seasonal Moving Average (Q):", value=1, min_value=0, max_value=10)
-                        s = st.number_input("Seasonal Periodicity (s):", value=12, min_value=1, max_value=24)
+                        s = st.number_input("Seasonal Periodicity (s):", value=7, min_value=1)
                     st.caption('SARIMAX Hyper-Parameters')
                     col1, col2, col3 = st.columns([5,1,5])
                     with col1:
@@ -1954,7 +2030,7 @@ if uploaded_file is not None:
             st.info(":information_source: Train your models first, before evaluation results show here...")
     if train_models_btn and selected_models:
         # Create a global pandas DataFrame to hold model_name and mape values
-        results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features'])
+        results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
         # iterate over all models and if user selected checkbox for model the model(s) is/are trained
         for model_name, model in selected_models:
             if model_name == "Naive Model":
@@ -1974,7 +2050,8 @@ if uploaded_file is not None:
                                                      'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
                                                      'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']), 
                                                      'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
-                                                     'features':features_str}, ignore_index=True)
+                                                     'features':features_str,
+                                                     'model settings': 'seasonal lag: '+lag}, ignore_index=True)
                    except:
                        st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
             if model_name == "Linear Regression":
@@ -2005,7 +2082,8 @@ if uploaded_file is not None:
                                                         'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
                                                         'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
                                                         'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
-                                                        'features':features_str}, ignore_index=True)
+                                                        'features':features_str,
+                                                        'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}, ignore_index=True)
         ###################################################################################################################
         # Add results_df to session state
         ###################################################################################################################
@@ -2013,7 +2091,6 @@ if uploaded_file is not None:
             st.session_state.results_df = results_df
         else:
             st.session_state.results_df = st.session_state.results_df.append(results_df, ignore_index=True)
-
         # Show the results dataframe in the sidebar if there is at least one model selected
         if len(selected_models) > 0:
             st.sidebar.dataframe(results_df)
@@ -2033,7 +2110,7 @@ if uploaded_file is not None:
 # Hyper-parameter tuning
 ###########################################################################################################################
 if uploaded_file is not None:
-    my_title('9. Hyper-parameter Tuning', "#88466D")
+    my_title('9. Hyper-parameter Tuning⚙️', "#88466D")
     
     # set variables needed
     ######################
@@ -2043,36 +2120,33 @@ if uploaded_file is not None:
     param_seasonal_mini = None
     # Set mini to positive infinity to ensure that the first value evaluated will become the minimum
     # minimum metric score will be saved under variable mini while looping thorugh parameter grid
-    mini = float('+inf')
+    #mini = float('+inf')
+   
+    # set initial start time before hyper-parameter tuning is kicked-off
     start_time = time.time()
-    # set function(s) needed
-    ######################
-    # Define a function to highlight the line with the minimum value
-    def highlight_min(s):
-        '''
-        highlight the minimum in a Series with green.
-        '''
-        is_min = s == s.min()
-        return ['background-color: green' if v else '' for v in is_min]
     
     # sidebar hyperparameter tuning
     ################
     with st.sidebar:
-         my_title('Hyper-parameter Tuning', "#88466D")                    
+         my_title('Hyper-parameter Tuning⚙️', "#88466D")                    
          with st.form("hyper_parameter_tuning"):
-             st.info('Select evaluation metric for GridSearchCV:')
-             metric = st.selectbox('Select evaluation metric for GridSearchCV:', ['AIC', 'BIC', 'MSE', 'R2'], label_visibility='collapsed')
+             metric = st.selectbox('Select Evaluation Metric', ['AIC', 'BIC', 'RMSE'], label_visibility='visible')
+             # Note that we set best_metric to -np.inf instead of np.inf since we want to maximize the R2 metric. 
+             if metric in ['AIC', 'BIC', 'RMSE']:
+                 mini = float('+inf')
+             else:
+                 mini = float('-inf')
              #metric = metric.lower() # lowercase metric to create for metric selection but need something else such as a class for it
              with st.expander('SARIMAX GridSearch Parameters'):
                  col1, col2, col3 = st.columns([5,1,5])
                  with col1:
-                     p_max = st.number_input("Max Order (p):", value=3, min_value=1, max_value=10)
-                     d_max = st.number_input("Max Differencing (d):", value=2, min_value=1, max_value=10)
-                     q_max = st.number_input("Max Moving Average (q):", value=3, min_value=1, max_value=10)   
+                     p_max = st.number_input("Max Order (p):", value=2, min_value=0, max_value=10)
+                     d_max = st.number_input("Max Differencing (d):", value=1, min_value=0, max_value=10)
+                     q_max = st.number_input("Max Moving Average (q):", value=2, min_value=0, max_value=10)   
                  with col3:
-                     P_max = st.number_input("Max Seasonal Order (P):", value=3, min_value=1, max_value=10)
-                     D_max = st.number_input("Max Seasonal Differencing (D):", value=2, min_value=1, max_value=10)
-                     Q_max = st.number_input("Max Seasonal Moving Average (Q):", value=3, min_value=1, max_value=10)
+                     P_max = st.number_input("Max Seasonal Order (P):", value=2, min_value=0, max_value=10)
+                     D_max = st.number_input("Max Seasonal Differencing (D):", value=1, min_value=0, max_value=10)
+                     Q_max = st.number_input("Max Seasonal Moving Average (Q):", value=2, min_value=0, max_value=10)
                      s = st.number_input("Set Seasonal Periodicity (s):", value=7, min_value=1)
 
              display_df = pd.DataFrame(columns=['SARIMAX (p,d,q)x(P,D,Q,s)', 'param', 'param_seasonal', metric])
@@ -2084,26 +2158,22 @@ if uploaded_file is not None:
              
     # if user clicks the hyper-parameter tuning button run code below
     if hp_tuning_btn == True:
-        # Define the parameter grid to search
-        param_grid = {
-                        'order': [(p, d, q) for p, d, q in itertools.product(range(p_max), range(d_max), range(q_max))],
-                        'seasonal_order': [(p, d, q, s) for p, d, q in itertools.product(range(P_max), range(D_max), range(Q_max))]
-                      }
         # Set up a progress bar
-        with st.spinner('Searching for optimal SARIMAX parameters...'):
+        with st.spinner('Searching for optimal hyper-parameters...hold your horses 🐎🐎🐎 this might take a while to run!'):
             ################################
             # kick off the grid-search!
             ################################
             # set start time when grid-search is kicked-off to define total time it takes
             # as computationaly intensive
             start_time = time.time()
+            
+            # Define the parameter grid to search
+            param_grid = {
+                            'order': [(p, d, q) for p, d, q in itertools.product(range(p_max+1), range(d_max+1), range(q_max+1))],
+                            'seasonal_order': [(p, d, q, s) for p, d, q in itertools.product(range(P_max+1), range(D_max+1), range(Q_max+1))]
+                          }
             # Loop through each parameter combination in the parameter grid
             for param, param_seasonal in itertools.product(param_grid['order'], param_grid['seasonal_order']):
-# =============================================================================
-#             # Loop through each parameter combination in the parameter grid
-#             for param in param_grid['order']:
-#                 for param_seasonal in param_grid['seasonal_order']:
-# =============================================================================
                     try:
                         # Create a SARIMAX model with the current parameter values
                         mod = SARIMAX(y,
@@ -2117,48 +2187,59 @@ if uploaded_file is not None:
                         results = mod.fit()
                         
                         # Check if the current model has a lower AIC than the previous models
-                        if results.aic < mini:
-                        #if results.metric < mini:
-                            # If so, update the mini value and the parameter values for the model with the lowest AIC
-                            mini = results.aic
-                            mini = results.metric
-                            param_mini = param
-                            param_seasonal_mini = param_seasonal
-                        
-                        
-                            # Build the message string with the current parameter values being evaluated along with the BIC score
-                            message = f'Evaluating parameters {param} and {param_seasonal} with {metric} score {"{:.2f}".format(mini)}'
-                            # show the message in streamlit app
-                            st.write(message)
-
+                        if metric == 'AIC':
+                            if results.aic < mini:
+                                # If so, update the mini value and the parameter values for the model with the lowest AIC
+                                mini = results.aic
+                                param_mini = param
+                                param_seasonal_mini = param_seasonal
+                        elif metric == 'BIC':
+                            if results.bic < mini:
+                                # If so, update the mini value and the parameter values for the model with the lowest AIC
+                                mini = results.bic
+                                param_mini = param
+                                param_seasonal_mini = param_seasonal
+                        elif metric == 'RMSE':
+                            rmse = math.sqrt(results.mse)
+                            if rmse < mini:
+                                mini = rmse
+                                param_mini = param
+                                param_seasonal_mini = param_seasonal
+                                                 
+# =============================================================================
+#                         # Build the message string with the current parameter values being evaluated along with the BIC score
+#                         message = f'Evaluating parameters {param} and {param_seasonal} with {metric} score {"{:.2f}".format(mini)}'
+#                         # show the message in streamlit app
+#                         st.write(message)
+# =============================================================================
                         # Append a new row to the dataframe with the parameter values and AIC score
                         display_df = display_df.append({'SARIMAX (p,d,q)x(P,D,Q,s)': f'{param} x {param_seasonal}', 
                                                        'param': param, 
                                                        'param_seasonal': param_seasonal, 
                                                        metric: "{:.2f}".format(mini)}, 
                                                        ignore_index=True)
+                    
                     # If the model fails to fit, skip it and continue to the next model
                     except:
                         pass
-                         
-    # Add a 'Rank' column based on the AIC score and sort by ascending rank
-    # rank method: min: lowest rank in the group
-    # rank method: dense: like ‘min’, but rank always increases by 1 between groups.
-    display_df['Rank'] = display_df[metric].rank(method='dense').astype(int)
-    # sort values by rank
-    display_df = display_df.sort_values('Rank', ascending=True)
-    display_df.set_index('Rank', inplace=True)
     
-    
-    # show user dataframe of gridsearch results ordered by ranking
-    st.dataframe(display_df, use_container_width=True)
-    # highlight the row green e.g. axis=1 with lowest aic score with custom function highlight_min
-    #st.dataframe(display_df.style.apply(highlight_min, axis=0), use_container_width=True)                     
-    if hp_tuning_btn == True:
-        end_time = time.time()
-        st.info(f"ℹ️ The search for your optimal hyper-parameters finished in {end_time - start_time:.2f} seconds")
-        # show user message of optimal parameters with gridsearch found
-        st.info(f'ℹ️ The set of parameters with the minimum {metric} is: SARIMA {display_df.iloc[0,0]} - with {metric}: {"{:.2f}".format(mini)}')
+    with st.expander('⚙️ SARIMAX', expanded=True):                     
+        # Add a 'Rank' column based on the AIC score and sort by ascending rank
+        # rank method: min: lowest rank in the group
+        # rank method: dense: like ‘min’, but rank always increases by 1 between groups.
+        display_df['Rank'] = display_df[metric].rank(method='min', ascending=True).astype(int)
+        # sort values by rank
+        display_df = display_df.sort_values('Rank', ascending=True)
+        # show user dataframe of gridsearch results ordered by ranking
+        st.dataframe(display_df.set_index('Rank'), use_container_width=True)
+        # highlight the row green e.g. axis=1 with lowest aic score with custom function highlight_min
+        #st.dataframe(display_df.style.apply(highlight_min, axis=0), use_container_width=True)                     
+        if hp_tuning_btn == True:
+            end_time = time.time()
+            st.info(f"ℹ️ The search for your optimal hyper-parameters finished in {end_time - start_time:.2f} seconds")
+            # show user message of optimal parameters with gridsearch found
+            if not display_df.empty:
+                st.info(f'ℹ️ The set of parameters with the minimum {metric} is: SARIMA {display_df.iloc[0,0]} - with {metric}: {"{:.2f}".format(mini)}')
     
 ##############################################################################
 # 8. Forecast
