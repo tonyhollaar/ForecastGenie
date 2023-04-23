@@ -1,0 +1,12 @@
+[theme]
+primaryColor = "#1ABC9C"
+backgroundColor = "#F5F5F5"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#424242"
+font = "Helvetica Neue, Helvetica, Arial, sans-serif"
+dark_mode = true
+
+[theme.button]
+backgroundColor = "#DADADA"
+hoverBackgroundColor = "#BEBEBE"
+textColor = "#212E21"
