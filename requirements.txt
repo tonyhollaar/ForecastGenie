@@ -6,3 +6,5 @@ seaborn
 plotly
 statsmodels
 scikit-learn
+prophet
+pywt
