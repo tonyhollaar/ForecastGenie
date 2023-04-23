@@ -17,15 +17,11 @@ import time
 import math
 import altair as alt
 import matplotlib.pyplot as plt
-#import seaborn as sns
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-#from statsmodels.graphics.tsaplots import plot_pacf
 from scipy import stats
 from statsmodels.tsa.stattools import acf, pacf
-# https://www.statsmodels.org/dev/generated/statsmodels.tsa.stattools.pacf.html#statsmodels.tsa.stattools.pacf
-#from statsmodels.tsa.seasonal import seasonal_decompose
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.svm import SVR
@@ -36,18 +32,12 @@ from prophet import Prophet
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.svm import SVR
 from prophet.diagnostics import cross_validation, performance_metrics    
-#from sklearn.model_selection import ParameterGrid
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.feature_selection import RFECV
 from sklearn.inspection import permutation_importance
 import pywt
-#from scipy.stats import kurtosis, skew
-#import tensorflow as tf
-#from tensorflow.keras.models import Sequential
-#from tensorflow.keras.layers import LSTM, Dense
 from sklearn.feature_selection import mutual_info_regression
-#from sklearn.feature_selection import mutual_info_classif
 from sklearn.decomposition import PCA
 from sklearn.ensemble import IsolationForest
 from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
