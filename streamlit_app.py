@@ -82,6 +82,45 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(["Load🚀
 ###############################################################################
 # FUNCTIONS
 ###############################################################################
+def display_dataframe_graph(df, key=0):
+    fig = px.line(df,
+                  x=df.index,
+                  y=df.columns,
+                  #labels=dict(x="Date", y="y"),
+                  title='')
+    # Set Plotly configuration options
+    fig.update_layout(width=800, height=400, xaxis=dict(title='Date'), yaxis=dict(title='', rangemode='tozero'), legend=dict(x=0.9, y=0.9))
+    # set line color and width
+    fig.update_traces(line=dict(color='#45B8AC', width=2))
+
+
+    # Add the range slider to the layout
+    fig.update_layout(
+        xaxis=dict(
+            rangeselector=dict(
+                buttons=list([
+                    dict(count=7, label='1w', step='day', stepmode='backward'),
+                    dict(count=1, label='1m', step='month', stepmode='backward'),
+                    dict(count=6, label='6m', step='month', stepmode='backward'),
+                    dict(count=1, label='YTD', step='year', stepmode='todate'),
+                    dict(count=1, label='1y', step='year', stepmode='backward'),
+                    dict(step='all')
+                ]),
+                x=0.3,
+                y=1.2,
+                yanchor='top',
+                font=dict(size=10),
+            ),
+            rangeslider=dict(
+                visible=True,
+                range=[df.index.min(), df.index.max()]  # Set range of slider based on data
+            ),
+            type='date'
+        )
+    )
+    # Display Plotly Express figure in Streamlit
+    st.plotly_chart(fig, use_container_width=True, key=key)
+    
 # define function to generate demo time-series data
 def generate_demo_data(seed=42):
     np.random.seed(seed)
@@ -1713,46 +1752,9 @@ with tab1:
             df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
             # set caption
             st.caption('')
-           
-            
-            #############################################################################
-            ## display/plot graph of dataframe
-            fig = px.line(df_graph,
-                          x=df_graph.index,
-                          y=df_graph.columns,
-                          #labels=dict(x="Date", y="y"),
-                          title='')         
-            # Set Plotly configuration options
-            fig.update_layout(width=800, height=400, xaxis=dict(title='Date'), yaxis=dict(title='', rangemode='tozero'), legend=dict(x=0.9, y=0.9))
-            # set line color and width
-            fig.update_traces(line=dict(color='#2CB8A1', width=2))
-            
-    
-            # add the range slider to the layout
-            fig.update_layout(
-                xaxis=dict(
-                    rangeselector=dict(
-                        buttons=list([
-                            dict(count=7, label='1w', step='day', stepmode='backward'),
-                            dict(count=1, label='1m', step='month', stepmode='backward'),
-                            dict(count=6, label='6m', step='month', stepmode='backward'),
-                            dict(count=1, label='YTD', step='year', stepmode='todate'),
-                            dict(count=1, label='1y', step='year', stepmode='backward'),
-                            dict(step='all')
-                        ]),
-                        x=0.3,
-                        y=1.2,
-                        yanchor='top',
-                        font=dict(size=10),
-                    ),
-                    rangeslider=dict(
-                        visible=True
-                    ),
-                    type='date'
-                )
-            )
+          
             # Display Plotly Express figure in Streamlit
-            st.plotly_chart(fig, use_container_width=True)
+            display_dataframe_graph(df=df_graph, key=1)
             # show dataframe below graph        
             st.dataframe(df_graph, use_container_width=True)
             # download csv button
@@ -1795,42 +1797,7 @@ with tab1:
             
             #############################################################################
             ## display/plot graph of dataframe
-            fig = px.line(df_graph,
-                          x=df_graph.index,
-                          y=df_graph.columns,
-                          #labels=dict(x="Date", y="y"),
-                          title='')         
-            # Set Plotly configuration options
-            fig.update_layout(width=800, height=400, xaxis=dict(title='Date'), yaxis=dict(title='', rangemode='tozero'), legend=dict(x=0.9, y=0.9))
-            # set line color and width
-            fig.update_traces(line=dict(color='#217CD0', width=2))
-            
-    
-            # add the range slider to the layout
-            fig.update_layout(
-                xaxis=dict(
-                    rangeselector=dict(
-                        buttons=list([
-                            dict(count=7, label='1w', step='day', stepmode='backward'),
-                            dict(count=1, label='1m', step='month', stepmode='backward'),
-                            dict(count=6, label='6m', step='month', stepmode='backward'),
-                            dict(count=1, label='YTD', step='year', stepmode='todate'),
-                            dict(count=1, label='1y', step='year', stepmode='backward'),
-                            dict(step='all')
-                        ]),
-                        x=0.3,
-                        y=1.2,
-                        yanchor='top',
-                        font=dict(size=10),
-                    ),
-                    rangeslider=dict(
-                        visible=True
-                    ),
-                    type='date'
-                )
-            )
-            # Display Plotly Express figure in Streamlit
-            st.plotly_chart(fig, use_container_width=True)
+            display_dataframe_graph(df=df_graph, key=2)
             # show dataframe below graph        
             st.dataframe(df_graph, use_container_width=True)
             # download csv button
