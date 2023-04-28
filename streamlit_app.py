@@ -82,6 +82,21 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(["Load🚀
 ###############################################################################
 # FUNCTIONS
 ###############################################################################
+def display_summary_statistics(df):
+    summary = pd.DataFrame()
+    for col in df.columns:
+        if df[col].dtype == 'datetime64[ns]':
+            summary[col] = [df[col].min(), df[col].max(), '-', '-', '-', 'datetime']
+        elif df[col].dtype != 'object':
+            summary[col] = [df[col].min().round(2), df[col].max().round(2), 
+                            df[col].mean().round(2), df[col].median().round(2), 
+                            df[col].std().round(2), df[col].dtype]
+        else:
+            summary[col] = [np.nan, np.nan, np.nan, np.nan, np.nan, df[col].dtype]
+    summary = summary.transpose()
+    summary.columns = ['Min', 'Max', 'Mean', 'Median', 'Std', 'dtype']
+    return summary
+
 def display_dataframe_graph(df, key=0):
     fig = px.line(df,
                   x=df.index,
@@ -1840,7 +1855,19 @@ with tab1:
                         acf_pacf_btn = st.form_submit_button("Submit", type="secondary")
             # create expandable card with data exploration information
             with st.expander(':arrow_down: EDA', expanded=True):
+                #############################################################################
+                # Summary Statistics
+                #############################################################################
+
+
+                # create subheader
+                my_subheader('Summary Statistics', my_size=3)
+                # create linespace
+                st.write("")
+                # Display summary statistics table
+                st.dataframe(display_summary_statistics(df_raw), use_container_width=True)
                 
+
                 #############################################################################
                 # Call function for plotting Graphs of Seasonal Patterns D/W/M/Q/Y in Plotly Charts
                 #############################################################################
