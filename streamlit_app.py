@@ -3134,21 +3134,26 @@ with tab1:
                             # It converts the 'mape' column to floats, removes duplicates based on the 'model_name' and 'mape' columns, sorts the unique DataFrame by ascending 'mape' values, selects the top 3 rows, and displays the resulting DataFrame in Streamlit.
                             test_df = st.session_state.results_df.assign(mape=st.session_state.results_df['mape'].str.rstrip('%').astype(float)).drop_duplicates(subset=['model_name', 'mape']).sort_values(by='mape', ascending=True).iloc[:3]
                             st.write(test_df)
-
-                    # show on streamlit page the scoring results
-                    with tab8:
-                        my_title("8. Evaluate Model Performance 🎯", "#2CB8A1")
-                        with st.expander('ℹ️ Test Results', expanded=True):
-                            my_header(my_string='Modeling Test Results', my_style="#2CB8A1")
-                            # create some empty newlines - for space between title and dataframe
-                            st.write("")
-                            st.write("")
-                            # show the dataframe with all the historical results stored from 
-                            # prior runs the cache e.g. called session_state in streamlit
-                            # from all train/test results with models selected by user
-                            st.write(st.session_state.results_df)
-                            # download button
-                            download_csv_button(results_df, my_file="Modeling Test Results.csv", help_message="Download your Modeling Test Results to .CSV")
+                
+            # show on streamlit page the scoring results
+            with tab8:
+                my_title("8. Evaluate Model Performance 🎯", "#2CB8A1")
+                # if the results dataframe is created already then you can continue code
+                if 'results_df' in globals():
+                    with st.expander('ℹ️ Test Results', expanded=True):
+                        my_header(my_string='Modeling Test Results', my_style="#2CB8A1")
+                        # create some empty newlines - for space between title and dataframe
+                        st.write("")
+                        st.write("")
+                        # show the dataframe with all the historical results stored from 
+                        # prior runs the cache e.g. called session_state in streamlit
+                        # from all train/test results with models selected by user
+                        st.write(st.session_state.results_df)
+                        # download button
+                        download_csv_button(results_df, my_file="Modeling Test Results.csv", help_message="Download your Modeling Test Results to .CSV")
+                # if results_df is not created yet just tell user to train models first
+                else:
+                    st.info('Please select models to train first from sidebar menu and press **"Submit"**')
                  
             ###########################################################################################################################
             # 9. Hyper-parameter tuning
