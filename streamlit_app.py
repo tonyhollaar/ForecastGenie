@@ -1758,14 +1758,14 @@ with tab1:
             # download csv button
             download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
             
-        if data_option == "Upload Data" and uploaded_file is None:
-            # let user upload a file
-            # inform user what template to upload
-            with st.expander("", expanded=True):
-                my_header("Instructions")
-                st.info('''👈 **Please upload a .CSV file with:**  
-                         - first column named: **$date$** with format: **$mm/dd/yyyy$**  
-                         - second column the target variable: $y$''')
+    if data_option == "Upload Data" and uploaded_file is None:
+        # let user upload a file
+        # inform user what template to upload
+        with st.expander("", expanded=True):
+            my_header("Instructions")
+            st.info('''👈 **Please upload a .CSV file with:**  
+                     - first column named: **$date$** with format: **$mm/dd/yyyy$**  
+                     - second column the target variable: $y$''')
     
     # check if data is uploaded
     if data_option == "Upload Data" and uploaded_file is not None:
