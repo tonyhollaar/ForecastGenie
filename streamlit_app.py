@@ -2968,12 +2968,23 @@ with tab1:
                         if model_name == "Linear Regression":
                             # train the model
                             create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, model=model, model_name=model_name)
+# =============================================================================
+#                             # append to sidebar table the results of the model train/test
+#                             results_df = results_df.append({'model_name': 'Linear Regression', 
+#                                                             'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
+#                                                             'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']), 
+#                                                             'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
+#                                                             'features':features_str}, ignore_index=True)
+# =============================================================================
+                            ## START TEST
                             # append to sidebar table the results of the model train/test
-                            results_df = results_df.append({'model_name': 'Linear Regression', 
-                                                            'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
-                                                            'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']), 
-                                                            'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
-                                                            'features':features_str}, ignore_index=True)
+                            new_row = {'model_name': 'Linear Regression',
+                                       'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
+                                       'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
+                                       'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
+                                       'features':features_str}
+                            results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+                            ### END TEST
                         if model_name == "SARIMAX":
                             with st.expander('ℹ️ ' + model_name, expanded=True):
                                 with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):
