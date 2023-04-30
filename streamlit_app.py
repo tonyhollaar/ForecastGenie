@@ -78,9 +78,8 @@ st.write("")
 
 # define tabs of data pipeline for user to browse through
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(["Load🚀", "Explore🕵️‍♂️", "Clean🧹", "Engineer🧰", "Prepare🧪", "Select🍏", "Train🔢", "Evaluate🎯", "Tune⚙️", "Forecast🔮"])
-
-# TEST
-results_df = pd.DataFrame()
+# Create a global pandas DataFrame to hold model_name and mape values
+results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
 ###############################################################################
 # FUNCTIONS
 ###############################################################################
@@ -2928,8 +2927,7 @@ with tab1:
                     st.info("ℹ️ Train your models first from the sidebar menu by pressing the **'Submit'** button, before results show here!")
                 if train_models_btn and selected_models:
                     st.info("You can always retrain your models and adjust hyperparameters!")
-                    # Create a global pandas DataFrame to hold model_name and mape values
-                    results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
+
                     # iterate over all models and if user selected checkbox for model the model(s) is/are trained
                     for model_name, model in selected_models:
                         if model_name == "Naive Model":
