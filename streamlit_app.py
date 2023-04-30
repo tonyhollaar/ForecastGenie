@@ -2999,13 +2999,24 @@ with tab1:
                                     download_csv_button(preds_df, my_file="insample_forecast_sarimax_results.csv", help_message="Download your **SARIMAX** model results to .CSV")
                                     # define metrics for sarimax model
                                     mape, rmse, r2 = my_metrics(preds_df, model_name=model_name)
+# =============================================================================
+#                                     # display evaluation results on sidebar of streamlit_model_card
+#                                     results_df = results_df.append({'model_name': 'SARIMAX', 
+#                                                                     'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
+#                                                                     'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
+#                                                                     'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
+#                                                                     'features':features_str,
+#                                                                     'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}, ignore_index=True)
+# =============================================================================
                                     # display evaluation results on sidebar of streamlit_model_card
-                                    results_df = results_df.append({'model_name': 'SARIMAX', 
-                                                                    'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
-                                                                    'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
-                                                                    'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
-                                                                    'features':features_str,
-                                                                    'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}, ignore_index=True)
+                                    new_row = {'model_name': 'SARIMAX', 
+                                               'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
+                                               'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
+                                               'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
+                                               'features':features_str,
+                                               'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}
+                                    results_df = results_df.append(new_row, ignore_index=True)
+                                                                        
                         if model_name == "Prophet": 
                             with st.expander('ℹ️ ' + model_name, expanded=True):
                                 # use custom fucntion that creates in-sample prediction and return a dataframe with 'Actual', 'Predicted', 'Percentage_Diff', 'MAPE' 
@@ -3030,13 +3041,21 @@ with tab1:
                                 # define metrics for sarimax model
                                 mape, rmse, r2 = my_metrics(preds_df_prophet, model_name=model_name)
                                 # display evaluation results on sidebar of streamlit_model_card
+# =============================================================================
+#                                 results_df = results_df.append({'model_name': 'Prophet', 
+#                                                                 'mape': '{:.2%}'.format(metrics_dict['Prophet']['mape']),
+#                                                                 'rmse': '{:.2f}'.format(metrics_dict['Prophet']['rmse']), 
+#                                                                 'r2': '{:.2f}'.format(metrics_dict['Prophet']['r2']),
+#                                                                 'features':features_str,
+#                                                                 'model settings': f' changepoint_prior_scale: {changepoint_prior_scale}, seasonality_prior_scale: {seasonality_prior_scale}, holidays_prior_scale: {holidays_prior_scale}, yearly_seasonality: {yearly_seasonality}, weekly_seasonality: {weekly_seasonality}, daily_seasonality: {daily_seasonality}, interval_width: {interval_width}'}, ignore_index=True)
+# =============================================================================
+                                # display evaluation results on sidebar of streamlit_model_card
                                 results_df = results_df.append({'model_name': 'Prophet', 
                                                                 'mape': '{:.2%}'.format(metrics_dict['Prophet']['mape']),
                                                                 'rmse': '{:.2f}'.format(metrics_dict['Prophet']['rmse']), 
                                                                 'r2': '{:.2f}'.format(metrics_dict['Prophet']['r2']),
                                                                 'features':features_str,
-                                                                'model settings': f' changepoint_prior_scale: {changepoint_prior_scale}, seasonality_prior_scale: {seasonality_prior_scale}, holidays_prior_scale: {holidays_prior_scale}, yearly_seasonality: {yearly_seasonality}, weekly_seasonality: {weekly_seasonality}, daily_seasonality: {daily_seasonality}, interval_width: {interval_width}'}, ignore_index=True)
-                                
+                                                                'model settings': f'changepoint_prior_scale={changepoint_prior_scale}, seasonality_prior_scale={seasonality_prior_scale}, holidays_prior_scale={holidays_prior_scale}, yearly_seasonality={yearly_seasonality}, weekly_seasonality={weekly_seasonality}, daily_seasonality={daily_seasonality}, interval_width={interval_width}'}, ignore_index=True)                                
                             # MODEL DOCUMENTATION
                             st.write('')
                             my_title('Model Documentation💡')
