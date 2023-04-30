@@ -78,10 +78,12 @@ st.write("")
 
 # define tabs of data pipeline for user to browse through
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(["Load🚀", "Explore🕵️‍♂️", "Clean🧹", "Engineer🧰", "Prepare🧪", "Select🍏", "Train🔢", "Evaluate🎯", "Tune⚙️", "Forecast🔮"])
+
 # Create a global pandas DataFrame to hold model_name and mape values
 #results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
 # Initialize results_df in global scope
 results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
+
 if 'results_df' not in st.session_state:
     st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
 ###############################################################################
@@ -1076,15 +1078,23 @@ def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, mo
     
     # add the results to sidebar for quick overview for user  
     # set as global variable to be used in code outside function
-    results_df = results_df.append({'model_name': model_name, 
-                                    'mape': '{:.2%}'.format(mape),
-                                    'rmse': rmse, 
-                                    'r2':r2, 
-                                    'features':X.columns.tolist(), 
-                                    'model settings': model
-                                    },
-                                    ignore_index=True)
-    
+# =============================================================================
+#     results_df = results_df.append({'model_name': model_name, 
+#                                     'mape': '{:.2%}'.format(mape),
+#                                     'rmse': rmse, 
+#                                     'r2':r2, 
+#                                     'features':X.columns.tolist(), 
+#                                     'model settings': model
+#                                     },
+#                                     ignore_index=True)
+# =============================================================================
+    results_df = pd.concat([results_df, pd.DataFrame({'model_name': [model_name],
+                                                       'mape': '{:.2%}'.format(mape),
+                                                       'rmse': rmse, 
+                                                       'r2':r2, 
+                                                       'model settings': model
+                                                     })],
+                                                       ignore_index=True)    
     with st.expander('ℹ️ '+ model_name, expanded=True):
         display_my_metrics(my_df=df_preds, model_name=model_name)
         # plot graph with actual versus insample predictions
