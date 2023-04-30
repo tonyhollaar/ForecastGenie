@@ -3049,13 +3049,14 @@ with tab1:
 #                                                                 'features':features_str,
 #                                                                 'model settings': f' changepoint_prior_scale: {changepoint_prior_scale}, seasonality_prior_scale: {seasonality_prior_scale}, holidays_prior_scale: {holidays_prior_scale}, yearly_seasonality: {yearly_seasonality}, weekly_seasonality: {weekly_seasonality}, daily_seasonality: {daily_seasonality}, interval_width: {interval_width}'}, ignore_index=True)
 # =============================================================================
-                                # display evaluation results on sidebar of streamlit_model_card
-                                results_df = results_df.append({'model_name': 'Prophet', 
-                                                                'mape': '{:.2%}'.format(metrics_dict['Prophet']['mape']),
-                                                                'rmse': '{:.2f}'.format(metrics_dict['Prophet']['rmse']), 
-                                                                'r2': '{:.2f}'.format(metrics_dict['Prophet']['r2']),
-                                                                'features':features_str,
-                                                                'model settings': f'changepoint_prior_scale={changepoint_prior_scale}, seasonality_prior_scale={seasonality_prior_scale}, holidays_prior_scale={holidays_prior_scale}, yearly_seasonality={yearly_seasonality}, weekly_seasonality={weekly_seasonality}, daily_seasonality={daily_seasonality}, interval_width={interval_width}'}, ignore_index=True)                                
+                                new_row = {'model_name': 'Prophet', 
+                                           'mape': '{:.2%}'.format(metrics_dict['Prophet']['mape']),
+                                           'rmse': '{:.2f}'.format(metrics_dict['Prophet']['rmse']), 
+                                           'r2': '{:.2f}'.format(metrics_dict['Prophet']['r2']),
+                                           'features': features_str,
+                                           'model settings': f' changepoint_prior_scale: {changepoint_prior_scale}, seasonality_prior_scale: {seasonality_prior_scale}, holidays_prior_scale: {holidays_prior_scale}, yearly_seasonality: {yearly_seasonality}, weekly_seasonality: {weekly_seasonality}, daily_seasonality: {daily_seasonality}, interval_width: {interval_width}'}
+                                
+                                results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
                             # MODEL DOCUMENTATION
                             st.write('')
                             my_title('Model Documentation💡')
