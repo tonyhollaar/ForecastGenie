@@ -2989,7 +2989,10 @@ with tab1:
                             with st.expander('ℹ️ ' + model_name, expanded=True):
                                 with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):
                                     # parameters have standard value but can be changed by user
-                                    preds_df = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
+                                    endog_train = y_train.astype('float64')
+                                    exog_train = X_train.astype('float64')
+                                    
+                                    preds_df = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=exog_train, exog_test=X_test, endog_train=endog_train, endog_test=y_test)
                                     display_my_metrics(preds_df, "SARIMAX")
                                     # plot graph with actual versus insample predictions
                                     plot_actual_vs_predicted(preds_df, my_conf_interval)
