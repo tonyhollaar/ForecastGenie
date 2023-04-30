@@ -79,6 +79,8 @@ st.write("")
 # define tabs of data pipeline for user to browse through
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(["Load🚀", "Explore🕵️‍♂️", "Clean🧹", "Engineer🧰", "Prepare🧪", "Select🍏", "Train🔢", "Evaluate🎯", "Tune⚙️", "Forecast🔮"])
 
+# TEST
+results_df = pd.DataFrame()
 ###############################################################################
 # FUNCTIONS
 ###############################################################################
@@ -1203,7 +1205,7 @@ def plot_actual_vs_predicted(df_preds, my_conf_interval):
                                     ),
                         yaxis = dict(
                                     gridcolor='#E1E1E1',
-                                    range=[np.minimum(df_preds['Actual'].min(), df_preds['Predicted'].min()) - (df_preds['Predicted'].max() - df_preds['Predicted'].min()), 
+                                    range = [np.minimum(df_preds['Actual'].min(), df_preds['Predicted'].min()) - (df_preds['Predicted'].max() - df_preds['Predicted'].min()), 
                                     np.maximum(df_preds['Actual'].max(), df_preds['Predicted'].max()) + (df_preds['Predicted'].max() - df_preds['Predicted'].min())],
                                     zeroline=False, # remove the x-axis line at y=0
                                     ),
@@ -1858,8 +1860,6 @@ with tab1:
                 #############################################################################
                 # Summary Statistics
                 #############################################################################
-
-
                 # create subheader
                 my_subheader('Summary Statistics', my_size=3)
                 # create linespace
@@ -1867,7 +1867,6 @@ with tab1:
                 # Display summary statistics table
                 st.dataframe(display_summary_statistics(df_raw), use_container_width=True)
                 
-
                 #############################################################################
                 # Call function for plotting Graphs of Seasonal Patterns D/W/M/Q/Y in Plotly Charts
                 #############################################################################
