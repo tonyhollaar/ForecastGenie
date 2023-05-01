@@ -2327,6 +2327,11 @@ with tab1:
             ##########################################
             # create copy of dataframe not altering original
             local_df = df.copy(deep=True)
+            
+            # Assume df is your DataFrame with boolean columns - needed for SARIMAX model that does not handle boolean, but int instead
+            bool_cols = local_df.select_dtypes(include=bool).columns
+            local_df[bool_cols] = local_df[bool_cols].astype(int)
+            
             # set the date as the index of the pandas dataframe
             local_df.index = pd.to_datetime(local_df['date'])
             local_df.drop(columns='date', inplace=True)
@@ -3032,6 +3037,8 @@ with tab1:
     #                                         st.write('y_test', y_test)
     # =============================================================================
                                     #preds_df = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
+
+                                    
                                     model = sm.tsa.statespace.SARIMAX(endog=y_train, exog=X_train, order=(p,d,q), seasonal_order=(P,D,Q,s))
                                     print('model')
                                     results = model.fit()
