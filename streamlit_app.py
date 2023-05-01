@@ -86,6 +86,9 @@ results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features
 
 if 'results_df' not in st.session_state:
     st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
+
+# Log
+print('ForecastGenie Print: Loaded Global Variables')
 ###############################################################################
 # FUNCTIONS
 ###############################################################################
@@ -1721,6 +1724,8 @@ def handle_outliers(data, method, contamination, random_state):
             data[col][outliers] = medians[col]
     return data 
 
+# Log
+print('ForecastGenie Print: Loaded Functions')
 ###############################################################################
 # Create Left-Sidebar Streamlit App with Title + About Information
 ###############################################################################
@@ -1842,7 +1847,6 @@ with tab1:
         pass
     # else continue code below
     else:
-       
         with tab2:    
             # set title
             my_title('2. Exploratory Data Analysis 🕵️‍♂️', my_background_color="#217CD0")
@@ -3042,7 +3046,7 @@ with tab1:
                                                    'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
                                                    'features':features_str,
                                                    'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}
-                                        results_df = results_df.append(new_row, ignore_index=True)
+                                        results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
                         except:
                             st.warning(f'SARIMAX failed to train, please contact administrator!')       
                         if model_name == "Prophet": 
