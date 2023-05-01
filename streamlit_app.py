@@ -79,8 +79,13 @@ st.write("")
 # define tabs of data pipeline for user to browse through
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(["Load🚀", "Explore🕵️‍♂️", "Clean🧹", "Engineer🧰", "Prepare🧪", "Select🍏", "Train🔢", "Evaluate🎯", "Tune⚙️", "Forecast🔮"])
 
-# Initialize results_df in global scope which will contain sidebar results of train/test results of models
+# Create a global pandas DataFrame to hold model_name and mape values
+#results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
+# Initialize results_df in global scope
 results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
+
+if 'results_df' not in st.session_state:
+    st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
 
 # Log
 print('ForecastGenie Print: Loaded Global Variables')
