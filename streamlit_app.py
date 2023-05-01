@@ -3023,6 +3023,8 @@ with tab1:
     #                                         st.write('y_test', y_test)
     # =============================================================================
                                     preds_df = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
+                                    st.write(preds_df.dtypes)
+                                    st.write(preds_df.head())
                                     display_my_metrics(preds_df, "SARIMAX")
                                     # plot graph with actual versus insample predictions
                                     plot_actual_vs_predicted(preds_df, my_conf_interval)
