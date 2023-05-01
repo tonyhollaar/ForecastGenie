@@ -3031,7 +3031,22 @@ with tab1:
     #                                         st.write('y_train', y_train)
     #                                         st.write('y_test', y_test)
     # =============================================================================
-                                    preds_df = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
+                                    #preds_df = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
+                                    model = sm.tsa.statespace.SARIMAX(endog=y_train, exog=X_train, order=(p,d,q), seasonal_order=(P,D,Q,s))
+                                    print('model')
+                                    results = model.fit()
+                                    print('fit model')
+                                    # Generate predictions
+                                    y_pred = results.predict(start=y_test.index[0], end=y_test.index[-1], exog=X_test)
+                                    print('define y_pred')
+                                    preds_df = pd.DataFrame({'Actual': y_test.squeeze(), 'Predicted': y_pred.squeeze()}, index=y_test.index)
+                                    print('preds_df')
+                                    # Calculate percentage difference between actual and predicted values and add it as a new column
+                                    preds_df = preds_df.assign(Percentage_Diff = ((preds_df['Predicted'] - preds_df['Actual']) / preds_df['Actual']))
+                                    print(preds_df)
+                                    # Calculate MAPE and add it as a new column
+                                    preds_df = preds_df.assign(MAPE = abs(preds_df['Percentage_Diff']))   
+                                    
                                     st.write(preds_df.dtypes)
                                     st.write(preds_df.head())
                                     display_my_metrics(preds_df, "SARIMAX")
