@@ -1035,17 +1035,21 @@ def evaluate_sarimax_model(order, seasonal_order, exog_train, exog_test, endog_t
    Returns:
        preds_df (pd.DataFrame): DataFrame of predicted and actual values on test data.
    """
-   # Fit the model
-   model = sm.tsa.statespace.SARIMAX(endog=endog_train, exog=exog_train, order=order, seasonal_order=seasonal_order)
-   results = model.fit()
-   # Generate predictions
-   y_pred = results.predict(start=endog_test.index[0], end=endog_test.index[-1], exog=exog_test)
-   preds_df = pd.DataFrame({'Actual': endog_test.squeeze(), 'Predicted': y_pred.squeeze()}, index=endog_test.index)
-   # Calculate percentage difference between actual and predicted values and add it as a new column
-   preds_df = preds_df.assign(Percentage_Diff = ((preds_df['Predicted'] - preds_df['Actual']) / preds_df['Actual']))
-   # Calculate MAPE and add it as a new column
-   preds_df = preds_df.assign(MAPE = abs(preds_df['Percentage_Diff']))   
-   return preds_df  
+   try:
+       # Fit the model
+       model = sm.tsa.statespace.SARIMAX(endog=endog_train, exog=exog_train, order=order, seasonal_order=seasonal_order)
+       results = model.fit()
+       # Generate predictions
+       y_pred = results.predict(start=endog_test.index[0], end=endog_test.index[-1], exog=exog_test)
+       preds_df = pd.DataFrame({'Actual': endog_test.squeeze(), 'Predicted': y_pred.squeeze()}, index=endog_test.index)
+       # Calculate percentage difference between actual and predicted values and add it as a new column
+       preds_df = preds_df.assign(Percentage_Diff = ((preds_df['Predicted'] - preds_df['Actual']) / preds_df['Actual']))
+       # Calculate MAPE and add it as a new column
+       preds_df = preds_df.assign(MAPE = abs(preds_df['Percentage_Diff']))   
+       return preds_df 
+   except:
+       my_warning = st.warning('SARIMAX model did not evaluate test-set correctly within function evaluate_sarimax_model, please contact an administrator!')
+       return my_warning 
 
 def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, model, model_name):
     """
@@ -2989,10 +2993,11 @@ with tab1:
                             with st.expander('ℹ️ ' + model_name, expanded=True):
                                 with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):
                                     # parameters have standard value but can be changed by user
-                                    endog_train = y_train.astype('float64')
-                                    exog_train = X_train.astype('float64')
-                                    
-                                    preds_df = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=exog_train, exog_test=X_test, endog_train=endog_train, endog_test=y_test)
+                                    st.write('X_train', X_train)
+                                    st.write('X_test', X_test)
+                                    st.write('y_train', y_train)
+                                    st.write('y_test', y_test)
+                                    preds_df = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
                                     display_my_metrics(preds_df, "SARIMAX")
                                     # plot graph with actual versus insample predictions
                                     plot_actual_vs_predicted(preds_df, my_conf_interval)
