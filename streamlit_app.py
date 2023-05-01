@@ -92,6 +92,110 @@ print('ForecastGenie Print: Loaded Global Variables')
 ###############################################################################
 # FUNCTIONS
 ###############################################################################
+def model_documentation(show=True):
+    ''' SHOW MODEL DOCUMENTATION
+        - Naive Model
+        - Linear Regression
+        - SARIMAX
+        - Prophet
+    '''
+    if show == True:
+        st.write('')
+        my_title('Model Documentation💡')
+        with st.expander('🗒️ Naive Model', expanded=False):
+            st.markdown('''
+                        The `Naive Model` is one of the simplest forecasting models in time series analysis. 
+                        It assumes that the value of a variable at any given time is equal to the value of the variable at the previous time period. 
+                        This means that this model is a special case of an **A**uto**R**egressive model of order 1, also known as $AR(1)$.  
+                        
+                        The Naive Model is useful as a baseline model to compare more complex forecasting models, such as ARIMA, exponential smoothing, or machine learning algorithms. 
+                        It is also useful when the underlying data generating process is highly unstable or unpredictable, and when there is no trend, seasonality, or other patterns to capture.
+                        The Naive Model can be expressed as a simple equation:
+                        
+                        $\hat{y}_{t} = y_{t-1}$
+                        
+                        where:
+                        - $y_t$ is the value of the variable at time $t$
+                        - $y_{t-1}$ is the value of the variable at time $_{t-1}$.  
+                        
+                        The Naive Model can be extended to incorporate seasonal effects, by introducing a lag period corresponding to the length of the seasonal cycle. 
+                        For example, if the time series has a weekly seasonality, the Naive Model with a lag of one week is equivalent to the model with a lag of seven days, and is given by:
+                        
+                        $\hat{y}_{t} = y_{t-7}$
+                        
+                        where:
+                        - $y_t$ is the value of the variable at time $t$
+                        - $y_{t-7}$is the value of the variable at time $_{t-7}$ (i.e., one week ago).
+                        
+                        In general, the lag value for the seasonal Naive Model should be determined based on the length of the seasonal cycle in the data, and can be estimated using visual inspection, autocorrelation analysis, or domain knowledge.
+                        ''')
+        with st.expander('🗒️ Linear Regression', expanded=False):
+            st.markdown('''
+                        `Linear regression` is a statistical method used to analyze the relationship between a dependent variable and one or more independent variables. 
+                        It involves finding a line or curve that best fits the data and can be used to make predictions. 
+                        The method assumes that the relationship between the variables is linear and that errors are uncorrelated.
+                        
+                        To find this line, we use a technique called least squares regression, which involves finding the line that minimizes the sum of the squared differences between the predicted values and the actual values. 
+                        The line is described by the equation:
+                        
+                        $$\\large Y = \\beta_0 + \\beta_1 X$$
+                    
+                        where:
+                        - $Y$ is the dependent variable
+                        - $X$ is the independent variable
+                        - $\\beta_0$ is the intercept (the value of $Y$ when $X = 0$)
+                        - $\\beta_1$ is the slope (the change in $Y$ for a unit change in $X$)
+                        ''')
+        with st.expander('🗒️ SARIMAX', expanded=False):
+            st.markdown('''
+                        `SARIMAX`, or **S**easonal **A**utoregressive **I**ntegrated **M**oving **A**verage with e**X**ogenous variables, is a popular time series forecasting model.
+                        The ARIMA model is a time series forecasting model that uses past values of a variable to predict future values. 
+                        SARIMAX extends ARIMA by incorporating seasonal patterns and adding exogenous variables that can impact the variable being forecasted.
+                        
+                        - **p:** The order of the autoregressive (AR) term, which refers to the number of lagged observations of the dependent variable in the model. A higher value of p means the model is considering more past values of the dependent variable.
+                        - **d:** The order of the differencing (I) term, which refers to the number of times the data needs to be differenced to make it stationary. Stationarity is a property of time series data where the statistical properties, such as the mean and variance, are constant over time.
+                        - **q:** The order of the moving average (MA) term, which refers to the number of lagged forecast errors in the model. A higher value of q means the model is considering more past forecast errors.
+                        - **P:** The seasonal order of the autoregressive term, which refers to the number of seasonal lags in the model.
+                        - **D:** The seasonal order of differencing, which refers to the number of times the data needs to be differenced at the seasonal lag to make it stationary.
+                        - **Q:** The seasonal order of the moving average term, which refers to the number of seasonal lags of the forecast errors in the model.
+                        - **s:** The length of the seasonal cycle, which is the number of time steps in each season. For example, if the data is monthly and the seasonality is yearly, s would be 12. The parameter s is used to determine the number of seasonal lags in the model.
+                        - ***Exogenous Variables***: These are external factors that can impact the variable being forecasted. They are included in the model as additional inputs.  
+                        ''')
+        with st.expander('🗒️ Prophet', expanded=False):
+            st.markdown('''
+                        The Facebook `Prophet` model is a popular open-source library for time series forecasting developed by Facebook's Core Data Science team.
+                        It is designed to handle time series data with strong seasonal effects and other external factors.
+                        It uses a combination of historical data and user-defined inputs to generate forecasts for future time periods.  
+                        
+                        ## Variables in the Prophet Model
+                        The main variables in the Prophet model are:
+                        - **Trend**: This is the underlying pattern in the data that represents the long-term direction of the series. It can be linear or non-linear and is modeled using a piecewise linear function.
+                        - **Seasonality**: This is the periodic pattern in the data that repeats over fixed time intervals. It can be daily, weekly, monthly, or yearly, and is modeled using Fourier series.
+                        - **Holidays**: These are user-defined events or time periods that are known to affect the time series. The model includes them as additional regressors in the forecasting equation.
+                        - **Regressors**: These are additional time-varying features that can affect the time series, such as weather, economic indicators, or other external factors.
+                        
+                        ## Math Behind the Prophet Model
+                        The math behind the Prophet model involves fitting a Bayesian additive regression model to the time series data. The model is formulated as follows:
+                        
+                        $$y_t = g_t + s_t + h_t + e_t$$
+                        
+                        where:
+                        - $y_t$ is the observed value at time $t$
+                        - $g_t$ is the trend component
+                        - $s_t$ is the seasonality component
+                        - $h_t$ is the holiday component
+                        - $e_t$ is the error term. 
+                        
+                        The **trend** component is modeled using a piecewise linear function, while the **seasonality component** is modeled using a Fourier series. The **holiday component** and any additional regressors are included as additional terms in the regression equation.
+                        
+                        The model is estimated using a Bayesian approach that incorporates prior information about the parameters and allows for uncertainty in the forecasts. The parameters are estimated using Markov Chain Monte Carlo (MCMC) sampling, which generates a large number of possible parameter values and uses them to estimate the posterior distribution of the parameters. The posterior distribution is then used to generate forecasts for future time periods.
+                        
+                        Overall, the Prophet model is a powerful tool for time series forecasting that can handle complex data patterns and external factors. Its flexible modeling approach and Bayesian framework make it a popular choice for many data scientists and analysts.
+        
+                        ''')
+    else:
+        pass
+
 def display_summary_statistics(df):
     summary = pd.DataFrame()
     for col in df.columns:
@@ -2916,6 +3020,8 @@ with tab1:
                     # if nothing is selected by user display message to user to select models to train
                     if not train_models_btn and selected_models:
                         st.info("ℹ️ Train your models first, before results show here!")
+                        # show model documentation initially
+                        model_documentation(show=True)
                 if not train_models_btn and selected_models:
                     st.info("ℹ️ Train your models first from the sidebar menu by pressing the **'Submit'** button, before results show here!")
                 if train_models_btn and selected_models:
@@ -3021,100 +3127,10 @@ with tab1:
                                            'model settings': f' changepoint_prior_scale: {changepoint_prior_scale}, seasonality_prior_scale: {seasonality_prior_scale}, holidays_prior_scale: {holidays_prior_scale}, yearly_seasonality: {yearly_seasonality}, weekly_seasonality: {weekly_seasonality}, daily_seasonality: {daily_seasonality}, interval_width: {interval_width}'}
                                 
                                 results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-                            # MODEL DOCUMENTATION
-                            st.write('')
-                            my_title('Model Documentation💡')
-                            with st.expander('🗒️ Naive Model', expanded=False):
-                                st.markdown('''
-                                            The `Naive Model` is one of the simplest forecasting models in time series analysis. 
-                                            It assumes that the value of a variable at any given time is equal to the value of the variable at the previous time period. 
-                                            This means that this model is a special case of an **A**uto**R**egressive model of order 1, also known as $AR(1)$.  
-                                            
-                                            The Naive Model is useful as a baseline model to compare more complex forecasting models, such as ARIMA, exponential smoothing, or machine learning algorithms. 
-                                            It is also useful when the underlying data generating process is highly unstable or unpredictable, and when there is no trend, seasonality, or other patterns to capture.
-                                            The Naive Model can be expressed as a simple equation:
-                                            
-                                            $\hat{y}_{t} = y_{t-1}$
-                                            
-                                            where:
-                                            - $y_t$ is the value of the variable at time $t$
-                                            - $y_{t-1}$ is the value of the variable at time $_{t-1}$.  
-                                            
-                                            The Naive Model can be extended to incorporate seasonal effects, by introducing a lag period corresponding to the length of the seasonal cycle. 
-                                            For example, if the time series has a weekly seasonality, the Naive Model with a lag of one week is equivalent to the model with a lag of seven days, and is given by:
-                                            
-                                            $\hat{y}_{t} = y_{t-7}$
-                                            
-                                            where:
-                                            - $y_t$ is the value of the variable at time $t$
-                                            - $y_{t-7}$is the value of the variable at time $_{t-7}$ (i.e., one week ago).
-                                            
-                                            In general, the lag value for the seasonal Naive Model should be determined based on the length of the seasonal cycle in the data, and can be estimated using visual inspection, autocorrelation analysis, or domain knowledge.
-                                            ''')
-                            with st.expander('🗒️ Linear Regression', expanded=False):
-                                st.markdown('''
-                                            `Linear regression` is a statistical method used to analyze the relationship between a dependent variable and one or more independent variables. 
-                                            It involves finding a line or curve that best fits the data and can be used to make predictions. 
-                                            The method assumes that the relationship between the variables is linear and that errors are uncorrelated.
-                                            
-                                            To find this line, we use a technique called least squares regression, which involves finding the line that minimizes the sum of the squared differences between the predicted values and the actual values. 
-                                            The line is described by the equation:
-                                            
-                                            $$\\large Y = \\beta_0 + \\beta_1 X$$
-                                        
-                                            where:
-                                            - $Y$ is the dependent variable
-                                            - $X$ is the independent variable
-                                            - $\\beta_0$ is the intercept (the value of $Y$ when $X = 0$)
-                                            - $\\beta_1$ is the slope (the change in $Y$ for a unit change in $X$)
-                                            ''')
-                            with st.expander('🗒️ SARIMAX', expanded=False):
-                                st.markdown('''
-                                            `SARIMAX`, or **S**easonal **A**utoregressive **I**ntegrated **M**oving **A**verage with e**X**ogenous variables, is a popular time series forecasting model.
-                                            The ARIMA model is a time series forecasting model that uses past values of a variable to predict future values. 
-                                            SARIMAX extends ARIMA by incorporating seasonal patterns and adding exogenous variables that can impact the variable being forecasted.
-                                            
-                                            - **p:** The order of the autoregressive (AR) term, which refers to the number of lagged observations of the dependent variable in the model. A higher value of p means the model is considering more past values of the dependent variable.
-                                            - **d:** The order of the differencing (I) term, which refers to the number of times the data needs to be differenced to make it stationary. Stationarity is a property of time series data where the statistical properties, such as the mean and variance, are constant over time.
-                                            - **q:** The order of the moving average (MA) term, which refers to the number of lagged forecast errors in the model. A higher value of q means the model is considering more past forecast errors.
-                                            - **P:** The seasonal order of the autoregressive term, which refers to the number of seasonal lags in the model.
-                                            - **D:** The seasonal order of differencing, which refers to the number of times the data needs to be differenced at the seasonal lag to make it stationary.
-                                            - **Q:** The seasonal order of the moving average term, which refers to the number of seasonal lags of the forecast errors in the model.
-                                            - **s:** The length of the seasonal cycle, which is the number of time steps in each season. For example, if the data is monthly and the seasonality is yearly, s would be 12. The parameter s is used to determine the number of seasonal lags in the model.
-                                            - ***Exogenous Variables***: These are external factors that can impact the variable being forecasted. They are included in the model as additional inputs.  
-                                            ''')
-                            with st.expander('🗒️ Prophet', expanded=False):
-                                st.markdown('''
-                                            The Facebook `Prophet` model is a popular open-source library for time series forecasting developed by Facebook's Core Data Science team.
-                                            It is designed to handle time series data with strong seasonal effects and other external factors.
-                                            It uses a combination of historical data and user-defined inputs to generate forecasts for future time periods.  
-                                            
-                                            ## Variables in the Prophet Model
-                                            The main variables in the Prophet model are:
-                                            - **Trend**: This is the underlying pattern in the data that represents the long-term direction of the series. It can be linear or non-linear and is modeled using a piecewise linear function.
-                                            - **Seasonality**: This is the periodic pattern in the data that repeats over fixed time intervals. It can be daily, weekly, monthly, or yearly, and is modeled using Fourier series.
-                                            - **Holidays**: These are user-defined events or time periods that are known to affect the time series. The model includes them as additional regressors in the forecasting equation.
-                                            - **Regressors**: These are additional time-varying features that can affect the time series, such as weather, economic indicators, or other external factors.
-                                            
-                                            ## Math Behind the Prophet Model
-                                            The math behind the Prophet model involves fitting a Bayesian additive regression model to the time series data. The model is formulated as follows:
-                                            
-                                            $$y_t = g_t + s_t + h_t + e_t$$
-                                            
-                                            where:
-                                            - $y_t$ is the observed value at time $t$
-                                            - $g_t$ is the trend component
-                                            - $s_t$ is the seasonality component
-                                            - $h_t$ is the holiday component
-                                            - $e_t$ is the error term. 
-                                            
-                                            The **trend** component is modeled using a piecewise linear function, while the **seasonality component** is modeled using a Fourier series. The **holiday component** and any additional regressors are included as additional terms in the regression equation.
-                                            
-                                            The model is estimated using a Bayesian approach that incorporates prior information about the parameters and allows for uncertainty in the forecasts. The parameters are estimated using Markov Chain Monte Carlo (MCMC) sampling, which generates a large number of possible parameter values and uses them to estimate the posterior distribution of the parameters. The posterior distribution is then used to generate forecasts for future time periods.
-                                            
-                                            Overall, the Prophet model is a powerful tool for time series forecasting that can handle complex data patterns and external factors. Its flexible modeling approach and Bayesian framework make it a popular choice for many data scientists and analysts.
                             
-                                            ''')
+                            # SHOW MODEL DOCUMENTATION AFTER MODELS RUN
+                            model_documentation(show=True)
+                            
                     ###################################################################################################################
                     # Add results_df to session state
                     ###################################################################################################################
