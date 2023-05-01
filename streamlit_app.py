@@ -3000,14 +3000,16 @@ with tab1:
             
         #if uploaded_file is not None:
             my_title("7. Train Models 🔢", "#0072B2")
-            # show model documentation initially
-            model_documentation(show=True)
             # if nothing is selected by user display message to user to select models to train
             if not train_models_btn and not selected_models:
                 st.info("👈 Select your models to train in the sidebar!🏋️‍♂️") 
+                # show model documentation initially
+                model_documentation(show=True)
             # the code block to train the selected models will only be executed if both the button has been clicked and the list of selected models is not empty.
             elif not selected_models:
                 st.warning("👈 Please select at least 1 model to train from the sidebar, when pressing the **\"Submit\"** button!🏋️‍♂️")
+                # show model documentation initially
+                model_documentation(show=True)
             ############################################################################### 
             # 8. Evaluate Model Performance
             ###############################################################################               
@@ -3021,8 +3023,12 @@ with tab1:
                     # if nothing is selected by user display message to user to select models to train
                     if not train_models_btn and selected_models:
                         st.info("ℹ️ Train your models first, before results show here!")
+                        # show model documentation initially
+                        model_documentation(show=True)
                 if not train_models_btn and selected_models:
                     st.info("ℹ️ Train your models first from the sidebar menu by pressing the **'Submit'** button, before results show here!")
+                    # show model documentation initially
+                    model_documentation(show=True)
                 if train_models_btn and selected_models:
                     st.info("You can always retrain your models and adjust hyperparameters!")
                     # iterate over all models and if user selected checkbox for model the model(s) is/are trained
