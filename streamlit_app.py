@@ -3000,16 +3000,14 @@ with tab1:
             
         #if uploaded_file is not None:
             my_title("7. Train Models 🔢", "#0072B2")
+            # show model documentation initially
+            model_documentation(show=True)
             # if nothing is selected by user display message to user to select models to train
             if not train_models_btn and not selected_models:
                 st.info("👈 Select your models to train in the sidebar!🏋️‍♂️") 
-                # show model documentation initially
-                model_documentation(show=True)
             # the code block to train the selected models will only be executed if both the button has been clicked and the list of selected models is not empty.
             elif not selected_models:
                 st.warning("👈 Please select at least 1 model to train from the sidebar, when pressing the **\"Submit\"** button!🏋️‍♂️")
-                # show model documentation initially
-                model_documentation(show=True)
             ############################################################################### 
             # 8. Evaluate Model Performance
             ###############################################################################               
