@@ -280,6 +280,7 @@ def rfe_cv(X_train, y_train, est_rfe, num_steps_rfe, num_features, timeseriesspl
         feature_rankings = pd.Series(rfecv.ranking_, index=X.columns).rename('Ranking')
         st.write(':blue[**Feature rankings:**]')
         st.write(feature_rankings.sort_values())
+    
     #############################################################
     # Show in streamlit the ranking        
     #############################################################              
@@ -418,14 +419,14 @@ def plot_train_test_split(local_df, split_index):
     """
     # Get the absolute maximum value of the data
     max_value = abs(local_df.iloc[:, 0]).max()
-    
     fig = go.Figure()
     fig.add_trace(
-        go.Scatter(x=local_df.index[:split_index],
-                   y=local_df.iloc[:split_index, 0],
-                   mode='lines',
-                   name='Train',
-                   line=dict(color='#217CD0')))
+                    go.Scatter(x=local_df.index[:split_index],
+                               y=local_df.iloc[:split_index, 0],
+                               mode='lines',
+                               name='Train',
+                               line=dict(color='#217CD0'))
+                  )
     fig.add_trace(
         go.Scatter(x=local_df.index[split_index:],
                    y=local_df.iloc[split_index:, 0],
@@ -480,17 +481,13 @@ def perform_train_test_split(df, my_insample_forecast_steps, scaler_choice=None,
     # Check if the specified test-set size is valid
     if my_insample_forecast_steps >= len(df):
         raise ValueError("Test-set size must be less than the total number of rows in the dataset.")
-
     # Split the data into training and testing sets
     X = df.iloc[:, 1:]
     y = df.iloc[:, 0:1]
-
     X_train = X.iloc[:-my_insample_forecast_steps, :]
     X_test = X.iloc[-my_insample_forecast_steps:, :]
-
     y_train = y.iloc[:-my_insample_forecast_steps, :]
     y_test = y.iloc[-my_insample_forecast_steps:, :]
-    
     # initialize variable
     scaler = ""
     # Scale the data if user selected a scaler choice in the normalization / standardization in streamlit sidebar
@@ -501,7 +498,6 @@ def perform_train_test_split(df, my_insample_forecast_steps, scaler_choice=None,
             X_train_numeric = X_train[numerical_features]
             X_test_numeric = X_test[numerical_features]
             X_numeric = X[numerical_features]
-
             if scaler_choice == "MinMaxScaler":
                 scaler = MinMaxScaler()
             elif scaler_choice == "RobustScaler":
@@ -515,7 +511,6 @@ def perform_train_test_split(df, my_insample_forecast_steps, scaler_choice=None,
             else:
                 raise ValueError("Invalid scaler choice. Please choose from: MinMaxScaler, RobustScaler, MaxAbsScaler, "
                                  "PowerTransformer, QuantileTransformer")
-
             # Fit the scaler on the training set and transform both the training and test sets
             X_train_numeric_scaled = scaler.fit_transform(X_train_numeric)
             X_train_numeric_scaled = pd.DataFrame(X_train_numeric_scaled, columns=X_train_numeric.columns, index=X_train_numeric.index)
@@ -525,13 +520,11 @@ def perform_train_test_split(df, my_insample_forecast_steps, scaler_choice=None,
             X_numeric_scaled = scaler.fit_transform(X_numeric)
             # Convert the scaled array back to a DataFrame and set the column names
             X_numeric_scaled = pd.DataFrame(X_numeric_scaled, columns=X_numeric.columns, index=X_numeric.index)
-
     # Replace the original
     if scaler_choice != "None":
         X_train[numerical_features] = X_train_numeric_scaled[numerical_features]
         X_test[numerical_features] = X_test_numeric_scaled[numerical_features]
-        X[numerical_features] = X_numeric_scaled[numerical_features]
-                
+        X[numerical_features] = X_numeric_scaled[numerical_features]     
     # Return the training and testing sets as well as the scaler used (if any)
     return X, y, X_train, X_test, y_train, y_test, scaler
 
@@ -569,7 +562,6 @@ def perform_train_test_split_standardization(X, y, X_train, X_test, y_train, y_t
                 scaler=StandardScaler()
             else:
                 raise ValueError("Invalid scaler choice. Please choose from: StandardScaler")
-    
             # Fit the scaler on the training set and transform both the training and test sets
             X_train_numeric_scaled = scaler.fit_transform(X_train_numeric)
             X_train_numeric_scaled = pd.DataFrame(X_train_numeric_scaled, columns=X_train_numeric.columns, index=X_train_numeric.index)
@@ -579,13 +571,11 @@ def perform_train_test_split_standardization(X, y, X_train, X_test, y_train, y_t
             X_numeric_scaled = scaler.fit_transform(X_numeric)
             # Convert the scaled array back to a DataFrame and set the column names
             X_numeric_scaled = pd.DataFrame(X_numeric_scaled, columns=X_numeric.columns, index=X_numeric.index)
-    
     # Replace the original
     if scaler_choice != "None":
         X_train[numerical_features] = X_train_numeric_scaled[numerical_features]
         X_test[numerical_features] = X_test_numeric_scaled[numerical_features]
-        X[numerical_features] = X_numeric_scaled[numerical_features]
-                
+        X[numerical_features] = X_numeric_scaled[numerical_features]         
     # Return the training and testing sets as well as the scaler used (if any)
     return X, y, X_train, X_test, y_train, y_test
 
@@ -711,7 +701,6 @@ def plot_forecast(df_actual, df_forecast, title=''):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df_actual.index, y=df_actual.iloc[:,0], name='Actual', mode='lines'))
     fig.add_trace(go.Scatter(x=df_forecast.index, y=df_forecast['forecast'], name='Forecast', mode='lines', line=dict(dash='dot', color='#87CEEB'))) # dash styles: ['solid', 'dot', 'dash', 'longdash', 'dashdot', 'longdashdot'] 
-    
     # add buttons for showing actual data, forecast data, and both actual and forecast data
     fig.update_layout(
         updatemenus=[
@@ -742,6 +731,7 @@ def plot_forecast(df_actual, df_forecast, title=''):
         title=title, 
         legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.99)
     )
+    # show plot in streamlit
     st.plotly_chart(fig, use_container_width=True)
 
 def create_date_features(df, year_dummies=True, month_dummies=True, day_dummies=True):
@@ -1042,9 +1032,6 @@ def evaluate_sarimax_model(order, seasonal_order, exog_train, exog_test, endog_t
     Returns:
         preds_df (pd.DataFrame): DataFrame of predicted and actual values on test data.
     """
-    # =============================================================================
-    #    try:
-    # =============================================================================
     # Fit the model
     model = sm.tsa.statespace.SARIMAX(endog=endog_train, exog=exog_train, order=order, seasonal_order=seasonal_order)
     print('model')
@@ -1061,11 +1048,6 @@ def evaluate_sarimax_model(order, seasonal_order, exog_train, exog_test, endog_t
     # Calculate MAPE and add it as a new column
     preds_df = preds_df.assign(MAPE = abs(preds_df['Percentage_Diff']))   
     return preds_df 
-    # =============================================================================
-    #    except:
-    #        my_warning = st.warning('SARIMAX model did not evaluate test-set correctly within function evaluate_sarimax_model, please contact an administrator!')
-    #        return my_warning 
-    # =============================================================================
 
 def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, model, model_name):
     """
@@ -1095,28 +1077,6 @@ def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, mo
     # Evaluate the insample test-set performance linear regression model
     df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test)
     mape, rmse, r2 = my_metrics(df_preds, model_name)
-    
-    # add the results to sidebar for quick overview for user  
-    # set as global variable to be used in code outside function
-# =============================================================================
-#     results_df = results_df.append({'model_name': model_name, 
-#                                     'mape': '{:.2%}'.format(mape),
-#                                     'rmse': rmse, 
-#                                     'r2':r2, 
-#                                     'features':X.columns.tolist(), 
-#                                     'model settings': model
-#                                     },
-#                                     ignore_index=True)
-# =============================================================================
-# =============================================================================
-#     results_df = pd.concat([results_df, pd.DataFrame({'model_name': [model_name],
-#                                                        'mape': '{:.2%}'.format(mape),
-#                                                        'rmse': rmse, 
-#                                                        'r2':r2, 
-#                                                        'model settings': model
-#                                                      })],
-#                                                        ignore_index=True)    
-# =============================================================================
     with st.expander('ℹ️ '+ model_name, expanded=True):
         display_my_metrics(my_df=df_preds, model_name=model_name)
         # plot graph with actual versus insample predictions
@@ -1156,7 +1116,6 @@ def predict_prophet(y_train, y_test, **kwargs):
                 weekly_seasonality=weekly_seasonality,
                 daily_seasonality=daily_seasonality,
                 interval_width=interval_width)
-    
     # train the model on the data with set parameters
     m.fit(y_train_prophet)
     # Predict on the test set
@@ -1228,7 +1187,6 @@ def plot_actual_vs_predicted(df_preds, my_conf_interval):
     colors = ['#5276A7', '#ff7700']
     # set color shading of confidence interval
     my_fillcolor = 'rgba(222,235,247,0.5)'
-
     # Create the figure with easy on eyes colors
     fig = px.line(df_preds, x=df_preds.index, y=['Actual', 'Predicted'], color_discrete_sequence=colors)
     # Update the layout of the figure
@@ -1287,7 +1245,6 @@ def plot_actual_vs_predicted(df_preds, my_conf_interval):
         name=f'{int(my_conf_interval)}% Confidence Interval',
         legendgroup='confidence intervals'
     ))
-    
     # Render the chart in Streamlit
     st.plotly_chart(fig, use_container_width=True)
     
@@ -1543,13 +1500,12 @@ def plot_pacf(data, nlags, method):
                                conf_interval_99_background],
                        showlegend=True,
                        )
-
     # Create figure with PACF plot
     fig = go.Figure(data=traces, layout=layout)
     # add legend
     fig.update_layout(
         legend=dict(title='Lag (conf. interval)'))
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=True)
 
 def calc_acf(data, nlags):
     '''
@@ -1630,7 +1586,6 @@ def plot_acf(data, nlags):
             trace.line.color = 'lightcoral'
             trace.name += ' (>|95%|)'
         traces.append(trace)
-    
     # define the background shape and color for the 95% confidence band
     conf_interval_95_background = go.layout.Shape(
                                                     type='rect',
@@ -1689,7 +1644,7 @@ def plot_acf(data, nlags):
     fig.update_layout(
         legend=dict(title='Lag (conf. interval)'))
     # Plot ACF with Streamlit Plotly 
-    st.plotly_chart(fig)    
+    st.plotly_chart(fig, use_container_width=True)    
  
 ######### OUTLIER DETECTION FUNCTIONS ##############
 def outlier_form():
