@@ -994,11 +994,9 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
     # this is for the baseline Naive Model to get a sense of how the model will perform for y_t-1 just having lag of itself 
     # e.g. a day, a week or a month
     st.write(kwargs)
-    if 'lag' in kwargs and kwargs['lag'] is not None:
+    if 'lag' in kwargs and kwargs['lag'] is not None and kwargs['lag'] != 'NULL':
         lag = kwargs['lag']
-        if lag == 'None':
-            pass
-        elif lag == 'day':
+        if lag == 'day':
             y_pred = y_test.shift(1) # .fillna(method='bfill') # method{‘backfill’,‘ffill’, None}, default None
         elif lag == 'week':
             y_pred = y_test.shift(7) #.fillna(method='bfill')
