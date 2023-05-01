@@ -1773,7 +1773,8 @@ with tab1:
         # set maximum date
         df_max = df_raw.iloc[:,0].max().date()
         #st.success('''🗨️ **Great!** your **Demo** Dataset is loaded, you can take a look 👀 by clicking on the **Explore** Tab...''')
-        with st.expander('', expanded=True):
+        
+        with st.expander(' ', expanded=True):
             # create 3 columns for spacing
             col1, col2, col3 = st.columns([1,3,1])
             # display df shape and date range min/max for user
@@ -3176,7 +3177,7 @@ with tab1:
                             if 'results_df' not in st.session_state:
                                 st.session_state.results_df = results_df
                             else:
-                                st.session_state.results_df = st.session_state.results_df.concat(results_df, ignore_index=True)
+                                st.session_state.results_df = pd.concat([st.session_state.results_df, results_df], ignore_index=True)
                             # Show the results dataframe in the sidebar if there is at least one model selected
                             if len(selected_models) > 0:
                                 st.dataframe(results_df)
