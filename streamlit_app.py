@@ -2943,61 +2943,52 @@ with tab1:
                                     results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
                         except:
                             st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
-# =============================================================================
-#                         try:
-# =============================================================================
-                        if model_name == "Linear Regression":
-                             # train the model
-                             create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, model=model, model_name=model_name)
-                             # append to sidebar table the results of the model train/test
-                             new_row = {'model_name': 'Linear Regression',
-                                        'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
-                                        'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
-                                        'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
-                                        'features':features_str}
-                             results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-# =============================================================================
-#                         except:
-#                             st.warning(f'Linear Regression failed to train, please contact administrator!')
-# =============================================================================
-# =============================================================================
-#                         try:
-# =============================================================================
-                        if model_name == "SARIMAX":
-                            with st.expander('ℹ️ ' + model_name, expanded=True):
-                                with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):   
-                                    # Assume df is your DataFrame with boolean columns - needed for SARIMAX model that does not handle boolean, but int instead
-                                    bool_cols = X_train.select_dtypes(include=bool).columns
-                                    X_train.loc[:, bool_cols] = X_train.loc[:, bool_cols].astype(int)
-                                    bool_cols = X_test.select_dtypes(include=bool).columns
-                                    X_test.loc[:, bool_cols] = X_test.loc[:, bool_cols].astype(int)
-                                    
-                                    # parameters have standard value but can be changed by user
-                                    preds_df = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
-                                    # show metric on streamlit page
-                                    display_my_metrics(preds_df, "SARIMAX")
-                                    # plot graph with actual versus insample predictions
-                                    plot_actual_vs_predicted(preds_df, my_conf_interval)
-                                    # show the dataframe
-                                    st.dataframe(preds_df.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
-                                    # create download button for forecast results to .csv
-                                    download_csv_button(preds_df, my_file="insample_forecast_sarimax_results.csv", help_message="Download your **SARIMAX** model results to .CSV")
-                                    # define metrics for sarimax model
-                                    mape, rmse, r2 = my_metrics(preds_df, model_name=model_name)
-                                    # display evaluation results on sidebar of streamlit_model_card
-                                    new_row = {'model_name': 'SARIMAX', 
-                                               'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
-                                               'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
-                                               'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
-                                               'features':features_str,
-                                               'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}
-                                    # get the maximum index of the current results dataframe
-                                    results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-
-# =============================================================================
-#                         except:
-#                             st.warning(f'SARIMAX failed to train, please contact administrator!')       
-# =============================================================================
+                        try:
+                            if model_name == "Linear Regression":
+                                 # train the model
+                                 create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, model=model, model_name=model_name)
+                                 # append to sidebar table the results of the model train/test
+                                 new_row = {'model_name': 'Linear Regression',
+                                            'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
+                                            'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
+                                            'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
+                                            'features':features_str}
+                                 results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+                        except:
+                            st.warning(f'Linear Regression failed to train, please contact administrator!')
+                        try:
+                            if model_name == "SARIMAX":
+                                with st.expander('ℹ️ ' + model_name, expanded=True):
+                                    with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):   
+                                        # Assume df is your DataFrame with boolean columns - needed for SARIMAX model that does not handle boolean, but int instead
+                                        bool_cols = X_train.select_dtypes(include=bool).columns
+                                        X_train.loc[:, bool_cols] = X_train.loc[:, bool_cols].astype(int)
+                                        bool_cols = X_test.select_dtypes(include=bool).columns
+                                        X_test.loc[:, bool_cols] = X_test.loc[:, bool_cols].astype(int)
+                                        
+                                        # parameters have standard value but can be changed by user
+                                        preds_df = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
+                                        # show metric on streamlit page
+                                        display_my_metrics(preds_df, "SARIMAX")
+                                        # plot graph with actual versus insample predictions
+                                        plot_actual_vs_predicted(preds_df, my_conf_interval)
+                                        # show the dataframe
+                                        st.dataframe(preds_df.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                                        # create download button for forecast results to .csv
+                                        download_csv_button(preds_df, my_file="insample_forecast_sarimax_results.csv", help_message="Download your **SARIMAX** model results to .CSV")
+                                        # define metrics for sarimax model
+                                        mape, rmse, r2 = my_metrics(preds_df, model_name=model_name)
+                                        # display evaluation results on sidebar of streamlit_model_card
+                                        new_row = {'model_name': 'SARIMAX', 
+                                                   'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
+                                                   'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
+                                                   'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
+                                                   'features':features_str,
+                                                   'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}
+                                        # get the maximum index of the current results dataframe
+                                        results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+                        except:
+                            st.warning(f'SARIMAX failed to train, please contact administrator!')       
                         if model_name == "Prophet": 
                             with st.expander('ℹ️ ' + model_name, expanded=True):
                                 # use custom fucntion that creates in-sample prediction and return a dataframe with 'Actual', 'Predicted', 'Percentage_Diff', 'MAPE' 
@@ -3564,6 +3555,14 @@ with tab1:
                             order = (p,d,q)
                             seasonal_order = (P,D,Q,s)
                             # define model on all data (X)
+                            # Assume df is your DataFrame with boolean columns - needed for SARIMAX model that does not handle boolean, but int instead
+                            # X bool to int dtypes
+                            bool_cols = X.select_dtypes(include=bool).columns
+                            X.loc[:, bool_cols] = X.loc[:, bool_cols].astype(int)
+                            # X_future bool to int dtypes
+                            bool_cols = X_future.select_dtypes(include=bool).columns
+                            X_future.loc[:, bool_cols] = X_future.loc[:, bool_cols].astype(int)
+                            
                             model = SARIMAX(endog = y, order=(p, d, q),  
                                                  seasonal_order=(P, D, Q, s), 
                                                  exog=X.loc[:, [col for col in feature_selection_user if col in df_future_dates.columns]], 
