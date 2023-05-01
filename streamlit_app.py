@@ -3039,7 +3039,7 @@ with tab1:
                                     bool_cols = X_train.select_dtypes(include=bool).columns
                                     X_train[bool_cols] = X_train[bool_cols].astype(int)
                                     
-                                    model = sm.tsa.statespace.SARIMAX(endog=y_train, exog=X_train, order=(p,d,q), seasonal_order=(P,D,Q,s))
+                                    model = sm.tsa.statespace.SARIMAX(endog=np.ravel(y_train), exog=X_train, order=(p,d,q), seasonal_order=(P,D,Q,s))
                                     print('model')
                                     results = model.fit()
                                     print('fit model')
