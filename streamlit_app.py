@@ -993,8 +993,8 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
     """
     # this is for the baseline Naive Model to get a sense of how the model will perform for y_t-1 just having lag of itself 
     # e.g. a day, a week or a month
+    # if user did not select an option e.g. None then do nothing/stop function
     if kwargs['lag'] is None:
-        st.write('test')
         pass
     elif 'lag' in kwargs and kwargs['lag'] is not None:
         lag = kwargs['lag']
@@ -1014,6 +1014,7 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
         # Train the model using the training sets
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
+        
     # Create dataframe for insample predictions versus actual
     df_preds = pd.DataFrame({'Actual': y_test.squeeze(), 'Predicted': y_pred.squeeze()})
     # set the index to just the date portion of the datetime index
@@ -2967,31 +2968,27 @@ with tab1:
 
                     # iterate over all models and if user selected checkbox for model the model(s) is/are trained
                     for model_name, model in selected_models:
-# =============================================================================
-#                         try:
-# =============================================================================
-                        if model_name == "Naive Model":
-                            with st.expander('📈' + model_name, expanded=True):
-                                df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test, lag=lag, custom_lag_value=custom_lag_value)
-                                display_my_metrics(df_preds, "Naive Model")
-                                # plot graph with actual versus insample predictions
-                                plot_actual_vs_predicted(df_preds, my_conf_interval)
-                                # show the dataframe
-                                st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
-                                # create download button for forecast results to .csv
-                                download_csv_button(df_preds, my_file="insample_forecast_naivemodel_results.csv", help_message="Download your **Naive** model results to .CSV")
-                                mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
-                                # add test-results to sidebar Model Test Results dataframe
-                                new_row = {'model_name': 'Naive Model',
-                                           'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
-                                           'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']),
-                                           'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
-                                           'features':features_str}
-                                results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-# =============================================================================
-#                         except:
-#                             st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
-# =============================================================================
+                        try:
+                            if model_name == "Naive Model":
+                                with st.expander('📈' + model_name, expanded=True):
+                                    df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test, lag=lag, custom_lag_value=custom_lag_value)
+                                    display_my_metrics(df_preds, "Naive Model")
+                                    # plot graph with actual versus insample predictions
+                                    plot_actual_vs_predicted(df_preds, my_conf_interval)
+                                    # show the dataframe
+                                    st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                                    # create download button for forecast results to .csv
+                                    download_csv_button(df_preds, my_file="insample_forecast_naivemodel_results.csv", help_message="Download your **Naive** model results to .CSV")
+                                    mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
+                                    # add test-results to sidebar Model Test Results dataframe
+                                    new_row = {'model_name': 'Naive Model',
+                                               'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
+                                               'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']),
+                                               'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
+                                               'features':features_str}
+                                    results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+                        except:
+                            st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
                         try:
                            if model_name == "Linear Regression":
                                 # train the model
