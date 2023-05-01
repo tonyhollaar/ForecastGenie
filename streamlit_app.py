@@ -2640,7 +2640,7 @@ with tab1:
                                             },
                                       xaxis_title='Explained Variance Ratio', yaxis_title='Feature Name')
                     # Display plot in Streamlit
-                    st.plotly_chart(fig)
+                    st.plotly_chart(fig, use_container_width=True)
                     
                     # show top x features selected
                     selected_cols_pca = sorted_features.tolist() 
