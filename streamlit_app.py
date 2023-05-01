@@ -1104,13 +1104,15 @@ def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, mo
 #                                     },
 #                                     ignore_index=True)
 # =============================================================================
-    results_df = pd.concat([results_df, pd.DataFrame({'model_name': [model_name],
-                                                       'mape': '{:.2%}'.format(mape),
-                                                       'rmse': rmse, 
-                                                       'r2':r2, 
-                                                       'model settings': model
-                                                     })],
-                                                       ignore_index=True)    
+# =============================================================================
+#     results_df = pd.concat([results_df, pd.DataFrame({'model_name': [model_name],
+#                                                        'mape': '{:.2%}'.format(mape),
+#                                                        'rmse': rmse, 
+#                                                        'r2':r2, 
+#                                                        'model settings': model
+#                                                      })],
+#                                                        ignore_index=True)    
+# =============================================================================
     with st.expander('ℹ️ '+ model_name, expanded=True):
         display_my_metrics(my_df=df_preds, model_name=model_name)
         # plot graph with actual versus insample predictions
