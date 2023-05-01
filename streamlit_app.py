@@ -3452,7 +3452,7 @@ with tab1:
                                     max_value_calendar = None
                             # create user input box for entering date in a streamlit calendar widget
                             end_date_forecast = st.date_input("input forecast date", 
-                                                              value=start_date_forecast+7,
+                                                              value=start_date_forecast,
                                                               min_value=start_date_forecast, 
                                                               max_value=max_value_calendar, 
                                                               label_visibility = 'collapsed')   
