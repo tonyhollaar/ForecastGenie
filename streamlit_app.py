@@ -2949,29 +2949,33 @@ with tab1:
 
                     # iterate over all models and if user selected checkbox for model the model(s) is/are trained
                     for model_name, model in selected_models:
+# =============================================================================
+#                         try:
+# =============================================================================
                         if model_name == "Naive Model":
                             with st.expander('📈' + model_name, expanded=True):
-                               try:
-                                 df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test, lag=lag, custom_lag_value=custom_lag_value)
-                                 display_my_metrics(df_preds, "Naive Model")
-                                 # plot graph with actual versus insample predictions
-                                 plot_actual_vs_predicted(df_preds, my_conf_interval)
-                                 # show the dataframe
-                                 st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
-                                 # create download button for forecast results to .csv
-                                 download_csv_button(df_preds, my_file="insample_forecast_naivemodel_results.csv", help_message="Download your **Naive** model results to .CSV")
-                                 mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
-                                 # display evaluation results on sidebar of streamlit_model_card
-                                 results_df = results_df.append({'model_name': 'Naive Model', 
-                                                                 'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
-                                                                 'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']), 
-                                                                 'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
-                                                                 'features':features_str,
-                                                                 'model settings': 'seasonal lag: '+lag}, ignore_index=True)
-                               except:
-                                   st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
-                        if model_name == "Linear Regression":
-                            try:
+                                df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test, lag=lag, custom_lag_value=custom_lag_value)
+                                display_my_metrics(df_preds, "Naive Model")
+                                # plot graph with actual versus insample predictions
+                                plot_actual_vs_predicted(df_preds, my_conf_interval)
+                                # show the dataframe
+                                st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                                # create download button for forecast results to .csv
+                                download_csv_button(df_preds, my_file="insample_forecast_naivemodel_results.csv", help_message="Download your **Naive** model results to .CSV")
+                                mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
+                                # display evaluation results on sidebar of streamlit_model_card
+                                results_df = results_df.append({'model_name': 'Naive Model', 
+                                                                'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
+                                                                'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']), 
+                                                                'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
+                                                                'features':features_str,
+                                                                'model settings': 'seasonal lag: '+lag}, ignore_index=True)
+# =============================================================================
+#                         except:
+#                             st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
+# =============================================================================
+                        try:
+                           if model_name == "Linear Regression":
                                 # train the model
                                 create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, model=model, model_name=model_name)
 # =============================================================================
@@ -2991,10 +2995,10 @@ with tab1:
                                            'features':features_str}
                                 results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
                             ### END TEST
-                            except:
-                                st.warning(f'Linear Regression failed to train, please contact administrator!')
-                        if model_name == "SARIMAX":
-                            try:
+                        except:
+                            st.warning(f'Linear Regression failed to train, please contact administrator!')
+                        try:
+                            if model_name == "SARIMAX":
                                 with st.expander('ℹ️ ' + model_name, expanded=True):
                                     with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):
                                         # parameters have standard value but can be changed by user
@@ -3031,8 +3035,8 @@ with tab1:
                                                    'features':features_str,
                                                    'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}
                                         results_df = results_df.append(new_row, ignore_index=True)
-                            except:
-                                st.warning(f'SARIMAX failed to train, please contact administrator!')       
+                        except:
+                            st.warning(f'SARIMAX failed to train, please contact administrator!')       
                         if model_name == "Prophet": 
                             with st.expander('ℹ️ ' + model_name, expanded=True):
                                 # use custom fucntion that creates in-sample prediction and return a dataframe with 'Actual', 'Predicted', 'Percentage_Diff', 'MAPE' 
@@ -3177,6 +3181,7 @@ with tab1:
                             if 'results_df' not in st.session_state:
                                 st.session_state.results_df = results_df
                             else:
+                                #st.session_state.results_df = st.session_state.results_df.append(results_df, ignore_index=True)
                                 st.session_state.results_df = pd.concat([st.session_state.results_df, results_df], ignore_index=True)
                             # Show the results dataframe in the sidebar if there is at least one model selected
                             if len(selected_models) > 0:
