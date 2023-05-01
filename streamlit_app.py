@@ -3044,7 +3044,7 @@ with tab1:
                                     results = model.fit()
                                     print('fit model')
                                     # Generate predictions
-                                    y_pred = results.predict(start=y_test.index[0], end=y_test.index[-1], exog=X_test)
+                                    y_pred = results.predict(start=np.ravel(y_test).index[0], end=np.ravel(y_test).index[-1], exog=X_test)
                                     print('define y_pred')
                                     preds_df = pd.DataFrame({'Actual': y_test.squeeze(), 'Predicted': y_pred.squeeze()}, index=y_test.index)
                                     print('preds_df')
