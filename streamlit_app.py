@@ -3037,14 +3037,17 @@ with tab1:
                                     # Assume df is your DataFrame with boolean columns - needed for SARIMAX model that does not handle boolean, but int instead
                                     
                                     bool_cols = X_train.select_dtypes(include=bool).columns
-                                    X_train[bool_cols] = X_train[bool_cols].astype(int)
+                                    X_train.loc[:, bool_cols] = X_train.loc[:, bool_cols].astype(int)
+                                    bool_cols = X_test.select_dtypes(include=bool).columns
+                                    X_test.loc[:, bool_cols] = X_test.loc[:, bool_cols].astype(int)
+                                    
                                     
                                     model = sm.tsa.statespace.SARIMAX(endog=np.ravel(y_train), exog=X_train, order=(p,d,q), seasonal_order=(P,D,Q,s))
                                     print('model')
                                     results = model.fit()
                                     print('fit model')
                                     # Generate predictions
-                                    y_pred = results.predict(start=np.ravel(y_test).index[0], end=np.ravel(y_test).index[-1], exog=X_test)
+                                    y_pred = results.predict(start=y_test.index[0], end=y_test.index[-1], exog=X_test)
                                     print('define y_pred')
                                     preds_df = pd.DataFrame({'Actual': y_test.squeeze(), 'Predicted': y_pred.squeeze()}, index=y_test.index)
                                     print('preds_df')
