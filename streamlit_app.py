@@ -994,6 +994,7 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
     # this is for the baseline Naive Model to get a sense of how the model will perform for y_t-1 just having lag of itself 
     # e.g. a day, a week or a month
     if kwargs['lag'] is None:
+        st.write('test')
         pass
     elif 'lag' in kwargs and kwargs['lag'] is not None:
         lag = kwargs['lag']
