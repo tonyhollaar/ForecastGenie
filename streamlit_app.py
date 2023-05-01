@@ -2963,13 +2963,21 @@ with tab1:
                                 # create download button for forecast results to .csv
                                 download_csv_button(df_preds, my_file="insample_forecast_naivemodel_results.csv", help_message="Download your **Naive** model results to .CSV")
                                 mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
-                                # display evaluation results on sidebar of streamlit_model_card
-                                results_df = results_df.append({'model_name': 'Naive Model', 
-                                                                'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
-                                                                'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']), 
-                                                                'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
-                                                                'features':features_str,
-                                                                'model settings': 'seasonal lag: '+lag}, ignore_index=True)
+# =============================================================================
+#                                 # display evaluation results on sidebar of streamlit_model_card
+#                                 results_df = results_df.append({'model_name': 'Naive Model', 
+#                                                                 'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
+#                                                                 'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']), 
+#                                                                 'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
+#                                                                 'features':features_str,
+#                                                                 'model settings': 'seasonal lag: '+lag}, ignore_index=True)
+# =============================================================================
+                                new_row = {'model_name': 'Naive Model',
+                                           'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
+                                           'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
+                                           'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
+                                           'features':features_str}
+                                results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
 # =============================================================================
 #                         except:
 #                             st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
