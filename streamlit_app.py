@@ -79,13 +79,8 @@ st.write("")
 # define tabs of data pipeline for user to browse through
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(["Load🚀", "Explore🕵️‍♂️", "Clean🧹", "Engineer🧰", "Prepare🧪", "Select🍏", "Train🔢", "Evaluate🎯", "Tune⚙️", "Forecast🔮"])
 
-# Create a global pandas DataFrame to hold model_name and mape values
-#results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
-# Initialize results_df in global scope
+# Initialize results_df in global scope which will contain sidebar results of train/test results of models
 results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
-
-if 'results_df' not in st.session_state:
-    st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
 
 # Log
 print('ForecastGenie Print: Loaded Global Variables')
@@ -2942,7 +2937,6 @@ with tab1:
             elif not selected_models:
                 st.warning("👈 Please select at least 1 model to train from the sidebar, when pressing the **\"Submit\"** button!🏋️‍♂️")
             
-           
             ############################################################################### 
             # 8. Evaluate Model Performance
             ###############################################################################               
@@ -2977,15 +2971,7 @@ with tab1:
                                 # create download button for forecast results to .csv
                                 download_csv_button(df_preds, my_file="insample_forecast_naivemodel_results.csv", help_message="Download your **Naive** model results to .CSV")
                                 mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
-# =============================================================================
-#                                 # display evaluation results on sidebar of streamlit_model_card
-#                                 results_df = results_df.append({'model_name': 'Naive Model', 
-#                                                                 'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
-#                                                                 'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']), 
-#                                                                 'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
-#                                                                 'features':features_str,
-#                                                                 'model settings': 'seasonal lag: '+lag}, ignore_index=True)
-# =============================================================================
+                                # add test-results to sidebar Model Test Results dataframe
                                 new_row = {'model_name': 'Naive Model',
                                            'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
                                            'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']),
@@ -3000,15 +2986,6 @@ with tab1:
                            if model_name == "Linear Regression":
                                 # train the model
                                 create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, model=model, model_name=model_name)
-# =============================================================================
-#                             # append to sidebar table the results of the model train/test
-#                             results_df = results_df.append({'model_name': 'Linear Regression', 
-#                                                             'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
-#                                                             'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']), 
-#                                                             'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
-#                                                             'features':features_str}, ignore_index=True)
-# =============================================================================
-                                ## START TEST
                                 # append to sidebar table the results of the model train/test
                                 new_row = {'model_name': 'Linear Regression',
                                            'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
@@ -3016,7 +2993,6 @@ with tab1:
                                            'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
                                            'features':features_str}
                                 results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-                            ### END TEST
                         except:
                             st.warning(f'Linear Regression failed to train, please contact administrator!')
 # =============================================================================
@@ -3024,41 +3000,16 @@ with tab1:
 # =============================================================================
                         if model_name == "SARIMAX":
                             with st.expander('ℹ️ ' + model_name, expanded=True):
-                                with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):
-                                    # parameters have standard value but can be changed by user
-    # =============================================================================
-    #                                         st.write('X_train', X_train)
-    #                                         st.write('X_test', X_test)
-    #                                         st.write('y_train', y_train)
-    #                                         st.write('y_test', y_test)
-    # =============================================================================
-                                    #preds_df = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
-                                                
+                                with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):   
                                     # Assume df is your DataFrame with boolean columns - needed for SARIMAX model that does not handle boolean, but int instead
-                                    
                                     bool_cols = X_train.select_dtypes(include=bool).columns
                                     X_train.loc[:, bool_cols] = X_train.loc[:, bool_cols].astype(int)
                                     bool_cols = X_test.select_dtypes(include=bool).columns
                                     X_test.loc[:, bool_cols] = X_test.loc[:, bool_cols].astype(int)
                                     
-                                    
-                                    model = sm.tsa.statespace.SARIMAX(endog=np.ravel(y_train), exog=X_train, order=(p,d,q), seasonal_order=(P,D,Q,s))
-                                    print('model')
-                                    results = model.fit()
-                                    print('fit model')
-                                    # Generate predictions
-                                    y_pred = results.predict(start=y_test.index[0], end=y_test.index[-1], exog=X_test)
-                                    print('define y_pred')
-                                    preds_df = pd.DataFrame({'Actual': y_test.squeeze(), 'Predicted': y_pred.squeeze()}, index=y_test.index)
-                                    print('preds_df')
-                                    # Calculate percentage difference between actual and predicted values and add it as a new column
-                                    preds_df = preds_df.assign(Percentage_Diff = ((preds_df['Predicted'] - preds_df['Actual']) / preds_df['Actual']))
-                                    print(preds_df)
-                                    # Calculate MAPE and add it as a new column
-                                    preds_df = preds_df.assign(MAPE = abs(preds_df['Percentage_Diff']))   
-                                    
-                                    st.write(preds_df.dtypes)
-                                    st.write(preds_df.head())
+                                    # parameters have standard value but can be changed by user
+                                    preds_df = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
+                                    # show metric on streamlit page
                                     display_my_metrics(preds_df, "SARIMAX")
                                     # plot graph with actual versus insample predictions
                                     plot_actual_vs_predicted(preds_df, my_conf_interval)
@@ -3069,21 +3020,14 @@ with tab1:
                                     # define metrics for sarimax model
                                     mape, rmse, r2 = my_metrics(preds_df, model_name=model_name)
                                     # display evaluation results on sidebar of streamlit_model_card
-                                    results_df = results_df.append({'model_name': 'SARIMAX', 
-                                                                    'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
-                                                                    'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
-                                                                    'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
-                                                                    'features':features_str,
-                                                                    'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}, ignore_index=True)
-# =============================================================================
-#                                         # display evaluation results on sidebar of streamlit_model_card
-#                                         new_row = {'model_name': 'SARIMAX', 
-#                                                    'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
-#                                                    'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
-#                                                    'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
-#                                                    'features':features_str,
-#                                                    'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}
-#                                         results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+                                    new_row = {'model_name': 'SARIMAX', 
+                                               'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
+                                               'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
+                                               'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
+                                               'features':features_str,
+                                               'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}
+                                    # get the maximum index of the current results dataframe
+                                    results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
 # =============================================================================
 # =============================================================================
 #                         except:
