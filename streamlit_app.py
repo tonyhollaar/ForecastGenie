@@ -966,11 +966,11 @@ def display_my_metrics(my_df, model_name=""):
     # Display the evaluation metrics
     mape, rmse, r2 = my_metrics(my_df, model_name)
     with col1:  
-        st.metric(':red[**MAPE:**]', delta=0, value = "{:.2%}".format(mape))
+        st.metric(':red[**MAPE:**]', value = "{:.2%}".format(mape))
     with col2:
-        st.metric(':red[**RMSE:**]', delta = 0, value = round(rmse,2))
+        st.metric(':red[**RMSE:**]', value = round(rmse,2))
     with col3: 
-        st.metric(':green[**R-squared:**]',  delta=0, value= round(r2, 2))
+        st.metric(':green[**R-squared:**]', value= round(r2, 2))
 
 def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs):
     """
@@ -3174,7 +3174,7 @@ with tab1:
                             if 'results_df' not in st.session_state:
                                 st.session_state.results_df = results_df
                             else:
-                                st.session_state.results_df = st.session_state.results_df.append(results_df, ignore_index=True)
+                                st.session_state.results_df = st.session_state.results_df.concat(results_df, ignore_index=True)
                             # Show the results dataframe in the sidebar if there is at least one model selected
                             if len(selected_models) > 0:
                                 st.dataframe(results_df)
