@@ -3133,8 +3133,8 @@ with tab1:
                                 
                                 results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
                             
-                            # SHOW MODEL DOCUMENTATION AFTER MODELS RUN
-                            model_documentation(show=True)
+                    # SHOW MODEL DOCUMENTATION AFTER MODELS RUN
+                    model_documentation(show=True)
                             
                     ###################################################################################################################
                     # Add results_df to session state
