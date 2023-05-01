@@ -3012,17 +3012,17 @@ with tab1:
 # =============================================================================
 #                         try:
 # =============================================================================
-                            if model_name == "SARIMAX":
-                                with st.expander('ℹ️ ' + model_name, expanded=True):
-                                    #with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):
-                                        # parameters have standard value but can be changed by user
-# =============================================================================
-#                                         st.write('X_train', X_train)
-#                                         st.write('X_test', X_test)
-#                                         st.write('y_train', y_train)
-#                                         st.write('y_test', y_test)
-# =============================================================================
-                                    preds_df = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=X_train, exog_test=X_test, endog_train=y_train.ravel() , endog_test=y_test.ravel())
+                        if model_name == "SARIMAX":
+                            with st.expander('ℹ️ ' + model_name, expanded=True):
+                                with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):
+                                    # parameters have standard value but can be changed by user
+    # =============================================================================
+    #                                         st.write('X_train', X_train)
+    #                                         st.write('X_test', X_test)
+    #                                         st.write('y_train', y_train)
+    #                                         st.write('y_test', y_test)
+    # =============================================================================
+                                    preds_df = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
                                     display_my_metrics(preds_df, "SARIMAX")
                                     # plot graph with actual versus insample predictions
                                     plot_actual_vs_predicted(preds_df, my_conf_interval)
@@ -3032,23 +3032,23 @@ with tab1:
                                     download_csv_button(preds_df, my_file="insample_forecast_sarimax_results.csv", help_message="Download your **SARIMAX** model results to .CSV")
                                     # define metrics for sarimax model
                                     mape, rmse, r2 = my_metrics(preds_df, model_name=model_name)
-# =============================================================================
-#                                     # display evaluation results on sidebar of streamlit_model_card
-#                                     results_df = results_df.append({'model_name': 'SARIMAX', 
-#                                                                     'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
-#                                                                     'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
-#                                                                     'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
-#                                                                     'features':features_str,
-#                                                                     'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}, ignore_index=True)
-# =============================================================================
                                     # display evaluation results on sidebar of streamlit_model_card
-                                    new_row = {'model_name': 'SARIMAX', 
-                                               'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
-                                               'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
-                                               'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
-                                               'features':features_str,
-                                               'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}
-                                    results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+                                    results_df = results_df.append({'model_name': 'SARIMAX', 
+                                                                    'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
+                                                                    'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
+                                                                    'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
+                                                                    'features':features_str,
+                                                                    'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}, ignore_index=True)
+# =============================================================================
+#                                         # display evaluation results on sidebar of streamlit_model_card
+#                                         new_row = {'model_name': 'SARIMAX', 
+#                                                    'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
+#                                                    'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
+#                                                    'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
+#                                                    'features':features_str,
+#                                                    'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}
+#                                         results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+# =============================================================================
 # =============================================================================
 #                         except:
 #                             st.warning(f'SARIMAX failed to train, please contact administrator!')       
