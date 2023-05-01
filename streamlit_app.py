@@ -2965,7 +2965,6 @@ with tab1:
                     st.info("ℹ️ Train your models first from the sidebar menu by pressing the **'Submit'** button, before results show here!")
                 if train_models_btn and selected_models:
                     st.info("You can always retrain your models and adjust hyperparameters!")
-
                     # iterate over all models and if user selected checkbox for model the model(s) is/are trained
                     for model_name, model in selected_models:
                         try:
@@ -2989,19 +2988,23 @@ with tab1:
                                     results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
                         except:
                             st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
-                        try:
-                           if model_name == "Linear Regression":
-                                # train the model
-                                create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, model=model, model_name=model_name)
-                                # append to sidebar table the results of the model train/test
-                                new_row = {'model_name': 'Linear Regression',
-                                           'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
-                                           'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
-                                           'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
-                                           'features':features_str}
-                                results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-                        except:
-                            st.warning(f'Linear Regression failed to train, please contact administrator!')
+# =============================================================================
+#                         try:
+# =============================================================================
+                        if model_name == "Linear Regression":
+                             # train the model
+                             create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, model=model, model_name=model_name)
+                             # append to sidebar table the results of the model train/test
+                             new_row = {'model_name': 'Linear Regression',
+                                        'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
+                                        'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
+                                        'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
+                                        'features':features_str}
+                             results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+# =============================================================================
+#                         except:
+#                             st.warning(f'Linear Regression failed to train, please contact administrator!')
+# =============================================================================
 # =============================================================================
 #                         try:
 # =============================================================================
@@ -3035,7 +3038,7 @@ with tab1:
                                                'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}
                                     # get the maximum index of the current results dataframe
                                     results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-# =============================================================================
+
 # =============================================================================
 #                         except:
 #                             st.warning(f'SARIMAX failed to train, please contact administrator!')       
@@ -3064,14 +3067,6 @@ with tab1:
                                 # define metrics for sarimax model
                                 mape, rmse, r2 = my_metrics(preds_df_prophet, model_name=model_name)
                                 # display evaluation results on sidebar of streamlit_model_card
-# =============================================================================
-#                                 results_df = results_df.append({'model_name': 'Prophet', 
-#                                                                 'mape': '{:.2%}'.format(metrics_dict['Prophet']['mape']),
-#                                                                 'rmse': '{:.2f}'.format(metrics_dict['Prophet']['rmse']), 
-#                                                                 'r2': '{:.2f}'.format(metrics_dict['Prophet']['r2']),
-#                                                                 'features':features_str,
-#                                                                 'model settings': f' changepoint_prior_scale: {changepoint_prior_scale}, seasonality_prior_scale: {seasonality_prior_scale}, holidays_prior_scale: {holidays_prior_scale}, yearly_seasonality: {yearly_seasonality}, weekly_seasonality: {weekly_seasonality}, daily_seasonality: {daily_seasonality}, interval_width: {interval_width}'}, ignore_index=True)
-# =============================================================================
                                 new_row = {'model_name': 'Prophet', 
                                            'mape': '{:.2%}'.format(metrics_dict['Prophet']['mape']),
                                            'rmse': '{:.2f}'.format(metrics_dict['Prophet']['rmse']), 
@@ -3208,7 +3203,7 @@ with tab1:
                         # show the dataframe with all the historical results stored from 
                         # prior runs the cache e.g. called session_state in streamlit
                         # from all train/test results with models selected by user
-                        st.write(st.session_state.results_df)
+                        st.dataframe(st.session_state.results_df, use_container_width=True)
                         # download button
                         download_csv_button(results_df, my_file="Modeling Test Results.csv", help_message="Download your Modeling Test Results to .CSV")
                 # if results_df is not created yet just tell user to train models first
