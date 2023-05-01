@@ -50,7 +50,7 @@ from pandas.tseries.holiday import(
                                   )
 
 #########################################################################
-# set/modify standard page configuration
+# SET PAGE CONFIGURATIONS STREAMLIT
 #########################################################################
 st.set_page_config(page_title="ForecastGenie", 
                    layout="centered", # "centered" or "wide"
@@ -63,25 +63,18 @@ st.set_page_config(page_title="ForecastGenie",
 # create an empty dictionary to store the results of the models
 # that I call after I train the models to display on sidebar under hedaer "Evaluate Models"
 metrics_dict = {}
-
 # define calendar
 cal = calendar()
-
 # define an empty dataframe
 df_raw = pd.DataFrame()
-
 # set the title of page
 st.title(":blue[]")
 st.markdown(f'<h1 style="color:#45B8AC;"> <center> ForecastGenie™️ </center> </h1>', unsafe_allow_html=True)
 # add vertical spacing
 st.write("")
-
 # define tabs of data pipeline for user to browse through
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(["Load🚀", "Explore🕵️‍♂️", "Clean🧹", "Engineer🧰", "Prepare🧪", "Select🍏", "Train🔢", "Evaluate🎯", "Tune⚙️", "Forecast🔮"])
-
-# Create a global pandas DataFrame to hold model_name and mape values
-#results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
-# Initialize results_df in global scope
+# Initialize results_df in global scope that has model test evaluation results 
 results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
 
 if 'results_df' not in st.session_state:
@@ -92,6 +85,84 @@ print('ForecastGenie Print: Loaded Global Variables')
 ###############################################################################
 # FUNCTIONS
 ###############################################################################
+def altair_correlation_chart(total_features, importance_scores, pairwise_features_in_total_features, corr_threshold):
+    """
+    Creates an Altair chart object for visualizing pairwise feature importance scores.
+
+    Args:
+        total_features (list): List of all features.
+        importance_scores (dict): Dictionary mapping feature names to importance scores.
+        pairwise_features_in_total_features (list): List of pairs of features.
+        corr_threshold (float): Threshold for displaying correlation scores.
+
+    Returns:
+        altair.Chart: Altair chart object for visualizing pairwise feature importance scores.
+    """
+    # Set title font style and size
+    title_font = "Helvetica"
+    title_font_size = 12
+    num_features = len(total_features)
+    num_cols = min(3, num_features)
+    num_rows = math.ceil(num_features / num_cols)
+    charts = []
+    for i, (feature1, feature2) in enumerate(pairwise_features_in_total_features):
+        if feature1 in total_features and feature2 in total_features:
+            score1 = importance_scores[feature1]
+            score2 = importance_scores[feature2]
+            data = pd.DataFrame({'Feature': [feature1, feature2], 'Score': [score1, score2]})
+            if score1 > score2:
+                total_features.remove(feature2)
+                chart = alt.Chart(data).mark_bar().encode(
+                    x='Score:Q',
+                    y=alt.Y('Feature:O', sort='-x'),
+                    color=alt.condition(
+                        alt.datum.Feature == feature2,
+                        alt.value('#FFB6C1'),
+                        alt.value('#90EE90')
+                    )
+                ).properties(width=100, height=100, title=chart_title("Removing", feature2, title_font, title_font_size))
+            elif score2 > score1:
+                total_features.remove(feature1)
+                chart = alt.Chart(data).mark_bar().encode(
+                    x='Score:Q',
+                    y=alt.Y('Feature:O', sort='-x'),
+                    color=alt.condition(
+                        alt.datum.Feature == feature1,
+                        alt.value('#FFB6C1'),
+                        alt.value('#90EE90')
+                    )
+                ).properties(width=100, height=100, title=chart_title("Removing", feature1, title_font, title_font_size))
+            else:
+                total_features.remove(feature1)
+                chart = alt.Chart(data).mark_bar().encode(
+                    x='Score:Q',
+                    y=alt.Y('Feature:O', sort='-x'),
+                    color=alt.condition(
+                        alt.datum.Feature == feature1,
+                        alt.value('#FFB6C1'),
+                        alt.value('#90EE90')
+                    )
+                ).properties(width=100, height=100, title=chart_title("Removing", feature1, title_font, title_font_size))
+            charts.append(chart)
+    # Combine all charts into a grid
+    grid_charts = []
+    for i in range(num_rows):
+        row_charts = []
+        for j in range(num_cols):
+            idx = i*num_cols+j
+            if idx < len(charts):
+                row_charts.append(charts[idx])
+        if row_charts:
+            grid_charts.append(alt.hconcat(*row_charts))
+    grid_chart = alt.vconcat(*grid_charts, spacing=10)
+    # create a streamlit container with a title and caption
+    my_subheader("Removing Highly Correlated Features")
+    col1,col2,col3 = st.columns([5.5,4,5])
+    with col2:
+        st.caption(f'pair-wise features >={corr_threshold*100:.0f}%')
+    # show altair chart with pairwise correlation importance scores and in red lowest and green highest
+    st.altair_chart(grid_chart, use_container_width=True)
+
 def model_documentation(show=True):
     ''' SHOW MODEL DOCUMENTATION
         - Naive Model
@@ -221,8 +292,6 @@ def display_dataframe_graph(df, key=0):
     fig.update_layout(width=800, height=400, xaxis=dict(title='Date'), yaxis=dict(title='', rangemode='tozero'), legend=dict(x=0.9, y=0.9))
     # set line color and width
     fig.update_traces(line=dict(color='#45B8AC', width=2))
-
-
     # Add the range slider to the layout
     fig.update_layout(
         xaxis=dict(
@@ -253,14 +322,12 @@ def display_dataframe_graph(df, key=0):
 # define function to generate demo time-series data
 def generate_demo_data(seed=42):
     np.random.seed(seed)
-    date_range = pd.date_range(start='1/1/2022', end='12/31/2022', freq='D')
+    date_range = pd.date_range(start='1/1/2020', end='12/31/2022', freq='D')
     # generate seasonal pattern
     t = np.linspace(0, 1, len(date_range))
     seasonal = 10 * np.sin(2 * np.pi * (t + 0.25)) + 5 * np.sin(2 * np.pi * (2 * t + 0.1))
-    
     # generate random variation
-    noise = np.random.normal(loc=0, scale=2, size=len(date_range))
-    
+    noise = np.random.normal(loc=0, scale=2, size=len(date_range))   
     # generate time series data
     values = seasonal + noise
     demo_data = pd.DataFrame({'date': date_range, 'demo_data': values})
@@ -295,7 +362,6 @@ def forecast_wavelet_features(X, features_df_wavelet, future_dates, df_future_da
                 X_future_wavelet[col] = prediction_wavelet
             # reset the index and rename the datetimestamp column to 'date' - which is now a column that can be used to merge dataframes
             X_future_wavelet = X_future_wavelet.reset_index().rename(columns={'index': 'date'})
-
             # combine the independent features with the forecast dataframe
             df_future_dates = pd.merge(df_future_dates, X_future_wavelet, on='date', how='left' )
             return df_future_dates
@@ -373,8 +439,7 @@ def rfe_cv(X_train, y_train, est_rfe, num_steps_rfe, num_features, timeseriesspl
     # Create the rfe plot
     fig = create_rfe_plot(df_ranking)
     # Show the plot
-    st.plotly_chart(fig, use_container_width=True)    
-                    
+    st.plotly_chart(fig, use_container_width=True)                       
     # show the ranking and selected features dataframes side by side
     col1, col2, col3, col4 = st.columns([1,2,2,1])
     with col2:
@@ -419,7 +484,6 @@ def plot_scaling_before_after(X_unscaled_train, X_train, numerical_features):
     None.
     """
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True)
-
     # create trace for unscaled data for each feature
     for feature in numerical_features:
         trace_unscaled = go.Scatter(
@@ -429,7 +493,6 @@ def plot_scaling_before_after(X_unscaled_train, X_train, numerical_features):
             name=feature
         )
         fig.add_trace(trace_unscaled, row=1, col=1)
-
     # create trace for scaled data for each feature
     for feature in numerical_features:
         trace_scaled = go.Scatter(
@@ -439,14 +502,12 @@ def plot_scaling_before_after(X_unscaled_train, X_train, numerical_features):
             name=f'{feature} (scaled)'
         )
         fig.add_trace(trace_scaled, row=2, col=1)
-
     # add selection event handler
     updatemenu = []
     buttons = []
     buttons.append(dict(label='All',
                         method='update',
-                        args=[{'visible': [True] * len(fig.data)}]))
-    
+                        args=[{'visible': [True] * len(fig.data)}]))   
     for feature in numerical_features:
         button = dict(
                         label=feature,
@@ -457,7 +518,6 @@ def plot_scaling_before_after(X_unscaled_train, X_train, numerical_features):
         button['args'][0]['visible'][numerical_features.index(feature)] = True
         button['args'][0]['visible'][numerical_features.index(feature) + len(numerical_features)] = True
         buttons.append(button)
-
     updatemenu.append(dict(buttons=buttons, 
                            direction="down", 
                            showactive=True, 
@@ -495,13 +555,12 @@ def plot_scaling_before_after(X_unscaled_train, X_train, numerical_features):
     # show the figure in streamlit app
     st.plotly_chart(fig, use_container_width=True)
 
-# Define chart titles with subtitle and font properties
-def chart_title(title, subtitle):
+def chart_title(title, subtitle, font, font_size):
     return {
             "text": title,
             "subtitle": subtitle,
-            "fontSize": title_font_size,
-            "font": title_font,
+            "fontSize": font_size,
+            "font": font,
             "anchor": "middle"
             }
 
@@ -661,7 +720,7 @@ def perform_train_test_split_standardization(X, y, X_train, X_test, y_train, y_t
             X_train_numeric = X_train[numerical_features]
             X_test_numeric = X_test[numerical_features]
             X_numeric = X[numerical_features]
-    
+            # if user selected in sidebar menu 'standardscaler'
             if scaler_choice == "StandardScaler":
                 scaler=StandardScaler()
             else:
@@ -855,13 +914,11 @@ def create_date_features(df, year_dummies=True, month_dummies=True, day_dummies=
         df['year'] = df['date'].dt.year
         dum_year = pd.get_dummies(df['year'], columns=['year'], drop_first=True, prefix='year', prefix_sep='_')
         df = pd.concat([df, dum_year], axis=1)
-
     if month_dummies:
         month_dict = {1:'January', 2:'February', 3:'March', 4:'April', 5:'May', 6:'June', 7:'July', 8:'August', 9:'September', 10:'October', 11:'November', 12:'December'}
         df['month'] = df['date'].dt.month.apply(lambda x: month_dict.get(x))
         dum_month = pd.get_dummies(df['month'], columns=['month'], drop_first=True, prefix='', prefix_sep='')
         df = pd.concat([df, dum_month], axis=1)
-
     if day_dummies:
         week_dict = {0:'Monday', 1:'Tuesday', 2:'Wednesday', 3:'Thursday', 4:'Friday', 5:'Saturday', 6:'Sunday'}
         df['day'] = df['date'].dt.weekday.apply(lambda x: week_dict.get(x))
@@ -1668,7 +1725,6 @@ def plot_acf(data, nlags):
         st.error('''**Warning** ⚠️:              
                  Data contains **NaN** values. **NaN** values were dropped in copy of dataframe to be able to plot below ACF. ''')
     st.markdown('<p style="text-align:center; color: #707070">Autocorrelation (ACF)</p>', unsafe_allow_html=True)
-    
     # Drop NaN values if any
     data = data.dropna(axis=0)
     data = data.to_numpy()
@@ -1743,10 +1799,8 @@ def plot_acf(data, nlags):
                        )
     # Define Figure
     fig = go.Figure(data=traces, layout=layout)
-
-    # add legend
-    fig.update_layout(
-        legend=dict(title='Lag (conf. interval)'))
+    # Add Legend
+    fig.update_layout(legend=dict(title='Lag (conf. interval)'))
     # Plot ACF with Streamlit Plotly 
     st.plotly_chart(fig, use_container_width=True)    
  
@@ -1757,7 +1811,6 @@ def outlier_form():
         # form to select outlier handling method
         method = st.selectbox('*Select outlier handling method:*',
                              ('None', 'isolation_forest'))
-    
         # sliders for Isolation Forest parameters
         if method == 'isolation_forest':
             contamination = st.slider(
@@ -1800,13 +1853,13 @@ def handle_outliers(data, method, contamination, random_state):
 
 # Log
 print('ForecastGenie Print: Loaded Functions')
+
 ###############################################################################
 # Create Left-Sidebar Streamlit App with Title + About Information
 ###############################################################################
 # TITLE PAGE + SIDEBAR TITLE
 with st.sidebar:   
         st.markdown(f'<h1 style="color:#45B8AC;"> <center> ForecastGenie™️ </center> </h1>', unsafe_allow_html=True)         
-
 
 # ABOUT SIDEBAR MENU
 with st.sidebar.expander('ℹ️ About', expanded=False):
@@ -1817,7 +1870,6 @@ with st.sidebar.expander('ℹ️ About', expanded=False):
                 \n**What do you need?**  
                 - Upload your `.CSV` file that contains your **date** (X) column and your target variable of interest (Y)  
             ''')
-
     st.markdown('---')
     # DISPLAY LOGO
     col1, col2, col3 = st.columns([1,3,2])
@@ -1829,19 +1881,18 @@ with st.sidebar.expander('ℹ️ About', expanded=False):
     st.markdown('---')
 
 ###############################################################################
-# 1. Create Button to Load Dataset (.CSV format)
+# 1. Create Button to Load Dataset (.CSV format) or select Demo Data
 ###############################################################################
 with tab1:
     # create a sidebar with options to load data
     my_title("1. Load Dataset 🚀 ", "#2CB8A1")
     with st.sidebar:
         my_title("1. Load Dataset 🚀 ", "#2CB8A1") # 2CB8A1
-        with st.expander('', expanded=True):
+        with st.expander('🔌', expanded=True):
+            # let user choose if they want to have app run with demo data or upload their own dataset
             data_option = st.radio("*Choose an option:*", ["Demo Data", "Upload Data"])
-        
             if data_option == "Upload Data":
                 uploaded_file = st.file_uploader("Upload your .CSV file", type=["csv"])
-    
     # check if demo data should be used
     if data_option == "Demo Data":
         df_raw = generate_demo_data()
@@ -1851,38 +1902,33 @@ with tab1:
         df_min = df_raw.iloc[:,0].min().date()
         # set maximum date
         df_max = df_raw.iloc[:,0].max().date()
-        #st.success('''🗨️ **Great!** your **Demo** Dataset is loaded, you can take a look 👀 by clicking on the **Explore** Tab...''')
-        
-        with st.expander(' ', expanded=True):
+        with st.expander('🔌', expanded=True):
             # create 3 columns for spacing
             col1, col2, col3 = st.columns([1,3,1])
             # display df shape and date range min/max for user
-            col2.markdown(f"<center>Your <b>dataframe</b> has <b><font color='#555555'>{df_raw.shape[0]}</b></font> \
-                          rows and <b><font color='#555555'>{df_raw.shape[1]}</b></font> columns <br> with date range: \
-                          <b><font color='#555555'>{df_min}</b></font> to <b><font color='#555555'>{df_max}</font></b>.</center>", 
+            col2.markdown(f"<center>Your <b>dataframe</b> has <b><font color='#CA0B4A'>{df_raw.shape[0]}</b></font> \
+                          rows and <b><font color='#CA0B4A'>{df_raw.shape[1]}</b></font> columns <br> with date range: \
+                          <b><font color='#CA0B4A'>{df_min}</b></font> to <b><font color='#CA0B4A'>{df_max}</font></b>.</center>", 
                           unsafe_allow_html=True)
             # add a vertical linespace
             st.write("")
             df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
             # set caption
             st.caption('')
-          
             # Display Plotly Express figure in Streamlit
             display_dataframe_graph(df=df_graph, key=1)
             # show dataframe below graph        
             st.dataframe(df_graph, use_container_width=True)
             # download csv button
             download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
-            
     if data_option == "Upload Data" and uploaded_file is None:
         # let user upload a file
         # inform user what template to upload
-        with st.expander("", expanded=True):
+        with st.expander("⬇️ Instructions", expanded=True):
             my_header("Instructions")
             st.info('''👈 **Please upload a .CSV file with:**  
                      - first column named: **$date$** with format: **$mm/dd/yyyy$**  
                      - second column the target variable: $y$''')
-    
     # check if data is uploaded
     if data_option == "Upload Data" and uploaded_file is not None:
         # define dataframe from custom function to read from uploaded read_csv file
@@ -1894,8 +1940,7 @@ with tab1:
         # set maximum date
         df_max = df_raw.iloc[:,0].max().date()
         st.success('''🗨️ **Great!** your data is loaded, you can take a look 👀 by clicking on the **Explore** Tab...''')
-        
-        with st.expander('', expanded=True):
+        with st.expander('🔌', expanded=True):
             # create 3 columns for spacing
             col1, col2, col3 = st.columns([1,3,1])
             # display df shape and date range min/max for user
@@ -1908,7 +1953,6 @@ with tab1:
             df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
             # set caption
             st.caption('')
-            
             #############################################################################
             ## display/plot graph of dataframe
             display_dataframe_graph(df=df_graph, key=2)
@@ -1916,17 +1960,17 @@ with tab1:
             st.dataframe(df_graph, use_container_width=True)
             # download csv button
             download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
-        
+    # if no data then stop
     if df_raw.empty:
         pass
-    # else continue code below
+    # else if data continue loading app code
     else:
         with tab2:    
-            # set title
+            # set subject title
             my_title('2. Exploratory Data Analysis 🕵️‍♂️', my_background_color="#217CD0")
             with st.sidebar:
                 my_title("2. Exploratory Data Analysis	🕵️‍♂️", "#217CD0")
-                
+                # In sidebar create a form with user options related to exploratory data analysis and submit button
                 with st.form('eda'):
                     # Create sliders in sidebar for the parameters of PACF Plot
                     st.write("")
@@ -1935,7 +1979,6 @@ with tab1:
                     # Set default values for parameters
                     default_lags = 30
                     default_method = "yw"  
-                    
                     nlags_acf = st.slider("*Lags ACF*", min_value=1, max_value=(len(df_raw)-1), value=default_lags)
                     col1, col2, col3 = st.columns([4,1,4])
                     with col1:
@@ -1962,25 +2005,21 @@ with tab1:
                 st.write("")
                 # Display summary statistics table
                 st.dataframe(display_summary_statistics(df_raw), use_container_width=True)
-                
                 #############################################################################
                 # Call function for plotting Graphs of Seasonal Patterns D/W/M/Q/Y in Plotly Charts
                 #############################################################################
                 plot_overview(df_raw, y=df_raw.columns[1])
-               
             with st.expander('Autocorrelation Plots (ACF & PACF) with optional Differencing applied', expanded=True):         
                 # Display the plot based on the user's selection
                 fig, df_select_diff = df_differencing(df_raw, selection)
                 st.plotly_chart(fig, use_container_width=True)
-                
                 ############################## ACF & PACF ################################
                 # set data equal to the second column e.g. expecting first column 'date' 
                 data = df_select_diff
                 # Plot ACF        
                 plot_acf(data, nlags=nlags_acf)
                 # Plot PACF
-                plot_pacf(data, nlags=nlags_pacf, method=method_pacf)
-                
+                plot_pacf(data, nlags=nlags_pacf, method=method_pacf)              
                 # If user clicks button, more explanation on the ACF and PACF plot is displayed
                 col1, col2, col3 = st.columns([5,5,5])
                 with col1:
@@ -2070,7 +2109,6 @@ with tab1:
                                 - The **PACF** plot measures the correlation between an observation and its lagged values while controlling for the effects of intermediate observations.
                                 - The **ACF** plot is useful for identifying the order of a moving average **(MA)** model, while the **PACF** plot is useful for identifying the order of an autoregressive **(AR)** model.
                                 ''')
-        
             ###############################################################################
             # 3. Data Cleaning
             ############################################################################### 
@@ -2088,7 +2126,6 @@ with tab1:
                         custom_fill_value = int(st.text_input('Enter custom value', value='0'))
                     # Define a dictionary of possible frequencies and their corresponding offsets
                     freq_dict = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
-                    
                     # Ask the user to select the frequency of the data
                     freq = st.selectbox('*Select the frequency of the data*', list(freq_dict.keys()))
                     col1, col2, col3 = st.columns([4,4,4])
@@ -2101,20 +2138,15 @@ with tab1:
                 # Apply function to resample missing dates based on user set frequency
                 # freq = daily, weekly, monthly, quarterly, yearly
                 df_cleaned_dates = resample_missing_dates(df_raw, freq_dict=freq_dict, freq=freq)
-        
                 # Create matrix of missing values
                 missing_matrix = df_cleaned_dates.isnull()
-        
                 # check if there are no dates skipped for daily data
                 missing_dates = pd.date_range(start=df_raw['date'].min(), end=df_raw['date'].max()).difference(df_raw['date'])
                 missing_values = df_raw.iloc[:,1].isna().sum()
-                
                 # Convert the DatetimeIndex to a dataframe with a single column named 'Date'
                 df_missing_dates = pd.DataFrame({'Skipped Dates': missing_dates})
                 # change datetime to date
                 df_missing_dates['Skipped Dates'] = df_missing_dates['Skipped Dates'].dt.date
-                
-                
                 # Create Plotly Express figure
                 my_subheader('Missing Values Matrix Plot', my_style="#333333", my_size=6)
                 fig = px.imshow(missing_matrix,
@@ -2128,7 +2160,6 @@ with tab1:
                 fig.update_traces(showlegend=False)
                 # Display Plotly Express figure in Streamlit
                 st.plotly_chart(fig, use_container_width=True)
-                
                 # check if in continous time-series dataset no dates are missing in between
                 if missing_dates.shape[0] == 0:
                     st.success('Pweh 😅, no dates were skipped in your dataframe!')
@@ -2136,12 +2167,10 @@ with tab1:
                     st.warning(f'💡 **{missing_dates.shape[0]}** dates were skipped in your dataframe, don\'t worry though! I will **fix** this by **imputing** the dates into your cleaned dataframe!')
                 if missing_values != 0:
                     st.warning(f'💡 **{missing_values}** missing values are filled with the next available value in the dataset (i.e. backfill method), optionally you can change the *filling method* and press **\"Submit\"**')
-                
                 #******************************************************************
                 # IMPUTE MISSING VALUES WITH FILL METHOD
                 #******************************************************************
                 df_clean = my_fill_method(df_cleaned_dates, fill_method, custom_fill_value)
-        
                 # Display original DataFrame with highlighted NaN cells
                 # Create a copy of the original DataFrame with NaN cells highlighted in yellow
                 col1, col2, col3, col4, col5 = st.columns([2, 0.5, 2, 0.5, 2])
@@ -2157,7 +2186,6 @@ with tab1:
                 with col3:
                     my_subheader('Skipped Dates 😳', my_style="#333333", my_size=6)
                     st.write(df_missing_dates)
-                    
                     # Display the dates and the number of missing values associated with them
                     my_subheader('Missing Values 😖', my_style="#333333", my_size=6)
                     # Filter the DataFrame to include only rows with missing values
@@ -2165,27 +2193,26 @@ with tab1:
                     st.write(missing_df)
                 with col4:
                     st.write('➡️')
-                # display cleaned dataframe in Streamlit
+                # Display cleaned Dataframe in Streamlit
                 with col5:
                     st.write('**Cleaned Dataframe😄**')
-                    # fix the datetime to date and set date column as index column
+                    # Convert datetime column to date AND set date column as index column
                     df_clean_show = copy_df_date_index(df_clean, datetime_to_date=True, date_to_index=True)
-                    # show the cleaned dataframe with if needed dates inserted if skipped to NaN and then the values inserted with impute method user selected backfill/forward fill/mean/median
+                    # Show the cleaned dataframe with if needed dates inserted if skipped to NaN and then the values inserted with impute method user selected backfill/forward fill/mean/median
                     st.write(df_clean_show)
                 download_csv_button(df_clean_show, my_file="df_imputed_missing_values.csv", set_index=True, help_message='Download cleaner dataframe to .CSV')
-        
             #########################################################
             with st.expander('😇😈😇 Outliers', expanded=True):
-                # set page subheader with custum function
+                # Set page subheader with custum function
                 my_subheader('Handling outliers', my_style="#440154")
         
-                # define function to generate form and sliders for outlier detection and handling
+                # Define function to generate form and sliders for outlier detection and handling
                 ##############################################################################
                 with st.sidebar:
                     # display form and sliders for outlier handling method
                     method, contamination, random_state = outlier_form()
                 
-                # plot data before and after cleaning
+                # Plot data before and after cleaning
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(x=df_clean_show.index, 
                                          y=df_clean_show.iloc[:,0], 
@@ -2249,23 +2276,33 @@ with tab1:
                     else:
                         st.write("*🌊No Wavelet Features*") 
                 with st.expander('🔽 Wavelet settings'):
-                    wavelet_family = st.selectbox('*Select Wavelet Family*', ['db4', 'sym4', 'coif4'], label_visibility='visible', help=' A wavelet family is a set of wavelet functions that have different properties and characteristics.  \
-                                                                                                                                      \n**`db4`** wavelet is commonly used for signals with *smooth variations* and *short-duration* pulses  \
-                                                                                                                                       \n**`sym4`** wavelet is suited for signals with *sharp transitions* and *longer-duration* pulses.  \
-                                                                                                                                       \n**`coif4`** wavelet, on the other hand, is often used for signals with *non-linear trends* and *abrupt* changes.  \
-                                                                                                                                       \nIn general, the **`db4`** wavelet family is a good starting point, as it is a popular choice for a wide range of applications and has good overall performance.')
+                    wavelet_family = st.selectbox('*Select Wavelet Family*', 
+                                                  ['db4', 'sym4', 'coif4'], 
+                                                  label_visibility='visible', 
+                                                  help=' A wavelet family is a set of wavelet functions that have different properties and characteristics.  \
+                                                  \n**`db4`** wavelet is commonly used for signals with *smooth variations* and *short-duration* pulses  \
+                                                  \n**`sym4`** wavelet is suited for signals with *sharp transitions* and *longer-duration* pulses.  \
+                                                  \n**`coif4`** wavelet, on the other hand, is often used for signals with *non-linear trends* and *abrupt* changes.  \
+                                                  \nIn general, the **`db4`** wavelet family is a good starting point, as it is a popular choice for a wide range of applications and has good overall performance.')
                     # set standard level of decomposition to 3 
-                    wavelet_level_decomposition = st.selectbox('*Select Level of Decomposition*', [1, 2, 3, 4, 5], label_visibility='visible', index=3, help='The level of decomposition refers to the number of times the signal is decomposed recursively into its approximation coefficients and detail coefficients.  \
-                                                                                                                                                            \nIn wavelet decomposition, the signal is first decomposed into two components: a approximation component and a detail component.\
-                                                                                                                                                            The approximation component represents the coarsest level of detail in the signal, while the detail component represents the finer details.  \
-                                                                                                                                                            \nAt each subsequent level of decomposition, the approximation component from the previous level is decomposed again into its own approximation and detail components.\
-                                                                                                                                                            This process is repeated until the desired level of decomposition is reached.  \
-                                                                                                                                                            \nEach level of decomposition captures different frequency bands and details in the signal, with higher levels of decomposition capturing finer and more subtle details.  \
-                                                                                                                                                            However, higher levels of decomposition also require more computation and may introduce more noise or artifacts in the resulting representation of the signal.  \
-                                                                                                                                                            \nThe choice of the level of decomposition depends on the specific application and the desired balance between accuracy and computational efficiency.')
+                    wavelet_level_decomposition = st.selectbox('*Select Level of Decomposition*', 
+                                                               [1, 2, 3, 4, 5], 
+                                                               label_visibility='visible', 
+                                                               index=3, 
+                                                               help='The level of decomposition refers to the number of times the signal is decomposed recursively into its approximation coefficients and detail coefficients.  \
+                                                                     \nIn wavelet decomposition, the signal is first decomposed into two components: a approximation component and a detail component.\
+                                                                     The approximation component represents the coarsest level of detail in the signal, while the detail component represents the finer details.  \
+                                                                     \nAt each subsequent level of decomposition, the approximation component from the previous level is decomposed again into its own approximation and detail components.\
+                                                                     This process is repeated until the desired level of decomposition is reached.  \
+                                                                     \nEach level of decomposition captures different frequency bands and details in the signal, with higher levels of decomposition capturing finer and more subtle details.  \
+                                                                     However, higher levels of decomposition also require more computation and may introduce more noise or artifacts in the resulting representation of the signal.  \
+                                                                     \nThe choice of the level of decomposition depends on the specific application and the desired balance between accuracy and computational efficiency.')
                     # add slider or text input to choose window size
-                    wavelet_window_size = int(st.slider('*Select Window Size (in days)*', min_value=1, max_value=30, value=7, label_visibility='visible'))
-                
+                    wavelet_window_size = int(st.slider('*Select Window Size (in days)*', 
+                                                        min_value=1, 
+                                                        max_value=30, 
+                                                        value=7, 
+                                                        label_visibility='visible'))
                 col1, col2, col3 = st.columns([4,4,4])
                 with col2:
                     # add submit button to form, when user presses it it updates the selection criteria
@@ -2296,7 +2333,6 @@ with tab1:
                     boxing_day = st.checkbox('Boxing Day sale', value=select_all_days)
                 # call very extensive function to create all days selected by users as features
                 df = create_calendar_special_days(df_cleaned_outliers_with_index)
-        
                 ##############################
                 # Add Day/Month/Year Features
                 ##############################
@@ -2364,9 +2400,8 @@ with tab1:
                                   title='', 
                                   labels={'value': 'Coefficient Mean', 'variable': 'Subband'})
                     fig.update_layout(xaxis_title='Date')
-        
                     st.plotly_chart(fig, use_container_width=True)
-                    # show dataframe with features
+                    # Show Dataframe with features
                     my_subheader('Wavelet Features', my_size=6)
                     st.dataframe(features_df_wavelet, use_container_width=True)
             #################################################################
@@ -2378,7 +2413,6 @@ with tab1:
                 my_subheader('including target variable', my_size=6)
                 st.dataframe(df)
                 download_csv_button(df, my_file="dataframe_incl_features.csv", help_message="Download your dataset incl. features to .CSV")
-        
             ###############################################################################
             # 5. Prepare Data
             ###############################################################################
@@ -2386,17 +2420,14 @@ with tab1:
             my_title('5. Prepare Data 🧪', "#FF9F00")
             with st.sidebar:
                 my_title('5. Prepare Data 🧪', "#FF9F00")
-            
             ##########################################
             # set date as index/ create local_df
             ##########################################
             # create copy of dataframe not altering original
             local_df = df.copy(deep=True)
-           
             # set the date as the index of the pandas dataframe
             local_df.index = pd.to_datetime(local_df['date'])
             local_df.drop(columns='date', inplace=True)
-            
             # show user which descriptive variables are removed, that just had the purpose to inform user what dummy was from e.g. holiday days such as Martin Luther King Day
             with st.expander('ℹ️ I removed the following descriptive columns automatically from analysis'):
                 local_df = remove_object_columns(local_df)
@@ -2408,14 +2439,11 @@ with tab1:
                 my_header('Train/Test Split')
                 # create a caption on the page for user to read about rule-of-thumb train/test split 80:20 ratio
                 st.caption(f'<h6> <center> ℹ️ A commonly used ratio is 80:20 split between train and test set </center> <h6>', unsafe_allow_html=True)
-                
                 # create sliders for user insample test-size (/train-size automatically as well)
                 my_insample_forecast_steps, my_insample_forecast_perc = train_test_split_slider()
-                
                 # format as new variables insample_forecast steps in days/as percentage e.g. the test set to predict for
                 perc_test_set = "{:.2f}%".format((my_insample_forecast_steps/len(df))*100)
                 perc_train_set = "{:.2f}%".format(((len(df)-my_insample_forecast_steps)/len(df))*100)
-            
                 #############################################################
                 # Create a figure with a scatter plot of the train/test split
                 #############################################################
@@ -2448,16 +2476,18 @@ with tab1:
                     # Add selectbox for normalization choices
                     if numerical_features:
                         normalization_choices = {
-                                                    "None": "Do not normalize the data",
-                                                    "MinMaxScaler": "Scale features to a given range (default range is [0, 1]).",
-                                                    "RobustScaler": "Scale features using statistics that are robust to outliers.",
-                                                    "MaxAbsScaler": "Scale each feature by its maximum absolute value.",
-                                                    "PowerTransformer": "Apply a power transformation to make the data more Gaussian-like.",
-                                                    "QuantileTransformer": "Transform features to have a uniform or Gaussian distribution."
+                                                "None": "Do not normalize the data",
+                                                "MinMaxScaler": "Scale features to a given range (default range is [0, 1]).",
+                                                "RobustScaler": "Scale features using statistics that are robust to outliers.",
+                                                "MaxAbsScaler": "Scale each feature by its maximum absolute value.",
+                                                "PowerTransformer": "Apply a power transformation to make the data more Gaussian-like.",
+                                                "QuantileTransformer": "Transform features to have a uniform or Gaussian distribution."
                                                 }
                         # create a dropdown menu for user in sidebar to choose from a list of normalization methods
-                        normalization_choice = st.selectbox("*Select normalization method:*", list(normalization_choices.keys()), format_func=lambda x: f"{x} - {normalization_choices[x]}"
-                                                            , help='**`Normalization`** is a data pre-processing technique to transform the numerical data in a dataset to a standard scale or range.\
+                        normalization_choice = st.selectbox("*Select normalization method:*", 
+                                                            list(normalization_choices.keys()), 
+                                                            format_func=lambda x: f"{x} - {normalization_choices[x]}", 
+                                                            help='**`Normalization`** is a data pre-processing technique to transform the numerical data in a dataset to a standard scale or range.\
                                                                     This process involves transforming the features of the dataset so that they have a common scale, which makes it easier for data scientists to analyze, compare, and draw meaningful insights from the data.')
                     else:
                        # if no numerical features show user a message to inform
@@ -2546,9 +2576,9 @@ with tab1:
                     # create download button for user, to download the standardized features dataframe with dates as index i.e. first column
                     download_csv_button(X[numerical_features], my_file='standardized_features.csv', help_message='Download standardized features to .CSV', set_index=True)
                     
-            ###############################################################################
-            # 6. Feature Selection
-            ###############################################################################
+        ###############################################################################
+        # 6. Feature Selection
+        ###############################################################################
         with tab6:    
             my_title('6. Feature Selection 🍏🍐🍋', "#7B52AB ")
             with st.expander('ℹ️ Selection Methods', expanded=True):
@@ -2568,23 +2598,36 @@ with tab1:
                 with st.form('rfe'):
                      my_subheader('🎨 Recursive Feature Elimination', my_size=4, my_style='#7B52AB')
                      # Add a slider to select the number of features to be selected by the RFECV algorithm
-                     num_features = st.slider('*Select number of top features to include:*', min_value=1, max_value=len(X.columns), value=5)
+                     num_features = st.slider('*Select number of top features to include:*', 
+                                              min_value=1, 
+                                              max_value=len(X.columns), 
+                                              value=5,
+                                              help = '**`Recursive Feature Elimination (RFE)`** is an algorithm that iteratively removes the least important features from the feature set until the desired number of features is reached.\
+                                                      \nIt assigns a rank to each feature based on their importance scores. It is possible to have multiple features with the same ranking because the importance scores of these features are identical or very close to each other.\
+                                                      \nThis can happen when the features are highly correlated or provide very similar information to the model.\
+                                                      \nIn such cases, the algorithm may not be able to distinguish between them and assign the same rank to multiple features.')
                      # set the options for the rfe (recursive feature elimination)
                      with st.expander('🔽 RFE Settings:', expanded=False):
                          # Add a selectbox for the user to choose the estimator
-                         estimator_rfe = st.selectbox('*Set estimator:*', ['Linear Regression', 'Random Forest Regression'], index=0, help = 'the `estimator` parameter is used to specify the machine learning model that will be used to evaluate the importance of each feature. \
-                                                                                                                                              The estimator is essentially the algorithm used to fit the data and make predictions.')
+                         estimator_rfe = st.selectbox('*Set estimator:*', ['Linear Regression', 'Random Forest Regression'], 
+                                                      index=0, 
+                                                      help = 'The `estimator` parameter is used to specify the machine learning model that will be used to evaluate the importance of each feature. \
+                                                              The estimator is essentially the algorithm used to fit the data and make predictions.')
                          # Set up the estimator based on the user's selection
                          if estimator_rfe == 'Linear Regression':
                              est_rfe = LinearRegression()
                          elif estimator_rfe == 'Random Forest Regression':
                              est_rfe = RandomForestRegressor()
                          # Add a slider to select the number of n_splits for the RFE method
-                         timeseriessplit_value_rfe = st.slider('*Set number of splits for Cross-Validation:*', min_value=2, max_value=5, value=5, help='`Cross-validation` is a statistical method used to evaluate the performance of a model by splitting the dataset into multiple "folds," where each fold is used as a holdout set for testing the model trained on the remaining folds. \
-                                                                                                                                                          The cross-validation procedure helps to estimate the performance of the model on unseen data and reduce the risk of overfitting.  \
-                                                                                                                                                          In the context of RFE, the cv parameter specifies the number of folds to use for the cross-validation procedure.\
-                                                                                                                                                          The RFE algorithm fits the estimator on the training set, evaluates the performance of the estimator on the validation set, and selects the best subset of features. \
-                                                                                                                                                          The feature selection process is repeated for each fold of the cross-validation procedure.')
+                         timeseriessplit_value_rfe = st.slider('*Set number of splits for Cross-Validation:*', 
+                                                               min_value=2, 
+                                                               max_value=5, 
+                                                               value=5, 
+                                                               help='`Cross-validation` is a statistical method used to evaluate the performance of a model by splitting the dataset into multiple "folds," where each fold is used as a holdout set for testing the model trained on the remaining folds. \
+                                                                     The cross-validation procedure helps to estimate the performance of the model on unseen data and reduce the risk of overfitting.  \
+                                                                     In the context of RFE, the cv parameter specifies the number of folds to use for the cross-validation procedure.\
+                                                                     The RFE algorithm fits the estimator on the training set, evaluates the performance of the estimator on the validation set, and selects the best subset of features. \
+                                                                     The feature selection process is repeated for each fold of the cross-validation procedure.')
                          # Add a slider in the sidebar for the user to set the number of steps parameter
                          num_steps_rfe = st.slider('*Set Number of Steps*', 1, 10, 1, help='The `step` parameter controls the **number of features** to remove at each iteration of the RFE process.')
                      
@@ -2718,7 +2761,6 @@ with tab1:
             except: 
                 selected_cols_mifs = []
                 st.warning(':red[**ERROR**: Mutual Information Feature Selection could not execute...please adjust your selection criteria]')
-        
             # =============================================================================
             # Correlation Analysis
             # Remove Highly Correlated Features
@@ -2735,13 +2777,11 @@ with tab1:
                                                    value=0.8, 
                                                    step=0.05, 
                                                    help='Set `Correlation Threshold` to determine which pair(s) of variables in the dataset are strongly correlated e.g. no correlation = 0, perfect correlation = 1')
-            
                         models = {'Linear Regression': LinearRegression(), 'Random Forest Regressor': RandomForestRegressor(n_estimators=100)}
                         selected_corr_model = st.selectbox('*Select **model** for computing **importance scores** for highly correlated feature pairs, to drop the **least important** feature of each pair which is highly correlated*:', list(models.keys()))
                         col1, col2, col3 = st.columns([4,4,4])
                         with col2:       
                             corr_btn = st.form_submit_button("Submit", type="secondary")
-                            
                 with st.expander('🍻 Correlation Analysis', expanded=True):
                     st.write("")
                     # Display output
@@ -2752,33 +2792,26 @@ with tab1:
                     ################################################################
                     # PLOT HEATMAP WITH PAIRWISE CORRELATION OF INDEPENDENT FEATURES.
                     ################################################################
-                    # generate correlation heatmap for independent features based on threshold from slider set by user e.g. default to 0.8
+                    # Generate correlation heatmap for independent features based on threshold from slider set by user e.g. default to 0.8
                     correlation_heatmap(X, correlation_threshold=corr_threshold)
-                    #################################
-                    # END HEATMAP CODE 
-                    #################################
-                    # get the indices of the highly correlated features
+                    # Get the indices of the highly correlated features
                     corr_matrix = X.corr()
                     indices = np.where(abs(corr_matrix) >= corr_threshold)
-                
-                    # create a dataframe with the pairwise correlation values above the threshold
+                    # Create a dataframe with the pairwise correlation values above the threshold
                     df_pairwise = pd.DataFrame({
-                                                    'feature1': corr_matrix.columns[indices[0]],
-                                                    'feature2': corr_matrix.columns[indices[1]],
-                                                    'correlation': corr_matrix.values[indices]
-                                                })
-                    
+                                                'feature1': corr_matrix.columns[indices[0]],
+                                                'feature2': corr_matrix.columns[indices[1]],
+                                                'correlation': corr_matrix.values[indices]
+                                               })
                     ############################
-                    # filter out duplicate pairs
+                    # Filter out Duplicate Pairs
                     ############################
                     # Sort feature pairs and drop duplicates
                     df_pairwise = df_pairwise.assign(sorted_features=df_pairwise[['feature1', 'feature2']].apply(sorted, axis=1).apply(tuple))
                     df_pairwise = df_pairwise.loc[df_pairwise['feature1'] != df_pairwise['feature2']].drop_duplicates(subset='sorted_features').drop(columns='sorted_features')
-                    
                     # Sort by correlation and format output
                     df_pairwise = df_pairwise.sort_values(by='correlation', ascending=False).reset_index(drop=True)
                     df_pairwise['correlation'] = (df_pairwise['correlation']*100).apply('{:.2f}%'.format)
-                    
                     # Display message with pairs in total_features
                     if df_pairwise.empty:
                         st.info(f'There are no **pairwise combinations** in the selected features with **correlation** larger than or equal to the user defined threshold of **{corr_threshold*100:.0f}%**')
@@ -2793,93 +2826,93 @@ with tab1:
                     total_features = np.unique(selected_cols_rfe + selected_cols_pca + selected_cols_mifs)
                     # convert to list
                     total_features = total_features.tolist()
-            
                     pairwise_features = list(df_pairwise[['feature1', 'feature2']].itertuples(index=False, name=None))
                     pairwise_features_in_total_features = [pair for pair in pairwise_features if pair[0] in total_features and pair[1] in total_features]
-                    
                     # IMPORTANCE SCORES
                     # create estimator based on user selected model            
                     estimator = models[selected_corr_model]
-                    estimator.fit(X, y)
-                        
+                    estimator.fit(X, y) 
                     # Compute feature importance scores or permutation importance scores
                     importance_scores = compute_importance_scores(X, y, estimator)
                 
-                    ######################
-                    # ALTAIR CHART
-                    ######################
-                    charts = []
-                    # Set title font style and size
-                    title_font = "Helvetica"
-                    title_font_size = 12
-        
-                    num_features = len(total_features)
-                    num_cols = min(3, num_features)
-                    num_rows = math.ceil(num_features / num_cols)
-                    
-                    for i, (feature1, feature2) in enumerate(pairwise_features_in_total_features):
-                        if feature1 in total_features and feature2 in total_features:
-                            score1 = importance_scores[feature1]
-                            score2 = importance_scores[feature2]
-                            data = pd.DataFrame({'Feature': [feature1, feature2], 'Score': [score1, score2]})
-                    
-                            if score1 > score2:
-                                total_features.remove(feature2)
-                                chart = alt.Chart(data).mark_bar().encode(
-                                    x='Score:Q',
-                                    y=alt.Y('Feature:O', sort='-x'),
-                                    color=alt.condition(
-                                        alt.datum.Feature == feature2,
-                                        alt.value('#FFB6C1'),
-                                        alt.value('#90EE90')
-                                    )
-                                ).properties(width=100, height=100, title=chart_title("Removing", feature2))
-                            elif score2 > score1:
-                                total_features.remove(feature1)
-                                chart = alt.Chart(data).mark_bar().encode(
-                                    x='Score:Q',
-                                    y=alt.Y('Feature:O', sort='-x'),
-                                    color=alt.condition(
-                                        alt.datum.Feature == feature1,
-                                        alt.value('#FFB6C1'),
-                                        alt.value('#90EE90')
-                                    )
-                                ).properties(width=100, height=100, title=chart_title("Removing", feature1))
-                            else:
-                                total_features.remove(feature1)
-                                chart = alt.Chart(data).mark_bar().encode(
-                                    x='Score:Q',
-                                    y=alt.Y('Feature:O', sort='-x'),
-                                    color=alt.condition(
-                                        alt.datum.Feature == feature1,
-                                        alt.value('#FFB6C1'),
-                                        alt.value('#90EE90')
-                                    )
-                                ).properties(width=100, height=100, title=chart_title("Removing", feature1))
-                    
-                            charts.append(chart)
-                    
-                    # Combine all charts into a grid
-                    grid_charts = []
-                    for i in range(num_rows):
-                        row_charts = []
-                        for j in range(num_cols):
-                            idx = i*num_cols+j
-                            if idx < len(charts):
-                                row_charts.append(charts[idx])
-                        if row_charts:
-                            grid_charts.append(alt.hconcat(*row_charts))
-                    
-                    grid_chart = alt.vconcat(*grid_charts, spacing=10)
-                    # title of altair graph of feature importance scores
-                    my_subheader("Removing Highly Correlated Features")
-                    col1,col2,col3 = st.columns([5.5,4,5])
-                    with col2:
-                        st.caption(f'pair-wise features >={corr_threshold*100:.0f}%')
-                    # show altair chart with pairwise correlation importance scores and in red lowest and green highest
-                    st.altair_chart(grid_chart, use_container_width=True)
-                    ### END CODE ALTAIR CHART
-                    ##############################################################################################################
+# =============================================================================
+#                     ######################
+#                     # ALTAIR CHART
+#                     ######################
+#                     charts = []
+#                     # Set title font style and size
+#                     title_font = "Helvetica"
+#                     title_font_size = 12
+#         
+#                     num_features = len(total_features)
+#                     num_cols = min(3, num_features)
+#                     num_rows = math.ceil(num_features / num_cols)
+#                     
+#                     for i, (feature1, feature2) in enumerate(pairwise_features_in_total_features):
+#                         if feature1 in total_features and feature2 in total_features:
+#                             score1 = importance_scores[feature1]
+#                             score2 = importance_scores[feature2]
+#                             data = pd.DataFrame({'Feature': [feature1, feature2], 'Score': [score1, score2]})
+#                             if score1 > score2:
+#                                 total_features.remove(feature2)
+#                                 chart = alt.Chart(data).mark_bar().encode(
+#                                     x='Score:Q',
+#                                     y=alt.Y('Feature:O', sort='-x'),
+#                                     color=alt.condition(
+#                                         alt.datum.Feature == feature2,
+#                                         alt.value('#FFB6C1'),
+#                                         alt.value('#90EE90')
+#                                     )
+#                                 ).properties(width=100, height=100, title=chart_title("Removing", feature2))
+#                             elif score2 > score1:
+#                                 total_features.remove(feature1)
+#                                 chart = alt.Chart(data).mark_bar().encode(
+#                                     x='Score:Q',
+#                                     y=alt.Y('Feature:O', sort='-x'),
+#                                     color=alt.condition(
+#                                         alt.datum.Feature == feature1,
+#                                         alt.value('#FFB6C1'),
+#                                         alt.value('#90EE90')
+#                                     )
+#                                 ).properties(width=100, height=100, title=chart_title("Removing", feature1))
+#                             else:
+#                                 total_features.remove(feature1)
+#                                 chart = alt.Chart(data).mark_bar().encode(
+#                                     x='Score:Q',
+#                                     y=alt.Y('Feature:O', sort='-x'),
+#                                     color=alt.condition(
+#                                         alt.datum.Feature == feature1,
+#                                         alt.value('#FFB6C1'),
+#                                         alt.value('#90EE90')
+#                                     )
+#                                 ).properties(width=100, height=100, title=chart_title("Removing", feature1))
+#                     
+#                             charts.append(chart)
+#                     
+#                     # Combine all charts into a grid
+#                     grid_charts = []
+#                     for i in range(num_rows):
+#                         row_charts = []
+#                         for j in range(num_cols):
+#                             idx = i*num_cols+j
+#                             if idx < len(charts):
+#                                 row_charts.append(charts[idx])
+#                         if row_charts:
+#                             grid_charts.append(alt.hconcat(*row_charts))
+#                     
+#                     grid_chart = alt.vconcat(*grid_charts, spacing=10)
+#                     # title of altair graph of feature importance scores
+#                     my_subheader("Removing Highly Correlated Features")
+#                     col1,col2,col3 = st.columns([5.5,4,5])
+#                     with col2:
+#                         st.caption(f'pair-wise features >={corr_threshold*100:.0f}%')
+#                     # show altair chart with pairwise correlation importance scores and in red lowest and green highest
+#                     st.altair_chart(grid_chart, use_container_width=True)
+#                     ### END CODE ALTAIR CHART
+#                     ##############################################################################################################
+# =============================================================================
+                    # ALTAIR CORRELATION CHART FUNCTION        
+                    altair_correlation_chart(total_features, importance_scores, pairwise_features_in_total_features, corr_threshold)
             except:
                 st.warning(':red[**ERROR**: Error with Correlation Analysis...please adjust your selection criteria]')
         
@@ -2931,8 +2964,14 @@ with tab1:
                 my_title("7. Train Models 🔢", "#0072B2")
             with st.sidebar.form('model_train_form'):
                 # generic graph settings
-                my_conf_interval = st.slider("*Set Confidence Interval (%)*", min_value=1, max_value=99, value=80, step=1, help='A confidence interval is a range of values around a sample statistic, such as a mean or proportion, which is likely to contain the true population parameter with a certain degree of confidence. The level of confidence is typically expressed as a percentage, such as 95%, and represents the probability that the true parameter lies within the interval. A wider interval will generally have a higher level of confidence, while a narrower interval will have a lower level of confidence.')
-                
+                my_conf_interval = st.slider("*Set Confidence Interval (%)*", 
+                                             min_value=1, 
+                                             max_value=99, 
+                                             value=80, 
+                                             step=1, 
+                                             help='A confidence interval is a range of values around a sample statistic, such as a mean or proportion, which is likely to contain the true population parameter with a certain degree of confidence.\
+                                                   The level of confidence is typically expressed as a percentage, such as 95%, and represents the probability that the true parameter lies within the interval.\
+                                                   A wider interval will generally have a higher level of confidence, while a narrower interval will have a lower level of confidence.')
                 # define all models you want user to choose from
                 models = [('Naive Model', None),
                           ('Linear Regression', LinearRegression(fit_intercept=True)), 
@@ -2971,7 +3010,14 @@ with tab1:
                                 P = st.number_input("Seasonal Autoregressive Order (P):", value=1, min_value=0, max_value=10)
                                 D = st.number_input("Seasonal Differencing (D):", value=1, min_value=0, max_value=10)
                                 Q = st.number_input("Seasonal Moving Average (Q):", value=1, min_value=0, max_value=10)
-                                s = st.number_input("Seasonal Periodicity (s):", value=7, min_value=1)
+                                s = st.number_input("Seasonal Periodicity (s):", value=7, min_value=1, help='`Seasonal periodicity` i.e. **$s$** in **SARIMAX** refers to the **number of observations per season**.\
+                                                                                                             \n\nFor example, if we have daily data with a weekly seasonal pattern, **s** would be 7 because there are 7 days in a week.\
+                                                                                                             Similarly, for monthly data with an annual seasonal pattern, **s** would be 12 because there are 12 months in a year.\
+                                                                                                             Here are some common values for **$s$**:\
+                                                                                                             \n- **Daily data** with **weekly** seasonality: **$s=7$** \
+                                                                                                             \n- **Monthly data** with **quarterly** seasonality: **$s=3$**\
+                                                                                                             \n- **Monthly data** with **yearly** seasonality: **$s=12$**\
+                                                                                                             \n- **Quarterly data** with **yearly** seasonality: **$s=4$**')
                             st.caption('SARIMAX Hyperparameters')
                             col1, col2, col3 = st.columns([5,1,5])
                             with col1:
@@ -2997,19 +3043,14 @@ with tab1:
                 col1, col2, col3 = st.columns([4,4,4])
                 with col2: 
                     train_models_btn = st.form_submit_button("Submit", type="secondary")
-            
-        #if uploaded_file is not None:
             my_title("7. Train Models 🔢", "#0072B2")
             # if nothing is selected by user display message to user to select models to train
             if not train_models_btn and not selected_models:
                 st.info("👈 Select your models to train in the sidebar!🏋️‍♂️") 
-                # show model documentation initially
-                model_documentation(show=True)
             # the code block to train the selected models will only be executed if both the button has been clicked and the list of selected models is not empty.
             elif not selected_models:
                 st.warning("👈 Please select at least 1 model to train from the sidebar, when pressing the **\"Submit\"** button!🏋️‍♂️")
-                # show model documentation initially
-                model_documentation(show=True)
+            
             ############################################################################### 
             # 8. Evaluate Model Performance
             ###############################################################################               
@@ -3023,12 +3064,8 @@ with tab1:
                     # if nothing is selected by user display message to user to select models to train
                     if not train_models_btn and selected_models:
                         st.info("ℹ️ Train your models first, before results show here!")
-                        # show model documentation initially
-                        model_documentation(show=True)
                 if not train_models_btn and selected_models:
                     st.info("ℹ️ Train your models first from the sidebar menu by pressing the **'Submit'** button, before results show here!")
-                    # show model documentation initially
-                    model_documentation(show=True)
                 if train_models_btn and selected_models:
                     st.info("You can always retrain your models and adjust hyperparameters!")
                     # iterate over all models and if user selected checkbox for model the model(s) is/are trained
@@ -3132,10 +3169,10 @@ with tab1:
                                            'model settings': f' changepoint_prior_scale: {changepoint_prior_scale}, seasonality_prior_scale: {seasonality_prior_scale}, holidays_prior_scale: {holidays_prior_scale}, yearly_seasonality: {yearly_seasonality}, weekly_seasonality: {weekly_seasonality}, daily_seasonality: {daily_seasonality}, interval_width: {interval_width}'}
                                 
                                 results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-                            
+                with tab7: 
                     # SHOW MODEL DOCUMENTATION AFTER MODELS RUN
                     model_documentation(show=True)
-                            
+                    
                     ###################################################################################################################
                     # Add results_df to session state
                     ###################################################################################################################
@@ -3317,7 +3354,6 @@ with tab1:
                                             continue
                                 # set the end of runtime
                                 end_time_sarimax = time.time()                  
-                           
                             if model_name == "Prophet":
                                 horizon_int = horizon_option
                                 horizon_str = f'{horizon_int} days'  # construct horizon parameter string
@@ -3355,7 +3391,7 @@ with tab1:
                                     m = Prophet(**params)  # Fit model with given params
                                     # train the model on the data with set parameters
                                     m.fit(y_train_prophet)
-                                    
+
                                     # other examples of forecast horizon settings:
                                     #df_cv2 = cross_validation(m, cutoffs=cutoffs, horizon='100 days')
                                     #df_cv2 = cross_validation(m, cutoffs=cutoffs, horizon='365 days')
@@ -3422,7 +3458,9 @@ with tab1:
                                     # sort values by rank
                                     prophet_tuning_results = prophet_tuning_results.sort_values('Rank', ascending=True)
                                     # show user dataframe of gridsearch results ordered by ranking
-                                    st.dataframe(prophet_tuning_results.set_index('Rank'), use_container_width=True)  
+                                    st.dataframe(prophet_tuning_results.set_index('Rank'), use_container_width=True)
+                                    # provide button for user to download the hyperparameter tuning results
+                                    download_csv_button(prophet_tuning_results, my_file='Prophet_Hyperparameter_Gridsearch.csv', help_message='Download your Hyperparameter tuning results to .CSV')
                                 #st.success(f"ℹ️ Prophet search for your optimal hyper-parameters finished in **{end_time_prophet - start_time:.2f}** seconds")
                                 if not prophet_tuning_results.empty:
                                     st.markdown(f'🏆 **Prophet** set of parameters with the lowest {metric} of **{"{:.2f}".format(prophet_tuning_results.loc[0,metric.lower()])}** found in **{end_time_prophet - start_time:.2f}** seconds are:')
