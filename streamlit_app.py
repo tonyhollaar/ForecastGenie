@@ -1024,35 +1024,44 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
     return df_preds
 
 def evaluate_sarimax_model(order, seasonal_order, exog_train, exog_test, endog_train, endog_test):
-   """
-   Train and evaluate SARIMAX model on test data.
-   
-   Parameters:
-       order (tuple): Order of the SARIMAX model (p,d,q).
-       seasonal_order (tuple): Seasonal order of the SARIMAX model (P,D,Q,s).
-       exog_train (pd.DataFrame): Exogenous variables training data.
-       exog_test (pd.DataFrame): Exogenous variables test data.
-       endog_train (pd.DataFrame): Endogenous variable training data.
-       endog_test (pd.DataFrame): Endogenous variable test data.
-   
-   Returns:
-       preds_df (pd.DataFrame): DataFrame of predicted and actual values on test data.
-   """
-   try:
-       # Fit the model
-       model = sm.tsa.statespace.SARIMAX(endog=endog_train, exog=exog_train, order=order, seasonal_order=seasonal_order)
-       results = model.fit()
-       # Generate predictions
-       y_pred = results.predict(start=endog_test.index[0], end=endog_test.index[-1], exog=exog_test)
-       preds_df = pd.DataFrame({'Actual': endog_test.squeeze(), 'Predicted': y_pred.squeeze()}, index=endog_test.index)
-       # Calculate percentage difference between actual and predicted values and add it as a new column
-       preds_df = preds_df.assign(Percentage_Diff = ((preds_df['Predicted'] - preds_df['Actual']) / preds_df['Actual']))
-       # Calculate MAPE and add it as a new column
-       preds_df = preds_df.assign(MAPE = abs(preds_df['Percentage_Diff']))   
-       return preds_df 
-   except:
-       my_warning = st.warning('SARIMAX model did not evaluate test-set correctly within function evaluate_sarimax_model, please contact an administrator!')
-       return my_warning 
+    """
+    Train and evaluate SARIMAX model on test data.
+    
+    Parameters:
+        order (tuple): Order of the SARIMAX model (p,d,q).
+        seasonal_order (tuple): Seasonal order of the SARIMAX model (P,D,Q,s).
+        exog_train (pd.DataFrame): Exogenous variables training data.
+        exog_test (pd.DataFrame): Exogenous variables test data.
+        endog_train (pd.DataFrame): Endogenous variable training data.
+        endog_test (pd.DataFrame): Endogenous variable test data.
+    
+    Returns:
+        preds_df (pd.DataFrame): DataFrame of predicted and actual values on test data.
+    """
+    # =============================================================================
+    #    try:
+    # =============================================================================
+    # Fit the model
+    model = sm.tsa.statespace.SARIMAX(endog=endog_train, exog=exog_train, order=order, seasonal_order=seasonal_order)
+    print('model')
+    results = model.fit()
+    print('fit model')
+    # Generate predictions
+    y_pred = results.predict(start=endog_test.index[0], end=endog_test.index[-1], exog=exog_test)
+    print('define y_pred')
+    preds_df = pd.DataFrame({'Actual': endog_test.squeeze(), 'Predicted': y_pred.squeeze()}, index=endog_test.index)
+    print('preds_df')
+    # Calculate percentage difference between actual and predicted values and add it as a new column
+    preds_df = preds_df.assign(Percentage_Diff = ((preds_df['Predicted'] - preds_df['Actual']) / preds_df['Actual']))
+    print(preds_df)
+    # Calculate MAPE and add it as a new column
+    preds_df = preds_df.assign(MAPE = abs(preds_df['Percentage_Diff']))   
+    return preds_df 
+    # =============================================================================
+    #    except:
+    #        my_warning = st.warning('SARIMAX model did not evaluate test-set correctly within function evaluate_sarimax_model, please contact an administrator!')
+    #        return my_warning 
+    # =============================================================================
 
 def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, model, model_name):
     """
