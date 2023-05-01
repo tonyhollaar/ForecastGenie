@@ -3434,12 +3434,11 @@ with tab1:
                             # wavelet model choice forecast
                             my_subheader('Select Model for Discrete Wavelet Feature(s) Forecast Estimates')
                             model_type_wavelet = st.selectbox('Select a model', ['Support Vector Regression', 'Linear'], label_visibility='collapsed') 
-                            
                         # define all models in list as we retrain models on entire dataset anyway
                         selected_models_forecast_lst = ['Linear Regression', 'SARIMAX', 'Prophet']
                         # SELECT MODEL(S) for Forecasting
                         selected_model_names = st.multiselect('*Select Forecasting Models*', selected_models_forecast_lst, default=selected_models_forecast_lst)  
-                        
+                        # create column spacers
                         col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 7, 7, 1, 6, 7, 1])
                         with col2: 
                             st.markdown(f'<h5 style="color: #48466D; background-color: #F0F2F6; padding: 12px; border-radius: 5px;"><center> End Date:</center></h5>', unsafe_allow_html=True)
@@ -3453,7 +3452,7 @@ with tab1:
                                     max_value_calendar = None
                             # create user input box for entering date in a streamlit calendar widget
                             end_date_forecast = st.date_input("input forecast date", 
-                                                              value=start_date_forecast,
+                                                              value=start_date_forecast+7,
                                                               min_value=start_date_forecast, 
                                                               max_value=max_value_calendar, 
                                                               label_visibility = 'collapsed')   
@@ -3475,7 +3474,6 @@ with tab1:
                         with col2:
                             # create submit button for the forecast
                             forecast_btn = st.form_submit_button("Submit", type="secondary")    
-                   
                 # when user clicks the forecast button then run below
                 if forecast_btn:
                     #############################################
@@ -3489,7 +3487,6 @@ with tab1:
                     df_future_dates = create_calendar_special_days(df_future_dates)
                     # add the year/month/day dummy variables
                     df_future_dates = create_date_features(df, year_dummies=year_dummies, month_dummies=month_dummies, day_dummies=day_dummies)
-              
                     # if user wants discrete wavelet features add them
                     if select_dwt_features:
                         df_future_dates = forecast_wavelet_features(X, features_df_wavelet, future_dates, df_future_dates)
@@ -3500,28 +3497,24 @@ with tab1:
                     X_future = df_future_dates.loc[:, ['date'] + [col for col in feature_selection_user if col in df_future_dates.columns]]
                     # set the 'date' column as the index again
                     X_future = copy_df_date_index(X_future, datetime_to_date=False, date_to_index=True)
-                    
                     # iterate over each model name and model in list of lists
                     for model_name in selected_model_names:
-                        ##############################
-            # =============================================================================
-            #             def add_prediction_interval(model, X_future, alpha, df):
-            #                 # calculate the prediction interval for the forecast data
-            #                 y_forecast = model.predict(X_future)
-            #                 mse = np.mean((model.predict(model.X) - model.y) ** 2)
-            #                 n = len(model.X)
-            #                 dof = n - 2
-            #                 t_value = stats.t.ppf(1 - alpha / 2, dof)
-            #                 y_std_err = np.sqrt(mse * (1 + 1 / n + (X_future - np.mean(model.X)) ** 2 / ((n - 1) * np.var(model.X))))
-            #                 lower_pi = y_forecast - t_value * y_std_err
-            #                 upper_pi = y_forecast + t_value * y_std_err
-            #                 # create a dataframe with the prediction interval and add it to the existing dataframe
-            #                 df['lower_pi'] = lower_pi
-            #                 df['upper_pi'] = upper_pi
-            #                 return df
-            # =============================================================================
-                        ##############################
-                        
+# =============================================================================
+#             def add_prediction_interval(model, X_future, alpha, df):
+#                 # calculate the prediction interval for the forecast data
+#                 y_forecast = model.predict(X_future)
+#                 mse = np.mean((model.predict(model.X) - model.y) ** 2)
+#                 n = len(model.X)
+#                 dof = n - 2
+#                 t_value = stats.t.ppf(1 - alpha / 2, dof)
+#                 y_std_err = np.sqrt(mse * (1 + 1 / n + (X_future - np.mean(model.X)) ** 2 / ((n - 1) * np.var(model.X))))
+#                 lower_pi = y_forecast - t_value * y_std_err
+#                 upper_pi = y_forecast + t_value * y_std_err
+#                 # create a dataframe with the prediction interval and add it to the existing dataframe
+#                 df['lower_pi'] = lower_pi
+#                 df['upper_pi'] = upper_pi
+#                 return df
+# =============================================================================
                         if model_name == "Linear Regression":                
                             model = LinearRegression()
                             # train the model on all data (X) for which we have data in forecast that user feature selected
@@ -3535,11 +3528,11 @@ with tab1:
                             df_future_dates_only = future_dates.to_frame(index=False, name='date')
                             # combine dataframe of date with y_forecast
                             df_forecast_lr = copy_df_date_index(df_future_dates_only.join(df_forecast_lr), datetime_to_date=False, date_to_index=True)
-            # =============================================================================
-            #                 # Add the prediction interval to the forecast dataframe
-            #                 alpha = 0.05  # Level of significance for the prediction interval
-            #                 df_forecast_lr = add_prediction_interval(model, X_future, alpha, df_forecast_lr)
-            # =============================================================================
+# =============================================================================
+#                 # Add the prediction interval to the forecast dataframe
+#                 alpha = 0.05  # Level of significance for the prediction interval
+#                 df_forecast_lr = add_prediction_interval(model, X_future, alpha, df_forecast_lr)
+# =============================================================================
                             # create forecast model score card in streamlit
                             with st.expander('ℹ️' + model_name + ' Forecast', expanded=True):   
                                 my_header(f'{model_name}')
