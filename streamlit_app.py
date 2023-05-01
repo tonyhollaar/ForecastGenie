@@ -2973,9 +2973,9 @@ with tab1:
 #                                                                 'model settings': 'seasonal lag: '+lag}, ignore_index=True)
 # =============================================================================
                                 new_row = {'model_name': 'Naive Model',
-                                           'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
-                                           'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
-                                           'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
+                                           'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
+                                           'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']),
+                                           'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
                                            'features':features_str}
                                 results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
 # =============================================================================
