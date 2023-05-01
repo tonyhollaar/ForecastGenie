@@ -971,7 +971,14 @@ def display_my_metrics(my_df, model_name=""):
         st.metric(':red[**RMSE:**]', value = round(rmse,2))
     with col3: 
         st.metric(':green[**R-squared:**]', value= round(r2, 2))
-
+    # Append the latest results to the existing results dataframe in st.session_state
+    latest_results = {'model_name': model_name, 'mape': mape, 'rmse': rmse, 'r2': r2}
+    if 'results_df' not in st.session_state:
+        st.session_state.results_df = pd.DataFrame([latest_results])
+    else:
+        results_df = pd.concat([st.session_state.results_df, pd.DataFrame([latest_results])], ignore_index=True)
+        st.session_state.results_df = results_df
+        
 def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs):
     """
     Evaluate a regression model on test data.
@@ -3164,25 +3171,27 @@ with tab1:
                                             Overall, the Prophet model is a powerful tool for time series forecasting that can handle complex data patterns and external factors. Its flexible modeling approach and Bayesian framework make it a popular choice for many data scientists and analysts.
                             
                                             ''')
-                    ###################################################################################################################
-                    # Add results_df to session state
-                    ###################################################################################################################
-                    with st.sidebar:
-                        with st.expander('', expanded=True):
-                            # table 1: latest run results of model performance
-                            my_subheader('Latest Model Test Results', my_size=4, my_style='#2CB8A1')
-                            if 'results_df' not in st.session_state:
-                                st.session_state.results_df = results_df
-                            else:
-                                st.session_state.results_df = st.session_state.results_df.concat(results_df, ignore_index=True)
-                            # Show the results dataframe in the sidebar if there is at least one model selected
-                            if len(selected_models) > 0:
-                                st.dataframe(results_df)
-                            # table 2: ranking
-                            my_subheader('Top 3 Ranking All Test Results', my_size=4, my_style='#2CB8A1')
-                            # It converts the 'mape' column to floats, removes duplicates based on the 'model_name' and 'mape' columns, sorts the unique DataFrame by ascending 'mape' values, selects the top 3 rows, and displays the resulting DataFrame in Streamlit.
-                            test_df = st.session_state.results_df.assign(mape=st.session_state.results_df['mape'].str.rstrip('%').astype(float)).drop_duplicates(subset=['model_name', 'mape']).sort_values(by='mape', ascending=True).iloc[:3]
-                            st.write(test_df)
+# =============================================================================
+#                     ###################################################################################################################
+#                     # Add results_df to session state
+#                     ###################################################################################################################
+#                     with st.sidebar:
+#                         with st.expander('', expanded=True):
+#                             # table 1: latest run results of model performance
+#                             my_subheader('Latest Model Test Results', my_size=4, my_style='#2CB8A1')
+#                             if 'results_df' not in st.session_state:
+#                                 st.session_state.results_df = results_df
+#                             else:
+#                                 st.session_state.results_df = st.session_state.results_df.concat(results_df, ignore_index=True)
+#                             # Show the results dataframe in the sidebar if there is at least one model selected
+#                             if len(selected_models) > 0:
+#                                 st.dataframe(results_df)
+#                             # table 2: ranking
+#                             my_subheader('Top 3 Ranking All Test Results', my_size=4, my_style='#2CB8A1')
+#                             # It converts the 'mape' column to floats, removes duplicates based on the 'model_name' and 'mape' columns, sorts the unique DataFrame by ascending 'mape' values, selects the top 3 rows, and displays the resulting DataFrame in Streamlit.
+#                             test_df = st.session_state.results_df.assign(mape=st.session_state.results_df['mape'].str.rstrip('%').astype(float)).drop_duplicates(subset=['model_name', 'mape']).sort_values(by='mape', ascending=True).iloc[:3]
+#                             st.write(test_df)
+# =============================================================================
                 
             # show on streamlit page the scoring results
             with tab8:
