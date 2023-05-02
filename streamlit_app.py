@@ -40,6 +40,7 @@ import pywt
 from sklearn.feature_selection import mutual_info_regression
 from sklearn.decomposition import PCA
 from sklearn.ensemble import IsolationForest
+from sklearn.neighbors import NearestNeighbors
 from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
 from pandas.tseries.offsets import BDay
 from pandas.tseries.holiday import(
@@ -80,7 +81,7 @@ results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features
 if 'results_df' not in st.session_state:
     st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
 
-# Log
+# Logging
 print('ForecastGenie Print: Loaded Global Variables')
 ###############################################################################
 # FUNCTIONS
@@ -1806,39 +1807,64 @@ def plot_acf(data, nlags):
  
 ######### OUTLIER DETECTION FUNCTIONS ##############
 def outlier_form():
+    # set standard value e.g. otherwise UnboundLocalError error if isolation forest is not selected by user
+    contamination = None
+    random_state = None
+    outlier_threshold = None
     with st.form('outlier_form'):
         my_subheader('Handling Outliers 😇😈😇 ', my_size=4, my_style='#440154')
-        # form to select outlier handling method
-        method = st.selectbox('*Select outlier handling method:*',
-                             ('None', 'isolation_forest'))
-        # sliders for Isolation Forest parameters
-        if method == 'isolation_forest':
-            contamination = st.slider(
-                'Contamination:', min_value=0.01, max_value=0.5, step=0.01, value=0.01)
+        # form for user to select outlier handling method
+        method = st.selectbox('*Select outlier detection method:*',
+                             ('None', 'Isolation Forest', 'Z-score', 'IQR'))
+
+        # load when user selects "Isolation Forest" and presses 'Submit' detection algorithm parameters
+        if method == 'Isolation Forest':
+            contamination = st.slider('Contamination:', 
+                                      min_value=0.01, 
+                                      max_value=0.5, 
+                                      step=0.01, 
+                                      value=0.01,
+                                      help='''**`Contamination parameter`** determines the *proportion of samples in the dataset that are considered to be outliers*.
+                                            It represents the expected fraction of the contamination within the data, which means it should be set to a value close to the percentage of outliers present in the data.  
+                                            A **higher** value of **contamination** will result in a **higher** number of **outliers** being detected, while a **lower** value will result in a **lower** number of **outliers** being detected.''')
             # set the random state
             random_state = 10
+        # load when user selects "Z-Score" and presses 'Submit' detection algorithm parameters
+        elif method == 'Z-score':
+            outlier_threshold = st.slider(
+                'Threshold:', min_value=1.0, max_value=10.0, value=3.0, step=0.1, help='Using a threshold of 3 for the z-score outlier detection means that any data point +3 standard deviations or -3 standard deviations away from the mean is considered an outlier')
+        # load when user selects "IQR" and presses 'Submit' detection algorithm parameters
+        elif method == 'IQR':
+            q1 = st.slider(
+                'Q1:', min_value=0.0, max_value=100.0, step=1.0, value=25.0)
+            q3 = st.slider(
+                'Q3:', min_value=0.0, max_value=100.0, step=1.0, value=75.0)
+            iqr_multiplier = st.slider('IQR multiplier:', 
+                                        min_value=1.0, 
+                                        max_value=5.0, 
+                                        step=0.1, 
+                                        value=1.5,
+                                        help='''**`IQR multiplier`** determines the value used to multiply the **Interquartile range** to detect outliers.   
+                                             For example, a value of 1.5 means that any value outside the range is considered an outlier, see formula:  
+                                             \n$Q_1 - 1.5*IQR < outlier < Q_3 + 1.5*IQR$
+                                             \nWhere `Q1` and `Q3` are the first and third quartiles, respectively, and `IQR` is the `interquartile range`, which is equal to $Q3 - Q1$.  
+                                             Quantiles are calculated by sorting a dataset in ascending order and then dividing it into equal parts based on the desired quantile value.   
+                                             For example, to calculate the first quartile `Q1`, the dataset is divided into four equal parts, and the value at which 25% of the data falls below is taken as the first quartile. 
+                                             The same process is repeated to calculate the third quartile `Q3`, which is the value at which 75% of the data falls below.''')
+        # form to select outlier replacement method for each outlier detection method
+        if method != 'None':
+            outlier_replacement_method = st.selectbox('Replacement Method:', ('Mean', 'Median'), help='''**`Replacement method`** determines the value to replace selected outliers with.   
+                                                            For example, you can replace them with the mean or median of the dataset.''')
         else:
-            contamination = None
-            random_state = None
+            outlier_replacement_method = None
         col1, col2, col3 = st.columns([4,4,4])
         with col2:
             st.form_submit_button('Submit')
-    return method, contamination, random_state    
+    return method, contamination, outlier_replacement_method, random_state, outlier_threshold    
 
 # define function to handle outliers using Isolation Forest
-def handle_outliers(data, method, contamination, random_state):
-    if method == 'remove':
-        # remove rows with outlier values
-        data = data.dropna()
-    elif method == 'replace_with_median':
-        # replace outlier values with median of column
-        medians = data.median()
-        for col in data.columns:
-            data[col] = np.where(
-                data[col] < medians[col],
-                data[col],
-                medians[col])
-    elif method == 'isolation_forest':
+def handle_outliers(data, method, outlier_threshold, outlier_replacement_method='Median',  contamination=0.01, random_state=10, iqr_multiplier=1.5):
+    if method == 'Isolation Forest':
         # detect and replace outlier values using Isolation Forest
         model = IsolationForest(
             n_estimators=100,
@@ -1846,14 +1872,50 @@ def handle_outliers(data, method, contamination, random_state):
             random_state=random_state)
         model.fit(data)
         outliers = model.predict(data) == -1
-        medians = data.median()
-        for col in data.columns:
-            data[col][outliers] = medians[col]
+        if outlier_replacement_method == 'Mean':
+            means = data.mean()
+            for col in data.columns:
+                data[col][outliers] = means[col]
+        elif outlier_replacement_method == 'Median':
+            medians = data.median()
+            for col in data.columns:
+                data[col][outliers] = medians[col]
+    elif method == 'Z-score':
+        # detect and replace outlier values using Z-score method
+        z_scores = np.abs(stats.zscore(data))
+        # set threshold equal to user defined threshold, else 3 standard deviations away (+/-) from mean 
+        #outlier_threshold = outlier_threshold
+        # The first array contains the indices of the outliers in your data variable.
+        # The second array contains the actual z-scores of these outliers.
+        outliers = np.where(z_scores > outlier_threshold)[0]
+        if outlier_replacement_method == 'Mean':
+            means = data.mean()
+            for col in data.columns:
+                data[col][outliers] = means[col]
+        elif outlier_replacement_method == 'Median':
+            medians = data.median()
+            for col in data.columns:
+                data[col][outliers] = medians[col]
+    elif method == 'IQR':
+        # detect and replace outlier values using Tukey's method
+        q1 = data.quantile(0.25)
+        q3 = data.quantile(0.75)
+        iqr = q3 - q1
+        lower_bound = q1 - iqr_multiplier * iqr
+        upper_bound = q3 + iqr_multiplier * iqr
+        outliers = ((data < lower_bound) | (data > upper_bound)).any(axis=1)
+        if outlier_replacement_method == 'Mean':
+            means = data.mean()
+            for col in data.columns:
+                data[col][outliers] = means[col]
+        elif outlier_replacement_method == 'Median':
+            medians = data.median()
+            for col in data.columns:
+                data[col][outliers] = medians[col]
     return data 
 
 # Log
 print('ForecastGenie Print: Loaded Functions')
-
 ###############################################################################
 # Create Left-Sidebar Streamlit App with Title + About Information
 ###############################################################################
@@ -2202,6 +2264,8 @@ with tab1:
                     st.write(df_clean_show)
                 download_csv_button(df_clean_show, my_file="df_imputed_missing_values.csv", set_index=True, help_message='Download cleaner dataframe to .CSV')
             #########################################################
+            # Handling Outliers
+            #########################################################
             with st.expander('😇😈😇 Outliers', expanded=True):
                 # Set page subheader with custum function
                 my_subheader('Handling outliers', my_style="#440154")
@@ -2210,7 +2274,7 @@ with tab1:
                 ##############################################################################
                 with st.sidebar:
                     # display form and sliders for outlier handling method
-                    method, contamination, random_state = outlier_form()
+                    method, contamination, outlier_replacement_method, random_state, outlier_threshold = outlier_form()
                 
                 # Plot data before and after cleaning
                 fig = go.Figure()
@@ -2219,9 +2283,12 @@ with tab1:
                                          mode='markers', 
                                          name='Before'))
                 df_cleaned_outliers = handle_outliers(df_clean_show, 
-                                               method, 
-                                               contamination, 
-                                               random_state)
+                                                       method,
+                                                       outlier_threshold,
+                                                       outlier_replacement_method,
+                                                       contamination, 
+                                                       random_state
+                                                       )
                 # add scatterplot
                 fig.add_trace(go.Scatter(x=df_cleaned_outliers.index, 
                                          y= df_cleaned_outliers.iloc[:,0], 
@@ -2229,7 +2296,7 @@ with tab1:
                                          name='After'))
                 # show the outlier plot 
                 st.plotly_chart(fig, use_container_width=True)
-        
+
                 # create vertical spacings
                 col1, col2, col3 = st.columns([4,4,4])
                 with col2:
@@ -2834,83 +2901,6 @@ with tab1:
                     estimator.fit(X, y) 
                     # Compute feature importance scores or permutation importance scores
                     importance_scores = compute_importance_scores(X, y, estimator)
-                
-# =============================================================================
-#                     ######################
-#                     # ALTAIR CHART
-#                     ######################
-#                     charts = []
-#                     # Set title font style and size
-#                     title_font = "Helvetica"
-#                     title_font_size = 12
-#         
-#                     num_features = len(total_features)
-#                     num_cols = min(3, num_features)
-#                     num_rows = math.ceil(num_features / num_cols)
-#                     
-#                     for i, (feature1, feature2) in enumerate(pairwise_features_in_total_features):
-#                         if feature1 in total_features and feature2 in total_features:
-#                             score1 = importance_scores[feature1]
-#                             score2 = importance_scores[feature2]
-#                             data = pd.DataFrame({'Feature': [feature1, feature2], 'Score': [score1, score2]})
-#                             if score1 > score2:
-#                                 total_features.remove(feature2)
-#                                 chart = alt.Chart(data).mark_bar().encode(
-#                                     x='Score:Q',
-#                                     y=alt.Y('Feature:O', sort='-x'),
-#                                     color=alt.condition(
-#                                         alt.datum.Feature == feature2,
-#                                         alt.value('#FFB6C1'),
-#                                         alt.value('#90EE90')
-#                                     )
-#                                 ).properties(width=100, height=100, title=chart_title("Removing", feature2))
-#                             elif score2 > score1:
-#                                 total_features.remove(feature1)
-#                                 chart = alt.Chart(data).mark_bar().encode(
-#                                     x='Score:Q',
-#                                     y=alt.Y('Feature:O', sort='-x'),
-#                                     color=alt.condition(
-#                                         alt.datum.Feature == feature1,
-#                                         alt.value('#FFB6C1'),
-#                                         alt.value('#90EE90')
-#                                     )
-#                                 ).properties(width=100, height=100, title=chart_title("Removing", feature1))
-#                             else:
-#                                 total_features.remove(feature1)
-#                                 chart = alt.Chart(data).mark_bar().encode(
-#                                     x='Score:Q',
-#                                     y=alt.Y('Feature:O', sort='-x'),
-#                                     color=alt.condition(
-#                                         alt.datum.Feature == feature1,
-#                                         alt.value('#FFB6C1'),
-#                                         alt.value('#90EE90')
-#                                     )
-#                                 ).properties(width=100, height=100, title=chart_title("Removing", feature1))
-#                     
-#                             charts.append(chart)
-#                     
-#                     # Combine all charts into a grid
-#                     grid_charts = []
-#                     for i in range(num_rows):
-#                         row_charts = []
-#                         for j in range(num_cols):
-#                             idx = i*num_cols+j
-#                             if idx < len(charts):
-#                                 row_charts.append(charts[idx])
-#                         if row_charts:
-#                             grid_charts.append(alt.hconcat(*row_charts))
-#                     
-#                     grid_chart = alt.vconcat(*grid_charts, spacing=10)
-#                     # title of altair graph of feature importance scores
-#                     my_subheader("Removing Highly Correlated Features")
-#                     col1,col2,col3 = st.columns([5.5,4,5])
-#                     with col2:
-#                         st.caption(f'pair-wise features >={corr_threshold*100:.0f}%')
-#                     # show altair chart with pairwise correlation importance scores and in red lowest and green highest
-#                     st.altair_chart(grid_chart, use_container_width=True)
-#                     ### END CODE ALTAIR CHART
-#                     ##############################################################################################################
-# =============================================================================
                     # ALTAIR CORRELATION CHART FUNCTION        
                     altair_correlation_chart(total_features, importance_scores, pairwise_features_in_total_features, corr_threshold)
             except:
