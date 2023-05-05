@@ -7,24 +7,39 @@ Forecast y based on timeseries data
 #########################################################################
 # Import required packages
 #########################################################################
+# Import necessary packages
 import streamlit as st
 import pandas as pd
 import numpy as np
+
+# Import datetime packages
 import datetime
 from datetime import timedelta
+
+# Import itertools package
 import itertools
+
+# Import time package
 import time
+
+# Import math package
 import math
+
+# Import data visualization packages
 import altair as alt
 import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+
+# Import statistical packages
 from scipy import stats
 from statsmodels.tsa.stattools import acf, pacf
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.svm import SVR
+
+# Import data processing packages
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler, MaxAbsScaler, PowerTransformer, QuantileTransformer
 import statsmodels.api as sm
 from statsmodels.tsa.statespace.sarimax import SARIMAX
@@ -86,6 +101,96 @@ print('ForecastGenie Print: Loaded Global Variables')
 ###############################################################################
 # FUNCTIONS
 ###############################################################################
+def acf_pacf_info():
+    col1, col2, col3 = st.columns([5,5,5])
+    with col1:
+        show_acf_info_btn = st.button(f'About ACF plot', use_container_width=True, type='secondary')
+    if show_acf_info_btn == True:
+        st.write('')
+        my_subheader('Autocorrelation Function (ACF)')
+        st.markdown('''
+                    The **Autocorrelation Function (ACF)** plot is a statistical tool used to identify patterns of correlation between observations in a time series dataset. 
+                    It is commonly used in time series analysis to determine the extent to which a given observation is related to its previous observations.  
+                    The **ACF** plot displays the correlation coefficient between the time series and its own lagged values (i.e., the correlation between the series at time $t$ and the series at times $t_{-1}$, $t_{-2}$, $t_{-3}$, etc.).  
+                    The horizontal axis of the plot shows the lag or time difference between observations, while the vertical axis represents the correlation coefficient, ranging from -1 to 1.
+                    ''')
+        st.write('')
+        my_subheader('How to interpret a ACF plot')
+        st.markdown('''Interpreting the **ACF** plot involves looking for significant peaks or spikes above the horizontal dashed lines (which represent the confidence interval) to determine if there is any correlation between the current observation and the lagged observations. 
+                    If there is a significant peak at a particular lag value, it indicates that there is a strong correlation between the observation and its lagged values up to that point.
+                    ''')
+        st.write('')                           
+        my_subheader('Key Points:')  
+        st.markdown('''
+                    Some key takeaways when looking at an **ACF** plot include:  
+                    - If there are no significant peaks, then there is no significant correlation between the observations and their lagged values.
+                    - A significant peak at lag $k$ means that the observation at time $t$ is significantly correlated with the observation at time $t_{-k}$.
+                    - A gradual decay of the peaks towards zero suggests a stationary time series, while a slowly decaying **ACF** suggests a non-stationary time series.
+                    ''')
+    with col2:
+        show_pacf_info_btn = st.button(f'About PACF plot', use_container_width=True, type='secondary')
+    if show_pacf_info_btn == True:   
+        st.write('')    
+        my_subheader('Partial Autocorrelation Function (PACF)')
+        st.markdown('''
+                    The **Partial Autocorrelation Function (PACF)** is a plot of the partial correlation coefficients between a time series and its lags. 
+                    The PACF can help us determine the order of an autoregressive (AR) model by identifying the lag beyond which the autocorrelations are effectively zero.
+                    
+                    The **PACF plot** helps us identify the important lags that are related to a time series. It measures the correlation between a point in the time series and a lagged version of itself while controlling for the effects of all the other lags that come before it.
+                    In other words, the PACF plot shows us the strength and direction of the relationship between a point in the time series and a specific lag, independent of the other lags. 
+                    A significant partial correlation coefficient at a particular lag suggests that the lag is an important predictor of the time series.
+                    
+                    If a particular lag has a partial autocorrelation coefficient that falls outside of the **95%** or **99%** confidence interval, it suggests that this lag is a significant predictor of the time series. 
+                    The next step would be to consider including that lag in the autoregressive model to improve its predictive accuracy.
+                    However, it is important to note that including too many lags in the model can lead to overfitting, which can reduce the model's ability to generalize to new data. 
+                    Therefore, it is recommended to use a combination of statistical measures and domain knowledge to select the optimal number of lags to include in the model.
+                    
+                    On the other hand, if none of the lags have significant partial autocorrelation coefficients, it suggests that the time series is not well explained by an autoregressive model. 
+                    In this case, alternative modeling techniques such as **Moving Average (MA)** or **Autoregressive Integrated Moving Average (ARIMA)** may be more appropriate. 
+                    Or you could just flip a coin and hope for the best. But I don\'t recommend the latter...
+                    ''')
+        st.write('')
+        my_subheader('How to interpret a PACF plot')
+        st.markdown('''
+                    The partial autocorrelation plot (PACF) is a tool used to investigate the relationship between an observation in a time series with its lagged values, while controlling for the effects of intermediate lags. Here's a brief explanation of how to interpret a PACF plot:  
+                    
+                    - The horizontal axis shows the lag values (i.e., how many time steps back we\'re looking).
+                    - The vertical axis shows the correlation coefficient, which ranges from **-1** to **1**. 
+                      A value of :green[**1**] indicates a :green[**perfect positive correlation**], while a value of :red[**-1**] indicates a :red[**perfect negative correlation**]. A value of **0** indicates **no correlation**.
+                    - Each bar in the plot represents the correlation between the observation and the corresponding lag value. The height of the bar indicates the strength of the correlation. 
+                      If the bar extends beyond the dotted line (which represents the 95% confidence interval), the correlation is statistically significant.  
+                    ''')
+        st.write('')                           
+        my_subheader('Key Points:')  
+        st.markdown('''                            
+                    - **The first lag (lag 0) is always 1**, since an observation is perfectly correlated with itself.
+                    - A significant spike at a particular lag indicates that there may be some **useful information** in that lagged value for predicting the current observation. 
+                      This can be used to guide the selection of lag values in time series forecasting models.
+                    - A sharp drop in the PACF plot after a certain lag suggests that the lags beyond that point **are not useful** for prediction, and can be safely ignored.
+                    ''')
+        st.write('')
+        my_subheader('An analogy')
+        st.markdown('''
+                    Imagine you are watching a magic show where the magician pulls a rabbit out of a hat. Now, imagine that the magician can do this trick with different sized hats. If you were trying to figure out how the magician does this trick, you might start by looking for clues in the size of the hats.
+                    Similarly, the PACF plot is like a magic show where we are trying to figure out the "trick" that is causing our time series data to behave the way it does. 
+                    The plot shows us how strong the relationship is between each point in the time series and its past values, while controlling for the effects of all the other past values. 
+                    It's like looking at different sized hats to see which one the magician used to pull out the rabbit.
+    
+                    If the **PACF** plot shows a strong relationship between a point in the time series and its past values at a certain lag (or hat size), it suggests that this past value is an important predictor of the time series. 
+                    On the other hand, if there is no significant relationship between a point and its past values, it suggests that the time series may not be well explained by past values alone, and we may need to look for other "tricks" to understand it.
+                    In summary, the **PACF** plot helps us identify important past values of our time series that can help us understand its behavior and make predictions about its future values.
+                    ''')
+    with col3:
+        diff_acf_pacf_info_btn = st.button(f'Difference ACF/PACF', use_container_width=True, type='secondary')
+    if diff_acf_pacf_info_btn == True: 
+        st.write('')
+        my_subheader('Differences explained between ACF and PACF')
+        st.markdown('''
+                    - The **ACF** plot measures the correlation between an observation and its lagged values.
+                    - The **PACF** plot measures the correlation between an observation and its lagged values while controlling for the effects of intermediate observations.
+                    - The **ACF** plot is useful for identifying the order of a moving average **(MA)** model, while the **PACF** plot is useful for identifying the order of an autoregressive **(AR)** model.
+                    ''')
+
 def altair_correlation_chart(total_features, importance_scores, pairwise_features_in_total_features, corr_threshold):
     """
     Creates an Altair chart object for visualizing pairwise feature importance scores.
@@ -269,6 +374,20 @@ def model_documentation(show=True):
         pass
 
 def display_summary_statistics(df):
+    """
+    Calculate summary statistics for a given DataFrame.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The DataFrame for which to calculate summary statistics.
+
+    Returns
+    -------
+    pandas.DataFrame
+        A DataFrame containing the minimum, maximum, mean, median, standard deviation,
+        and data type for each column of the input DataFrame.
+    """
     summary = pd.DataFrame()
     for col in df.columns:
         if df[col].dtype == 'datetime64[ns]':
@@ -284,6 +403,23 @@ def display_summary_statistics(df):
     return summary
 
 def display_dataframe_graph(df, key=0):
+    """
+    Displays a line chart of a Pandas DataFrame using Plotly Express.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The DataFrame to display.
+    key : int or str, optional
+        An optional identifier used to cache the output of the function when called with the same arguments,
+        by default 0.
+
+    Returns
+    -------
+    None
+        The function displays the chart in the Streamlit app.
+
+    """
     fig = px.line(df,
                   x=df.index,
                   y=df.columns,
@@ -310,7 +446,7 @@ def display_dataframe_graph(df, key=0):
                 yanchor='top',
                 font=dict(size=10),
             ),
-            rangeslider=dict(
+            rangeslider=dict( #bgcolor='45B8AC',
                 visible=True,
                 range=[df.index.min(), df.index.max()]  # Set range of slider based on data
             ),
@@ -319,23 +455,71 @@ def display_dataframe_graph(df, key=0):
     )
     # Display Plotly Express figure in Streamlit
     st.plotly_chart(fig, use_container_width=True, key=key)
-    
+
 # define function to generate demo time-series data
 def generate_demo_data(seed=42):
+    """
+    Generate demo data with weekly, monthly, quarterly, and yearly patterns.
+
+    Args:
+        seed (int): Random seed for reproducibility.
+
+    Returns:
+        pandas.DataFrame: A DataFrame with two columns, 'date' and 'demo_data', where 'date'
+        is a range of dates from 2018-01-01 to 2022-12-31, and 'demo_data' is a time series
+        with weekly, monthly, quarterly, and yearly patterns plus random noise.
+    """
     np.random.seed(seed)
-    date_range = pd.date_range(start='1/1/2020', end='12/31/2022', freq='D')
-    # generate seasonal pattern
-    t = np.linspace(0, 1, len(date_range))
-    seasonal = 10 * np.sin(2 * np.pi * (t + 0.25)) + 5 * np.sin(2 * np.pi * (2 * t + 0.1))
+    date_range = pd.date_range(start='1/1/2018', end='12/31/2022', freq='D')
+    # generate weekly pattern
+    weekly = 10 * np.sin(2 * np.pi * (date_range.dayofweek / 7))
+    # generate monthly pattern
+    monthly = 10 * np.sin(2 * np.pi * (date_range.month / 12))
+    # generate quarterly pattern
+    quarterly = 10 * np.sin(2 * np.pi * (date_range.quarter / 4))
+    # generate yearly pattern
+    yearly = 10 * np.sin(2 * np.pi * (date_range.year - 2018) / 4)
     # generate random variation
     noise = np.random.normal(loc=0, scale=2, size=len(date_range))   
     # generate time series data
-    values = seasonal + noise
+    values = weekly + monthly + quarterly + yearly + noise + 10
     demo_data = pd.DataFrame({'date': date_range, 'demo_data': values})
     return demo_data
 
 # add wavelet features if applicable e.g. user selected it to be included
 def forecast_wavelet_features(X, features_df_wavelet, future_dates, df_future_dates):
+    """
+    Forecast the wavelet features of a time series using historical data and a selected model.
+    
+    Parameters
+    ----------
+    X : pandas DataFrame
+        The historical time series data, with each column representing a different feature.
+    
+    features_df_wavelet : pandas DataFrame
+        The features to be forecasted using the discrete wavelet transform.
+    
+    future_dates : pandas DatetimeIndex
+        The dates for which to make the wavelet feature forecasts.
+    
+    df_future_dates : pandas DataFrame
+        The forecasted values for the wavelet features, with a column for each feature and a row for each future date.
+    
+    Returns
+    -------
+    pandas DataFrame
+        The forecasted values for the wavelet features, combined with the original dataframe, with a column for each feature and a row for each future date.
+    
+    Raises
+    ------
+    StreamlitAPIException
+        If an error occurs during the forecast.
+    
+    Notes
+    -----
+    This function uses the historical data and a selected model to forecast the wavelet features of a time series. The wavelet features are obtained using the discrete wavelet transform, and a separate model is fitted and used to forecast each feature. The resulting forecasts are combined with the original dataframe to produce the final forecast.
+    
+    """
     ########### START WAVELET CODE ###########  
     # if user selected checkbox for Discrete Wavelet Features run code run prediction for wavelet features
     if select_dwt_features: 
@@ -557,6 +741,26 @@ def plot_scaling_before_after(X_unscaled_train, X_train, numerical_features):
     st.plotly_chart(fig, use_container_width=True)
 
 def chart_title(title, subtitle, font, font_size):
+    """
+    Creates a dictionary containing the properties for a chart title and subtitle.
+
+    Parameters:
+    -----------
+    title : str
+        The main title of the chart.
+    subtitle : str
+        The subtitle of the chart.
+    font : str
+        The name of the font to be used for the title and subtitle.
+    font_size : int
+        The font size to be used for the title and subtitle.
+
+    Returns:
+    --------
+    dict
+        A dictionary containing the properties for the chart title and subtitle,
+        including the text, font size, font family, and anchor position.
+    """
     return {
             "text": title,
             "subtitle": subtitle,
@@ -862,6 +1066,17 @@ def get_feature_list(X):
     return ', '.join(X.columns)
 
 def plot_forecast(df_actual, df_forecast, title=''):
+    """
+    Plot the actual and forecasted time series data on a line chart using Plotly.
+    
+    Args:
+    - df_actual (pd.DataFrame): A Pandas DataFrame containing the actual time series data with DatetimeIndex as the index.
+    - df_forecast (pd.DataFrame): A Pandas DataFrame containing the forecasted time series data with DatetimeIndex as the index and a 'forecast' column.
+    - title (str, optional): The title of the chart. Default is an empty string.
+    
+    Returns:
+    - None: Displays the chart in Streamlit using `st.plotly_chart`.
+    """
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df_actual.index, y=df_actual.iloc[:,0], name='Actual', mode='lines'))
     fig.add_trace(go.Scatter(x=df_forecast.index, y=df_forecast['forecast'], name='Forecast', mode='lines', line=dict(dash='dot', color='#87CEEB'))) # dash styles: ['solid', 'dot', 'dash', 'longdash', 'dashdot', 'longdashdot'] 
@@ -1264,7 +1479,28 @@ def preprocess_data_prophet(y_data):
 
 def predict_prophet(y_train, y_test, **kwargs):
     """
-    Predict using Prophet model
+    Predict future values using Prophet model.
+
+    Args:
+        y_train (pd.DataFrame): Training dataset.
+        y_test (pd.DataFrame): Test dataset.
+        **kwargs: Keyword arguments used to adjust the Prophet model. 
+            Allowed keyword arguments:
+            - changepoint_prior_scale (float): Parameter for changepoint prior scale.
+            - seasonality_mode (str): Parameter for seasonality mode.
+            - seasonality_prior_scale (float): Parameter for seasonality prior scale.
+            - holidays_prior_scale (float): Parameter for holidays prior scale.
+            - yearly_seasonality (bool): Whether to include yearly seasonality.
+            - weekly_seasonality (bool): Whether to include weekly seasonality.
+            - daily_seasonality (bool): Whether to include daily seasonality.
+            - interval_width (float): Width of the uncertainty interval.
+
+    Returns:
+        pd.DataFrame: A dataframe with the following columns:
+            - Actual: The actual values of the test dataset.
+            - Predicted: The predicted values of the test dataset.
+            - Percentage_Diff: The percentage difference between actual and predicted values.
+            - MAPE: The Mean Absolute Percentage Error (MAPE).
     """
     y_train_prophet = preprocess_data_prophet(y_train)
     y_test_prophet = preprocess_data_prophet(y_test)
@@ -1330,21 +1566,53 @@ def convert_df_with_index(my_dataframe):
     return my_dataframe.to_csv(index=True).encode('utf-8')
 
 def download_csv_button(my_df, my_file="forecast_model.csv", help_message = 'Download dataframe to .CSV', set_index=False):
-     # create download button for forecast results to .csv
-     if set_index:
-         csv = convert_df_with_index(my_df)
-     else:
-         csv = convert_df(my_df)
-     col1, col2, col3 = st.columns([5,3,5])
-     with col2: 
-         st.download_button(":arrow_down: Download", 
-                            csv,
-                            my_file,
-                            "text/csv",
-                            #key='', -> streamlit automatically assigns key if not defined
-                            help = help_message)
+    """
+    Create a download button for a pandas DataFrame in CSV format.
+    
+    Parameters:
+    -----------
+    my_df : pandas.DataFrame
+        The DataFrame to be downloaded.
+    my_file : str, optional (default="forecast_model.csv")
+        The name of the downloaded file.
+    help_message : str, optional (default="Download dataframe to .CSV")
+        The text displayed when hovering over the download button.
+    set_index : bool, optional (default=False)
+        If True, sets the DataFrame index as the first column in the output file.
+    
+    Returns:
+    --------
+    None
+    """
+    # create download button for forecast results to .csv
+    if set_index:
+        csv = convert_df_with_index(my_df)
+    else:
+        csv = convert_df(my_df)
+    col1, col2, col3 = st.columns([5,3,5])
+    with col2: 
+        st.download_button(":arrow_down: Download", 
+                           csv,
+                           my_file,
+                           "text/csv",
+                           #key='', -> streamlit automatically assigns key if not defined
+                           help = help_message)
 
 def plot_actual_vs_predicted(df_preds, my_conf_interval):
+    """
+    Plots the actual and predicted values from a dataframe, along with a shaded confidence interval.
+    
+    Parameters:
+    -----------
+    df_preds : pandas.DataFrame
+        The dataframe containing the actual and predicted values to plot.
+    my_conf_interval : float
+        The level of confidence for the confidence interval to display, as a percentage (e.g. 95 for 95% confidence interval).
+    
+    Returns:
+    --------
+    None
+    """
     # Define the color palette
     colors = ['#5276A7', '#ff7700']
     # set color shading of confidence interval
@@ -1413,6 +1681,28 @@ def plot_actual_vs_predicted(df_preds, my_conf_interval):
 @st.cache_data   
 # remove datatypes object - e.g. descriptive columns not used in modeling
 def remove_object_columns(df):
+    """
+     Remove columns with 'object' datatype from the input dataframe.
+    
+     Parameters:
+     -----------
+     df : pandas.DataFrame
+         Input dataframe.
+    
+     Returns:
+     --------
+     pandas.DataFrame
+         Dataframe with columns of 'object' datatype removed.
+    
+     Example:
+     --------
+     >>> df = pd.DataFrame({'col1': [1, 2, 3], 'col2': ['a', 'b', 'c'], 'col3': [4.5, 5.2, 6.1]})
+     >>> remove_object_columns(df)
+          col1  col3
+     0     1    4.5
+     1     2    5.2
+     2     3    6.1
+     """
     # Get a list of column names with object datatype
     obj_cols = df.select_dtypes(include='object').columns.tolist()
     # Remove the columns that are not needed
@@ -1425,6 +1715,33 @@ def remove_object_columns(df):
     return df
 
 def copy_df_date_index(my_df, datetime_to_date=True, date_to_index=True):
+    """
+    Create a deep copy of a DataFrame and optionally convert the 'date' column to a date datatype and set it as the index.
+    
+    Parameters:
+    -----------
+    my_df : pandas.DataFrame
+        The input DataFrame.
+    datetime_to_date : bool, optional (default=True)
+        Whether to convert the 'date' column to a date datatype.
+    date_to_index : bool, optional (default=True)
+        Whether to set the 'date' column as the index.
+    
+    Returns:
+    --------
+    pandas.DataFrame
+        A new copy of the input DataFrame, with the 'date' column optionally converted to a date datatype and/or set as the index.
+    
+    Examples:
+    ---------
+    >>> df = pd.DataFrame({'date': ['2022-01-01 12:00:00', '2022-01-02 12:00:00', '2022-01-03 12:00:00'], 'value': [1, 2, 3]})
+    >>> copy_df_date_index(df)
+               value
+    date            
+    2022-01-01      1
+    2022-01-02      2
+    2022-01-03      3
+    """
     # create a deep copy of dataframe e.g. completely new copy of the DataFrame is created with its own memory space
     # This means that any changes made to the new copy will not affect the original DataFrame.
     my_df_copy = my_df.copy(deep=True)
@@ -1462,6 +1779,19 @@ def resample_missing_dates(df, freq_dict, freq):
     return new_df.reset_index().rename(columns={'index': 'date'})
 
 def my_fill_method(df, fill_method, custom_fill_value=None):
+    """
+    Handle missing values in the DataFrame based on the user's specified fill method.
+    
+    Args:
+        df (pandas.DataFrame): The input DataFrame to be processed.
+        fill_method (str): The fill method to be used. Can be one of 'Backfill', 'Forwardfill', 'Mean', 'Median',
+            'Mode', or 'Custom'.
+        custom_fill_value (optional): The custom value to be used for filling missing values. Only applicable when
+            fill_method is set to 'Custom'. Defaults to None.
+    
+    Returns:
+        pandas.DataFrame: A copy of the input DataFrame with missing values filled according to the specified fill method.
+    """
     # handle missing values based on user input
     if fill_method == 'Backfill':
         df.iloc[:,1] = df.iloc[:, 1].bfill()
@@ -1522,8 +1852,24 @@ def plot_overview(df, y):
 #################### PACF GRAPH ###########################################
 # Define functions to calculate PACF
 #################### PACF GRAPH ###########################################
-# Create the plot using Plotly Express and difference timeseries 1st order, 2nd order or 3rd order differencing
 def df_differencing(df, selection):
+    """Perform differencing on a time series DataFrame up to third order.
+    
+    Parameters:
+    -----------
+    df: pandas.DataFrame
+        The DataFrame containing the time series.
+    selection: str
+        The type of differencing to perform. Must be one of ['Original Series', 'First Order Difference', 
+        'Second Order Difference', 'Third Order Difference'].
+        
+    Returns:
+    --------
+    fig: plotly.graph_objs._figure.Figure
+        A Plotly figure object showing the selected type of differencing.
+    df_select_diff: pandas.Series
+        The resulting differenced series based on the selected type of differencing.
+    """
     ##### DIFFERENCING #####
     # show graph first, second and third order differencing
     # Calculate the first three differences of the data
@@ -1807,15 +2153,40 @@ def plot_acf(data, nlags):
  
 ######### OUTLIER DETECTION FUNCTIONS ##############
 def outlier_form():
+    """
+    This function creates a streamlit form for handling outliers in a dataset using different outlier detection methods. 
+    It allows the user to select one of the following methods: Isolation Forest, Z-score, or IQR.
+    - If Isolation Forest is selected, the user can specify the contamination parameter, which determines the proportion of samples in the dataset that are considered to be outliers. 
+    The function also sets a standard value for the random state parameter.
+    - If Z-score is selected, the user can specify the outlier threshold, which is the number of standard deviations away from the mean beyond which a data point is considered an outlier.
+    - If IQR is selected, the user can specify the first and third quartiles of the dataset and an IQR multiplier value, which is used to detect outliers by multiplying the interquartile range.
+    - If K-means clustering is selected, the user can specify the number of clusters to form and the maximum number of iterations to run.
+   
+    The function also allows the user to select a replacement method for each outlier detection method, either mean or median.
+    
+    Returns:
+        method (str): the selected outlier detection method
+        contamination (float or None): the contamination parameter for Isolation Forest, or None if another method is selected
+        outlier_replacement_method (str or None): the selected replacement method, or None if no method is selected
+        random_state (int or None): the standard value for the random state parameter for Isolation Forest, or None if another method is selected
+        outlier_threshold (float or None): the outlier threshold for Z-score, or None if another method is selected
+        n_clusters (int or None): the number of clusters to form for K-means clustering, or None if another method is selected
+        max_iter (int or None): the maximum number of iterations to run for K-means clustering, or None if another method is selected
+    """
     # set standard value e.g. otherwise UnboundLocalError error if isolation forest is not selected by user
     contamination = None
     random_state = None
     outlier_threshold = None
+    iqr_multiplier = None
+    n_clusters = None  
+    max_iter = None
+    q1 = None
+    q3 = None
     with st.form('outlier_form'):
         my_subheader('Handling Outliers 😇😈😇 ', my_size=4, my_style='#440154')
         # form for user to select outlier handling method
         method = st.selectbox('*Select outlier detection method:*',
-                             ('None', 'Isolation Forest', 'Z-score', 'IQR'))
+                             ('None', 'Isolation Forest', 'Z-score', 'IQR', 'k-means'))
 
         # load when user selects "Isolation Forest" and presses 'Submit' detection algorithm parameters
         if method == 'Isolation Forest':
@@ -1851,6 +2222,20 @@ def outlier_form():
                                              Quantiles are calculated by sorting a dataset in ascending order and then dividing it into equal parts based on the desired quantile value.   
                                              For example, to calculate the first quartile `Q1`, the dataset is divided into four equal parts, and the value at which 25% of the data falls below is taken as the first quartile. 
                                              The same process is repeated to calculate the third quartile `Q3`, which is the value at which 75% of the data falls below.''')
+        # load when user selects "K-means clustering" and presses 'Submit' detection algorithm parameters
+        elif method == 'k-means':
+            n_clusters = st.number_input('Number of Clusters:', 
+                                          value=3, 
+                                          step=1,
+                                          help='''**`Number of Clusters`** is the number of clusters to form.
+                                                 The default value of 3 is a common value used for clustering small datasets.
+                                              ''')
+            max_iter = st.number_input('Max Iterations:', 
+                                        value=100, 
+                                        step=10,
+                                        help='''**`Max Iterations`** is the maximum number of iterations to run.
+                                                The default value of 100 is a common value used for small datasets.
+                                             ''')
         # form to select outlier replacement method for each outlier detection method
         if method != 'None':
             outlier_replacement_method = st.selectbox('Replacement Method:', ('Mean', 'Median'), help='''**`Replacement method`** determines the value to replace selected outliers with.   
@@ -1860,10 +2245,33 @@ def outlier_form():
         col1, col2, col3 = st.columns([4,4,4])
         with col2:
             st.form_submit_button('Submit')
-    return method, contamination, outlier_replacement_method, random_state, outlier_threshold    
+    return method, outlier_replacement_method, random_state, contamination, outlier_threshold , q1, q3, iqr_multiplier, n_clusters, max_iter
 
 # define function to handle outliers using Isolation Forest
-def handle_outliers(data, method, outlier_threshold, outlier_replacement_method='Median',  contamination=0.01, random_state=10, iqr_multiplier=1.5):
+from sklearn.cluster import KMeans
+from scipy.spatial.distance import cdist
+
+def handle_outliers(data, method, outlier_threshold, q1, q3, max_iter, n_clusters=3, outlier_replacement_method='Median', contamination=0.01, random_state=10, iqr_multiplier=1.5):
+    """
+    Detects and replaces outlier values in a dataset using various methods.
+
+    Args:
+        data (pd.DataFrame): The input dataset.
+        method (str): The method used to detect and replace outliers. Possible values are:
+        - 'Isolation Forest': uses the Isolation Forest algorithm to detect and replace outliers
+        - 'Z-score': uses the Z-score method to detect and replace outliers
+        - 'IQR': uses Tukey's method to detect and replace outliers
+        outlier_threshold (float): The threshold used to determine outliers. This parameter is used only if method is 'Z-score'.
+        outlier_replacement_method (str, optional): The method used to replace outliers. Possible values are 'Mean' and 'Median'. Defaults to 'Median'.
+        contamination (float, optional): The expected amount of contamination in the dataset. This parameter is used only if method is 'Isolation Forest'. Defaults to 0.01.
+        random_state (int, optional): The random state used for reproducibility. This parameter is used only if method is 'Isolation Forest'. Defaults to 10.
+        iqr_multiplier (float, optional): The multiplier used to compute the lower and upper bounds for Tukey's method. This parameter is used only if method is 'IQR'. Defaults to 1.5.
+
+    Returns:
+        pd.DataFrame: A copy of the input dataset with outlier values replaced by either the mean or median of their respective columns, depending on the value of outlier_replacement_method.
+    """
+    # initialize the variable before using it
+    outliers = None   
     if method == 'Isolation Forest':
         # detect and replace outlier values using Isolation Forest
         model = IsolationForest(
@@ -1872,48 +2280,57 @@ def handle_outliers(data, method, outlier_threshold, outlier_replacement_method=
             random_state=random_state)
         model.fit(data)
         outliers = model.predict(data) == -1
-        if outlier_replacement_method == 'Mean':
-            means = data.mean()
-            for col in data.columns:
-                data[col][outliers] = means[col]
-        elif outlier_replacement_method == 'Median':
-            medians = data.median()
-            for col in data.columns:
-                data[col][outliers] = medians[col]
     elif method == 'Z-score':
         # detect and replace outlier values using Z-score method
         z_scores = np.abs(stats.zscore(data))
-        # set threshold equal to user defined threshold, else 3 standard deviations away (+/-) from mean 
-        #outlier_threshold = outlier_threshold
         # The first array contains the indices of the outliers in your data variable.
         # The second array contains the actual z-scores of these outliers.
         outliers = np.where(z_scores > outlier_threshold)[0]
-        if outlier_replacement_method == 'Mean':
-            means = data.mean()
-            for col in data.columns:
-                data[col][outliers] = means[col]
-        elif outlier_replacement_method == 'Median':
-            medians = data.median()
-            for col in data.columns:
-                data[col][outliers] = medians[col]
+        # create a boolean mask indicating whether each row is an outlier or not
+        is_outlier = np.zeros(data.shape[0], dtype=bool)
+        is_outlier[outliers] = True
+        outliers =  is_outlier
     elif method == 'IQR':
         # detect and replace outlier values using Tukey's method
-        q1 = data.quantile(0.25)
-        q3 = data.quantile(0.75)
+        q1, q3 = np.percentile(data, [25, 75], axis=0)
         iqr = q3 - q1
         lower_bound = q1 - iqr_multiplier * iqr
         upper_bound = q3 + iqr_multiplier * iqr
         outliers = ((data < lower_bound) | (data > upper_bound)).any(axis=1)
-        if outlier_replacement_method == 'Mean':
-            means = data.mean()
-            for col in data.columns:
-                data[col][outliers] = means[col]
-        elif outlier_replacement_method == 'Median':
-            medians = data.median()
-            for col in data.columns:
-                data[col][outliers] = medians[col]
-    return data 
-
+        # create a boolean mask indicating whether each row is an outlier or not
+        is_outlier = np.zeros(data.shape[0], dtype=bool)
+        is_outlier[outliers] = True
+        outliers = is_outlier
+    # select the rows that are outliers and create a new dataframe
+    if outlier_replacement_method == 'Mean':
+        means = data.mean()
+        for col in data.columns:
+            data[col][outliers] = means[col]
+    elif outlier_replacement_method == 'Median':
+        medians = data.median()
+        for col in data.columns:
+            data[col][outliers] = medians[col]
+    return data, outliers 
+# =============================================================================
+#     elif method == 'k-means':
+#         # detect and replace outlier values using k-means clustering
+#         model = KMeans(n_clusters=n_clusters, random_state=random_state)
+#         model.fit(data)
+#         distances = np.array(data) # your distances array
+#         distances = distances[~np.isnan(distances)] # exclude NaN values
+#         distances = np.min(cdist(data, model.cluster_centers_, 'euclidean'), axis=1)
+#         threshold = np.quantile(distances, 1 - contamination)
+#         outliers = distances > threshold
+#         if outlier_replacement_method == 'Mean':
+#             means = data.mean()
+#             for col in data.columns:
+#                 data[col][outliers] = means[col]
+#         elif outlier_replacement_method == 'Median':
+#             medians = data.median()
+#             for col in data.columns:
+#                 data[col][outliers] = medians[col]
+# =============================================================================
+    
 # Log
 print('ForecastGenie Print: Loaded Functions')
 ###############################################################################
@@ -2082,95 +2499,9 @@ with tab1:
                 plot_acf(data, nlags=nlags_acf)
                 # Plot PACF
                 plot_pacf(data, nlags=nlags_pacf, method=method_pacf)              
-                # If user clicks button, more explanation on the ACF and PACF plot is displayed
-                col1, col2, col3 = st.columns([5,5,5])
-                with col1:
-                    show_acf_info_btn = st.button(f'About ACF plot', use_container_width=True, type='secondary')
-                if show_acf_info_btn == True:
-                    st.write('')
-                    my_subheader('Autocorrelation Function (ACF)')
-                    st.markdown('''
-                                The **Autocorrelation Function (ACF)** plot is a statistical tool used to identify patterns of correlation between observations in a time series dataset. 
-                                It is commonly used in time series analysis to determine the extent to which a given observation is related to its previous observations.  
-                                The **ACF** plot displays the correlation coefficient between the time series and its own lagged values (i.e., the correlation between the series at time $t$ and the series at times $t_{-1}$, $t_{-2}$, $t_{-3}$, etc.).  
-                                The horizontal axis of the plot shows the lag or time difference between observations, while the vertical axis represents the correlation coefficient, ranging from -1 to 1.
-                                ''')
-                    st.write('')
-                    my_subheader('How to interpret a ACF plot')
-                    st.markdown('''Interpreting the **ACF** plot involves looking for significant peaks or spikes above the horizontal dashed lines (which represent the confidence interval) to determine if there is any correlation between the current observation and the lagged observations. 
-                                If there is a significant peak at a particular lag value, it indicates that there is a strong correlation between the observation and its lagged values up to that point.
-                                ''')
-                    st.write('')                           
-                    my_subheader('Key Points:')  
-                    st.markdown('''
-                                Some key takeaways when looking at an **ACF** plot include:  
-                                - If there are no significant peaks, then there is no significant correlation between the observations and their lagged values.
-                                - A significant peak at lag $k$ means that the observation at time $t$ is significantly correlated with the observation at time $t_{-k}$.
-                                - A gradual decay of the peaks towards zero suggests a stationary time series, while a slowly decaying **ACF** suggests a non-stationary time series.
-                                ''')
-                with col2:
-                    show_pacf_info_btn = st.button(f'About PACF plot', use_container_width=True, type='secondary')
-                if show_pacf_info_btn == True:   
-                    st.write('')    
-                    my_subheader('Partial Autocorrelation Function (PACF)')
-                    st.markdown('''
-                                The **Partial Autocorrelation Function (PACF)** is a plot of the partial correlation coefficients between a time series and its lags. 
-                                The PACF can help us determine the order of an autoregressive (AR) model by identifying the lag beyond which the autocorrelations are effectively zero.
-                                
-                                The **PACF plot** helps us identify the important lags that are related to a time series. It measures the correlation between a point in the time series and a lagged version of itself while controlling for the effects of all the other lags that come before it.
-                                In other words, the PACF plot shows us the strength and direction of the relationship between a point in the time series and a specific lag, independent of the other lags. 
-                                A significant partial correlation coefficient at a particular lag suggests that the lag is an important predictor of the time series.
-                                
-                                If a particular lag has a partial autocorrelation coefficient that falls outside of the **95%** or **99%** confidence interval, it suggests that this lag is a significant predictor of the time series. 
-                                The next step would be to consider including that lag in the autoregressive model to improve its predictive accuracy.
-                                However, it is important to note that including too many lags in the model can lead to overfitting, which can reduce the model's ability to generalize to new data. 
-                                Therefore, it is recommended to use a combination of statistical measures and domain knowledge to select the optimal number of lags to include in the model.
-                                
-                                On the other hand, if none of the lags have significant partial autocorrelation coefficients, it suggests that the time series is not well explained by an autoregressive model. 
-                                In this case, alternative modeling techniques such as **Moving Average (MA)** or **Autoregressive Integrated Moving Average (ARIMA)** may be more appropriate. 
-                                Or you could just flip a coin and hope for the best. But I don\'t recommend the latter...
-                                ''')
-                    st.write('')
-                    my_subheader('How to interpret a PACF plot')
-                    st.markdown('''
-                                The partial autocorrelation plot (PACF) is a tool used to investigate the relationship between an observation in a time series with its lagged values, while controlling for the effects of intermediate lags. Here's a brief explanation of how to interpret a PACF plot:  
-                                
-                                - The horizontal axis shows the lag values (i.e., how many time steps back we\'re looking).
-                                - The vertical axis shows the correlation coefficient, which ranges from **-1** to **1**. 
-                                  A value of :green[**1**] indicates a :green[**perfect positive correlation**], while a value of :red[**-1**] indicates a :red[**perfect negative correlation**]. A value of **0** indicates **no correlation**.
-                                - Each bar in the plot represents the correlation between the observation and the corresponding lag value. The height of the bar indicates the strength of the correlation. 
-                                  If the bar extends beyond the dotted line (which represents the 95% confidence interval), the correlation is statistically significant.  
-                                ''')
-                    st.write('')                           
-                    my_subheader('Key Points:')  
-                    st.markdown('''                            
-                                - **The first lag (lag 0) is always 1**, since an observation is perfectly correlated with itself.
-                                - A significant spike at a particular lag indicates that there may be some **useful information** in that lagged value for predicting the current observation. 
-                                  This can be used to guide the selection of lag values in time series forecasting models.
-                                - A sharp drop in the PACF plot after a certain lag suggests that the lags beyond that point **are not useful** for prediction, and can be safely ignored.
-                                ''')
-                    st.write('')
-                    my_subheader('An analogy')
-                    st.markdown('''
-                                Imagine you are watching a magic show where the magician pulls a rabbit out of a hat. Now, imagine that the magician can do this trick with different sized hats. If you were trying to figure out how the magician does this trick, you might start by looking for clues in the size of the hats.
-                                Similarly, the PACF plot is like a magic show where we are trying to figure out the "trick" that is causing our time series data to behave the way it does. 
-                                The plot shows us how strong the relationship is between each point in the time series and its past values, while controlling for the effects of all the other past values. 
-                                It's like looking at different sized hats to see which one the magician used to pull out the rabbit.
+                # create 3 buttons, about ACF/PACF/Difference for more explanation on the ACF and PACF plots
+                acf_pacf_info()
                 
-                                If the **PACF** plot shows a strong relationship between a point in the time series and its past values at a certain lag (or hat size), it suggests that this past value is an important predictor of the time series. 
-                                On the other hand, if there is no significant relationship between a point and its past values, it suggests that the time series may not be well explained by past values alone, and we may need to look for other "tricks" to understand it.
-                                In summary, the **PACF** plot helps us identify important past values of our time series that can help us understand its behavior and make predictions about its future values.
-                                ''')
-                with col3:
-                    diff_acf_pacf_info_btn = st.button(f'Difference ACF/PACF', use_container_width=True, type='secondary')
-                if diff_acf_pacf_info_btn == True: 
-                    st.write('')
-                    my_subheader('Differences explained between ACF and PACF')
-                    st.markdown('''
-                                - The **ACF** plot measures the correlation between an observation and its lagged values.
-                                - The **PACF** plot measures the correlation between an observation and its lagged values while controlling for the effects of intermediate observations.
-                                - The **ACF** plot is useful for identifying the order of a moving average **(MA)** model, while the **PACF** plot is useful for identifying the order of an autoregressive **(AR)** model.
-                                ''')
             ###############################################################################
             # 3. Data Cleaning
             ############################################################################### 
@@ -2274,40 +2605,90 @@ with tab1:
                 ##############################################################################
                 with st.sidebar:
                     # display form and sliders for outlier handling method
-                    method, contamination, outlier_replacement_method, random_state, outlier_threshold = outlier_form()
+                    method, outlier_replacement_method, random_state, contamination, outlier_threshold , q1, q3, iqr_multiplier, n_clusters, max_iter = outlier_form()
                 
                 # Plot data before and after cleaning
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(x=df_clean_show.index, 
-                                         y=df_clean_show.iloc[:,0], 
-                                         mode='markers', 
-                                         name='Before'))
-                df_cleaned_outliers = handle_outliers(df_clean_show, 
-                                                       method,
-                                                       outlier_threshold,
-                                                       outlier_replacement_method,
-                                                       contamination, 
-                                                       random_state
-                                                       )
-                # add scatterplot
-                fig.add_trace(go.Scatter(x=df_cleaned_outliers.index, 
-                                         y= df_cleaned_outliers.iloc[:,0], 
-                                         mode='markers', 
-                                         name='After'))
-                # show the outlier plot 
-                st.plotly_chart(fig, use_container_width=True)
+                df_cleaned_outliers, outliers = handle_outliers(df_clean_show, 
+                                                                method,
+                                                                outlier_threshold,
+                                                                q1,
+                                                                q3,
+                                                                max_iter, 
+                                                                n_clusters, 
+                                                                outlier_replacement_method,
+                                                                contamination, 
+                                                                random_state, 
+                                                                iqr_multiplier)
+                
+                # if outliers are found with user chosen outlier detection method and e.g. not None is selected
+                # ... run code...
+                if outliers is not None and any(outliers):
+                    outliers_df = copy_df_date_index(df_clean[outliers], datetime_to_date=True, date_to_index=True).add_suffix('_outliers')
+                    df_cleaned_outliers = df_cleaned_outliers.add_suffix('_outliers_replaced')
+                    # inner join two dataframes
+                    outliers_df = outliers_df.join(df_cleaned_outliers, how='inner', rsuffix='_outliers_replaced')
+                    
+                    ## OUTLIER FIGURE CODE
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(x=df_clean['date'], 
+                                             y=df_clean.iloc[:,1], 
+                                             mode='markers', 
+                                             name='Before',
+                                  marker=dict(color='#440154'),  opacity = 0.5))
+                    # add scatterplot
+                    fig.add_trace(go.Scatter(x=df_cleaned_outliers.index, 
+                                             y= df_cleaned_outliers.iloc[:,0], 
+                                             mode='markers', 
+                                             name='After',
+                                             marker=dict(color='#45B8AC'), opacity = 1))
+                    
+                    df_diff = df_cleaned_outliers.loc[outliers]
+                    # add scatterplot
+                    fig.add_trace(go.Scatter(x=df_diff.index, 
+                                             y= df_diff.iloc[:,0], 
+                                             mode='markers', 
+                                             name='Outliers After',
+                                             marker=dict(color='#FFC300'),  opacity = 1))
+    
+                    # show the outlier plot 
+                    st.plotly_chart(fig, use_container_width=True)
+                    #  show the dataframe of outliers
+                    st.info(f'ℹ️ You replaced **{len(outliers_df)} outlier(s)** with their respective **{outlier_replacement_method}(s)** utilizing **{method}**.')
+                
+                    # Create a function to apply the color scheme to the dataframe
+                    def highlight_cols(s):
+                        if isinstance(s, pd.Series):
+                            if s.name == outliers_df.columns[0]:
+                                return ['background-color: lavender']*len(s)
+                            elif s.name == outliers_df.columns[1]:
+                                return ['background-color: lightyellow']*len(s)
+                            else:
+                                return ['']*len(s)
+                        else:
+                            return ['']*len(s)
+                    
+                    # Apply the color scheme to the dataframe and display it
+                    # convert to int - float looks bad in dataframe:
+                    outliers_df_int = outliers_df.astype(int)
+                    st.dataframe(outliers_df_int.style.apply(highlight_cols, axis=0), use_container_width=True)
 
-                # create vertical spacings
-                col1, col2, col3 = st.columns([4,4,4])
-                with col2:
-                    # create the button to download dataframe
-                    show_df_cleaned_outliers = st.button(f'Show DataFrame', key='df_cleaned_outliers_download_btn', use_container_width=True, type='secondary')
-                if show_df_cleaned_outliers == True:
-                    # display the cleaned dataframe + optional changes in outliers made by user in streamlit
-                    st.dataframe(df_cleaned_outliers, use_container_width=True)
-                    # create a download button to download the .csv file of the cleaned dataframe
-                    download_csv_button(df_cleaned_outliers, my_file="df_cleaned_outliers.csv", set_index=True)
-            
+                    # add download button for user to be able to download outliers
+                    download_csv_button(outliers_df, my_file="df_outliers.csv", set_index=True, help_message='Download outlier dataframe to .CSV')
+                # if outliers are NOT found or None is selected as outlier detection method
+                # ... run code... 
+                # show scatterplot data without outliers
+                else:
+                    # show the outlier plot 
+                    ## OUTLIER FIGURE CODE
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(x=df_clean['date'], 
+                                             y=df_clean.iloc[:,1], 
+                                             mode='markers', 
+                                             name='Before',
+                                  marker=dict(color='#440154'),  opacity = 0.5))
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.info(f'No **outlier replacement method** selected! Please see the sidebar menu for handling outliers.')
+            ##############################################################################################               
             # reset the index again to have index instead of date column as index for further processing
             df_cleaned_outliers_with_index = df_cleaned_outliers.copy(deep=True)
             df_cleaned_outliers_with_index.reset_index(inplace=True)
@@ -2471,6 +2852,7 @@ with tab1:
                     # Show Dataframe with features
                     my_subheader('Wavelet Features', my_size=6)
                     st.dataframe(features_df_wavelet, use_container_width=True)
+                    
             #################################################################
             # ALL FEATURES COMBINED INTO A DATAFRAME
             #################################################################
