@@ -2186,59 +2186,69 @@ def outlier_form():
         my_subheader('Handling Outliers 😇😈😇 ', my_size=4, my_style='#440154')
         # form for user to select outlier handling method
         method = st.selectbox('*Select outlier detection method:*',
-                             ('None', 'Isolation Forest', 'Z-score', 'IQR', 'k-means'))
+                             ('None', 'Isolation Forest', 'Z-score', 'IQR', 
+                              #'k-means'
+                              ))
 
         # load when user selects "Isolation Forest" and presses 'Submit' detection algorithm parameters
         if method == 'Isolation Forest':
-            contamination = st.slider('Contamination:', 
-                                      min_value=0.01, 
-                                      max_value=0.5, 
-                                      step=0.01, 
-                                      value=0.01,
-                                      help='''**`Contamination parameter`** determines the *proportion of samples in the dataset that are considered to be outliers*.
-                                            It represents the expected fraction of the contamination within the data, which means it should be set to a value close to the percentage of outliers present in the data.  
-                                            A **higher** value of **contamination** will result in a **higher** number of **outliers** being detected, while a **lower** value will result in a **lower** number of **outliers** being detected.''')
-            # set the random state
-            random_state = 10
+            col1, col2, col3 = st.columns([1,12,1])
+            with col2:
+                contamination = st.slider('Contamination:', 
+                                          min_value=0.01, 
+                                          max_value=0.5, 
+                                          step=0.01, 
+                                          value=0.01,
+                                          help='''**`Contamination parameter`** determines the *proportion of samples in the dataset that are considered to be outliers*.
+                                                It represents the expected fraction of the contamination within the data, which means it should be set to a value close to the percentage of outliers present in the data.  
+                                                A **higher** value of **contamination** will result in a **higher** number of **outliers** being detected, while a **lower** value will result in a **lower** number of **outliers** being detected.''')
+                # set the random state
+                random_state = 10
         # load when user selects "Z-Score" and presses 'Submit' detection algorithm parameters
         elif method == 'Z-score':
-            outlier_threshold = st.slider(
-                'Threshold:', min_value=1.0, max_value=10.0, value=3.0, step=0.1, help='Using a threshold of 3 for the z-score outlier detection means that any data point +3 standard deviations or -3 standard deviations away from the mean is considered an outlier')
+            col1, col2, col3 = st.columns([1,12,1])
+            with col2:
+                outlier_threshold = st.slider(
+                    'Threshold:', min_value=1.0, max_value=10.0, value=3.0, step=0.1, help='Using a threshold of 3 for the z-score outlier detection means that any data point +3 standard deviations or -3 standard deviations away from the mean is considered an outlier')
         # load when user selects "IQR" and presses 'Submit' detection algorithm parameters
         elif method == 'IQR':
-            q1 = st.slider(
-                'Q1:', min_value=0.0, max_value=100.0, step=1.0, value=25.0)
-            q3 = st.slider(
-                'Q3:', min_value=0.0, max_value=100.0, step=1.0, value=75.0)
-            iqr_multiplier = st.slider('IQR multiplier:', 
-                                        min_value=1.0, 
-                                        max_value=5.0, 
-                                        step=0.1, 
-                                        value=1.5,
-                                        help='''**`IQR multiplier`** determines the value used to multiply the **Interquartile range** to detect outliers.   
-                                             For example, a value of 1.5 means that any value outside the range is considered an outlier, see formula:  
-                                             \n$Q_1 - 1.5*IQR < outlier < Q_3 + 1.5*IQR$
-                                             \nWhere `Q1` and `Q3` are the first and third quartiles, respectively, and `IQR` is the `interquartile range`, which is equal to $Q3 - Q1$.  
-                                             Quantiles are calculated by sorting a dataset in ascending order and then dividing it into equal parts based on the desired quantile value.   
-                                             For example, to calculate the first quartile `Q1`, the dataset is divided into four equal parts, and the value at which 25% of the data falls below is taken as the first quartile. 
-                                             The same process is repeated to calculate the third quartile `Q3`, which is the value at which 75% of the data falls below.''')
+            col1, col2, col3 = st.columns([1,12,1])
+            with col2:
+                q1 = st.slider(
+                    'Q1:', min_value=0.0, max_value=100.0, step=1.0, value=25.0)
+                q3 = st.slider(
+                    'Q3:', min_value=0.0, max_value=100.0, step=1.0, value=75.0)
+                iqr_multiplier = st.slider('IQR multiplier:', 
+                                            min_value=1.0, 
+                                            max_value=5.0, 
+                                            step=0.1, 
+                                            value=1.5,
+                                            help='''**`IQR multiplier`** determines the value used to multiply the **Interquartile range** to detect outliers.   
+                                                 For example, a value of 1.5 means that any value outside the range is considered an outlier, see formula:  
+                                                 \n$Q_1 - 1.5*IQR < outlier < Q_3 + 1.5*IQR$
+                                                 \nWhere `Q1` and `Q3` are the first and third quartiles, respectively, and `IQR` is the `interquartile range`, which is equal to $Q3 - Q1$.  
+                                                 Quantiles are calculated by sorting a dataset in ascending order and then dividing it into equal parts based on the desired quantile value.   
+                                                 For example, to calculate the first quartile `Q1`, the dataset is divided into four equal parts, and the value at which 25% of the data falls below is taken as the first quartile. 
+                                                 The same process is repeated to calculate the third quartile `Q3`, which is the value at which 75% of the data falls below.''')
         # load when user selects "K-means clustering" and presses 'Submit' detection algorithm parameters
         elif method == 'k-means':
-            n_clusters = st.number_input('Number of Clusters:', 
-                                          value=3, 
-                                          step=1,
-                                          help='''**`Number of Clusters`** is the number of clusters to form.
-                                                 The default value of 3 is a common value used for clustering small datasets.
-                                              ''')
-            max_iter = st.number_input('Max Iterations:', 
-                                        value=100, 
-                                        step=10,
-                                        help='''**`Max Iterations`** is the maximum number of iterations to run.
-                                                The default value of 100 is a common value used for small datasets.
-                                             ''')
+            col1, col2, col3 = st.columns([1,12,1])
+            with col2:
+                n_clusters = st.number_input('Number of Clusters:', 
+                                              value=3, 
+                                              step=1,
+                                              help='''**`Number of Clusters`** is the number of clusters to form.
+                                                     The default value of 3 is a common value used for clustering small datasets.
+                                                  ''')
+                max_iter = st.number_input('Max Iterations:', 
+                                            value=100, 
+                                            step=10,
+                                            help='''**`Max Iterations`** is the maximum number of iterations to run.
+                                                    The default value of 100 is a common value used for small datasets.
+                                                 ''')
         # form to select outlier replacement method for each outlier detection method
         if method != 'None':
-            outlier_replacement_method = st.selectbox('Replacement Method:', ('Mean', 'Median'), help='''**`Replacement method`** determines the value to replace selected outliers with.   
+            outlier_replacement_method = st.selectbox('*Select outlier replacement Method:*', ('Interpolation', 'Mean', 'Median'), help='''**`Replacement method`** determines the value to replace selected outliers with.   
                                                             For example, you can replace them with the mean or median of the dataset.''')
         else:
             outlier_replacement_method = None
@@ -2271,7 +2281,7 @@ def handle_outliers(data, method, outlier_threshold, q1, q3, max_iter, n_cluster
         pd.DataFrame: A copy of the input dataset with outlier values replaced by either the mean or median of their respective columns, depending on the value of outlier_replacement_method.
     """
     # initialize the variable before using it
-    outliers = None   
+    outliers = None
     if method == 'Isolation Forest':
         # detect and replace outlier values using Isolation Forest
         model = IsolationForest(
@@ -2310,6 +2320,13 @@ def handle_outliers(data, method, outlier_threshold, q1, q3, max_iter, n_cluster
         medians = data.median()
         for col in data.columns:
             data[col][outliers] = medians[col]
+    elif outlier_replacement_method == 'Interpolation':
+        # iterate over each column present in the dataframe
+        for col in data.columns:
+            # replace outliers with NaNs
+            data[col][outliers] = np.nan
+            # interpolate missing values using linear method
+            data[col] = data[col].interpolate(method='linear')
     return data, outliers 
 # =============================================================================
 #     elif method == 'k-means':
