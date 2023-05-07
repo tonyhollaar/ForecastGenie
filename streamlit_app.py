@@ -34,10 +34,11 @@ from plotly.subplots import make_subplots
 
 # Import statistical packages
 from scipy import stats
-from statsmodels.tsa.stattools import acf, pacf
+from statsmodels.tsa.stattools import acf, pacf, adfuller
+from scipy.stats import mode, kurtosis, skew, shapiro
+from statsmodels.stats.diagnostic import acorr_ljungbox
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-from sklearn.svm import SVR
 
 # Import data processing packages
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler, MaxAbsScaler, PowerTransformer, QuantileTransformer
@@ -101,6 +102,397 @@ print('ForecastGenie Print: Loaded Global Variables')
 ###############################################################################
 # FUNCTIONS
 ###############################################################################
+#******************************************************************************
+# STATISTICAL TEST FUNCTIONS
+#******************************************************************************
+################################################
+# SUMMARY STATISTICS DESCRIPTIVE LABEL FUNCTIONS
+################################################
+def create_summary_df(data):
+    """
+    Create a DataFrame with summary statistics for the input data.
+
+    Parameters
+    ----------
+    data : pandas DataFrame or pandas Series
+        The data for which summary statistics are to be computed.
+
+    Returns
+    -------
+    summary_df : pandas DataFrame
+        A DataFrame with summary statistics for the input data.
+    """
+    if isinstance(data, pd.Series):
+        data = pd.DataFrame(data)
+    if not isinstance(data, pd.DataFrame):
+        raise TypeError('Input data must be a pandas DataFrame or Series')
+    
+    ####################################                        
+    # Compute summary statistics
+    ####################################
+    length = data.shape[0]
+    length_label = dataset_size_function(data)
+    percent_missing = (data.isna().mean())[0]
+    
+    ####################################
+    # drop rows with missing values
+    ####################################
+    num_missing = data.isnull().sum()[0]
+    missing_label_value, missing_label_perc = missing_value_function(data)
+    if num_missing > 0:
+        data.dropna(inplace=True)    
+        st.warning(f'''**Warning** ⚠️:  
+                 **{num_missing}** NaN values were excluded to be able to calculate metrics such as: *skewness*, *kurtosis* and *White-Noise* test.''')
+    else:
+        pass
+    
+    ########################
+    # Continued Code 
+    # Summary Statistics
+    ########################
+    mean = data.mean()
+    mean_label, mean_position = mean_label_function(data)
+    median = data.median()
+    median_label, median_position = median_label_function(data)
+    mode_val = mode(data)[0][0]
+    std_dev = data.std()
+    std_label = std_label_function(data)
+    variance = data.var()
+    var_label = var_label_function(data)
+    num_distinct = data.nunique()
+    distinct_label = distinct_values_label_function(data)
+    kurt = kurtosis(data)[0]
+    kurtosis_label = kurtosis_label_function(data)
+    skewness = skew(data)[0]
+    # Define skewness labels
+    if skewness < -1.0:
+        skewness_type = "Highly negatively skewed"
+    elif -1.0 <= skewness < -0.5:
+        skewness_type = "Moderately negatively skewed"
+    elif -0.5 <= skewness <= 0.5:
+        skewness_type = "Approximately symmetric"
+    elif 0.5 < skewness <= 1.0:
+        skewness_type = "Moderately positively skewed"
+    else:
+        skewness_type = "Highly positively skewed"                    
+    
+    #******************************                    
+    # ? TEST ? Ljung-Box Test   
+    #******************************                
+    # Fit ARMA model to dataset
+    
+    # =============================================================================
+    #                     # Fit ARMA model to dataset
+    #                     model = sm.tsa.ARMA(data, order=(1, 1))
+    #                     res = model.fit(disp=-1)
+    # =============================================================================        
+    # define the model
+    model = sm.tsa.AutoReg(data, lags=[1], trend='c', old_names=False)
+    # train model on the residuals
+    res = model.fit()
+    # Perform Ljung-Box test on residuals with lag=24 and lag=48
+    result_ljungbox = sm.stats.acorr_ljungbox(res.resid, lags=[24, 48], return_df=True)
+    test_statistic_ljungbox_24 = result_ljungbox.iloc[0]['lb_stat']
+    test_statistic_ljungbox_48 = result_ljungbox.iloc[1]['lb_stat']
+    p_value_ljungbox_24 = result_ljungbox.iloc[0]['lb_pvalue']
+    p_value_ljungbox_48 = result_ljungbox.iloc[1]['lb_pvalue']
+    white_noise_24 = "True" if p_value_ljungbox_24 > 0.05 else "False"
+    white_noise_48 = "True" if p_value_ljungbox_48 > 0.05 else "False"
+    # ?? END TEST ??
+    
+    #******************************
+    # Augmented Dickey-Fuller Test
+    #******************************
+    result = adfuller(data)
+    stationarity = "Stationary" if result[0] < result[4]["5%"] else "Non-Stationary"
+    p_value = result[1]
+    test_statistic = result[0]
+    critical_value_1 = result[4]["1%"]
+    critical_value_5 = result[4]["5%"]
+    critical_value_10 = result[4]["10%"]
+    
+    #***********************
+    # Perform Shapiro Test
+    #***********************
+    shapiro_stat, shapiro_pval = shapiro(data)
+    normality = "True" if shapiro_pval > 0.05 else "False"
+    
+    ###########################
+    # Create summary DataFrame
+    ###########################
+    summary_df = pd.DataFrame(columns=['Test', 'Test Name', 'Property', 'Settings', str('Column: ' + data.columns[0]), 'Label'])
+    summary_df.loc[0] = ['Summary', 'Statistics', 'Length', '-', length, length_label]	
+    summary_df.loc[1] = ['', '', '# Missing Values', '-', num_missing, missing_label_value]
+    summary_df.loc[2] = ['', '', '% Missing Values', '-', f"{percent_missing:.2%}", missing_label_perc]
+    summary_df.loc[3] = ['', '', 'Mean', '-', round(mean[0], 2), f'{mean_label} and {mean_position}']
+    summary_df.loc[4] = ['', '', 'Median', '-', round(median[0], 2), f'{median_label} and {median_position}']
+    summary_df.loc[5] = ['', '', 'Standard Deviation', '-', round(std_dev[0],2), std_label]
+    summary_df.loc[6] = ['', '', 'Variance', '-', round(variance[0],2), var_label]
+    summary_df.loc[7] = ['', '', 'Kurtosis', '-', round(kurt,2), kurtosis_label]
+    summary_df.loc[8] = ['', '', 'Skewness', '-', round(skewness,2), skewness_type]
+    summary_df.loc[9] = ['', '', '# Distinct Values', '-', num_distinct[0], distinct_label]
+    summary_df.loc[10] = ['White Noise', 'Ljung-Box', 'Test Statistic', '24', round(test_statistic_ljungbox_24, 4), '-']
+    summary_df.loc[11] = ['', '', 'Test Statistic', '48', round(test_statistic_ljungbox_24, 4), '-']
+    summary_df.loc[12] = ['', '', 'p-value', '24', round(p_value_ljungbox_24, 4), '-']
+    summary_df.loc[13] = ['', '', '', '48', round(p_value_ljungbox_48, 4), '-']
+    summary_df.loc[14] = ['', '', 'White Noise', '24', white_noise_24, '-']
+    summary_df.loc[15] = ['', '', '', '48', white_noise_48, '-']
+    summary_df.loc[16] = ['Stationarity', 'ADF', 'Stationarity', '0.05', stationarity, '-']
+    summary_df.loc[17] = ['', '', 'p-value', '0.05', round(p_value, 4), '-']
+    summary_df.loc[18] = ['', '', 'Test-Statistic', '0.05', round(test_statistic, 4), '-']
+    summary_df.loc[19] = ['', '', 'Critical Value 1%', '0.05', round(critical_value_1, 4), '-']
+    summary_df.loc[20] = ['', '', 'Critical Value 5%', '0.05', round(critical_value_5, 4), '-']
+    summary_df.loc[21] = ['', '', 'Critical Value 10%', '0.05', round(critical_value_10, 4), '-']
+    summary_df.loc[22] = ['Normality', 'Shapiro', 'Normality', '0.05', normality, '-']
+    summary_df.loc[23] = ['', '', 'p-value', '0.05', round(shapiro_pval, 4), '-']
+
+    return summary_df
+def dataset_size_function(data):
+    """
+    This function takes in a dataset and returns a label describing the size of the dataset.
+    """
+    num_rows = data.shape[0]
+    if num_rows < 50:
+        size_label = "Small dataset"
+    elif num_rows < 1000:
+        size_label = "Medium dataset"
+    else:
+        size_label = "Large dataset"
+    return size_label
+
+def missing_value_function(data):
+    """
+    This function takes in a dataset and returns a label based on the percentage of missing values in the dataset.
+    """
+    num_missing = data.isnull().sum()[0]
+    num_total = data.size
+    missing_ratio = num_missing / num_total
+    if missing_ratio == 0:
+        missing_label_value = "No missing values"
+        missing_label_perc = "No percentage missing"
+    elif missing_ratio < 0.01:
+        missing_label_value = "Very few missing values"
+        missing_label_perc = "Very Low percentage missing"
+    elif missing_ratio < 0.05:
+        missing_label_value = "Some missing values"
+        missing_label_perc = "Low percentage missing"
+    elif missing_ratio < 0.1:
+        missing_label_value = "Many missing values"
+        missing_label_perc = "High percentage missing"
+    else:
+        missing_label_value = "A large percentage of missing values"
+        missing_label_perc = "Very high percentage missing"
+    return missing_label_value, missing_label_perc
+
+def std_label_function(data):
+    """
+    This function takes in a dataset, calculates the standard deviation, and returns a label based on the size of the standard deviation relative to the range of the dataset.
+    """
+    std = data.std()
+    range_data = data.min() - data.max()
+    std_ratio = (std / range_data)[0]
+    if std_ratio <= 0.1:
+        std_label = "Very small variability"
+    elif std_ratio <= 0.3:
+        std_label = "Small variability"
+    elif std_ratio <= 0.5:
+        std_label  = "Moderate variability"
+    elif std_ratio <= 0.7:
+        std_label  = "Large variability"
+    else:
+        std_label = "Very large variability"
+    return std_label
+    
+def var_label_function(data):
+    """
+    This function takes in a dataset, calculates the variance, and returns a label based on the size of the variance relative to the range of the dataset.
+    """
+    var = data.var()
+    range_data = data.min() - data.max()
+    var_ratio = (var / range_data)[0]
+    if var_ratio <= 0.1:
+        var_label = "Very small variance"
+    elif var_ratio <= 0.3:
+        var_label = "Small variance"
+    elif var_ratio <= 0.5:
+        var_label = "Moderate variance"
+    elif var_ratio <= 0.7:
+        var_label = "Large variance"
+    else:
+        var_label = "Very large variance"
+    return var_label
+
+def mean_label_function(data):
+    """
+    This function takes in a dataset, calculates the mean, and returns a label based on the position of the mean relative to the range of the dataset.
+    """
+    median = data.median()[0]
+    mean = data.mean()[0]
+    range_data = data.max() - data.min()
+    mean_ratio = ((mean - data.min()) / range_data)[0]
+    if mean_ratio < 0.25:
+        mean_label = "Skewed left"
+    elif mean_ratio > 0.75:
+        mean_label = "Skewed right"
+    else:
+        mean_label = "Balanced"
+    if mean > median:
+        mean_position = "above median"
+    elif mean < median:
+        mean_position = "below median"
+    else:
+        mean_position = "equal to median"
+    return mean_label, mean_position
+
+def median_label_function(data):
+    """
+    This function takes in a dataset, calculates the median, and returns a label based on the position of the median relative to the range of the dataset.
+    """
+    median = data.median()[0]
+    range_data = data.max() - data.min()
+    median_ratio = ((median - data.min()) / range_data)[0]
+    mean = data.mean()[0]
+    mean_ratio = (mean - data.min()) / range_data
+    if median_ratio < 0.25:
+        median_label = "Skewed left"
+    elif median_ratio > 0.75:
+        median_label = "Skewed right"
+    else:
+        median_label = "Balanced"
+    if median > mean:
+        median_position = "above mean"
+    elif median < mean:
+        median_position = "below mean"
+    else:
+        median_position = "equal to mean"
+    return median_label, median_position
+        
+def kurtosis_label_function(data):
+    """
+    This function takes in a dataset, calculates the kurtosis, and returns a label based on the kurtosis value.
+    """
+    kurt = data.kurtosis()[0]
+    if kurt < -2.0:
+        kurtosis_label = 'Highly platykurtic (thin tails)'
+    elif -2.0 <= kurt < -0.5:
+        kurtosis_label = 'Moderately platykurtic (thin tails)'
+    elif -0.5 <= kurt <= 0.5:
+        kurtosis_label = 'Mesokurtic (medium tails)'
+    elif 0.5 < kurt <= 2.0:
+        kurtosis_label = 'Moderately leptokurtic (fat tails)'
+    else:
+        kurtosis_label = 'Highly leptokurtic (fat tails)'
+    return kurtosis_label
+
+def distinct_values_label_function(data):
+    """
+    This function takes in a dataset and returns a label based on the number of distinct values in the dataset.
+    """
+    num_distinct = len(data.drop_duplicates())
+    num_total = len(data)
+    distinct_ratio = num_distinct / num_total
+    if distinct_ratio < 0.05:
+        distinct_values_label = "Very low amount of distinct values"
+    elif distinct_ratio < 0.1:
+        distinct_values_label = "Low amount of distinct values"
+    elif distinct_ratio < 0.5:
+        distinct_values_label = "Moderate amount of distinct values"
+    elif distinct_ratio < 0.9:
+        distinct_values_label = "High amount of distinct values"
+    else:
+        distinct_values_label = "Very high amount of distinct values"
+    return distinct_values_label
+
+def adf_test(df, variable_loc, max_diffs=3):
+    """
+    Perform the Augmented Dickey-Fuller (ADF) test for stationarity on a time series.
+
+    Parameters
+    ----------
+    df : pandas DataFrame
+        The time series data.
+    variable_loc : int or tuple or list or pandas.Series
+        The location of the variable to test for stationarity, which can be a single integer (if the variable
+        is located in a single-column DataFrame), a tuple or list of integers (if the variable is located
+        in a multi-column DataFrame), or a pandas Series.
+    max_diff : int, optional
+        The maximum number of times to difference the time series if it is non-stationary.
+        Defaults to 3.
+
+    Returns
+    -------
+    result : str
+        A string containing the results of the ADF test.
+    """
+    # Select the variable to test for stationarity
+    if isinstance(variable_loc, int):
+        variable = df.iloc[:, variable_loc]
+    elif isinstance(variable_loc, (tuple, list)):
+        variable = df.iloc[:, variable_loc]
+    elif isinstance(variable_loc, pd.Series):
+        variable = variable_loc
+    else:
+        raise ValueError("The 'variable_loc' argument must be an integer, tuple, list, or pandas Series.")
+    
+    # Drop missing values
+    variable = variable.dropna()
+    col1, col2, col3 = st.columns([1,3,1])
+    # Check if the time series is stationary
+    p_value = adfuller(variable, autolag='AIC')[1]
+    # Check if the p-value is less than or equal to 0.05
+    if p_value <= 0.05:
+        # If the p-value is less than 0.001, use scientific notation with 2 decimal places
+        if p_value < 1e-3:
+            p_value_str = f"{p_value:.2e}"
+        # Otherwise, use regular decimal notation with 3 decimal places
+        else:
+            p_value_str = f"{p_value:.3f}"
+    if p_value <= 0.05:
+        with col2:
+            st.write('') # newline vertical space
+            h0 = st.markdown(r'$H_0$: The time series has a unit root, meaning it is **non-stationary**. It has some time dependent structure.')
+            st.write('') # newline vertical space
+            h1 = st.markdown(r'$H_1$: The time series does **not** have a unit root, meaning it is **stationary**. It does not have time-dependent structure.')
+            st.write('') # newline vertical space
+            result = f'**Conclusion:**\
+                      The null hypothesis can be :red[**rejected**] with a p-value of **`{p_value:.5f}`**, which is smaller than `0.05`.'
+    else:
+        # If the time series remains non-stationary after max_diffs differencings, return the non-stationary result
+        for i in range(1, max_diffs+1):
+            # Difference the time series
+            diff_variable = variable.diff(i).dropna()
+            # Check if the differenced time series is stationary
+            p_value = adfuller(diff_variable, autolag='AIC')[1]
+            # Check if the p-value is less than or equal to 0.05
+            if p_value <= 0.05:
+                # If the p-value is less than 0.001, use scientific notation with 2 decimal places
+                if p_value < 1e-3:
+                    p_value_str = f"{p_value:.2e}"
+                # Otherwise, use regular decimal notation with 3 decimal places
+                else:
+                    p_value_str = f"{p_value:.3f}"
+
+                # If the differenced time series is stationary, return the result
+                with col2:
+                    st.write('') # newline vertical space
+                    h0 = st.markdown(r'$H_0$: The time series has a unit root, meaning it is :red[**non-stationary**]. It has some time dependent structure.')
+                    st.write('') # newline vertical space
+                    h1 = st.markdown(r'$H_1$: The time series does **not** have a unit root, meaning it is :green[**stationary**]. It does not have time-dependent structure.')
+                    st.write('') # newline vertical space
+                    result = f'**Conclusion:**\
+                              The null hypothesis can be :red[**rejected**] with a p-value of **`{p_value_str}`**, which is smaller than `0.05` after differencing the time series **`{i}`** time(s).'
+                break
+            else:
+               # If the time series remains non-stationary after max_diffs differencings, return the non-stationary result
+                result = f'The {variable.name} time series is non-stationary even after **differencing** up to **{max_diffs}** times. Last ADF p-value: {p_value:.5f}'
+                
+                with col2:
+                    max_diffs = st.slider(':red[[Optional]] *Adjust maximum number of differencing:*', min_value=0, max_value=10, value=3, step=1, help='Adjust maximum number of differencing if Augmented Dickey-Fuller Test did not become stationary after differencing the data e.g. 3 times (default value)')
+    return result
+
+#******************************************************************************
+# GRAPH FUNCTIONS
+#******************************************************************************
 def acf_pacf_info():
     col1, col2, col3 = st.columns([5,5,5])
     with col1:
@@ -190,6 +582,34 @@ def acf_pacf_info():
                     - The **PACF** plot measures the correlation between an observation and its lagged values while controlling for the effects of intermediate observations.
                     - The **ACF** plot is useful for identifying the order of a moving average **(MA)** model, while the **PACF** plot is useful for identifying the order of an autoregressive **(AR)** model.
                     ''')
+def chart_title(title, subtitle, font, font_size):
+    """
+    Creates a dictionary containing the properties for a chart title and subtitle.
+
+    Parameters:
+    -----------
+    title : str
+        The main title of the chart.
+    subtitle : str
+        The subtitle of the chart.
+    font : str
+        The name of the font to be used for the title and subtitle.
+    font_size : int
+        The font size to be used for the title and subtitle.
+
+    Returns:
+    --------
+    dict
+        A dictionary containing the properties for the chart title and subtitle,
+        including the text, font size, font family, and anchor position.
+    """
+    return {
+            "text": title,
+            "subtitle": subtitle,
+            "fontSize": font_size,
+            "font": font,
+            "anchor": "middle"
+            }
 
 def altair_correlation_chart(total_features, importance_scores, pairwise_features_in_total_features, corr_threshold):
     """
@@ -269,6 +689,285 @@ def altair_correlation_chart(total_features, importance_scores, pairwise_feature
     # show altair chart with pairwise correlation importance scores and in red lowest and green highest
     st.altair_chart(grid_chart, use_container_width=True)
 
+def display_dataframe_graph(df, key=0):
+    """
+    Displays a line chart of a Pandas DataFrame using Plotly Express.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The DataFrame to display.
+    key : int or str, optional
+        An optional identifier used to cache the output of the function when called with the same arguments,
+        by default 0.
+
+    Returns
+    -------
+    None
+        The function displays the chart in the Streamlit app.
+
+    """
+    fig = px.line(df,
+                  x=df.index,
+                  y=df.columns,
+                  #labels=dict(x="Date", y="y"),
+                  title='')
+    # Set Plotly configuration options
+    fig.update_layout(width=800, height=400, xaxis=dict(title='Date'), yaxis=dict(title='', rangemode='tozero'), legend=dict(x=0.9, y=0.9))
+    # set line color and width
+    fig.update_traces(line=dict(color='#45B8AC', width=2))
+    # Add the range slider to the layout
+    fig.update_layout(
+        xaxis=dict(
+            rangeselector=dict(
+                buttons=list([
+                    dict(count=7, label='1w', step='day', stepmode='backward'),
+                    dict(count=1, label='1m', step='month', stepmode='backward'),
+                    dict(count=6, label='6m', step='month', stepmode='backward'),
+                    dict(count=1, label='YTD', step='year', stepmode='todate'),
+                    dict(count=1, label='1y', step='year', stepmode='backward'),
+                    dict(step='all')
+                ]),
+                x=0.3,
+                y=1.2,
+                yanchor='top',
+                font=dict(size=10),
+            ),
+            rangeslider=dict( #bgcolor='45B8AC',
+                visible=True,
+                range=[df.index.min(), df.index.max()]  # Set range of slider based on data
+            ),
+            type='date'
+        )
+    )
+    # Display Plotly Express figure in Streamlit
+    st.plotly_chart(fig, use_container_width=True, key=key)
+    
+def create_rfe_plot(df_ranking):
+    """
+    Create a scatter plot of feature rankings and selected features.
+
+    Parameters:
+        df_ranking (pandas.DataFrame): A DataFrame with feature rankings and selected features.
+
+    Returns:
+        None
+    """
+    fig = px.scatter(df_ranking, x='Features', y='Ranking', color='Selected', hover_data=['Ranking'])
+    fig.update_layout(
+        title={
+            'text': 'Recursive Feature Elimination with Cross-Validation (RFECV)',
+            'x': 0.5,
+            'y': 0.95,
+            'xanchor': 'center',
+            'yanchor': 'top'
+        },
+        xaxis_title='Features',
+        yaxis_title='Ranking',
+        legend_title='Selected',
+        xaxis_tickangle=-45 # set the tickangle to x degrees
+    )
+    return fig  
+
+def plot_scaling_before_after(X_unscaled_train, X_train, numerical_features):
+    """
+    Plots a figure showing the unscaled and scaled data for each numerical feature.
+
+    Parameters:
+    -----------
+    X_unscaled_train : pandas.DataFrame
+        The unscaled training data.
+    X_train : pandas.DataFrame
+        The scaled training data.
+    numerical_features : list
+        The list of numerical feature names.
+
+    Returns:
+    --------
+    None.
+    """
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True)
+    # create trace for unscaled data for each feature
+    for feature in numerical_features:
+        trace_unscaled = go.Scatter(
+            x=X_unscaled_train.index,
+            y=X_unscaled_train[feature],
+            mode='lines',
+            name=feature
+        )
+        fig.add_trace(trace_unscaled, row=1, col=1)
+    # create trace for scaled data for each feature
+    for feature in numerical_features:
+        trace_scaled = go.Scatter(
+            x=X_train.index,
+            y=X_train[feature],
+            mode='lines',
+            name=f'{feature} (scaled)'
+        )
+        fig.add_trace(trace_scaled, row=2, col=1)
+    # add selection event handler
+    updatemenu = []
+    buttons = []
+    buttons.append(dict(label='All',
+                        method='update',
+                        args=[{'visible': [True] * len(fig.data)}]))   
+    for feature in numerical_features:
+        button = dict(
+                        label=feature,
+                        method="update",
+                        args=[{"visible": [False] * len(fig.data)},
+                              {"title": f"Feature: {feature}"}],
+                    )
+        button['args'][0]['visible'][numerical_features.index(feature)] = True
+        button['args'][0]['visible'][numerical_features.index(feature) + len(numerical_features)] = True
+        buttons.append(button)
+    updatemenu.append(dict(buttons=buttons, 
+                           direction="down", 
+                           showactive=True, 
+                           pad={"r": 5, "t": 5},
+                           x=0.5, 
+                           xanchor="center", 
+                           y=1.2, 
+                           yanchor="top"
+                           )
+                      )
+    fig.update_layout(updatemenus=updatemenu, 
+                      title="Feature: " + numerical_features[0])
+    fig.update_xaxes(title_text="Date", row=2, col=1)
+    fig.update_yaxes(title_text="Unscaled", row=1, col=1, fixedrange=True)
+    fig.update_yaxes(title_text="Scaled", row=2, col=1, fixedrange=True)
+    fig.update_layout(
+        legend=dict(
+            orientation="v",
+            yanchor="top",
+            y=1.1,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(0,0,0,0)",
+            font=dict(size=12, family="Arial")
+        ),
+        updatemenus=updatemenu,
+        title={
+            'text': '',
+            'y': 0.95,
+            'x': 0.5,
+            'xanchor': 'center',
+            'yanchor': 'top'
+        }
+    )
+    # show the figure in streamlit app
+    st.plotly_chart(fig, use_container_width=True)
+
+def plot_train_test_split(local_df, split_index):
+    """
+    Plot the train-test split of the given dataframe.
+    
+    Parameters:
+    -----------
+    local_df: pandas.DataFrame
+        A pandas dataframe containing the time series data.
+    split_index: int
+        The index position that represents the split between the training and test set.
+    
+    Returns:
+    --------
+    fig: plotly.graph_objs._figure.Figure
+        A plotly Figure object containing the train-test split plot.
+    """
+    # Get the absolute maximum value of the data
+    max_value = abs(local_df.iloc[:, 0]).max()
+    fig = go.Figure()
+    fig.add_trace(
+                    go.Scatter(x=local_df.index[:split_index],
+                               y=local_df.iloc[:split_index, 0],
+                               mode='lines',
+                               name='Train',
+                               line=dict(color='#217CD0'))
+                  )
+    fig.add_trace(
+        go.Scatter(x=local_df.index[split_index:],
+                   y=local_df.iloc[split_index:, 0],
+                   mode='lines',
+                   name='Test',
+                   line=dict(color='#FFA500')))
+    fig.update_layout(title='',
+                      yaxis=dict(range=[-max_value*1.1, max_value*1.1]), # Set y-axis range to include positive and negative values
+                      shapes=[dict(type='line',
+                                    x0=local_df.index[split_index],
+                                    y0=-max_value*1.1, # Set y0 to -max_value*1.1
+                                    x1=local_df.index[split_index],
+                                    y1=max_value*1.1, # Set y1 to max_value*1.1
+                                    line=dict(color='grey',
+                                              dash='dash'))],
+                      annotations=[dict(x=local_df.index[split_index],
+                                        y=max_value*1.05,
+                                        xref='x',
+                                        yref='y',
+                                        text='Train/Test<br>Split',
+                                        showarrow=True,
+                                        font=dict(color="grey", size=15),
+                                        arrowhead=1,
+                                        ax=0,
+                                        ay=-40)])
+    split_date = local_df.index[split_index-1]
+    fig.add_annotation(x=split_date,
+                       y=0.95*max_value,
+                       text=str(split_date.date()),
+                       showarrow=False,
+                       font=dict(color="grey", size=15))
+    return fig    
+
+def correlation_heatmap(X, correlation_threshold=0.8):
+    """
+    Description:
+        This function generates a correlation heatmap for a given pandas DataFrame X, 
+        showing only features that have a correlation higher or equal to the given correlation_threshold.
+    Parameters:
+        X : pandas DataFrame object
+            The input dataset for which the correlation heatmap is to be generated.
+        correlation_threshold : float (default=0.8)
+            The correlation threshold value that will determine which features are shown in the heatmap. 
+            Only features with a correlation higher or equal to the given threshold will be displayed in the heatmap.
+    Returns:
+        None
+    """
+    # create a new dataframe with only features that have a correlation higher or equal to the threshold
+    corr_matrix = X.corr()
+    features_to_keep = corr_matrix[abs(corr_matrix) >= corr_threshold].stack().reset_index().iloc[:, [0, 1]]
+    features_to_keep.columns = ['feature1', 'feature2']
+    features_to_keep = features_to_keep[features_to_keep['feature1'] != features_to_keep['feature2']]
+    X_corr = X[features_to_keep['feature1'].unique()]
+    # compute correlation matrix
+    corr_matrix = X_corr.corr()
+    # create heatmap using plotly express
+    fig = px.imshow(corr_matrix.values,
+                    color_continuous_scale="Blues",
+                    zmin=-1,
+                    zmax=1,
+                    labels=dict(x="Features", y="Features", color="Correlation"),
+                    x=corr_matrix.columns,
+                    y=corr_matrix.columns,
+                    origin='lower')
+    # add text annotations to heatmap cells
+    for i in range(len(corr_matrix)):
+        for j in range(i + 1, len(corr_matrix)):
+            if abs(corr_matrix.iloc[i, j]) > corr_threshold:
+                fig.add_annotation(x=i, y=j, text="{:.2f}".format(corr_matrix.iloc[i, j]), font=dict(color='white'))
+    # add colorbar title
+    fig.update_coloraxes(colorbar_title="Correlation")
+    # set x and y axis labels to diagonal orientation
+    fig.update_xaxes(tickangle=-45, showticklabels=True)
+    fig.update_yaxes(tickangle=0, showticklabels=True)
+    # adjust heatmap size and margins
+    fig.update_layout(width=800,
+                      height=800,
+                      margin=dict(l=200, r=200, t=100, b=100))
+    # show plotly figure in streamlit
+    st.plotly_chart(fig, use_container_width=True)
+    
+#******************************************************************************
+# DOCUMENTATION FUNCTIONS
+#******************************************************************************
 def model_documentation(show=True):
     ''' SHOW MODEL DOCUMENTATION
         - Naive Model
@@ -372,7 +1071,10 @@ def model_documentation(show=True):
                         ''')
     else:
         pass
-
+    
+#******************************************************************************
+# OTHER FUNCTIONS
+#******************************************************************************
 def display_summary_statistics(df):
     """
     Calculate summary statistics for a given DataFrame.
@@ -402,59 +1104,6 @@ def display_summary_statistics(df):
     summary.columns = ['Min', 'Max', 'Mean', 'Median', 'Std', 'dtype']
     return summary
 
-def display_dataframe_graph(df, key=0):
-    """
-    Displays a line chart of a Pandas DataFrame using Plotly Express.
-
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        The DataFrame to display.
-    key : int or str, optional
-        An optional identifier used to cache the output of the function when called with the same arguments,
-        by default 0.
-
-    Returns
-    -------
-    None
-        The function displays the chart in the Streamlit app.
-
-    """
-    fig = px.line(df,
-                  x=df.index,
-                  y=df.columns,
-                  #labels=dict(x="Date", y="y"),
-                  title='')
-    # Set Plotly configuration options
-    fig.update_layout(width=800, height=400, xaxis=dict(title='Date'), yaxis=dict(title='', rangemode='tozero'), legend=dict(x=0.9, y=0.9))
-    # set line color and width
-    fig.update_traces(line=dict(color='#45B8AC', width=2))
-    # Add the range slider to the layout
-    fig.update_layout(
-        xaxis=dict(
-            rangeselector=dict(
-                buttons=list([
-                    dict(count=7, label='1w', step='day', stepmode='backward'),
-                    dict(count=1, label='1m', step='month', stepmode='backward'),
-                    dict(count=6, label='6m', step='month', stepmode='backward'),
-                    dict(count=1, label='YTD', step='year', stepmode='todate'),
-                    dict(count=1, label='1y', step='year', stepmode='backward'),
-                    dict(step='all')
-                ]),
-                x=0.3,
-                y=1.2,
-                yanchor='top',
-                font=dict(size=10),
-            ),
-            rangeslider=dict( #bgcolor='45B8AC',
-                visible=True,
-                range=[df.index.min(), df.index.max()]  # Set range of slider based on data
-            ),
-            type='date'
-        )
-    )
-    # Display Plotly Express figure in Streamlit
-    st.plotly_chart(fig, use_container_width=True, key=key)
 
 # define function to generate demo time-series data
 def generate_demo_data(seed=42):
@@ -552,32 +1201,6 @@ def forecast_wavelet_features(X, features_df_wavelet, future_dates, df_future_da
             return df_future_dates
         except:
             st.warning('Error: Discrete Wavelet Features are not created correctly, please remove from selection criteria')
-            
-def create_rfe_plot(df_ranking):
-    """
-    Create a scatter plot of feature rankings and selected features.
-
-    Parameters:
-        df_ranking (pandas.DataFrame): A DataFrame with feature rankings and selected features.
-
-    Returns:
-        None
-    """
-    fig = px.scatter(df_ranking, x='Features', y='Ranking', color='Selected', hover_data=['Ranking'])
-    fig.update_layout(
-        title={
-            'text': 'Recursive Feature Elimination with Cross-Validation (RFECV)',
-            'x': 0.5,
-            'y': 0.95,
-            'xanchor': 'center',
-            'yanchor': 'top'
-        },
-        xaxis_title='Features',
-        yaxis_title='Ranking',
-        legend_title='Selected',
-        xaxis_tickangle=-45 # set the tickangle to x degrees
-    )
-    return fig
 
 def rfe_cv(X_train, y_train, est_rfe, num_steps_rfe, num_features, timeseriessplit_value_rfe):
     """
@@ -651,183 +1274,6 @@ def rfe_cv(X_train, y_train, est_rfe, num_steps_rfe, num_features, timeseriesspl
                     ''')
     return selected_cols_rfe
 
-def plot_scaling_before_after(X_unscaled_train, X_train, numerical_features):
-    """
-    Plots a figure showing the unscaled and scaled data for each numerical feature.
-
-    Parameters:
-    -----------
-    X_unscaled_train : pandas.DataFrame
-        The unscaled training data.
-    X_train : pandas.DataFrame
-        The scaled training data.
-    numerical_features : list
-        The list of numerical feature names.
-
-    Returns:
-    --------
-    None.
-    """
-    fig = make_subplots(rows=2, cols=1, shared_xaxes=True)
-    # create trace for unscaled data for each feature
-    for feature in numerical_features:
-        trace_unscaled = go.Scatter(
-            x=X_unscaled_train.index,
-            y=X_unscaled_train[feature],
-            mode='lines',
-            name=feature
-        )
-        fig.add_trace(trace_unscaled, row=1, col=1)
-    # create trace for scaled data for each feature
-    for feature in numerical_features:
-        trace_scaled = go.Scatter(
-            x=X_train.index,
-            y=X_train[feature],
-            mode='lines',
-            name=f'{feature} (scaled)'
-        )
-        fig.add_trace(trace_scaled, row=2, col=1)
-    # add selection event handler
-    updatemenu = []
-    buttons = []
-    buttons.append(dict(label='All',
-                        method='update',
-                        args=[{'visible': [True] * len(fig.data)}]))   
-    for feature in numerical_features:
-        button = dict(
-                        label=feature,
-                        method="update",
-                        args=[{"visible": [False] * len(fig.data)},
-                              {"title": f"Feature: {feature}"}],
-                    )
-        button['args'][0]['visible'][numerical_features.index(feature)] = True
-        button['args'][0]['visible'][numerical_features.index(feature) + len(numerical_features)] = True
-        buttons.append(button)
-    updatemenu.append(dict(buttons=buttons, 
-                           direction="down", 
-                           showactive=True, 
-                           pad={"r": 5, "t": 5},
-                           x=0.5, 
-                           xanchor="center", 
-                           y=1.2, 
-                           yanchor="top"
-                           )
-                      )
-    fig.update_layout(updatemenus=updatemenu, 
-                      title="Feature: " + numerical_features[0])
-    fig.update_xaxes(title_text="Date", row=2, col=1)
-    fig.update_yaxes(title_text="Unscaled", row=1, col=1, fixedrange=True)
-    fig.update_yaxes(title_text="Scaled", row=2, col=1, fixedrange=True)
-    fig.update_layout(
-        legend=dict(
-            orientation="v",
-            yanchor="top",
-            y=1.1,
-            xanchor="right",
-            x=1,
-            bgcolor="rgba(0,0,0,0)",
-            font=dict(size=12, family="Arial")
-        ),
-        updatemenus=updatemenu,
-        title={
-            'text': '',
-            'y': 0.95,
-            'x': 0.5,
-            'xanchor': 'center',
-            'yanchor': 'top'
-        }
-    )
-    # show the figure in streamlit app
-    st.plotly_chart(fig, use_container_width=True)
-
-def chart_title(title, subtitle, font, font_size):
-    """
-    Creates a dictionary containing the properties for a chart title and subtitle.
-
-    Parameters:
-    -----------
-    title : str
-        The main title of the chart.
-    subtitle : str
-        The subtitle of the chart.
-    font : str
-        The name of the font to be used for the title and subtitle.
-    font_size : int
-        The font size to be used for the title and subtitle.
-
-    Returns:
-    --------
-    dict
-        A dictionary containing the properties for the chart title and subtitle,
-        including the text, font size, font family, and anchor position.
-    """
-    return {
-            "text": title,
-            "subtitle": subtitle,
-            "fontSize": font_size,
-            "font": font,
-            "anchor": "middle"
-            }
-
-def plot_train_test_split(local_df, split_index):
-    """
-    Plot the train-test split of the given dataframe.
-    
-    Parameters:
-    -----------
-    local_df: pandas.DataFrame
-        A pandas dataframe containing the time series data.
-    split_index: int
-        The index position that represents the split between the training and test set.
-    
-    Returns:
-    --------
-    fig: plotly.graph_objs._figure.Figure
-        A plotly Figure object containing the train-test split plot.
-    """
-    # Get the absolute maximum value of the data
-    max_value = abs(local_df.iloc[:, 0]).max()
-    fig = go.Figure()
-    fig.add_trace(
-                    go.Scatter(x=local_df.index[:split_index],
-                               y=local_df.iloc[:split_index, 0],
-                               mode='lines',
-                               name='Train',
-                               line=dict(color='#217CD0'))
-                  )
-    fig.add_trace(
-        go.Scatter(x=local_df.index[split_index:],
-                   y=local_df.iloc[split_index:, 0],
-                   mode='lines',
-                   name='Test',
-                   line=dict(color='#FFA500')))
-    fig.update_layout(title='',
-                      yaxis=dict(range=[-max_value*1.1, max_value*1.1]), # Set y-axis range to include positive and negative values
-                      shapes=[dict(type='line',
-                                    x0=local_df.index[split_index],
-                                    y0=-max_value*1.1, # Set y0 to -max_value*1.1
-                                    x1=local_df.index[split_index],
-                                    y1=max_value*1.1, # Set y1 to max_value*1.1
-                                    line=dict(color='grey',
-                                              dash='dash'))],
-                      annotations=[dict(x=local_df.index[split_index],
-                                        y=max_value*1.05,
-                                        xref='x',
-                                        yref='y',
-                                        text='Train/Test<br>Split',
-                                        showarrow=True,
-                                        font=dict(color="grey", size=15),
-                                        arrowhead=1,
-                                        ax=0,
-                                        ay=-40)])
-    split_date = local_df.index[split_index-1]
-    fig.add_annotation(x=split_date,
-                       y=0.95*max_value,
-                       text=str(split_date.date()),
-                       showarrow=False,
-                       font=dict(color="grey", size=15))
-    return fig
-
 def perform_train_test_split(df, my_insample_forecast_steps, scaler_choice=None, numerical_features=[]):
     """
     Splits a given dataset into training and testing sets based on a user-specified test-set size.
@@ -895,7 +1341,6 @@ def perform_train_test_split(df, my_insample_forecast_steps, scaler_choice=None,
         X[numerical_features] = X_numeric_scaled[numerical_features]     
     # Return the training and testing sets as well as the scaler used (if any)
     return X, y, X_train, X_test, y_train, y_test, scaler
-
 
 def perform_train_test_split_standardization(X, y, X_train, X_test, y_train, y_test, my_insample_forecast_steps, scaler_choice=None, numerical_features=[]):
     """
@@ -973,53 +1418,7 @@ def train_test_split_slider():
                 train_test_split_btn = st.form_submit_button("Submit", type="secondary")        
     return in_sample_forecast_steps, in_sample_forecast_perc
 
-def correlation_heatmap(X, correlation_threshold=0.8):
-    """
-    Description:
-        This function generates a correlation heatmap for a given pandas DataFrame X, 
-        showing only features that have a correlation higher or equal to the given correlation_threshold.
-    Parameters:
-        X : pandas DataFrame object
-            The input dataset for which the correlation heatmap is to be generated.
-        correlation_threshold : float (default=0.8)
-            The correlation threshold value that will determine which features are shown in the heatmap. 
-            Only features with a correlation higher or equal to the given threshold will be displayed in the heatmap.
-    Returns:
-        None
-    """
-    # create a new dataframe with only features that have a correlation higher or equal to the threshold
-    corr_matrix = X.corr()
-    features_to_keep = corr_matrix[abs(corr_matrix) >= corr_threshold].stack().reset_index().iloc[:, [0, 1]]
-    features_to_keep.columns = ['feature1', 'feature2']
-    features_to_keep = features_to_keep[features_to_keep['feature1'] != features_to_keep['feature2']]
-    X_corr = X[features_to_keep['feature1'].unique()]
-    # compute correlation matrix
-    corr_matrix = X_corr.corr()
-    # create heatmap using plotly express
-    fig = px.imshow(corr_matrix.values,
-                    color_continuous_scale="Blues",
-                    zmin=-1,
-                    zmax=1,
-                    labels=dict(x="Features", y="Features", color="Correlation"),
-                    x=corr_matrix.columns,
-                    y=corr_matrix.columns,
-                    origin='lower')
-    # add text annotations to heatmap cells
-    for i in range(len(corr_matrix)):
-        for j in range(i + 1, len(corr_matrix)):
-            if abs(corr_matrix.iloc[i, j]) > corr_threshold:
-                fig.add_annotation(x=i, y=j, text="{:.2f}".format(corr_matrix.iloc[i, j]), font=dict(color='white'))
-    # add colorbar title
-    fig.update_coloraxes(colorbar_title="Correlation")
-    # set x and y axis labels to diagonal orientation
-    fig.update_xaxes(tickangle=-45, showticklabels=True)
-    fig.update_yaxes(tickangle=0, showticklabels=True)
-    # adjust heatmap size and margins
-    fig.update_layout(width=800,
-                      height=800,
-                      margin=dict(l=200, r=200, t=100, b=100))
-    # show plotly figure in streamlit
-    st.plotly_chart(fig, use_container_width=True)
+
     
 def compute_importance_scores(X, y, estimator):
     """
@@ -1257,7 +1656,6 @@ def my_title(my_string, my_background_color="#45B8AC"):
     st.markdown(f'<h3 style="color:#FFFFFF; background-color:{my_background_color}; padding:5px; border-radius: 5px;"> <center> {my_string} </center> </h3>', unsafe_allow_html=True)
 
 def my_header(my_string, my_style="#217CD0"):
-    #st.markdown(f'<h2 style="text-align:center"> {my_string} </h2>', unsafe_allow_html=True)
     st.markdown(f'<h2 style="color:{my_style};"> <center> {my_string} </center> </h2>', unsafe_allow_html=True)
 
 def my_subheader(my_string, my_style="#217CD0", my_size=5):
@@ -1933,7 +2331,7 @@ def plot_pacf(data, nlags, method):
     The PACF plot includes shaded regions representing the 95% and 99% confidence intervals.
     '''
     if data.isna().sum().sum() > 0:
-        st.error('''**Warning** ⚠️:              
+        st.warning('''**Warning** ⚠️:              
                  Data contains **NaN** values. **NaN** values were dropped in copy of dataframe to be able to plot below PACF. ''')
     st.markdown('<p style="text-align:center; color: #707070">Partial Autocorrelation (PACF)</p>', unsafe_allow_html=True)
     # Drop NaN values if any
@@ -2069,7 +2467,7 @@ def plot_acf(data, nlags):
     The ACF plot includes shaded regions representing the 95% and 99% confidence intervals.
     '''
     if data.isna().sum().sum() > 0:
-        st.error('''**Warning** ⚠️:              
+        st.warning('''**Warning** ⚠️:              
                  Data contains **NaN** values. **NaN** values were dropped in copy of dataframe to be able to plot below ACF. ''')
     st.markdown('<p style="text-align:center; color: #707070">Autocorrelation (ACF)</p>', unsafe_allow_html=True)
     # Drop NaN values if any
@@ -2199,7 +2597,7 @@ def outlier_form():
                                           max_value=0.5, 
                                           step=0.01, 
                                           value=0.01,
-                                          help='''**`Contamination parameter`** determines the *proportion of samples in the dataset that are considered to be outliers*.
+                                          help='''**`Contamination`** determines the *proportion of samples in the dataset that are considered to be outliers*.
                                                 It represents the expected fraction of the contamination within the data, which means it should be set to a value close to the percentage of outliers present in the data.  
                                                 A **higher** value of **contamination** will result in a **higher** number of **outliers** being detected, while a **lower** value will result in a **lower** number of **outliers** being detected.''')
                 # set the random state
@@ -2256,10 +2654,6 @@ def outlier_form():
         with col2:
             st.form_submit_button('Submit')
     return method, outlier_replacement_method, random_state, contamination, outlier_threshold , q1, q3, iqr_multiplier, n_clusters, max_iter
-
-# define function to handle outliers using Isolation Forest
-from sklearn.cluster import KMeans
-from scipy.spatial.distance import cdist
 
 def handle_outliers(data, method, outlier_threshold, q1, q3, max_iter, n_clusters=3, outlier_replacement_method='Median', contamination=0.01, random_state=10, iqr_multiplier=1.5):
     """
@@ -2519,6 +2913,33 @@ with tab1:
                 # create 3 buttons, about ACF/PACF/Difference for more explanation on the ACF and PACF plots
                 acf_pacf_info()
                 
+            ###################################################################
+            # STATISTICAL TESTS
+            ###################################################################
+            with st.sidebar:
+                with st.expander('Statistical Test Results', expanded=False):
+                    # show dataframe for statistical test results
+                    st.write('dataframe will show here... under construction')
+            with st.expander('Statistical Tests', expanded=True):
+                my_header('Statistical Tests')
+                # apply function to get summary statistics and statistical test results of dependent variable (y)
+                summary_statistics_df = create_summary_df(df_raw.iloc[:,1])
+                st.dataframe(summary_statistics_df, use_container_width=True)
+                download_csv_button(summary_statistics_df, my_file="summary_statistics.csv", help_message='Download your Summary Statistics Dataframe to .CSV')
+            
+            ###################################################################  
+            # ADF
+            ###################################################################
+            # Show Augmented Dickey-Fuller Statistical Test Result with hypotheses
+            with st.expander('ADF', expanded=True):
+                my_subheader('Augmented Dickey-Fuller Test')
+                
+                # augmented dickey fuller test results
+                adf_result = adf_test(df_raw, 1)
+                col1, col2, col3 = st.columns([1,3,1])
+                with col2:
+                    st.write(adf_result)
+                   
             ###############################################################################
             # 3. Data Cleaning
             ############################################################################### 
