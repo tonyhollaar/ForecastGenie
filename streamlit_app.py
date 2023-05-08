@@ -9,6 +9,7 @@ Forecast y based on timeseries data
 #########################################################################
 # Import necessary packages
 import streamlit as st
+from streamlit_extras.buy_me_a_coffee import button
 import pandas as pd
 import numpy as np
 
@@ -2753,23 +2754,31 @@ with st.sidebar:
 
 # ABOUT SIDEBAR MENU
 with st.sidebar.expander('ℹ️ About', expanded=False):
-    st.write('''Hi :wave: **Welcome** to the ForecastGenie app created with Streamlit :smiley:
-            
-                \n**What does it do?**  
-                - Analyze, Clean, Select Top Features, Train/Test and Forecast your Time Series Dataset!  
-                \n**What do you need?**  
-                - Upload your `.CSV` file that contains your **date** (X) column and your target variable of interest (Y)  
-            ''')
-    st.markdown('---')
-    # DISPLAY LOGO
-    col1, col2, col3 = st.columns([1,3,2])
-    with col2:
-        st.image('./images/logo_dark.png', caption="Developed by")  
-        # added spaces to align website link with logo in horizontal center
-        st.markdown(f'<h6 style="color:#217CD0;"><center><a href="https://www.tonyhollaar.com/">www.tonyhollaar.com</a></center></h5>', unsafe_allow_html=True)
-        st.caption(f'<h7><center> ForecastGenie version: 1.1 <br>  Release date: 04-23-2023  </center></h7>', unsafe_allow_html=True)
-    st.markdown('---')
+    try:
+        st.write('''Hi :wave: **Welcome** to the ForecastGenie app created with Streamlit :smiley:
+                
+                    \n**What does it do?**  
+                    - Analyze, Clean, Select Top Features, Train/Test and Forecast your Time Series Dataset!  
+                    \n**What do you need?**  
+                    - Upload your `.CSV` file that contains your **date** (X) column and your target variable of interest (Y)  
+                ''')
+        st.markdown('---')
+    
+        # DISPLAY LOGO
+        col1, col2, col3 = st.columns([1,3,2])
+        with col2:
+            st.image('./images/logo_dark.png', caption="Developed by")  
+            # added spaces to align website link with logo in horizontal center
+            st.markdown(f'<h6 style="color:#217CD0;"><center><a href="https://www.tonyhollaar.com/">www.tonyhollaar.com</a></center></h5>', unsafe_allow_html=True)
+            st.caption(f'<h7><center> ForecastGenie version: `1.1` <br>  Release date: `05-08-2023`  </center></h7>', unsafe_allow_html=True)    
+        col1, col2, col3 = st.columns([0.6,3,2])
+        with col2:
+            button(username="tonyhollaar", floating=False, width=221,  text = 'Buy me a coffee', bg_color = '#FFFFFF', font='Cookie', font_color='#A3A8B8')
+        col1, col2, col3 = st.columns([1,3,2])
+    except:
+        st.error('ForecastGenie Error: "About" in sidebar-menu did not load properly')
 
+print('ForecastGenie Print: Loaded About')
 ###############################################################################
 # 1. Create Button to Load Dataset (.CSV format) or select Demo Data
 ###############################################################################
