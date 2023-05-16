@@ -9,3 +9,4 @@ statsmodels
 scikit-learn
 prophet
 pywavelets
+holidays
