@@ -10,6 +10,8 @@ Forecast y based on timeseries data
 # Import necessary packages
 import streamlit as st
 from streamlit_extras.buy_me_a_coffee import button
+from streamlit_option_menu import option_menu
+
 import pandas as pd
 import numpy as np
 
@@ -25,6 +27,9 @@ import time
 
 # Import math package
 import math
+
+# image processing
+from PIL import Image
 
 # Import data visualization packages
 import altair as alt
@@ -66,7 +71,7 @@ from pandas.tseries.holiday import(
                                     next_monday, nearest_workday, sunday_to_monday,
                                     EasterMonday, GoodFriday, Easter
                                   )
-
+    
 #########################################################################
 # SET PAGE CONFIGURATIONS STREAMLIT
 #########################################################################
@@ -81,34 +86,384 @@ st.set_page_config(page_title="ForecastGenie",
 # create an empty dictionary to store the results of the models
 # that I call after I train the models to display on sidebar under hedaer "Evaluate Models"
 metrics_dict = {}
+
 # define calendar
 cal = calendar()
-# define an empty dataframe
-df_raw = pd.DataFrame()
+
 # set the title of page
 st.title(":blue[]")
-st.markdown(f'<h1 style="color:#45B8AC;"> <center> ForecastGenie™️ </center> </h1>', unsafe_allow_html=True)
-# add vertical spacing
-st.write("")
-# define tabs of data pipeline for user to browse through
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(["Load🚀", "Explore🕵️‍♂️", "Clean🧹", "Engineer🧰", "Prepare🧪", "Select🍏", "Train🔢", "Evaluate🎯", "Tune⚙️", "Forecast🔮"])
+
+# svg image of heart used for text on about page
+balloon_heart_svg = """
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-balloon-heart" viewBox="0 0 16 16">
+                      <path fill-rule="evenodd" d="m8 2.42-.717-.737c-1.13-1.161-3.243-.777-4.01.72-.35.685-.451 1.707.236 3.062C4.16 6.753 5.52 8.32 8 10.042c2.479-1.723 3.839-3.29 4.491-4.577.687-1.355.587-2.377.236-3.061-.767-1.498-2.88-1.882-4.01-.721L8 2.42Zm-.49 8.5c-10.78-7.44-3-13.155.359-10.063.045.041.089.084.132.129.043-.045.087-.088.132-.129 3.36-3.092 11.137 2.624.357 10.063l.235.468a.25.25 0 1 1-.448.224l-.008-.017c.008.11.02.202.037.29.054.27.161.488.419 1.003.288.578.235 1.15.076 1.629-.157.469-.422.867-.588 1.115l-.004.007a.25.25 0 1 1-.416-.278c.168-.252.4-.6.533-1.003.133-.396.163-.824-.049-1.246l-.013-.028c-.24-.48-.38-.758-.448-1.102a3.177 3.177 0 0 1-.052-.45l-.04.08a.25.25 0 1 1-.447-.224l.235-.468ZM6.013 2.06c-.649-.18-1.483.083-1.85.798-.131.258-.245.689-.08 1.335.063.244.414.198.487-.043.21-.697.627-1.447 1.359-1.692.217-.073.304-.337.084-.398Z"/>
+                    </svg>
+                    """
+
 # Initialize results_df in global scope that has model test evaluation results 
 results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
 
 if 'results_df' not in st.session_state:
     st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
 
+# required for data cleaning
+fill_method = None
+custom_fill_value = None
+freq_dict = None
+freq = None
+
+if 'fill_method' not in st.session_state:
+    # set value to 'backfill'
+    st.session_state['fill_method'] = 'Backfill'    
+if 'custom_fill_value' not in st.session_state:
+    # set value to None
+    st.session_state['custom_fill_value'] = None
+if 'freq_dict' not in st.session_state:
+    st.session_state['freq_dict'] = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
+if 'freq' not in st.session_state:
+    # assume frequency is daily data for now -> expand to automated frequency detection later 
+    st.session_state['freq'] = 'Daily'
+
+st.write(st.session_state)
 # Logging
 print('ForecastGenie Print: Loaded Global Variables')
 ###############################################################################
 # FUNCTIONS
 ###############################################################################
+def handle_click_fill_method_button():
+    # if key of radio button exists
+    if st.session_state['fill_method']:
+        # this new variable my_data_choice set it equal to information collected from the user
+        # via the radio button called "data_option"
+       st.session_state['fill_method'] = fill_method              
+ 
+
+def vertical_spacer(n):
+    for i in range(n):
+        st.write("")
+
+def eda_quick_insights(df, my_string_column):
+    my_text_header('Quick Insights')
+    st.write('')
+    col1,  col2 = st.columns([1,3])
+    with col2:
+        # Filter out NaN and '-' values from 'Label' column
+        label_values = df[my_string_column].dropna().apply(lambda x: x.strip()).replace('-', '').tolist()
+        # Filter out any remaining '-' values from 'Label' column
+        label_values = [value for value in label_values if value != '']
+        # Create an HTML unordered list with each non-NaN and non-'-' value as a list item
+        html_list = "<div class='my-list'>"
+        for i, value in enumerate(label_values):
+            html_list += f"<li><span class='my-number'>{i+1}</span>{value}</li>"
+        html_list += "</div>"
+        # Display the HTML list using Streamlit
+        st.markdown(
+            f"""
+            <style>
+                .my-list {{
+                    font-size: 16px;
+                    line-height: 1.4;
+                    margin-bottom: 10px;
+                }}
+                .my-list li {{
+                    margin: 0 0 10px 0;
+                    padding-left: 25px;
+                    position: relative;
+                }}
+                .my-number {{
+                    font-weight: bold;
+                    color: white;
+                    background-color: #217CD0;
+                    border-radius: 50%;
+                    text-align: center;
+                    width: 20px;
+                    height: 20px;
+                    line-height: 20px;
+                    display: inline-block;
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                }}
+            </style>
+            {html_list}
+            """,
+            unsafe_allow_html=True
+        )
+        # vertical spacer
+        vertical_spacer(1)
+
+#################################
+# FORMATTING DATAFRAMES FUNCTIONS
+#################################
+def highlight_cols(s):
+    """
+    A function that highlights the cells of a DataFrame based on their values.
+
+    Args:
+    s (pd.Series): A Pandas Series object representing the columns of a DataFrame.
+
+    Returns:
+    list: A list of CSS styles to be applied to each cell in the input Series object.
+    """
+    if isinstance(s, pd.Series):
+        if s.name == outliers_df.columns[0]:
+            return ['background-color: lavender']*len(s)
+        elif s.name == outliers_df.columns[1]:
+            return ['background-color: lightyellow']*len(s)
+        else:
+            return ['']*len(s)
+    else:
+        return ['']*len(s)
+    
+############################
+# FORMATTING TEXT FUNCTIONS
+############################
+
+def my_title(my_string, my_background_color="#45B8AC", gradient_colors=None):
+    if gradient_colors is None:
+        gradient_colors = f"{my_background_color}, #2CB8A1, #0072B2"
+    gradient = f"-webkit-linear-gradient(45deg, {gradient_colors})"
+    st.markdown(f'<h3 style="background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient}; padding:20px; border-radius: 10px; border: 2px solid {my_background_color}; box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);"> <center> {my_string} </center> </h3>', unsafe_allow_html=True)
+
+def my_header(my_string, my_style="#217CD0"):
+    st.markdown(f'<h2 style="color:{my_style};"> <center> {my_string} </center> </h2>', unsafe_allow_html=True)
+
+def my_subheader(my_string, my_background_color="#45B8AC", my_style="#FFFFFF", my_size=3):
+    gradient = f"-webkit-linear-gradient(45deg, {my_background_color}, #2CB8A1, #0072B2)"
+    st.markdown(f'<h{my_size} style="background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient}; font-family: sans-serif; font-weight: bold; text-align: center; color: {my_style};"> {my_string} </h{my_size}>', unsafe_allow_html=True)
+
+def my_text_header(my_string,
+                   my_text_align='center', 
+                   my_font_family='Segoe UI, Tahoma, Geneva, Verdana, sans-serif',
+                   my_font_weight=200,
+                   my_font_size='36px',
+                   my_line_height=1.5):
+    text_header = f'<h1 style="text-align:{my_text_align}; font-family: {my_font_family}; font-weight: {my_font_weight}; font-size: {my_font_size}; line-height: {my_line_height};">{my_string}</h1>'
+    st.markdown(text_header, unsafe_allow_html=True)
+    
+def my_text_paragraph(my_string,
+                       my_text_align='center',
+                       my_font_family='Segoe UI, Tahoma, Geneva, Verdana, sans-serif',
+                       my_font_weight=200,
+                       my_font_size='18px',
+                       my_line_height=1.5,
+                       add_border=False):
+    if add_border:
+        border_style = f'border: 2px solid #45B8AC; border-radius: 10px; padding: 10px; box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);'
+    else:
+        border_style = ''
+    paragraph = f'<p style="text-align:{my_text_align}; font-family:{my_font_family}; font-weight:{my_font_weight}; font-size:{my_font_size}; line-height:{my_line_height}; background-color: rgba(255, 255, 255, 0); {border_style}">{my_string}</p>'
+    st.markdown(paragraph, unsafe_allow_html=True)
+
+def my_forecastgenie_title(my_string, my_background_color="#2CB8A1"):
+    gradient = f"-webkit-linear-gradient(45deg, {my_background_color}, #2CB8A1, #0072B2)"
+    st.markdown(f'''
+        <div style="position: relative;">
+            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: -1; opacity: 0.2;"></div>
+            <h1 style="background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient}; padding:20px; position: relative;">
+                <center>{my_string}</center>
+                <div style="position: absolute; top: 20px; left: 80px;">
+                    <div style="background-color: #0072B2; width: 8px; height: 8px; border-radius: 50%; animation: bubble 3s infinite;"></div>
+                </div>
+                <div style="position: absolute; top: 30px; right: 100px;">
+                    <div style="background-color: #6c757d; width: 12px; height: 12px; border-radius: 50%; animation: bubble 4s infinite;"></div>
+                </div>
+                <div style="position: absolute; top: 10px; right: 50px;">
+                    <div style="background-color: #0072B2; width: 8px; height: 8px; border-radius: 50%; animation: bubble 5s infinite;"></div>
+                </div>
+                <div style="position: absolute; top: 40px; left: 60px;">
+                    <div style="background-color: #88466D; width: 8px; height: 8px; border-radius: 50%; animation: bubble 6s infinite;"></div>
+                </div>
+                <div style="position: absolute; top: 0px; left: -10px;">
+                    <div style="background-color: #2CB8A1; width: 12px; height: 12px; border-radius: 50%; animation: bubble 7s infinite;"></div>
+                </div>
+                <div style="position: absolute; top: 10px; right: -20px;">
+                    <div style="background-color: #7B52AB; width: 10px; height: 10px; border-radius: 50%; animation: bubble 10s infinite;"></div>
+                </div>
+                <div style="position: absolute; top: -20px; left: 150px;">
+                    <div style="background-color: #FF9F00; width: 8px; height: 8px; border-radius: 50%; animation: bubble 20s infinite;"></div>
+                </div>
+                <div style="position: absolute; top: 25px; right: 170px;">
+                    <div style="background-color: #FF6F61; width: 12px; height: 12px; border-radius: 50%; animation: bubble 4s infinite;"></div>
+                </div>
+                <div style="position: absolute; top: -30px; right: 120px;">
+                <div style="background-color: #440154; width: 10px; height: 10px; border-radius: 50%; animation: bubble 5s infinite;"></div>
+                </div>
+                <div style="position: absolute; top: -20px; left: 150px;">
+                <div style="background-color: #2CB8A1; width: 8px; height: 8px; border-radius: 50%; animation: bubble 6s infinite;"></div>
+                </div>
+                <div style="position: absolute; top: -10px; right: 20px;">
+                <div style="background-color: #FFC300; width: 12px; height: 12px; border-radius: 50%; animation: bubble 7s infinite;"></div>
+                </div>
+                </h1>
+                <style>
+                @keyframes bubble {{
+                0% {{
+                transform: translateY(0);
+                }}
+                50% {{
+                transform: translateY(+50px);
+                }}
+                100% {{
+                transform: translateY(0);
+                }}
+                }}
+                .bubble-container div {{
+                margin: 10px;
+                }}
+                </style>
+                </div>
+                ''', unsafe_allow_html=True)
+                
+def create_carousel_cards(num_cards, header_list, paragraph_list, font_family, font_size):
+    # create empty list that will keep the html code needed for each card with header+text
+    card_html = []
+    # iterate over cards specified by user and join the headers and text of the lists
+    for i in range(num_cards):
+        card_html.append(f"<div class='card'><h1 style='text-align:center;color:white; margin-bottom: 10px;'>{header_list[i]}</h1><p style='text-align:center; font-family: {font_family}; font-size: {font_size};'>{paragraph_list[i]}</p></div>")
+    # join all the html code for each card and join it into single html code with carousel wrapper
+    carousel_html = "<div class='carousel'>" + "".join(card_html) + "</div>"
+    # Display the carousel in streamlit
+    st.markdown(carousel_html, unsafe_allow_html=True)
+    # Create the CSS styling for the carousel
+    st.markdown(
+        """
+        <style>
+        /* Carousel Styling */
+        .carousel {
+          display: flex;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          scroll-behavior: smooth;
+          -webkit-overflow-scrolling: touch;
+          width: 80%;
+          margin: auto;
+        }
+        .card {
+          display: inline-block;
+          margin-right: 10px;
+          vertical-align: top;
+          scroll-snap-align: center;
+          flex: 0 0 auto;
+          width: 75%;
+          height: 200px;
+          margin: 30px;
+          padding: 20px;
+          background: linear-gradient(to bottom left, #4e3fce, #7a5dc7, #9b7cc2, #bb9bbd, #dababd);
+          box-shadow: 10px 10px 10px 0px rgba(0, 0, 0, 0.1);
+          border-radius: 20px;
+          text-align: center;
+          font-family: """ + font_family + """, sans-serif;
+          font-size: """ + str(font_size) + """px;
+          color: white;
+          transition: transform 0.2s ease-in-out;
+        }
+        .card:hover {
+          transform: scale(1.1);
+          box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.5);
+        }
+        /* Carousel Navigation Styling */
+        .carousel-nav {
+          margin: 10px 0px;
+          text-align: center;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
 #******************************************************************************
 # STATISTICAL TEST FUNCTIONS
 #******************************************************************************
 ################################################
 # SUMMARY STATISTICS DESCRIPTIVE LABEL FUNCTIONS
 ################################################
+def eda_quick_summary():
+    """
+    Displays a quick summary of the exploratory data analysis (EDA) metrics.
+    
+    This function calculates and displays various metrics based on the provided DataFrame `df_raw`. The metrics include:
+    - Number of rows
+    - Minimum date
+    - Percentage of missing data
+    - Mean of the second column
+    - Number of columns
+    - Maximum date
+    - Frequency of time-series data
+    - Median of the first column
+    
+    The metrics are displayed in a visually appealing format using Streamlit columns and CSS styling.
+    
+    Parameters:
+    None
+    
+    Returns:
+    None
+    """
+    try:
+        # Display the header for the quick summary
+        my_text_header('Quick Summary')
+        # Create columns for organizing the metrics
+        col1, col2, col3, col4, col5 = st.columns([15, 25, 5, 25, 15])
+        with col2:
+            # Define CSS style for the metrics container
+            font_family = 'Arial'
+            font_size = '16px'
+            header_color = '#217CD0'
+            metric_color = '#555555'
+            container_style = f'''
+                position: relative;
+                border: 0px solid {metric_color};
+                border-radius: 10px;
+                background-color: #ffffff;
+                box-shadow: 0px 0px 15px -5px rgba(0,0,0,0.15);
+                padding: 20px;
+                margin: 10px;
+                height: 80px; /* add this line to set the height of the container */
+                font-family: {font_family};
+                font-size: {font_size};
+                color: {metric_color};
+            '''
+            
+            # Compute and display the number of rows as a metric
+            rows = st.session_state.df_raw.shape[0]
+            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color};">Rows</div><div style="color:{metric_color};">{rows}</div></div></div>', unsafe_allow_html=True)
+    
+            # Compute and display the min date as a metric
+            min_date = str(st.session_state.df_raw.iloc[:, 0].min().date())
+            # Position the metrics on top of the gradient
+            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Start Date</div><div>{min_date}</div></div></div>', unsafe_allow_html=True)
+            
+            # percentage missing data
+            percent_missing = "{:.2%}".format(round((st.session_state.df_raw.iloc[:, 1].isna().mean()),2))
+            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Missing</div><div>{percent_missing}</div></div></div>', unsafe_allow_html=True)
+            
+            # Compute and display the mean of the second column as a metric
+            mean_val = np.round(st.session_state.df_raw.iloc[:, 1].mean(), 2)
+            # Position the metrics on top of the gradient
+            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Mean</div><div>{mean_val}</div></div></div>', unsafe_allow_html=True)
+        with col4:
+            # Compute and display the number of columns as a metric
+            cols = st.session_state.df_raw.shape[1]
+            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color};">Columns</div><div style="color:{metric_color};">{cols}</div></div></div>', unsafe_allow_html=True)
+            
+            # Compute and display the max date as a metric
+            max_date = str(st.session_state.df_raw.iloc[:, 0].max().date())
+            # Position the metrics on top of the gradient
+            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">End Date</div><div>{max_date}</div></div></div>', unsafe_allow_html=True)
+            
+            # frequency timeseries data
+            dataframe_freq, dataframe_freq_name = determine_df_frequency(st.session_state.df_raw, column_name='date')
+            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Frequency</div><div>{dataframe_freq_name}</div></div></div>', unsafe_allow_html=True)
+           
+            # Compute and display the median of the first column as a metric
+            median_val = np.round(st.session_state.df_raw.iloc[:, 1].median(skipna=True), 2)
+            # Position the metrics on top of the gradient
+            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Median</div><div>{median_val}</div></div></div>', unsafe_allow_html=True)
+    
+            # vertical spacer
+            vertical_spacer(2)
+    except:
+        st.write('Error: could not show the quick summary stats...please contact admin')
+        
 def create_summary_df(data):
     """
     Create a DataFrame with summary statistics for the input data.
@@ -142,8 +497,10 @@ def create_summary_df(data):
     missing_label_value, missing_label_perc = missing_value_function(data)
     if num_missing > 0:
         data.dropna(inplace=True)    
-        st.warning(f'''**Warning** ⚠️:  
-                 **{num_missing}** NaN values were excluded to be able to calculate metrics such as: *skewness*, *kurtosis* and *White-Noise* test.''')
+# =============================================================================
+#         st.warning(f'''**Warning** ⚠️:  
+#                  **{num_missing}** NaN values were excluded to be able to calculate metrics such as: *skewness*, *kurtosis* and *White-Noise* test.''')
+# =============================================================================
     else:
         pass
     
@@ -192,13 +549,22 @@ def create_summary_df(data):
     # train model on the residuals
     res = model.fit()
     # Perform Ljung-Box test on residuals with lag=24 and lag=48
-    result_ljungbox = sm.stats.acorr_ljungbox(res.resid, lags=[24, 48], return_df=True)
-    test_statistic_ljungbox_24 = result_ljungbox.iloc[0]['lb_stat']
-    test_statistic_ljungbox_48 = result_ljungbox.iloc[1]['lb_stat']
-    p_value_ljungbox_24 = result_ljungbox.iloc[0]['lb_pvalue']
-    p_value_ljungbox_48 = result_ljungbox.iloc[1]['lb_pvalue']
-    white_noise_24 = "True" if p_value_ljungbox_24 > 0.05 else "False"
-    white_noise_48 = "True" if p_value_ljungbox_48 > 0.05 else "False"
+    try:
+        result_ljungbox = sm.stats.acorr_ljungbox(res.resid, lags=[24, 48], return_df=True)
+        test_statistic_ljungbox_24 = result_ljungbox.iloc[0]['lb_stat']
+        test_statistic_ljungbox_48 = result_ljungbox.iloc[1]['lb_stat']
+        p_value_ljungbox_24 = result_ljungbox.iloc[0]['lb_pvalue']
+        p_value_ljungbox_48 = result_ljungbox.iloc[1]['lb_pvalue']
+        white_noise_24 = "True" if p_value_ljungbox_24 > 0.05 else "False"
+        white_noise_48 = "True" if p_value_ljungbox_48 > 0.05 else "False"
+    except:
+        result_ljungbox = 0
+        test_statistic_ljungbox_24 = 0
+        test_statistic_ljungbox_48 = 0
+        p_value_ljungbox_24 = 0
+        p_value_ljungbox_48 = 0
+        white_noise_24 = 0
+        white_noise_48 = 0
     # ?? END TEST ??
     
     #******************************
@@ -246,8 +612,8 @@ def create_summary_df(data):
     summary_df.loc[21] = ['', '', 'Critical Value 10%', '0.05', round(critical_value_10, 4), '-']
     summary_df.loc[22] = ['Normality', 'Shapiro', 'Normality', '0.05', normality, '-']
     summary_df.loc[23] = ['', '', 'p-value', '0.05', round(shapiro_pval, 4), '-']
-
     return summary_df
+
 def dataset_size_function(data):
     """
     This function takes in a dataset and returns a label describing the size of the dataset.
@@ -332,17 +698,17 @@ def mean_label_function(data):
     range_data = data.max() - data.min()
     mean_ratio = ((mean - data.min()) / range_data)[0]
     if mean_ratio < 0.25:
-        mean_label = "Skewed left"
+        mean_label = "Mean skewed left"
     elif mean_ratio > 0.75:
-        mean_label = "Skewed right"
+        mean_label = "Mean skewed right"
     else:
-        mean_label = "Balanced"
+        mean_label = "Mean balanced"
     if mean > median:
-        mean_position = "above median"
+        mean_position = "Mean above median"
     elif mean < median:
-        mean_position = "below median"
+        mean_position = "Mean below median"
     else:
-        mean_position = "equal to median"
+        mean_position = "Mean equal to median"
     return mean_label, mean_position
 
 def median_label_function(data):
@@ -355,17 +721,17 @@ def median_label_function(data):
     mean = data.mean()[0]
     mean_ratio = (mean - data.min()) / range_data
     if median_ratio < 0.25:
-        median_label = "Skewed left"
+        median_label = "Median Skewed left"
     elif median_ratio > 0.75:
-        median_label = "Skewed right"
+        median_label = "Median Skewed right"
     else:
-        median_label = "Balanced"
+        median_label = "Median balanced"
     if median > mean:
-        median_position = "above mean"
+        median_position = "Median above mean"
     elif median < mean:
-        median_position = "below mean"
+        median_position = "Median below mean"
     else:
-        median_position = "equal to mean"
+        median_position = "Median equal to mean"
     return median_label, median_position
         
 def kurtosis_label_function(data):
@@ -450,13 +816,13 @@ def adf_test(df, variable_loc, max_diffs=3):
             p_value_str = f"{p_value:.3f}"
     if p_value <= 0.05:
         with col2:
-            st.write('') # newline vertical space
+            vertical_spacer(1) # newline vertical space
             h0 = st.markdown(r'$H_0$: The time series has a unit root, meaning it is **non-stationary**. It has some time dependent structure.')
-            st.write('') # newline vertical space
+            vertical_spacer(1)
             h1 = st.markdown(r'$H_1$: The time series does **not** have a unit root, meaning it is **stationary**. It does not have time-dependent structure.')
-            st.write('') # newline vertical space
+            vertical_spacer(1)
             result = f'**Conclusion:**\
-                      The null hypothesis can be :red[**rejected**] with a p-value of **`{p_value:.5f}`**, which is smaller than `0.05`.'
+                      The null hypothesis can be :red[**rejected**] with a p-value of **`{p_value:.5f}`**, which is smaller than the 95% confidence interval (p-value = `0.05`).'
     else:
         # If the time series remains non-stationary after max_diffs differencings, return the non-stationary result
         for i in range(1, max_diffs+1):
@@ -475,11 +841,11 @@ def adf_test(df, variable_loc, max_diffs=3):
 
                 # If the differenced time series is stationary, return the result
                 with col2:
-                    st.write('') # newline vertical space
+                    vertical_spacer(1)
                     h0 = st.markdown(r'$H_0$: The time series has a unit root, meaning it is :red[**non-stationary**]. It has some time dependent structure.')
-                    st.write('') # newline vertical space
+                    vertical_spacer(1)
                     h1 = st.markdown(r'$H_1$: The time series does **not** have a unit root, meaning it is :green[**stationary**]. It does not have time-dependent structure.')
-                    st.write('') # newline vertical space
+                    vertical_spacer(1)
                     result = f'**Conclusion:**\
                               The null hypothesis can be :red[**rejected**] with a p-value of **`{p_value_str}`**, which is smaller than `0.05` after differencing the time series **`{i}`** time(s).'
                 break
@@ -492,8 +858,32 @@ def adf_test(df, variable_loc, max_diffs=3):
     return result
 
 #******************************************************************************
-# GRAPH FUNCTIONS
+# GRAPH FUNCTIONS | PLOT FUNCTIONS
 #******************************************************************************
+def plot_missing_values_matrix(df):
+    """
+    Generates a Plotly Express figure of the missing values matrix for a DataFrame.
+    
+    Parameters:
+    df (pandas DataFrame): The DataFrame to visualize the missing values matrix.
+    
+    """
+    # Create Plotly Express figure
+    # Create matrix of missing values
+    missing_matrix = df.isnull()
+    my_text_paragraph('Missing Values Matrix Plot')
+    fig = px.imshow(missing_matrix,
+                    labels=dict(x="Variables", y="Observations"),
+                    x=missing_matrix.columns,
+                    y=missing_matrix.index,
+                    color_continuous_scale='Viridis',
+                    title='')
+    # Set Plotly configuration options
+    fig.update_layout(width=400, height=400, margin=dict(l=50, r=50, t=0, b=50))
+    fig.update_traces(showlegend=False)
+    # Display Plotly Express figure in Streamlit
+    st.plotly_chart(fig, use_container_width=True)
+
 def acf_pacf_info():
     col1, col2, col3 = st.columns([5,5,5])
     with col1:
@@ -712,11 +1102,12 @@ def display_dataframe_graph(df, key=0):
                   x=df.index,
                   y=df.columns,
                   #labels=dict(x="Date", y="y"),
-                  title='')
+                  title='',
+                  )
     # Set Plotly configuration options
     fig.update_layout(width=800, height=400, xaxis=dict(title='Date'), yaxis=dict(title='', rangemode='tozero'), legend=dict(x=0.9, y=0.9))
     # set line color and width
-    fig.update_traces(line=dict(color='#45B8AC', width=2))
+    fig.update_traces(line=dict(color='#217CD0', width=2, dash='solid'))
     # Add the range slider to the layout
     fig.update_layout(
         xaxis=dict(
@@ -741,6 +1132,7 @@ def display_dataframe_graph(df, key=0):
             type='date'
         )
     )
+    
     # Display Plotly Express figure in Streamlit
     st.plotly_chart(fig, use_container_width=True, key=key)
     
@@ -1104,7 +1496,6 @@ def display_summary_statistics(df):
     summary = summary.transpose()
     summary.columns = ['Min', 'Max', 'Mean', 'Median', 'Std', 'dtype']
     return summary
-
 
 # define function to generate demo time-series data
 def generate_demo_data(seed=42):
@@ -1653,15 +2044,6 @@ def create_calendar_special_days(df, start_date_calendar=None,  end_date_calenda
     df = df_total_incl_exogenous.copy(deep=True)
     return df 
 
-def my_title(my_string, my_background_color="#45B8AC"):
-    st.markdown(f'<h3 style="color:#FFFFFF; background-color:{my_background_color}; padding:5px; border-radius: 5px;"> <center> {my_string} </center> </h3>', unsafe_allow_html=True)
-
-def my_header(my_string, my_style="#217CD0"):
-    st.markdown(f'<h2 style="color:{my_style};"> <center> {my_string} </center> </h2>', unsafe_allow_html=True)
-
-def my_subheader(my_string, my_style="#217CD0", my_size=5):
-    st.markdown(f'<h{my_size} style="color:{my_style};"> <center> {my_string} </center> </h{my_size}>', unsafe_allow_html=True)
-
 def my_subheader_metric(string1, color1="#cfd7c2", metric=0, color2="#FF0000", my_style="#000000", my_size=5):
     metric_rounded = "{:.2%}".format(metric)
     metric_formatted = f"<span style='color:{color2}'>{metric_rounded}</span>"
@@ -1936,7 +2318,10 @@ def load_data():
     """
     This function loads data from a CSV file and returns a pandas DataFrame object.
     """
-    df_raw = pd.read_csv(uploaded_file, parse_dates=['date'])
+    try:
+        df_raw = pd.read_csv(uploaded_file, parse_dates=['date'])
+    except:
+        df_raw = pd.read_excel(uploaded_file, parse_dates=['date'])
     return df_raw
 
 @st.cache_data   
@@ -2152,7 +2537,7 @@ def copy_df_date_index(my_df, datetime_to_date=True, date_to_index=True):
         my_df_copy = my_df_copy.set_index('date')
     return my_df_copy
 
-def resample_missing_dates(df, freq_dict, freq):
+def resample_missing_dates(df, freq_dict, freq, original_freq):
     """
     Resamples a pandas DataFrame to a specified frequency, fills in missing values with NaNs,
     and inserts missing dates as rows with NaN values. Also displays a message if there are
@@ -2165,15 +2550,39 @@ def resample_missing_dates(df, freq_dict, freq):
     pandas DataFrame: The resampled DataFrame with missing dates inserted
     
     """
-    # Resample the data to the specified frequency and fill in missing values with NaNs
+# =============================================================================
+#     # TESTING
+#     # do test with original freq
+#     st.write(freq_dict)
+#     st.write(freq)
+#     st.write(df)
+#     
+#     
+# =============================================================================
+# =============================================================================
+#     # If resampling from higher frequency to lower frequency (e.g., monthly to quarterly),
+#     # fill the missing values with appropriate methods (e.g., mean)
+#     if freq_dict[freq] < freq_dict[original_freq]:
+#         new_df = new_df.set_index('date').resample(freq_dict[freq]).mean().asfreq()
+# =============================================================================
+        
+    # Resample the data to the specified frequency and fill in missing values with NaNs or forward-fill
     resampled_df = df.set_index('date').resample(freq_dict[freq]).asfreq()
+    
+    # Fill missing values with a specified method for non-daily data
+    if freq_dict[freq] != 'D':
+        # pad = forward fill
+        resampled_df = resampled_df.fillna(method='pad')
+    
     # Find skipped dates and insert them as rows with NaN values
     missing_dates = pd.date_range(start=resampled_df.index.min(), end=resampled_df.index.max(), freq=freq_dict[freq]).difference(resampled_df.index)
     new_df = resampled_df.reindex(resampled_df.index.union(missing_dates)).sort_index()
+    
     # Display a message if there are skipped dates in the data
     if len(missing_dates) > 0:
         st.write("The skipped dates are:")
         st.write(missing_dates)
+    
     # Reset the index and rename the columns
     return new_df.reset_index().rename(columns={'index': 'date'})
 
@@ -2209,42 +2618,153 @@ def my_fill_method(df, fill_method, custom_fill_value=None):
         df.iloc[:,1]  = df.iloc[:,1].fillna(custom_fill_value)
     return df
 
+def infer_frequency(date_df_series):
+    if len(date_df_series) >= 2:
+        first_date = date_df_series.iloc[0]
+        second_date = date_df_series.iloc[1]
+        diff = second_date - first_date
+        if diff.days == 1:
+            my_freq = 'D'  # Daily frequency
+            my_freq_name = 'Daily'
+        elif diff.days == 7:
+            my_freq = 'W'
+            my_freq_name = 'Weekly'
+        elif diff.days == 30:
+            my_freq = 'M'
+            my_freq_name = 'Monthly'
+        elif diff.days >= 90 and diff.days < 92:      
+            my_freq = 'Q'
+            my_freq_name = 'Quarterly'
+        elif diff.days == 365:
+            my_freq = 'Y'
+            my_freq_name = 'Yearly'
+        else:
+            my_freq = None
+            my_freq_name = None
+    return my_freq, my_freq_name  # Unable to infer frequency
+
+def determine_df_frequency(df, column_name='date'):
+    try:
+        # initialize variables
+        my_freq = None
+        my_freq_name = '-'
+        # infer frequency with pandas function infer_freq that has outputs possible below
+        freq = pd.infer_freq(df[column_name])
+        # TEST PANDAS DATAFRAME FREQUENCY E.G. DAY MONTH QUARTER YEAR
+        # DAILY
+        if freq in ['D', 'B', 'BS']:
+            my_freq = 'D'
+            my_freq_name = 'Daily'
+        # WEEKLY
+        elif freq in ['W']:
+            my_freq = 'W'
+            my_freq_name = 'Weekly'
+        # MONTHLY
+        elif freq in ['M', 'MS', 'BM', 'BMS']:
+            my_freq = 'M'
+            my_freq_name = 'Monthly'
+        # QUARTERLY
+        elif freq in ['Q', 'QS', 'BQS', 'Q-JAN', 'Q-FEB', 'Q-MAR', 'Q-APR', 'Q-MAY', 'Q-JUN', 'Q-JUL', 'Q-AUG', 'Q-SEP', 'Q-OCT', 'Q-NOV', 'Q-DEC', 'QS-JAN', 'QS-FEB', 'QS-MAR', 'QS-APR', 'QS-MAY', 'QS-JUN', 'QS-JUL', 'QS-AUG', 'QS-SEP', 'QS-OCT', 'QS-NOV', 'QS-DEC', 'BQ-JAN', 'BQ-FEB', 'BQ-MAR', 'BQ-APR', 'BQ-MAY', 'BQ-JUN', 'BQ-JUL', 'BQ-AUG', 'BQ-SEP', 'BQ-OCT', 'BQ-NOV', 'BQ-DEC', 'BQS-JAN', 'BQS-FEB', 'BQS-MAR', 'BQS-APR', 'BQS-MAY', 'BQS-JUN', 'BQS-JUL', 'BQS-AUG', 'BQS-SEP', 'BQS-OCT', 'BQS-NOV', 'BQS-DEC']:
+            my_freq = 'Q'
+            my_freq_name = 'Quarterly'
+        # YEARLY
+        elif freq in ['A', 'AS', 'Y', 'BYS', 'YS', 'A-JAN', 'A-FEB', 'A-MAR', 'A-APR', 'A-MAY', 'A-JUN', 'A-JUL', 'A-AUG', 'A-SEP', 'A-OCT', 'A-NOV', 'A-DEC', 'AS-JAN', 'AS-FEB', 'AS-MAR', 'AS-APR', 'AS-MAY', 'AS-JUN', 'AS-JUL', 'AS-AUG', 'AS-SEP', 'AS-OCT', 'AS-NOV', 'AS-DEC', 'BA-JAN', 'BA-FEB', 'BA-MAR', 'BA-APR', 'BA-MAY', 'BA-JUN', 'BA-JUL', 'BA-AUG', 'BA-SEP', 'BA-OCT', 'BA-NOV', 'BA-DEC', 'BAS-JAN', 'BAS-FEB', 'BAS-MAR', 'BAS-APR', 'BAS-MAY', 'BAS-JUN', 'BAS-JUL', 'BAS-AUG', 'BAS-SEP', 'BAS-OCT', 'BAS-NOV', 'BAS-DEC']:
+            my_freq = 'Y'
+            my_freq_name = 'Yearly'
+        else:
+            # check if missing dates creating gaps, because pandas infer_freq function does not work well then use custom function to determine frequency
+            my_freq, my_freq_name = infer_frequency(df[column_name])
+        return my_freq, my_freq_name
+    except:
+        print(f'Error in function "determine_df_frequency()": could not determine frequency of uploaded data.')
+        
 def plot_overview(df, y):
     """
     Plot an overview of daily, weekly, monthly, quarterly, and yearly patterns
     for a given dataframe and column.
     """
+    # initiate variable
+    num_graph_start = 1
+    freq, my_freq_name = determine_df_frequency(df, column_name='date')
+    # DAILY
+    if freq == 'D':
+        num_graph_start = 1
+    # WEEKLY
+    elif freq == 'W':
+        num_graph_start = 2
+    # MONTHLY
+    elif freq == 'M':
+        num_graph_start = 3
+    # QUARTERLY
+    elif freq == 'Q':
+        num_graph_start = 4
+    # YEARLY
+    elif freq == 'Y':
+        num_graph_start = 5
+    else:
+        print('Error could not define the number of graphs to plot')
+        
     y_column_index = df.columns.get_loc(y)
     y_colname = df.columns[y_column_index]
     # Create subplots
-    fig = make_subplots(rows=6, cols=1,
-                        subplot_titles=('Daily Pattern', 
-                                        'Weekly Pattern', 
-                                        'Monthly Pattern',
-                                        'Quarterly Pattern', 
-                                        'Yearly Pattern', 
-                                        'Histogram'
-                                        ))
-    # Daily Pattern
-    fig.add_trace(px.line(df, x='date', y=y_colname, title='Daily Pattern').data[0], row=1, col=1)
-    # Weekly Pattern
+    all_subplot_titles = ('Daily Pattern', 
+                        'Weekly Pattern', 
+                        'Monthly Pattern',
+                        'Quarterly Pattern', 
+                        'Yearly Pattern', 
+                        'Histogram')
+    
+    my_subplot_titles = all_subplot_titles[num_graph_start-1:]
+    # set figure with 6 rows and 1 column with needed subplot titles and set the row_ieght
+    fig = make_subplots(rows=len(my_subplot_titles), cols=1,
+                        subplot_titles=my_subplot_titles,
+                        # the row_heights parameter is set to [0.2] * 5 + [0.5]
+                        # which means that the first five rows will have a height of 0.2 each
+                        # and the last row will have a height of 0.5 for the histogram with larger height.
+                        row_heights=[0.2] * (len(my_subplot_titles)-1) + [0.5]) 
+    # define intervals for resampling
     df_weekly = df.resample('W', on='date').mean().reset_index()
-    fig.add_trace(px.line(df_weekly, x='date', y=y_colname, title='Weekly Pattern').data[0], row=2, col=1)
-    # Monthly Pattern
-    df_monthly = df.resample('M', on='date').mean().reset_index()
-    fig.add_trace(px.line(df_monthly, x='date', y=y_colname, title='Monthly Pattern').data[0], row=3, col=1)
-    # Quarterly Pattern
+    df_monthly =  df.resample('M', on='date').mean().reset_index()
     df_quarterly = df.resample('Q', on='date').mean().reset_index()
-    fig.add_trace(px.line(df_quarterly, x='date', y=y_colname, title='Quarterly Pattern').data[0], row=4, col=1)
-    # Yearly Pattern
     df_yearly = df.resample('Y', on='date').mean().reset_index()
-    fig.add_trace(px.line(df_yearly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=5, col=1)
-    # Histogram
-    fig.add_trace(px.histogram(df, x=y_colname, title='Histogram').data[0], row=6, col=1)
+
+    # Daily Pattern
+    if num_graph_start == 1:
+        fig.add_trace(px.line(df, x='date', y=y_colname, title='Daily Pattern').data[0], row=1, col=1)
+        fig.add_trace(px.line(df_weekly, x='date', y=y_colname, title='Weekly Pattern').data[0], row=2, col=1)
+        fig.add_trace(px.line(df_monthly, x='date', y=y_colname, title='Monthly Pattern').data[0], row=3, col=1)
+        fig.add_trace(px.line(df_quarterly, x='date', y=y_colname, title='Quarterly Pattern').data[0], row=4, col=1)
+        fig.add_trace(px.line(df_yearly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=5, col=1)
+        fig.add_trace(px.histogram(df, x=y_colname, title='Histogram').data[0], row=6, col=1)
+    if num_graph_start == 2:
+        # Weekly Pattern
+        fig.add_trace(px.line(df_weekly, x='date', y=y_colname, title='Weekly Pattern').data[0], row=1, col=1)
+        fig.add_trace(px.line(df_monthly, x='date', y=y_colname, title='Monthly Pattern').data[0], row=2, col=1)
+        fig.add_trace(px.line(df_quarterly, x='date', y=y_colname, title='Quarterly Pattern').data[0], row=3, col=1)
+        fig.add_trace(px.line(df_yearly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=4, col=1)
+        fig.add_trace(px.histogram(df, x=y_colname, title='Histogram').data[0], row=5, col=1)
+    if num_graph_start == 3:
+        # Monthly Pattern
+        fig.add_trace(px.line(df_monthly, x='date', y=y_colname, title='Monthly Pattern').data[0], row=1, col=1)
+        fig.add_trace(px.line(df_quarterly, x='date', y=y_colname, title='Quarterly Pattern').data[0], row=2, col=1)
+        fig.add_trace(px.line(df_yearly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=3, col=1)
+        fig.add_trace(px.histogram(df, x=y_colname, title='Histogram').data[0], row=4, col=1)
+    if num_graph_start == 4:
+        # Quarterly Pattern
+        fig.add_trace(px.line(df_quarterly, x='date', y=y_colname, title='Quarterly Pattern').data[0], row=1, col=1)
+        fig.add_trace(px.line(df_yearly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=2, col=1)
+        fig.add_trace(px.histogram(df, x=y_colname, title='Histogram').data[0], row=3, col=1)
+    if num_graph_start == 5:
+        # Yearly Pattern
+        fig.add_trace(px.line(df_yearly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=1, col=1)
+        fig.add_trace(px.histogram(df, x=y_colname, title='Histogram').data[0], row=2, col=1)
+
     # Update layout
-    st.markdown('---')
-    my_subheader('Overview of Patterns', my_size=3)
-    fig.update_layout(height=1600, title='')
+    my_text_header('Overview of Patterns')
+    # define height of graph
+    my_height = len(my_subplot_titles)*266
+    # set height dynamically e.g. 6 graphs maximum but less if frequency is not daily data and x 266 (height) per graph
+    fig.update_layout(height = my_height)
     # Display in Streamlit app
     st.plotly_chart(fig, use_container_width=True)
 
@@ -2252,8 +2772,9 @@ def plot_overview(df, y):
 # Define functions to calculate PACF
 #################### PACF GRAPH ###########################################
 def df_differencing(df, selection):
-    """Perform differencing on a time series DataFrame up to third order.
-    
+    """
+    Perform differencing on a time series DataFrame up to third order.
+
     Parameters:
     -----------
     df: pandas.DataFrame
@@ -2261,7 +2782,7 @@ def df_differencing(df, selection):
     selection: str
         The type of differencing to perform. Must be one of ['Original Series', 'First Order Difference', 
         'Second Order Difference', 'Third Order Difference'].
-        
+
     Returns:
     --------
     fig: plotly.graph_objs._figure.Figure
@@ -2269,40 +2790,49 @@ def df_differencing(df, selection):
     df_select_diff: pandas.Series
         The resulting differenced series based on the selected type of differencing.
     """
-    ##### DIFFERENCING #####
-    # show graph first, second and third order differencing
     # Calculate the first three differences of the data
+    
     df_diff1 = df.iloc[:, 1].diff()
     df_diff2 = df_diff1.diff()
     df_diff3 = df_diff2.diff()
+    
     # Replace any NaN values with 0
     df_diff1.fillna(0, inplace=True)
     df_diff2.fillna(0, inplace=True)
     df_diff3.fillna(0, inplace=True)
+
     if selection == 'Original Series':
-        fig = px.line(df, x='date', y=df.columns[1], title='Original Series [No Differencing Applied]')
-        df_select_diff = df.iloc[:,1]
+        fig = px.line(df, x='date', y=df.columns[1], title='Original Series')
+        df_select_diff = df.iloc[:, 1]
+        fig.update_layout(
+            title_x=0.5, 
+            title_font=dict(size=14, family="Arial"),
+            yaxis_title=''
+        )
     elif selection == 'First Order Difference':
-        fig = px.line(pd.concat([df.iloc[:, 0], df_diff1], axis=1), 
-                                  x='date', 
-                                  y=df_diff1.name, 
-                                  title='First Order Difference', 
-                                  color_discrete_sequence=['#87CEEB'])
+        fig = px.line(pd.concat([df.iloc[:, 0], df_diff1], axis=1), x='date', y=df_diff1.name, 
+                     color_discrete_sequence=['#87CEEB'])
         df_select_diff = df_diff1
     elif selection == 'Second Order Difference':
-        fig = px.line(pd.concat([df.iloc[:, 0], df_diff2], axis=1), 
-                                  x='date', 
-                                  y=df_diff2.name, 
-                                  title='Second Order Difference', 
-                                  color_discrete_sequence=['#1E90FF'])
+        fig = px.line(pd.concat([df.iloc[:, 0], df_diff2], axis=1), x='date', y=df_diff2.name, 
+                    color_discrete_sequence=['#1E90FF'])
         df_select_diff = df_diff2
-    else:
-        fig = px.line(pd.concat([df.iloc[:, 0], df_diff3], axis=1), 
-                                  x='date', 
-                                  y=df_diff3.name, 
-                                  title='Third Order Difference', 
-                                  color_discrete_sequence=['#000080'])
+    elif selection == 'Third Order Difference':
+        fig = px.line(pd.concat([df.iloc[:, 0], df_diff3], axis=1), x='date', y=df_diff3.name, 
+                   color_discrete_sequence=['#000080'])
         df_select_diff = df_diff3
+    else:
+        raise ValueError("Invalid selection. Must be one of ['Original Series', 'First Order Difference', "
+                         "'Second Order Difference', 'Third Order Difference']")
+    
+    fig.update_layout(  title = ' ',
+                        title_x=0.5, 
+                        title_font=dict(size=14, family="Arial"),
+                        yaxis=dict(title=df.columns[1], showticklabels=False, fixedrange=True),
+                        margin=dict(l=0, r=20, t=0, b=0),
+                        height=200
+                     )
+    
     return fig, df_select_diff
 
 def calc_pacf(data, nlags, method):
@@ -2331,9 +2861,11 @@ def plot_pacf(data, nlags, method):
     This function drops any rows from the input data that contain NaN values before calculating the PACF.
     The PACF plot includes shaded regions representing the 95% and 99% confidence intervals.
     '''
-    if data.isna().sum().sum() > 0:
-        st.warning('''**Warning** ⚠️:              
-                 Data contains **NaN** values. **NaN** values were dropped in copy of dataframe to be able to plot below PACF. ''')
+# =============================================================================
+#     if data.isna().sum().sum() > 0:
+#         st.warning('''**Warning** ⚠️:              
+#                  Data contains **NaN** values. **NaN** values were dropped in copy of dataframe to be able to plot below PACF. ''')
+# =============================================================================
     st.markdown('<p style="text-align:center; color: #707070">Partial Autocorrelation (PACF)</p>', unsafe_allow_html=True)
     # Drop NaN values if any
     data = data.dropna(axis=0)
@@ -2467,9 +2999,11 @@ def plot_acf(data, nlags):
     This function drops any rows from the input data that contain NaN values before calculating the ACF.
     The ACF plot includes shaded regions representing the 95% and 99% confidence intervals.
     '''
-    if data.isna().sum().sum() > 0:
-        st.warning('''**Warning** ⚠️:              
-                 Data contains **NaN** values. **NaN** values were dropped in copy of dataframe to be able to plot below ACF. ''')
+# =============================================================================
+#     if data.isna().sum().sum() > 0:
+#         st.warning('''**Warning** ⚠️:              
+#                  Data contains **NaN** values. **NaN** values were dropped in copy of dataframe to be able to plot below ACF. ''')
+# =============================================================================
     st.markdown('<p style="text-align:center; color: #707070">Autocorrelation (ACF)</p>', unsafe_allow_html=True)
     # Drop NaN values if any
     data = data.dropna(axis=0)
@@ -2582,7 +3116,7 @@ def outlier_form():
     q1 = None
     q3 = None
     with st.form('outlier_form'):
-        my_subheader('Handling Outliers 😇😈😇 ', my_size=4, my_style='#440154')
+        my_text_paragraph('Handling Outliers')
         # form for user to select outlier handling method
         method = st.selectbox('*Select outlier detection method:*',
                              ('None', 'Isolation Forest', 'Z-score', 'IQR', 
@@ -2746,71 +3280,350 @@ def handle_outliers(data, method, outlier_threshold, q1, q3, max_iter, n_cluster
 # Log
 print('ForecastGenie Print: Loaded Functions')
 ###############################################################################
-# Create Left-Sidebar Streamlit App with Title + About Information
+# Create title with bubbles floating around
 ###############################################################################
-# TITLE PAGE + SIDEBAR TITLE
-with st.sidebar:   
-        st.markdown(f'<h1 style="color:#45B8AC;"> <center> ForecastGenie™️ </center> </h1>', unsafe_allow_html=True)         
+my_forecastgenie_title('ForecastGenie')
+# CREATE SIDEBAR MENU FOR HOME
+# 1. as sidebar menu
+# 1. as sidebar menu
+with st.sidebar:
+    sidebar_menu_item = option_menu(None, ["Home", "About", "FAQ"], 
+        icons=["house", "file-person", "info-circle"], 
+        menu_icon="cast", default_index=0, orientation="horizontal",
+        styles={
+            "container": {
+                "padding": "40",
+                "background": "linear-gradient(45deg, #06D6A0, #82D8FF)",
+                "border-radius": "10px",
+                "box-shadow": "0px 0px 0px rgba(0, 0, 0, 0)"
+            },
+            "icon": {
+                "color": "white",
+                "font-size": "25px",
+                "margin-right": "5px"
+            }, 
+            "nav-link": {
+                            "font-family": "Helvetica Neue, sans-serif",
+                            "font-size": "16px",
+                            "font-weight": "normal",
+                            "letter-spacing": "0.5px",
+                            "color": "white",
+                            "text-align": "left",
+                            "margin": "0px",
+                            "padding": "10px",
+                            "background-color": "transparent",
+                            "opacity": "1",
+                            "transition": "background-color 0.5s ease-out",
+                        },
+            "nav-link:hover": {
+                "background-color": "rgba(255, 255, 255, 0.1)",
+                "transition": "background-color 0.5s ease-out",
+            },
+            "nav-link-selected": {
+                "background-color": "linear-gradient(45deg, #06D6A0, #82D8FF)",
+                "color": "white",
+                "opacity": "0.8",
+                "box-shadow": "0px 0px 2px rgba(0, 0, 0, 0.3)",
+                "border-radius": "5px",
+                "border": "0px solid #45B8AC"
+            }
+        })
 
-# ABOUT SIDEBAR MENU
-with st.sidebar.expander('ℹ️ About', expanded=False):
+###############################################################################
+# CREATE MENU BAR FOR MAIN APP WITH BUTTONS OF DATA PIPELINE
+###############################################################################
+# Horizontal menu with default on first tab e.g. default_index=0
+menu_item = option_menu(None, ["Load", "Explore", "Clean", "Engineer", "Prepare", "Select", "Train", "Evaluate", "Tune", "Forecast"], 
+            icons=['cloud-arrow-up', 'search', 'list-task', 'gear', 'shuffle', 'palette', "cpu", 'clipboard-check', 'sliders', 'graph-up-arrow'], 
+            menu_icon="cast", default_index=0, orientation="horizontal", 
+            styles={
+                "container": {
+                    "padding": "0!important",
+                    "background-image": "linear-gradient(to right, #2CB8A1 10%, #2CB8A1 10%, #217CD0 10%, #217CD0 20%, #440154 20%, #440154 30%, #FF6F61 30%, #FF6F61 40%, #FF9F00 40%, #FF9F00 50%, #7B52AB 50%, #7B52AB 60%, #0072B2 60%, #0072B2 70%, #2CB8A1 70%, #2CB8A1 80%, #88466D 80%, #88466D 90%, #48466D 90%)"
+                },
+                "icon": {"color": "white", "font-size": "25px"}, 
+                "nav-link": {
+                    "font-size": "10px",
+                    "color": "white",
+                    "text-align": "center",
+                    "margin": "0px",
+                    "padding": "8px",
+                    "background-color": "transparent",
+                    "opacity": "1",
+                    "transition": "background-color 0.5s ease-out",
+                },
+                "nav-link:hover": {
+                    "background-color": "rgba(255, 255, 255, 0.3)",
+                    "transition": "background-color 0.5s ease-out",
+                },
+                "nav-link-selected": {"background-color": "#F0F0F0", "color": "black","opacity": "1", "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.3)", "border": "2px solid white", "border-radius": "5px"}
+            })
+
+###############################################################################
+# Create About Information
+###############################################################################
+# ABOUT ME
+if sidebar_menu_item == 'About':
     try:
-        st.write('''Hi :wave: **Welcome** to the ForecastGenie app created with Streamlit :smiley:
+        my_title('About')
+        with st.expander('', expanded=True):
+            # Title with gradient
+            #####################
+            # vertical spacers
+            st.write('')
+            st.write('')
+            # set title
+            title = '\"Hi 👋 Welcome to the ForecastGenie app!\"'
+            # set gradient color of letters of title
+            gradient = '-webkit-linear-gradient(left, #F08A5D, #FABA63, #2E9CCA, #4FB99F)'
+            # show in streamlit the title with gradient
+            st.markdown(f'<h1 style="text-align:center; background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient};"> {title} </h1>', unsafe_allow_html=True)
+            # vertical spacer
+            st.write('')
+            col1, col2, col3 = st.columns([2,8,2])
+            with col2:
+                # Create Carousel Cards
+                # define for each card the header in the header list
+                header_list = ["	📈", 
+                               "🔍",  
+                               "🧹",  
+                               "🧰",  
+                               "🔢"]
+                # define for each card the corresponding paragraph in the list
+                paragraph_list = ["Forecasting made easy", 
+                                  "Professional data analysis", 
+                                  "Automated data cleaning", 
+                                  "Intelligent feature engineering", 
+                                  "User-friendly interface", 
+                                  "Versatile model training"]
+                # define the font family to display the text of paragraph
+                font_family = "Trebuchet MS"
+                # define the paragraph text size
+                font_size = '18px'
+                # in streamlit create and show the user defined number of carousel cards with header+text
+                create_carousel_cards(4, header_list, paragraph_list, font_family, font_size)
                 
-                    \n**What does it do?**  
-                    - Analyze, Clean, Select Top Features, Train/Test and Forecast your Time Series Dataset!  
-                    \n**What do you need?**  
-                    - Upload your `.CSV` file that contains your **date** (X) column and your target variable of interest (Y)  
-                ''')
-        st.markdown('---')
-    
-        # DISPLAY LOGO
-        col1, col2, col3 = st.columns([1,3,2])
-        with col2:
-            st.image('./images/logo_dark.png', caption="Developed by")  
-            # added spaces to align website link with logo in horizontal center
-            st.markdown(f'<h6 style="color:#217CD0;"><center><a href="https://www.tonyhollaar.com/">www.tonyhollaar.com</a></center></h5>', unsafe_allow_html=True)
-            st.caption(f'<h7><center> ForecastGenie version: `1.1` <br>  Release date: `05-08-2023`  </center></h7>', unsafe_allow_html=True)    
-        col1, col2, col3 = st.columns([0.6,3,2])
-        with col2:
-            button(username="tonyhollaar", floating=False, width=221,  text = 'Buy me a coffee', bg_color = '#FFFFFF', font='Cookie', font_color='#A3A8B8')
-        col1, col2, col3 = st.columns([1,3,2])
+                #################################
+                # ABOUT MENU - HEADERS+PARAGRAPHS
+                #################################
+                # What does it do?
+                my_text_header('What does it do?')
+                my_text_paragraph('🕵️‍♂️ <b> Analyze data:', add_border=True)
+                my_text_paragraph('Inspect seasonal patterns and distribution of the data', add_border=False)
+                my_text_paragraph('🧹 <b> Cleaning data: </b>', add_border=True)
+                my_text_paragraph('Automatic detection and replacing missing data points and remove outliers')
+                my_text_paragraph('🧰 <b> Feature Engineering: </b>', add_border=True)
+                my_text_paragraph(' Add holidays, calendar day/week/month/year and optional wavelet features')
+                my_text_paragraph('⚖️ <b> Normalization and Standardization </b>', add_border=True)
+                my_text_paragraph('Select from industry standard techniques')
+                my_text_paragraph('🍏 <b> Feature Selection: </b>', add_border=True)
+                my_text_paragraph('</b> Only keep relevant features based on feature selection techniques')
+                my_text_paragraph('🍻 <b> Correlation Analysis:</b> ', add_border=True)
+                my_text_paragraph('Automatically remove highly correlated features')
+                my_text_paragraph('🔢 <b> Train Models:</b>', add_border=True)
+                my_text_paragraph('Including Naive, Linear, SARIMAX and Prophet Models')
+                my_text_paragraph('🎯 <b> Evaluate Model Performance:', add_border=True)
+                my_text_paragraph('Benchmark models performance with evaluation metrics')
+                
+                # What do I need?
+                my_text_header('What do I need?')
+                my_text_paragraph('Upload in the app on the left sidebar your Excel (.CSV) file with in the first column your dates with header "date" and in the second column your variable of interest (target variable) with custom header e.g. \'y\'')               
+              
+                # Who is this for?
+                my_text_header('Who is this for?')
+                st.markdown('<p style="text-align:center; font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; font-weight: 200; font-size: 18px; line-height: 1.5;">Business Analysts, Data Scientists and Statisticians</p>', unsafe_allow_html=True)    
+                
+                # About ForecastGenie
+                my_text_header('Origin Story')
+                my_text_paragraph('ForecastGenie is a forecasting app created by Tony Hollaar with a background in data analytics with the goal of making accurate forecasting accessible to businesses of all sizes.')
+                my_text_paragraph('As the developer of the app, I saw a need for a tool that simplifies the process of forecasting, without sacrificing accuracy, therefore ForecastGenie was born.')
+                my_text_paragraph('With ForecastGenie, you can upload your data and quickly generate forecasts using state-of-the-art machine learning algorithms. The app also provides various evaluation metrics to help you benchmark your models and ensure their performance meets your needs.')
+                # DISPLAY LOGO
+                col1, col2, col3 = st.columns([2,6,2])
+                with col2:
+                    # added spaces to align website link with logo in horizontal center
+                    st.write('')
+                    st.image('./images/logo_dark.png')  
+                
+                # Show your support
+                st.markdown('<h1 style="text-align:center; font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; font-weight: 200; font-size: 32px; line-height: 1.5;">Show your support {}</h1>'.format(balloon_heart_svg), unsafe_allow_html=True)
+                my_text_paragraph('If you find this app useful, please consider supporting it by buying me a coffee. Your support helps me continue developing and maintaining this app. Thank you!')
+                col1, col2, col3 = st.columns([2,5,2])
+                with col2:
+                    st.write('')
+                    button(username="tonyhollaar", floating=False, width=221,  text = 'Buy me a coffee', bg_color = '#FFFFFF', font='Cookie', font_color='black', coffee_color='black')
+                # About App
+                st.caption(f'<h7><center> ForecastGenie version: `1.2` <br>  Release date: `05-14-2023`  </center></h7>', unsafe_allow_html=True)    
+                
     except:
         st.error('ForecastGenie Error: "About" in sidebar-menu did not load properly')
 
+if sidebar_menu_item == 'FAQ':
+    my_title('FAQ')
+    with st.expander('', expanded=True):
+        st.write('')
+        col1, col2, col3 = st.columns([2,8,2])
+        with col2:
+            # FAQ - Questions and Answers
+            my_text_paragraph('<b> What is ForecastGenie? </b>', add_border=True)
+            my_text_paragraph('ForecastGenie is a free, open-source application that enables users to perform time-series forecasting on their data. The application offers a range of advanced features and models to help users generate accurate forecasts and gain insights into their data.')
+            
+            my_text_paragraph('<b> What kind of data can I use with ForecastGenie? </b>', add_border=True)
+            my_text_paragraph('ForecastGenie accepts data in the form of Excel (.CSV) files, with the first column containing dates and the second column containing the target variable of interest. The application can handle a wide range of time-series data, including financial data, sales data, weather data, and more.')
+            
+            my_text_paragraph('<b>What kind of models does ForecastGenie offer </b>?', add_border=True)
+            my_text_paragraph('ForecastGenie offers a range of models to suit different data and use cases, including Naive, SARIMAX, and Prophet. The application also includes hyper-parameter tuning, enabling users to optimize the performance of their models and achieve more accurate forecasts.')
+            
+            my_text_paragraph('<b> What kind of metrics does ForecastGenie use to evaluate model performance? </b>', add_border=True)
+            my_text_paragraph('ForecastGenie uses a range of business-standard evaluation metrics to assess the accuracy of forecasting models, including Mean Absolute Error (MAE), Mean Squared Error (MSE), Root Mean Squared Error (RMSE), and more. These metrics provide users with a reliable and objective measure of their model\'s performance.')
+            
+            my_text_paragraph('<b>Is ForecastGenie really free? </b>', add_border=True)
+            my_text_paragraph('Yes! ForecastGenie is completely free and open-source. If you find the application useful and would like to show your support, you can choose to "buy the creator a coffee" using the link provided on the app. However, this is entirely optional, and there are no hidden fees or costs associated with using ForecastGenie.')
+            
+            my_text_paragraph('<b>Is ForecastGenie suitable for non-technical users? </b>', add_border=True)
+            my_text_paragraph('Yes! ForecastGenie is designed to be user-friendly and intuitive, even for users with little or no technical experience. The application includes automated data cleaning and feature engineering, making it easy to prepare your data for forecasting. Additionally, the user interface is simple and easy to navigate, with clear instructions and prompts throughout the process.')
+            
+            #### Flashcard front / back
+            st.write('')
+            col1, col2, col3 = st.columns([1,30,1])
+            with col2:
+                st.write('')
+                my_code = """<div class="flashcard">
+                              <div class="front">
+                                <h2><center>Other Questions?</center></h2>
+                              </div>
+                              <div class="back">
+                                <h2><center>info@forecastgenie.com</center></h2>
+                              </div>
+                            </div>
+                            <style>
+                            .flashcard {
+                              position: relative;
+                              width: 400px;
+                              height: 150px;
+                              background-color: white;
+                              border-radius: 10px;
+                              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                              perspective: 1000px;
+                            }
+                            
+                            .front, .back {
+                              position: absolute;
+                              top: 0;
+                              left: 0;
+                              width: 100%;
+                              height: 100%;
+                              border-radius: 10px;
+                              backface-visibility: hidden;
+                              font-family: Arial;
+                            }
+                            
+                            .front {
+                              background: linear-gradient(to bottom, #45B8AC , #3690c0);
+                              color: white;
+                              transform: rotateY(0deg);
+                            }
+                            
+                            .back {
+                              background:linear-gradient(to bottom, #45B8AC , #3690c0);
+                              color: black;
+                              transform: rotateY(180deg);
+                            }
+                            
+                            .flashcard:hover .front {
+                              transform: rotateY(180deg);
+                            }
+                            
+                            .flashcard:hover .back {
+                              transform: rotateY(0deg);
+                            }
+                            .front h2, .back h2 {
+                                color: white;
+                                text-align: center;
+                                margin-top: 10%;
+                                transform: translateY(-10%);
+                                font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
+                            }
+                            .front h2 {
+                                        font-size: 26px;
+                                        line-height: 1.5;
+                                        }
+                            .back h2 {
+                                        font-size: 22px;
+                                        line-height: 2;
+                                        }
+                            </style>"""
+                # show flashcard in streamlit                    
+                st.markdown(my_code, unsafe_allow_html=True)
+                # vertical spacers
+                st.write('')
+                st.write('')
+                st.write('')
+                st.write('')
+                st.write('')
 print('ForecastGenie Print: Loaded About')
 ###############################################################################
 # 1. Create Button to Load Dataset (.CSV format) or select Demo Data
 ###############################################################################
-with tab1:
-    # create a sidebar with options to load data
-    my_title("1. Load Dataset 🚀 ", "#2CB8A1")
-    with st.sidebar:
-        my_title("1. Load Dataset 🚀 ", "#2CB8A1") # 2CB8A1
-        with st.expander('🔌', expanded=True):
-            # let user choose if they want to have app run with demo data or upload their own dataset
-            data_option = st.radio("*Choose an option:*", ["Demo Data", "Upload Data"])
-            if data_option == "Upload Data":
-                uploaded_file = st.file_uploader("Upload your .CSV file", type=["csv"])
-    # check if demo data should be used
-    if data_option == "Demo Data":
+# LOAD SESSION STATE FOR DATAFRAME:
+#####################################################
+# check if df_raw not in current session state else add it
+if "df_raw" not in st.session_state:
+    # define an empty dataframe with two headers for date and target variable
+    st.session_state["df_raw"] = pd.DataFrame()
+    st.session_state.df_raw = generate_demo_data()
+    df_graph = st.session_state.df_raw.copy(deep=True)
+    df_total = st.session_state.df_raw.copy(deep=True)
+    # set minimum date
+    df_min = st.session_state.df_raw .iloc[:,0].min().date()
+    # set maximum date
+    df_max = st.session_state.df_raw .iloc[:,0].max().date()
+    
+if "df_graph" not in st.session_state:
+    df_graph = st.session_state.df_raw.copy(deep=True)
+    
+if "my_data_choice" not in st.session_state:
+    st.session_state.my_data_choice = "Demo Data"
+
+def handle_click_wo_button():
+    # if key of radio button exists
+    if st.session_state.data_choice:
+        # this new variable my_data_choice set it equal to information collected from the user
+        # via the radio button called "data_option"
+        st.session_state.my_data_choice = st.session_state.data_choice
+
+with st.sidebar:
+    my_title("Load Dataset 🚀 ", "#45B8AC") # 2CB8A1
+    with st.expander('', expanded=True):
+        # let user choose if they want to have app run with demo data or upload their own dataset
+        col1, col2, col3 = st.columns(3)
+        with col2:
+            # radio button option for user to pick between demo data and load their own dataset
+            data_option = st.radio("*Choose an option:*", ["Demo Data", "Upload Data"], on_change=handle_click_wo_button, key='data_choice')
+            # add vertical spacer
+            st.write()
+        if st.session_state.my_data_choice == "Upload Data":
+            uploaded_file = st.file_uploader("Upload your .CSV file", type=["csv", "xls", "xlsx", "xlsm", "xlsb"], accept_multiple_files=False)
+        
+if menu_item == 'Load' and sidebar_menu_item=='Home':
+    my_title("Load Dataset 🚀", "#45B8AC")
+    if st.session_state.my_data_choice == "Demo Data":
+        st.session_state.df_raw = generate_demo_data()
         df_raw = generate_demo_data()
         df_graph = df_raw.copy(deep=True)
         df_total = df_raw.copy(deep=True)
-        # set minimum date
         df_min = df_raw.iloc[:,0].min().date()
-        # set maximum date
         df_max = df_raw.iloc[:,0].max().date()
-        with st.expander('🔌', expanded=True):
+        with st.expander('', expanded=True):
+            my_text_header('Demo Data')
             # create 3 columns for spacing
             col1, col2, col3 = st.columns([1,3,1])
-            # display df shape and date range min/max for user
-            col2.markdown(f"<center>Your <b>dataframe</b> has <b><font color='#CA0B4A'>{df_raw.shape[0]}</b></font> \
-                          rows and <b><font color='#CA0B4A'>{df_raw.shape[1]}</b></font> columns <br> with date range: \
-                          <b><font color='#CA0B4A'>{df_min}</b></font> to <b><font color='#CA0B4A'>{df_max}</font></b>.</center>", 
-                          unsafe_allow_html=True)
-            # add a vertical linespace
-            st.write("")
+            # short message about dataframe that has been loaded with shape (# rows, # columns)
+            col2.markdown(f"<center>Your <b>dataframe</b> has <b><font color='#555555'>{st.session_state.df_raw.shape[0]}</b></font> \
+                           rows and <b><font color='#555555'>{st.session_state.df_raw.shape[1]}</b></font> columns <br> with date range: \
+                           <b><font color='#555555'>{df_min}</b></font> to <b><font color='#555555'>{df_max}</font></b>.</center>", 
+                           unsafe_allow_html=True)
+            # create deepcopy of dataframe which will be manipulated for graphs
             df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
             # set caption
             st.caption('')
@@ -2820,31 +3633,56 @@ with tab1:
             st.dataframe(df_graph, use_container_width=True)
             # download csv button
             download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
-    if data_option == "Upload Data" and uploaded_file is None:
+            st.write('')  
+            # Load the canva demo_data image from subfolder images
+            image = Image.open("./images/load_demo.png")
+            # Display the image in Streamlit
+            st.image(image, caption="", use_column_width=True)
+            my_text_paragraph('Doodle: Loading hearts...', my_font_size='12px')  
+            
+    if st.session_state.my_data_choice == "Upload Data" and uploaded_file is None:
+     
+        
         # let user upload a file
         # inform user what template to upload
-        with st.expander("⬇️ Instructions", expanded=True):
-            my_header("Instructions")
-            st.info('''👈 **Please upload a .CSV file with:**  
-                     - first column named: **$date$** with format: **$mm/dd/yyyy$**  
-                     - second column the target variable: $y$''')
+        with st.expander("", expanded=True):
+            my_text_header("Instructions")
+            vertical_spacer(2)
+            col1, col2,col3 = st.columns([1,8,1])
+            with col2:
+                my_text_paragraph('''👈 Please upload a file with your <b><span style="color:#00bf63">dates</span></b> and <b><span style="color:#ff3131">values</span></b> in below order:<br><br>
+                         - first column named: <b><span style="color:#00bf63">date</span></b> in format: mm/dd/yyyy e.g. 12/31/2023<br>
+                         - second column named:  <b><span style="color:#ff3131">&#60;insert variable name&#62;</span></b> e.g. revenue<br>
+                         - supported frequencies: Daily/Weekly/Monthly/Quarterly/Yearly <br>
+                         - supported file extensions: .CSV, .XLS, .XLSX, .XLSM, .XLSB
+                         ''', my_font_weight=300, my_text_align='left')
+            vertical_spacer(2)
+            # Upload Doodle        
+            # Load the canva image from subfolder images
+            image = Image.open("./images/load2.png")
+            # Display the image in Streamlit
+            st.image(image, caption="", use_column_width=True)
+            my_text_paragraph('Doodle: Beep...Beep...Beep...uploading calendar values!', my_font_size='12px') 
+
+        
     # check if data is uploaded
-    if data_option == "Upload Data" and uploaded_file is not None:
+    elif st.session_state.my_data_choice == "Upload Data" and uploaded_file is not None:
         # define dataframe from custom function to read from uploaded read_csv file
-        df_raw = load_data()
-        df_graph = df_raw.copy(deep=True)
-        df_total = df_raw.copy(deep=True)
+        st.session_state.df_raw = load_data()
+        df_graph = st.session_state.df_raw.copy(deep=True)
+        df_total = st.session_state.df_raw.copy(deep=True)
         # set minimum date
-        df_min = df_raw.iloc[:,0].min().date()
+        df_min = st.session_state.df_raw.iloc[:,0].min().date()
         # set maximum date
-        df_max = df_raw.iloc[:,0].max().date()
-        st.success('''🗨️ **Great!** your data is loaded, you can take a look 👀 by clicking on the **Explore** Tab...''')
-        with st.expander('🔌', expanded=True):
+        df_max = st.session_state.df_raw.iloc[:,0].max().date()
+        with st.expander('', expanded=True):
+            my_text_header('Uploaded Data')
             # create 3 columns for spacing
             col1, col2, col3 = st.columns([1,3,1])
             # display df shape and date range min/max for user
-            col2.markdown(f"<center>Your <b>dataframe</b> has <b><font color='#555555'>{df_raw.shape[0]}</b></font> \
-                          rows and <b><font color='#555555'>{df_raw.shape[1]}</b></font> columns <br> with date range: \
+           
+            col2.markdown(f"<center>Your <b>dataframe</b> has <b><font color='#555555'>{st.session_state.df_raw.shape[0]}</b></font> \
+                          rows and <b><font color='#555555'>{st.session_state.df_raw.shape[1]}</b></font> columns <br> with date range: \
                           <b><font color='#555555'>{df_min}</b></font> to <b><font color='#555555'>{df_max}</font></b>.</center>", 
                           unsafe_allow_html=True)
             # add a vertical linespace
@@ -2859,460 +3697,524 @@ with tab1:
             st.dataframe(df_graph, use_container_width=True)
             # download csv button
             download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
-    # if no data then stop
-    if df_raw.empty:
-        pass
-    # else if data continue loading app code
-    else:
-        with tab2:    
-            # set subject title
-            my_title('2. Exploratory Data Analysis 🕵️‍♂️', my_background_color="#217CD0")
-            with st.sidebar:
-                my_title("2. Exploratory Data Analysis	🕵️‍♂️", "#217CD0")
-                # In sidebar create a form with user options related to exploratory data analysis and submit button
-                with st.form('eda'):
-                    # Create sliders in sidebar for the parameters of PACF Plot
-                    st.write("")
-                    my_subheader('Autocorrelation Plot Parameters', my_size=4, my_style='#217CD0')
-                    col1, col2, col3 = st.columns([4,1,4])
-                    # Set default values for parameters
-                    default_lags = 30
-                    default_method = "yw"  
-                    nlags_acf = st.slider("*Lags ACF*", min_value=1, max_value=(len(df_raw)-1), value=default_lags)
-                    col1, col2, col3 = st.columns([4,1,4])
-                    with col1:
-                        nlags_pacf = st.slider("*Lags PACF*", min_value=1, max_value=int((len(df_raw)-2)/2), value=default_lags)
-                    with col3:
-                        method_pacf = st.selectbox("*Method PACF*", [ 'ols', 'ols-inefficient', 'ols-adjusted', 'yw', 'ywa', 'ld', 'ywadjusted', 'yw_adjusted', 'ywm', 'ywmle', 'yw_mle', 'lda', 'ldadjusted', 'ld_adjusted', 'ldb', 'ldbiased', 'ld_biased'], index=0)
-                    # Define the dropdown menu options
-                    options = ['Original Series', 'First Order Difference', 'Second Order Difference', 'Third Order Difference']
-                    # Create the sidebar dropdown menu
-                    selection = st.selectbox('*Apply Differencing [Optional]:*', options)
-                    col1, col2, col3 = st.columns([4,4,4])
-                    with col2:
-                        # create button in sidebar for the ACF and PACF Plot Parameters
-                        st.write("")
-                        acf_pacf_btn = st.form_submit_button("Submit", type="secondary")
-            # create expandable card with data exploration information
-            with st.expander(':arrow_down: EDA', expanded=True):
-                #############################################################################
-                # Summary Statistics
-                #############################################################################
-                # create subheader
-                my_subheader('Summary Statistics', my_size=3)
-                # create linespace
-                st.write("")
-                # Display summary statistics table
-                st.dataframe(display_summary_statistics(df_raw), use_container_width=True)
-                #############################################################################
-                # Call function for plotting Graphs of Seasonal Patterns D/W/M/Q/Y in Plotly Charts
-                #############################################################################
-                plot_overview(df_raw, y=df_raw.columns[1])
-            with st.expander('Autocorrelation Plots (ACF & PACF) with optional Differencing applied', expanded=True):         
-                # Display the plot based on the user's selection
-                fig, df_select_diff = df_differencing(df_raw, selection)
-                st.plotly_chart(fig, use_container_width=True)
-                ############################## ACF & PACF ################################
-                # set data equal to the second column e.g. expecting first column 'date' 
-                data = df_select_diff
-                # Plot ACF        
-                plot_acf(data, nlags=nlags_acf)
-                # Plot PACF
-                plot_pacf(data, nlags=nlags_pacf, method=method_pacf)              
-                # create 3 buttons, about ACF/PACF/Difference for more explanation on the ACF and PACF plots
-                acf_pacf_info()
-                
-            ###################################################################
-            # STATISTICAL TESTS
-            ###################################################################
-            with st.sidebar:
-                with st.expander('Statistical Test Results', expanded=False):
-                    # show dataframe for statistical test results
-                    st.write('dataframe will show here... under construction')
-            with st.expander('Statistical Tests', expanded=True):
-                my_header('Statistical Tests')
-                # apply function to get summary statistics and statistical test results of dependent variable (y)
-                summary_statistics_df = create_summary_df(df_raw.iloc[:,1])
-                st.dataframe(summary_statistics_df, use_container_width=True)
-                download_csv_button(summary_statistics_df, my_file="summary_statistics.csv", help_message='Download your Summary Statistics Dataframe to .CSV')
             
-            ###################################################################  
-            # ADF
-            ###################################################################
-            # Show Augmented Dickey-Fuller Statistical Test Result with hypotheses
-            with st.expander('ADF', expanded=True):
-                my_subheader('Augmented Dickey-Fuller Test')
-                
-                # augmented dickey fuller test results
-                adf_result = adf_test(df_raw, 1)
-                col1, col2, col3 = st.columns([1,3,1])
-                with col2:
-                    st.write(adf_result)
-                   
-            ###############################################################################
-            # 3. Data Cleaning
-            ############################################################################### 
-        with tab3:
-            my_title("3. Data Cleaning 🧹", "#440154")
-            with st.sidebar:
-                my_title("3. Data Cleaning 🧹 ", "#440154")
-                # with your form have a button to click and values are updated in streamlit
-                with st.form('data_cleaning'):
-                    my_subheader('Handling Missing Data 💭', my_size=4, my_style='#440154')
-                    # get user input for filling method
-                    fill_method = st.selectbox('*Select filling method for missing values:*', ['Backfill', 'Forwardfill', 'Mean', 'Median', 'Mode', 'Custom'])
-                    custom_fill_value = None 
-                    if fill_method == 'custom':
-                        custom_fill_value = int(st.text_input('Enter custom value', value='0'))
-                    # Define a dictionary of possible frequencies and their corresponding offsets
-                    freq_dict = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
-                    # Ask the user to select the frequency of the data
-                    freq = st.selectbox('*Select the frequency of the data*', list(freq_dict.keys()))
-                    col1, col2, col3 = st.columns([4,4,4])
-                    with col2:       
-                        data_cleaning_btn = st.form_submit_button("Submit", type="secondary")
-            with st.expander('💭 Missing Data', expanded=True):
-                #*************************************************
-                my_subheader('Handling missing data', my_style="#440154")
-                #*************************************************    
-                # Apply function to resample missing dates based on user set frequency
-                # freq = daily, weekly, monthly, quarterly, yearly
-                df_cleaned_dates = resample_missing_dates(df_raw, freq_dict=freq_dict, freq=freq)
-                # Create matrix of missing values
-                missing_matrix = df_cleaned_dates.isnull()
-                # check if there are no dates skipped for daily data
-                missing_dates = pd.date_range(start=df_raw['date'].min(), end=df_raw['date'].max()).difference(df_raw['date'])
-                missing_values = df_raw.iloc[:,1].isna().sum()
-                # Convert the DatetimeIndex to a dataframe with a single column named 'Date'
-                df_missing_dates = pd.DataFrame({'Skipped Dates': missing_dates})
-                # change datetime to date
-                df_missing_dates['Skipped Dates'] = df_missing_dates['Skipped Dates'].dt.date
-                # Create Plotly Express figure
-                my_subheader('Missing Values Matrix Plot', my_style="#333333", my_size=6)
-                fig = px.imshow(missing_matrix,
-                                labels=dict(x="Variables", y="Observations"),
-                                x=missing_matrix.columns,
-                                y=missing_matrix.index,
-                                color_continuous_scale='Viridis',
-                                title='')
-                # Set Plotly configuration options
-                fig.update_layout(width=400, height=400, margin=dict(l=50, r=50, t=0, b=50))
-                fig.update_traces(showlegend=False)
-                # Display Plotly Express figure in Streamlit
-                st.plotly_chart(fig, use_container_width=True)
-                # check if in continous time-series dataset no dates are missing in between
-                if missing_dates.shape[0] == 0:
-                    st.success('Pweh 😅, no dates were skipped in your dataframe!')
-                else:
-                    st.warning(f'💡 **{missing_dates.shape[0]}** dates were skipped in your dataframe, don\'t worry though! I will **fix** this by **imputing** the dates into your cleaned dataframe!')
-                if missing_values != 0:
-                    st.warning(f'💡 **{missing_values}** missing values are filled with the next available value in the dataset (i.e. backfill method), optionally you can change the *filling method* and press **\"Submit\"**')
-                #******************************************************************
-                # IMPUTE MISSING VALUES WITH FILL METHOD
-                #******************************************************************
-                df_clean = my_fill_method(df_cleaned_dates, fill_method, custom_fill_value)
-                # Display original DataFrame with highlighted NaN cells
-                # Create a copy of the original DataFrame with NaN cells highlighted in yellow
-                col1, col2, col3, col4, col5 = st.columns([2, 0.5, 2, 0.5, 2])
-                with col1:
-                    # highlight NaN values in yellow in dataframe
-                    # got warning: for part of code with `null_color='yellow'`:  `null_color` is deprecated: use `color` instead
-                    highlighted_df = df_graph.style.highlight_null(color='yellow').format(precision=0)
-                    st.write('**Original DataFrame😐**')
-                    # show original dataframe unchanged but with highlighted missing NaN values
-                    st.write(highlighted_df)
-                with col2:
-                    st.write('➡️')
-                with col3:
-                    my_subheader('Skipped Dates 😳', my_style="#333333", my_size=6)
-                    st.write(df_missing_dates)
-                    # Display the dates and the number of missing values associated with them
-                    my_subheader('Missing Values 😖', my_style="#333333", my_size=6)
-                    # Filter the DataFrame to include only rows with missing values
-                    missing_df = copy_df_date_index(df_raw.loc[df_raw.iloc[:,1].isna(), df_raw.columns], datetime_to_date=True, date_to_index=True)
-                    st.write(missing_df)
-                with col4:
-                    st.write('➡️')
-                # Display cleaned Dataframe in Streamlit
-                with col5:
-                    st.write('**Cleaned Dataframe😄**')
-                    # Convert datetime column to date AND set date column as index column
-                    df_clean_show = copy_df_date_index(df_clean, datetime_to_date=True, date_to_index=True)
-                    # Show the cleaned dataframe with if needed dates inserted if skipped to NaN and then the values inserted with impute method user selected backfill/forward fill/mean/median
-                    st.write(df_clean_show)
-                download_csv_button(df_clean_show, my_file="df_imputed_missing_values.csv", set_index=True, help_message='Download cleaner dataframe to .CSV')
-            #########################################################
-            # Handling Outliers
-            #########################################################
-            with st.expander('😇😈😇 Outliers', expanded=True):
-                # Set page subheader with custum function
-                my_subheader('Handling outliers', my_style="#440154")
-        
-                # Define function to generate form and sliders for outlier detection and handling
-                ##############################################################################
-                with st.sidebar:
-                    # display form and sliders for outlier handling method
-                    method, outlier_replacement_method, random_state, contamination, outlier_threshold , q1, q3, iqr_multiplier, n_clusters, max_iter = outlier_form()
-                
-                # Plot data before and after cleaning
-                df_cleaned_outliers, outliers = handle_outliers(df_clean_show, 
-                                                                method,
-                                                                outlier_threshold,
-                                                                q1,
-                                                                q3,
-                                                                max_iter, 
-                                                                n_clusters, 
-                                                                outlier_replacement_method,
-                                                                contamination, 
-                                                                random_state, 
-                                                                iqr_multiplier)
-                
-                # if outliers are found with user chosen outlier detection method and e.g. not None is selected
-                # ... run code...
-                if outliers is not None and any(outliers):
-                    outliers_df = copy_df_date_index(df_clean[outliers], datetime_to_date=True, date_to_index=True).add_suffix('_outliers')
-                    df_cleaned_outliers = df_cleaned_outliers.add_suffix('_outliers_replaced')
-                    # inner join two dataframes
-                    outliers_df = outliers_df.join(df_cleaned_outliers, how='inner', rsuffix='_outliers_replaced')
-                    
-                    ## OUTLIER FIGURE CODE
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df_clean['date'], 
-                                             y=df_clean.iloc[:,1], 
-                                             mode='markers', 
-                                             name='Before',
-                                  marker=dict(color='#440154'),  opacity = 0.5))
-                    # add scatterplot
-                    fig.add_trace(go.Scatter(x=df_cleaned_outliers.index, 
-                                             y= df_cleaned_outliers.iloc[:,0], 
-                                             mode='markers', 
-                                             name='After',
-                                             marker=dict(color='#45B8AC'), opacity = 1))
-                    
-                    df_diff = df_cleaned_outliers.loc[outliers]
-                    # add scatterplot
-                    fig.add_trace(go.Scatter(x=df_diff.index, 
-                                             y= df_diff.iloc[:,0], 
-                                             mode='markers', 
-                                             name='Outliers After',
-                                             marker=dict(color='#FFC300'),  opacity = 1))
+if menu_item == 'Explore' and sidebar_menu_item=='Home':    
+    ####################################################
+    # load required variables
+    ####################################################
+    # apply function to get summary statistics and statistical test results of dependent variable (y)
+    summary_statistics_df = create_summary_df(st.session_state.df_raw.iloc[:,1])
     
-                    # show the outlier plot 
-                    st.plotly_chart(fig, use_container_width=True)
-                    #  show the dataframe of outliers
-                    st.info(f'ℹ️ You replaced **{len(outliers_df)} outlier(s)** with their respective **{outlier_replacement_method}(s)** utilizing **{method}**.')
-                
-                    # Create a function to apply the color scheme to the dataframe
-                    def highlight_cols(s):
-                        if isinstance(s, pd.Series):
-                            if s.name == outliers_df.columns[0]:
-                                return ['background-color: lavender']*len(s)
-                            elif s.name == outliers_df.columns[1]:
-                                return ['background-color: lightyellow']*len(s)
-                            else:
-                                return ['']*len(s)
-                        else:
-                            return ['']*len(s)
-                    
-                    # Apply the color scheme to the dataframe and display it
-                    # convert to int - float looks bad in dataframe:
-                    outliers_df_int = outliers_df.astype(int)
-                    st.dataframe(outliers_df_int.style.apply(highlight_cols, axis=0), use_container_width=True)
-
-                    # add download button for user to be able to download outliers
-                    download_csv_button(outliers_df, my_file="df_outliers.csv", set_index=True, help_message='Download outlier dataframe to .CSV')
-                # if outliers are NOT found or None is selected as outlier detection method
-                # ... run code... 
-                # show scatterplot data without outliers
-                else:
-                    # show the outlier plot 
-                    ## OUTLIER FIGURE CODE
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df_clean['date'], 
-                                             y=df_clean.iloc[:,1], 
-                                             mode='markers', 
-                                             name='Before',
-                                  marker=dict(color='#440154'),  opacity = 0.5))
-                    st.plotly_chart(fig, use_container_width=True)
-                    st.info(f'No **outlier replacement method** selected! Please see the sidebar menu for handling outliers.')
-            ##############################################################################################               
-            # reset the index again to have index instead of date column as index for further processing
-            df_cleaned_outliers_with_index = df_cleaned_outliers.copy(deep=True)
-            df_cleaned_outliers_with_index.reset_index(inplace=True)
-            # convert 'date' column to datetime in both DataFrames
-            df_cleaned_outliers_with_index['date'] = pd.to_datetime(df_cleaned_outliers_with_index['date'])
-            
-            ###############################################################################
-            # 4. Feature Engineering
-            ###############################################################################
-        with tab4:
-            my_title("4. Feature Engineering 🧰", "#FF6F61")
-            with st.sidebar.form('feature engineering sidebar'):
-                my_title("4. Feature Engineering 🧰", "#FF6F61")  
-                st.info('Select your features to engineer:')
-                # show checkbox in middle of sidebar to select all features or none
-                col1, col2, col3 = st.columns([0.1,8,3])
-                with col3:
-                    select_all_days = st.checkbox('Select All Special Days:', value=True, label_visibility='collapsed' )
-                    select_all_seasonal = st.checkbox('Select All Sesaonal:', value=True, label_visibility='collapsed' )
-                    # create checkbox for Discrete Wavelet Transform features which automatically is checked
-                    select_dwt_features = st.checkbox('', value=False, label_visibility='visible', help='In feature engineering, wavelet transform can be used to extract useful information from a time series by decomposing it into different frequency bands. This is done by applying a mathematical function called the wavelet function to the time series data. The resulting wavelet coefficients can then be used as features in machine learning models.')
-                with col2:
-                    if select_all_days == True:
-                       st.write("*🎁 All Special Calendar Days*")
-                    else:
-                        st.write("*🎁 No Special Calendar Days*") 
-                    if select_all_seasonal == True:
-                        st.write("*🌓 All Seasonal Periods*")
-                    else:
-                        st.write("*🌓 No Seasonal Periods*") 
-                    if select_dwt_features == True:
-                        st.write("*🌊 All Wavelet Features*")
-                    else:
-                        st.write("*🌊No Wavelet Features*") 
-                with st.expander('🔽 Wavelet settings'):
-                    wavelet_family = st.selectbox('*Select Wavelet Family*', 
-                                                  ['db4', 'sym4', 'coif4'], 
-                                                  label_visibility='visible', 
-                                                  help=' A wavelet family is a set of wavelet functions that have different properties and characteristics.  \
-                                                  \n**`db4`** wavelet is commonly used for signals with *smooth variations* and *short-duration* pulses  \
-                                                  \n**`sym4`** wavelet is suited for signals with *sharp transitions* and *longer-duration* pulses.  \
-                                                  \n**`coif4`** wavelet, on the other hand, is often used for signals with *non-linear trends* and *abrupt* changes.  \
-                                                  \nIn general, the **`db4`** wavelet family is a good starting point, as it is a popular choice for a wide range of applications and has good overall performance.')
-                    # set standard level of decomposition to 3 
-                    wavelet_level_decomposition = st.selectbox('*Select Level of Decomposition*', 
-                                                               [1, 2, 3, 4, 5], 
-                                                               label_visibility='visible', 
-                                                               index=3, 
-                                                               help='The level of decomposition refers to the number of times the signal is decomposed recursively into its approximation coefficients and detail coefficients.  \
-                                                                     \nIn wavelet decomposition, the signal is first decomposed into two components: a approximation component and a detail component.\
-                                                                     The approximation component represents the coarsest level of detail in the signal, while the detail component represents the finer details.  \
-                                                                     \nAt each subsequent level of decomposition, the approximation component from the previous level is decomposed again into its own approximation and detail components.\
-                                                                     This process is repeated until the desired level of decomposition is reached.  \
-                                                                     \nEach level of decomposition captures different frequency bands and details in the signal, with higher levels of decomposition capturing finer and more subtle details.  \
-                                                                     However, higher levels of decomposition also require more computation and may introduce more noise or artifacts in the resulting representation of the signal.  \
-                                                                     \nThe choice of the level of decomposition depends on the specific application and the desired balance between accuracy and computational efficiency.')
-                    # add slider or text input to choose window size
-                    wavelet_window_size = int(st.slider('*Select Window Size (in days)*', 
-                                                        min_value=1, 
-                                                        max_value=30, 
-                                                        value=7, 
-                                                        label_visibility='visible'))
-                col1, col2, col3 = st.columns([4,4,4])
-                with col2:
-                    # add submit button to form, when user presses it it updates the selection criteria
-                    submitted = st.form_submit_button('Submit')
+    ####################################################            
+    # EDA SIDEBAR
+    ####################################################
+    with st.sidebar:
+        my_title('Exploratory Data Analysis 🕵️‍♂️', my_background_color="#217CD0", gradient_colors="#217CD0,#555555")
+        ############### SIDEBAR METRICS ######################
+        with st.expander(' ', expanded=True):
+            # show in streamlit in sidebar Quick Summary tiles with e.g. rows/columns/start date/end date/mean/median
+            eda_quick_summary()
         
-            with st.expander("📌 Calendar Features", expanded=True):
-                my_header('Special Calendar Days')
-                my_subheader("🎁 Pick your special days to include: ")
+        # statistical tests
+        with st.expander('', expanded=True):
+            # create in sidebar quick insights with custom function
+            eda_quick_insights(df=summary_statistics_df, my_string_column='Label')
+           
+        # autocorrelation parameters form     
+        with st.form('autocorrelation'):
+            # Create sliders in sidebar for the parameters of PACF Plot
+            st.write("")
+            my_text_header('Autocorrelation ')
+            my_text_paragraph('Plot Parameters')
+            col1, col2, col3 = st.columns([4,1,4])
+            # Set default values for parameters
+            # set it to value = 30 or 50%-2 due to original and lag needed for plot
+            default_lags = min(30, int((len(st.session_state.df_raw)-2)/2))
+            default_method = "yw"  
+            nlags_acf = st.slider("*Lags ACF*", min_value=1, max_value=(len(st.session_state.df_raw)-1), value=default_lags)
+            col1, col2, col3 = st.columns([4,1,4])
+            with col1:
+                nlags_pacf = st.slider("*Lags PACF*", min_value=1, max_value=int((len(st.session_state.df_raw)-2)/2), value=default_lags)
+            with col3:
+                method_pacf = st.selectbox("*Method PACF*", [ 'ols', 'ols-inefficient', 'ols-adjusted', 'yw', 'ywa', 'ld', 'ywadjusted', 'yw_adjusted', 'ywm', 'ywmle', 'yw_mle', 'lda', 'ldadjusted', 'ld_adjusted', 'ldb', 'ldbiased', 'ld_biased'], index=0)
+            # Define the dropdown menu options
+            options = ['Original Series', 'First Order Difference', 'Second Order Difference', 'Third Order Difference']
+            # Create the sidebar dropdown menu
+            selection = st.selectbox('*Apply Differencing [Optional]:*', options)
+            
+            # Display the plot based on the user's selection
+            original_fig, df_select_diff = df_differencing(st.session_state.df_raw, selection)
+            st.plotly_chart(original_fig, use_container_width=True)
+            
+            
+            col1, col2, col3 = st.columns([4,4,4])
+            with col2:
+                # create button in sidebar for the ACF and PACF Plot Parameters
                 st.write("")
-                ###############################################
-                # create checkboxes for special days on page
-                ###############################################
-                col0, col1, col2, col3 = st.columns([6,12,12,1])
-                with col1:
-                    jan_sales = st.checkbox('January Sale', value=select_all_days)
-                    val_day_lod = st.checkbox('Valentine\'s Day [last order date]', value=select_all_days)
-                    val_day = st.checkbox('Valentine\'s Day', value=select_all_days)
-                    mother_day_lod = st.checkbox('Mother\'s Day [last order date]', value=select_all_days)
-                    mother_day = st.checkbox('Mother\'s Day', value=select_all_days)
-                    father_day_lod = st.checkbox('Father\'s Day [last order date]', value=select_all_days)
-                    pay_days = st.checkbox('Monthly Pay Days (4th Friday of month)', value=select_all_days)
-                with col2:
-                    father_day = st.checkbox('Father\'s Day', value=select_all_days)
-                    black_friday_lod = st.checkbox('Black Friday [sale starts]', value=select_all_days)
-                    black_friday = st.checkbox('Black Friday', value=select_all_days)
-                    cyber_monday = st.checkbox('Cyber Monday', value=select_all_days)
-                    christmas_day = st.checkbox('Christmas Day [last order date]', value=select_all_days)
-                    boxing_day = st.checkbox('Boxing Day sale', value=select_all_days)
-                # call very extensive function to create all days selected by users as features
-                df = create_calendar_special_days(df_cleaned_outliers_with_index)
-                ##############################
-                # Add Day/Month/Year Features
-                ##############################
-                # create checkboxes for user to checkmark if to include features
-                st.markdown('---')
-                my_subheader('🌓 Pick your seasonal periods to include: ')
-                # vertical space / newline between header and checkboxes
-                st.write("")
-                # create columns for aligning in middle the checkboxes
-                col0, col1, col2, col3, col4 = st.columns([2, 2, 2, 2, 1])
-                with col1:
-                    year_dummies = st.checkbox('Year', value=select_all_seasonal)
-                with col2:
-                    month_dummies = st.checkbox('Month', value=select_all_seasonal)
-                with col3:
-                    day_dummies = st.checkbox('Day', value=select_all_seasonal)
-                st.info('ℹ️ **Note**: to prevent perfect multi-collinearity, leave-one-out is applied e.g. one year/month/day')
-                # apply function to add year/month and day dummy variables
-                df = create_date_features(df, year_dummies=year_dummies, month_dummies=month_dummies, day_dummies=day_dummies)
+                acf_pacf_btn = st.form_submit_button("Submit", type="secondary")   
+            
                 
-            #######################################
-            # Discrete Wavelet Transform (DWT)
-            #######################################
-            # if user checkmarked checkbox: Discrete Wavelet Transform
-            if select_dwt_features:
-                with st.expander('🌊 Wavelet Features', expanded=True):
-                    my_header('Discrete Wavelet Transform')
-                    my_subheader('Feature Extraction')
-                    # define wavelet and level of decomposition
-                    wavelet = wavelet_family
-                    level = wavelet_level_decomposition
-                    # define window size (in days)
-                    window_size = wavelet_window_size
-                    # create empty list to store feature vectors
-                    feature_vectors = []
-                    # loop over each window in the data
-                    for i in range(window_size, len(df)):
-                        # extract data for current window
-                        data_in_window = df.iloc[i-window_size:i, 1].values
-                        # perform DWT on sales data
-                        coeffs = pywt.wavedec(data_in_window, wavelet, level=level)
-                        # extract features from subbands
-                        features = []
-                        for j in range(len(coeffs)):
-                            subband_features = [coeffs[j].mean(), coeffs[j].std(), coeffs[j].max(), coeffs[j].min()]
-                            features.extend(subband_features)
-                        # add features to list
-                        feature_vectors.append(features)
-                    # create new dataframe with features and original date index
-                    feature_cols = ['approx_mean', 'approx_std', 'approx_max', 'approx_min'] + \
-                                   [f'detail{i+1}_mean' for i in range(level)] + \
-                                   [f'detail{i+1}_std' for i in range(level)] + \
-                                   [f'detail{i+1}_max' for i in range(level)] + \
-                                   [f'detail{i+1}_min' for i in range(level)]
-                    # create a dataframe with the created features with discrete wavelet transform on target variable with timewindow set by user
-                    features_df_wavelet = pd.DataFrame(feature_vectors, columns=feature_cols, index=df.iloc[:,0].index[window_size:])
-                    # merge features dataframe with original data
-                    df = pd.merge(df, features_df_wavelet, left_index=True, right_index=True)
-                    # create a dataframe again with the index set as the first column
-                    # assumption used: the 'date' column is the first column of the dataframe
-                    features_df_plot = pd.DataFrame(feature_vectors, columns=feature_cols, index=df.iloc[:,0])
-                    fig = px.line(features_df_plot, 
-                                  x=features_df_plot.index, 
-                                  y=['approx_mean'] + [f'detail{i+1}_mean' for i in range(level)],
-                                  title='', 
-                                  labels={'value': 'Coefficient Mean', 'variable': 'Subband'})
-                    fig.update_layout(xaxis_title='Date')
-                    st.plotly_chart(fig, use_container_width=True)
-                    # Show Dataframe with features
-                    my_subheader('Wavelet Features', my_size=6)
-                    st.dataframe(features_df_wavelet, use_container_width=True)
+    ####################################################            
+    # Explore MAIN PAGE (EDA)
+    ####################################################
+    # Set Subject Title
+    my_title('Exploratory Data Analysis 🕵️‍♂️', my_background_color="#217CD0", gradient_colors="#217CD0,#555555")
+    # create expandable card with data exploration information
+    with st.expander('', expanded=True):
+        #############################################################################
+        # Summary Statistics
+        #############################################################################
+        # display in streamlit subheader
+        my_text_header('Summary')
+        # create linespace
+        st.write("")
+        # Display summary statistics table
+        st.dataframe(display_summary_statistics(st.session_state.df_raw), use_container_width=True)
+        
+        #######################################
+        # Statistical tests
+        #####################################
+        my_text_header('Insights')
+        # show dataframe for statistical test results
+        st.dataframe(summary_statistics_df, use_container_width=True)
+        download_csv_button(summary_statistics_df, my_file="summary_statistics.csv", help_message='Download your Summary Statistics Dataframe to .CSV')      
+        
+    #############################################################################
+    # Call function for plotting Graphs of Seasonal Patterns D/W/M/Q/Y in Plotly Charts
+    #############################################################################
+    with st.expander('', expanded=True):
+        plot_overview(st.session_state.df_raw, y=st.session_state.df_raw.columns[1])
+        
+    ###################################################################  
+    # AUGMENTED DICKEY-FULLER TEST
+    ###################################################################
+    # Show Augmented Dickey-Fuller Statistical Test Result with hypotheses
+    with st.expander('ADF', expanded=True):
+        my_text_header('Augmented Dickey-Fuller')
+        vertical_spacer(1)
+        # Augmented Dickey-Fuller (ADF) test results
+        adf_result = adf_test(st.session_state.df_raw, 1)
+        col1, col2, col3 = st.columns([1,3,1])
+        with col2:
+            st.write(adf_result)
+        vertical_spacer(2)
+        # Doodle Dickey-Fuller Test
+        image = Image.open("./images/adf_test.png")
+        # Display the image in Streamlit
+        st.image(image, caption="", use_column_width=True)
+        my_text_paragraph('Doodle: Dickey-Fuller Test', my_font_size='12px')
+    ###################################################################
+    # AUTOCORRELATION PLOTS - Autocorrelation Plots (ACF & PACF) with optional Differencing applied
+    ###################################################################
+    with st.expander('', expanded=True):     
+        my_text_header('Autocorrelation')
+        ############################## ACF & PACF ################################
+        # set data equal to the second column e.g. expecting first column 'date' 
+        data = df_select_diff
+        # Plot ACF        
+        plot_acf(data, nlags=nlags_acf)
+        # Plot PACF
+        plot_pacf(data, nlags=nlags_pacf, method=method_pacf)              
+        # create 3 buttons, about ACF/PACF/Difference for more explanation on the ACF and PACF plots
+        acf_pacf_info()
+        
+        # AUTOCORRELATION DOODLE #
+        # canva drawing autocorrelation
+        col1, col2, col3 = st.columns([4,10,4])
+        with col2:
+            st.write('')
+            st.write('')
+            # Load the canva demo_data image from subfolder images
+            image = Image.open("./images/autocorrelation.png")
+            # Display the image in Streamlit
+            st.image(image, caption="", use_column_width=True)
+            my_text_paragraph('Doodle: Autocorrelation', my_font_size='12px')
+                   
+###############################################################################
+# 3. Data Cleaning
+############################################################################### 
+
+if menu_item == 'Clean' and sidebar_menu_item=='Home':
+    my_title("Data Cleaning 🧹", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
+    with st.sidebar:
+        my_title("Data Cleaning 🧹", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
+        # with your form have a button to click and values are updated in streamlit
+        with st.form('data_cleaning'):
+            my_text_paragraph('Handling Missing Data')      
+            # get user input for filling method
+            fill_method = st.selectbox('*Select filling method for missing values:*', ['Backfill', 'Forwardfill', 'Mean', 'Median', 'Mode', 'Custom'])
+            custom_fill_value = None 
+            if fill_method == 'custom':
+                custom_fill_value = int(st.text_input('Enter custom value', value='0'))
+            # Define a dictionary of possible frequencies and their corresponding offsets
+            freq_dict = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
+            # infer and return the original data frequency e.g. 'M' and name e.g. 'Monthly'
+            original_freq, original_freq_name = determine_df_frequency( st.session_state.df_raw , column_name='date')
+            # determine the position of original frequency in the freq_dict to use as the index as chosen frequency in drop-down selectbox for user when loading page
+            position = list(freq_dict.values()).index(original_freq)
+            # Ask the user to select the frequency of the data
+            # set the frequency that is inferred from the data itself with custom function to pre-selected e.g. index = ...
+            freq = st.selectbox('*Select the frequency of the data:*', list(freq_dict.keys()), index=position)
+            col1, col2, col3 = st.columns([4,4,4])
+            with col2:       
+                data_cleaning_btn = st.form_submit_button("Submit", type="secondary")
+                # save the user selections/submits in the app to be used when user switches menu items
+                # in other words, save the session state of the user for variables freq, fill_method
+                # freq set on top of script
+                st.session_state['freq'] = freq
+                # set the fill method in session state
+                if fill_method != 'Custom':
+                    st.session_state['fill_method'] = fill_method
+                else:
+                    # set the fill method in session state
+                    st.session_state['fill_method'] = (fill_method, custom_fill_value)
                     
-            #################################################################
-            # ALL FEATURES COMBINED INTO A DATAFRAME
-            #################################################################
-            # SHOW DATAFRAME
-            with st.expander('🧫Engineered Features', expanded=True):
-                my_header('Engineered Features')
-                my_subheader('including target variable', my_size=6)
-                st.dataframe(df)
-                download_csv_button(df, my_file="dataframe_incl_features.csv", help_message="Download your dataset incl. features to .CSV")
+    with st.expander('', expanded=True):
+        #*************************************************
+        my_text_header('Handling missing data')
+        #*************************************************    
+        # Apply function to resample missing dates based on user set frequency
+        # freq = daily, weekly, monthly, quarterly, yearly
+        # resample_missing_dates(df, freq_dict, original_freq, freq)
+        df_cleaned_dates = resample_missing_dates(df=st.session_state.df_raw, freq_dict=freq_dict, original_freq=original_freq, freq=st.session_state['freq'])
+        # check if there are no dates skipped for daily data
+        missing_dates = pd.date_range(start=st.session_state.df_raw['date'].min(), end=st.session_state.df_raw['date'].max()).difference(st.session_state.df_raw['date'])
+        missing_values = st.session_state.df_raw.iloc[:,1].isna().sum()
+        # Convert the DatetimeIndex to a dataframe with a single column named 'Date'
+        df_missing_dates = pd.DataFrame({'Skipped Dates': missing_dates})
+        # change datetime to date
+        df_missing_dates['Skipped Dates'] = df_missing_dates['Skipped Dates'].dt.date
+        # plot missing values matrix with custom function
+        plot_missing_values_matrix(df=df_cleaned_dates)
+        # check if in continous time-series dataset no dates are missing in between
+        if missing_dates.shape[0] == 0:
+            st.success('Pweh 😅, no dates were skipped in your dataframe!')
+        else:
+            st.warning(f'💡 **{missing_dates.shape[0]}** dates were skipped in your dataframe, don\'t worry though! I will **fix** this by **imputing** the dates into your cleaned dataframe!')
+        if missing_values != 0:
+            st.warning(f'💡 **{missing_values}** missing values are filled with the next available value in the dataset (i.e. backfill method), optionally you can change the *filling method* and press **\"Submit\"**')
+        
+        #******************************************************************
+        # IMPUTE MISSING VALUES WITH FILL METHOD
+        #******************************************************************
+        df_clean = my_fill_method(df_cleaned_dates, fill_method, custom_fill_value)
+        # Display original DataFrame with highlighted NaN cells
+        # Create a copy of the original DataFrame with NaN cells highlighted in yellow
+        col1, col2, col3, col4, col5 = st.columns([2, 0.5, 2, 0.5, 2])
+        with col1:
+            # highlight NaN values in yellow in dataframe
+            # got warning: for part of code with `null_color='yellow'`:  `null_color` is deprecated: use `color` instead
+            highlighted_df = df_graph.style.highlight_null(color='yellow').format(precision=0)
+            my_subheader('Original DataFrame', my_style="#333333", my_size=6)
+            # show original dataframe unchanged but with highlighted missing NaN values
+            st.write(highlighted_df)
+        with col2:
+            # show arrow which is a bootstrap icon from source: https://icons.getbootstrap.com/icons/arrow-right/
+            st.markdown('<svg xmlns="http://www.w3.org/2000/svg" width="25" height="20" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">'
+                        '<path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>'
+                        '</svg>', unsafe_allow_html=True)
+        with col3:
+            my_subheader('Skipped Dates', my_style="#333333", my_size=6)
+            st.write(df_missing_dates)
+            # Display the dates and the number of missing values associated with them
+            my_subheader('Missing Values', my_style="#333333", my_size=6)
+            # Filter the DataFrame to include only rows with missing values
+            missing_df = copy_df_date_index(st.session_state.df_raw.loc[st.session_state.df_raw.iloc[:,1].isna(), st.session_state.df_raw.columns], datetime_to_date=True, date_to_index=True)
+            st.write(missing_df)
+        with col4:
+            # show arrow which is a bootstrap icon from source: https://icons.getbootstrap.com/icons/arrow-right/
+            st.markdown('<svg xmlns="http://www.w3.org/2000/svg" width="25" height="20" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">'
+                        '<path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>'
+                        '</svg>', unsafe_allow_html=True)
+
+        # Display cleaned Dataframe in Streamlit
+        with col5:
+            my_subheader('Cleaned Dataframe', my_style="#333333", my_size=6)
+            # Convert datetime column to date AND set date column as index column
+            df_clean_show = copy_df_date_index(df_clean, datetime_to_date=True, date_to_index=True)
+            # Show the cleaned dataframe with if needed dates inserted if skipped to NaN and then the values inserted with impute method user selected backfill/forward fill/mean/median
+            st.write(df_clean_show)
+        # create and show download button in streamlit to user to download the dataframe with imputations performed to missing values
+        download_csv_button(df_clean_show, my_file="df_imputed_missing_values.csv", set_index=True, help_message='Download cleaner dataframe to .CSV')
+    
+    #########################################################
+    # Handling Outliers
+    #########################################################
+    with st.sidebar:
+        # display form and sliders for outlier handling method
+        method, outlier_replacement_method, random_state, contamination, outlier_threshold , q1, q3, iqr_multiplier, n_clusters, max_iter = outlier_form()
+        
+    with st.expander('Outliers', expanded=True):
+        # Set page subheader with custum function
+        my_text_header('Handling outliers')
+        # Define function to generate form and sliders for outlier detection and handling
+        ##############################################################################
+        # Plot data before and after cleaning
+        df_cleaned_outliers, outliers = handle_outliers(df_clean_show, 
+                                                        method,
+                                                        outlier_threshold,
+                                                        q1,
+                                                        q3,
+                                                        max_iter, 
+                                                        n_clusters, 
+                                                        outlier_replacement_method,
+                                                        contamination, 
+                                                        random_state, 
+                                                        iqr_multiplier)
+        
+        # if outliers are found with user chosen outlier detection method and e.g. not None is selected
+        # ... run code...
+        if outliers is not None and any(outliers):
+            outliers_df = copy_df_date_index(df_clean[outliers], datetime_to_date=True, date_to_index=True).add_suffix('_outliers')
+            df_cleaned_outliers = df_cleaned_outliers.add_suffix('_outliers_replaced')
+            # inner join two dataframes
+            outliers_df = outliers_df.join(df_cleaned_outliers, how='inner', rsuffix='_outliers_replaced')
+            
+            ## OUTLIER FIGURE CODE
+            fig_outliers = go.Figure()
+            fig_outliers.add_trace(go.Scatter(x=df_clean['date'], 
+                                     y=df_clean.iloc[:,1], 
+                                     mode='markers', 
+                                     name='Before',
+                          marker=dict(color='#440154'),  opacity = 0.5))
+            # add scatterplot
+            fig_outliers.add_trace(go.Scatter(x=df_cleaned_outliers.index, 
+                                     y= df_cleaned_outliers.iloc[:,0], 
+                                     mode='markers', 
+                                     name='After',
+                                     marker=dict(color='#45B8AC'), opacity = 1))
+            
+            df_diff = df_cleaned_outliers.loc[outliers]
+            # add scatterplot
+            fig_outliers.add_trace(go.Scatter(x=df_diff.index, 
+                                     y= df_diff.iloc[:,0], 
+                                     mode='markers', 
+                                     name='Outliers After',
+                                     marker=dict(color='#FFC300'),  opacity = 1))
+
+            # show the outlier plot 
+            st.plotly_chart(fig_outliers, use_container_width=True)
+            #  show the dataframe of outliers
+            st.info(f'ℹ️ You replaced **{len(outliers_df)} outlier(s)** with their respective **{outlier_replacement_method}(s)** utilizing **{method}**.')
+
+            # Apply the color scheme to the dataframe and display it
+            # convert to int - float looks bad in dataframe:
+            outliers_df_int = outliers_df.astype(int)
+            st.dataframe(outliers_df_int.style.apply(highlight_cols, axis=0), use_container_width=True)
+            # add download button for user to be able to download outliers
+            download_csv_button(outliers_df, my_file="df_outliers.csv", set_index=True, help_message='Download outlier dataframe to .CSV')
+        # if outliers are NOT found or None is selected as outlier detection method
+        # ... run code... 
+        # show scatterplot data without outliers
+        else:
+            # show the outlier plot 
+            ## OUTLIER FIGURE CODE
+            vertical_spacer(1)
+            fig_no_outliers = go.Figure()
+            fig_no_outliers.add_trace(go.Scatter(x=df_clean['date'], 
+                                     y=df_clean.iloc[:,1], 
+                                     mode='markers', 
+                                     name='Before',
+                          marker=dict(color='#440154'),  opacity = 0.5))
+            st.plotly_chart(fig_no_outliers, use_container_width=True)
+            my_text_paragraph(f'No <b> outlier detection </b> or <b> outlier replacement </b> method selected')
+else:
+    # ELSE user did not set the variables in 'clean' menu
+    # THEN set some variables needed to continue, if user did not set them in sidebar submenu's
+    # make choices for the user to be able to use forecasting app
+    # namely modeling without NAN values not possible for some models (SARIMAX) so impute missing with backfill method
+
+    # appl the needed variables to use the cleaned dataframe
+    df_cleaned_dates = resample_missing_dates(st.session_state['df_raw'], freq_dict=st.session_state['freq_dict'], freq=st.session_state['freq'])
+    df_clean = my_fill_method(df_cleaned_dates, st.session_state.fill_method, custom_fill_value=st.session_state.custom_fill_value)
+    df_clean_show = copy_df_date_index(df_clean, datetime_to_date=True, date_to_index=True)
+    # define the dataframe cleaned as regular df if no cleaning was performed
+    df_cleaned_outliers = df_clean_show        
+    
+##############################################################################################               
+# reset the index again to have index instead of date column as index for further processing
+df_cleaned_outliers_with_index = df_cleaned_outliers.copy(deep=True)
+df_cleaned_outliers_with_index.reset_index(inplace=True)
+# convert 'date' column to datetime in both DataFrames
+df_cleaned_outliers_with_index['date'] = pd.to_datetime(df_cleaned_outliers_with_index['date'])
+            
+###############################################################################
+# 4. Feature Engineering
+###############################################################################
+if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
+    my_title("Feature Engineering 🧰", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
+    with st.sidebar:
+        my_title("Feature Engineering 🧰", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
+    with st.sidebar.form('feature engineering sidebar'):
+        st.write('')
+        #my_text_paragraph('Add/Remove Features:')
+        # show checkbox in middle of sidebar to select all features or none
+        col1, col2, col3 = st.columns([0.1,8,3])
+        with col3:
+            # create checkbox for all seasonal days e.g. dummy variables for day/month/year
+            select_all_seasonal = st.checkbox(' ', value=True, label_visibility='visible', help='Include independent features, namely create dummy variables for each `day` of the week, `month` and `year` whereby the leave-1-out principle is applied to not have `perfect multi-collinearity` i.e. the sum of the dummy variables for each observation will otherwise always be equal to one.' )
+            # create checkbox for all special calendar days
+            select_all_days = st.checkbox(' ', value=True, label_visibility='visible', help='Include independent features including: official holidays, pay-days and significant sale dates.')
+            # create checkbox for Discrete Wavelet Transform features which automatically is checked
+            select_dwt_features = st.checkbox(' ', value=False, label_visibility='visible', help='In feature engineering, wavelet transform can be used to extract useful information from a time series by decomposing it into different frequency bands. This is done by applying a mathematical function called the wavelet function to the time series data. The resulting wavelet coefficients can then be used as features in machine learning models.')
+        with col2:
+            if select_all_days == True:
+               st.write("*🎁 All Special Calendar Days*")
+            else:
+                st.write("*🎁 No Special Calendar Days*") 
+            if select_all_seasonal == True:
+                st.write("*🌓 All Seasonal Periods*")
+            else:
+                st.write("*🌓 No Seasonal Periods*") 
+            if select_dwt_features == True:
+                st.write("*🌊 All Wavelet Features*")
+            else:
+                st.write("*🌊No Wavelet Features*") 
+        with st.expander('🔽 Wavelet settings'):
+            wavelet_family = st.selectbox('*Select Wavelet Family*', 
+                                          ['db4', 'sym4', 'coif4'], 
+                                          label_visibility='visible', 
+                                          help=' A wavelet family is a set of wavelet functions that have different properties and characteristics.  \
+                                          \n**`db4`** wavelet is commonly used for signals with *smooth variations* and *short-duration* pulses  \
+                                          \n**`sym4`** wavelet is suited for signals with *sharp transitions* and *longer-duration* pulses.  \
+                                          \n**`coif4`** wavelet, on the other hand, is often used for signals with *non-linear trends* and *abrupt* changes.  \
+                                          \nIn general, the **`db4`** wavelet family is a good starting point, as it is a popular choice for a wide range of applications and has good overall performance.')
+            # set standard level of decomposition to 3 
+            wavelet_level_decomposition = st.selectbox('*Select Level of Decomposition*', 
+                                                       [1, 2, 3, 4, 5], 
+                                                       label_visibility='visible', 
+                                                       index=3, 
+                                                       help='The level of decomposition refers to the number of times the signal is decomposed recursively into its approximation coefficients and detail coefficients.  \
+                                                             \nIn wavelet decomposition, the signal is first decomposed into two components: a approximation component and a detail component.\
+                                                             The approximation component represents the coarsest level of detail in the signal, while the detail component represents the finer details.  \
+                                                             \nAt each subsequent level of decomposition, the approximation component from the previous level is decomposed again into its own approximation and detail components.\
+                                                             This process is repeated until the desired level of decomposition is reached.  \
+                                                             \nEach level of decomposition captures different frequency bands and details in the signal, with higher levels of decomposition capturing finer and more subtle details.  \
+                                                             However, higher levels of decomposition also require more computation and may introduce more noise or artifacts in the resulting representation of the signal.  \
+                                                             \nThe choice of the level of decomposition depends on the specific application and the desired balance between accuracy and computational efficiency.')
+            # add slider or text input to choose window size
+            wavelet_window_size = int(st.slider('*Select Window Size (in days)*', 
+                                                min_value=1, 
+                                                max_value=30, 
+                                                value=7, 
+                                                label_visibility='visible'))
+        col1, col2, col3 = st.columns([4,4,4])
+        with col2:
+            # add submit button to form, when user presses it it updates the selection criteria
+            submitted = st.form_submit_button('Submit')
+    with st.expander("", expanded=True):
+        ##############################
+        # Add Day/Month/Year Features
+        ##############################
+        # create checkboxes for user to checkmark if to include features
+        my_text_header('Dummy Variables')
+        my_text_paragraph('🌓 Pick your time-based features to include: ')
+        # vertical space / newline between header and checkboxes
+        st.write("")
+        # create columns for aligning in middle the checkboxes
+        col0, col1, col2, col3, col4 = st.columns([2, 2, 2, 2, 1])
+        with col1:
+            year_dummies = st.checkbox('Year', value=select_all_seasonal)
+        with col2:
+            month_dummies = st.checkbox('Month', value=select_all_seasonal)
+        with col3:
+            day_dummies = st.checkbox('Day', value=select_all_seasonal)
+        #my_text_paragraph('<b> Note </b> to prevent perfect multi-collinearity, leave-one-out is applied e.g. one year/month/day')
+        vertical_spacer(2)
+        my_text_header('Special Calendar Days')
+        my_text_paragraph("🎁 Pick your special days to include: ")
+        vertical_spacer(1)
+        ###############################################
+        # create checkboxes for special days on page
+        ###############################################
+        col0, col1, col2, col3 = st.columns([6,12,12,1])
+        with col1:
+            jan_sales = st.checkbox('January Sale', value=select_all_days)
+            val_day_lod = st.checkbox('Valentine\'s Day [last order date]', value=select_all_days)
+            val_day = st.checkbox('Valentine\'s Day', value=select_all_days)
+            mother_day_lod = st.checkbox('Mother\'s Day [last order date]', value=select_all_days)
+            mother_day = st.checkbox('Mother\'s Day', value=select_all_days)
+            father_day_lod = st.checkbox('Father\'s Day [last order date]', value=select_all_days)
+            pay_days = st.checkbox('Monthly Pay Days (4th Friday of month)', value=select_all_days)
+        with col2:
+            father_day = st.checkbox('Father\'s Day', value=select_all_days)
+            black_friday_lod = st.checkbox('Black Friday [sale starts]', value=select_all_days)
+            black_friday = st.checkbox('Black Friday', value=select_all_days)
+            cyber_monday = st.checkbox('Cyber Monday', value=select_all_days)
+            christmas_day = st.checkbox('Christmas Day [last order date]', value=select_all_days)
+            boxing_day = st.checkbox('Boxing Day sale', value=select_all_days)
+            
+        # call very extensive function to create all days selected by users as features
+        df = create_calendar_special_days(df_cleaned_outliers_with_index)
+
+        # apply function to add year/month and day dummy variables
+        df = create_date_features(df, year_dummies=year_dummies, month_dummies=month_dummies, day_dummies=day_dummies)
+        vertical_spacer(3)
+    #######################################
+    # Discrete Wavelet Transform (DWT)
+    #######################################
+    # if user checkmarked checkbox: Discrete Wavelet Transform
+    if select_dwt_features:
+        with st.expander('🌊 Wavelet Features', expanded=True):
+            my_text_header('Discrete Wavelet Transform')
+            my_text_paragraph('Feature Extraction')
+            # define wavelet and level of decomposition
+            wavelet = wavelet_family
+            level = wavelet_level_decomposition
+            # define window size (in days)
+            window_size = wavelet_window_size
+            # create empty list to store feature vectors
+            feature_vectors = []
+            # loop over each window in the data
+            for i in range(window_size, len(df)):
+                # extract data for current window
+                data_in_window = df.iloc[i-window_size:i, 1].values
+                # perform DWT on sales data
+                coeffs = pywt.wavedec(data_in_window, wavelet, level=level)
+                # extract features from subbands
+                features = []
+                for j in range(len(coeffs)):
+                    subband_features = [coeffs[j].mean(), coeffs[j].std(), coeffs[j].max(), coeffs[j].min()]
+                    features.extend(subband_features)
+                # add features to list
+                feature_vectors.append(features)
+            # create new dataframe with features and original date index
+            feature_cols = ['approx_mean', 'approx_std', 'approx_max', 'approx_min'] + \
+                           [f'detail{i+1}_mean' for i in range(level)] + \
+                           [f'detail{i+1}_std' for i in range(level)] + \
+                           [f'detail{i+1}_max' for i in range(level)] + \
+                           [f'detail{i+1}_min' for i in range(level)]
+            # create a dataframe with the created features with discrete wavelet transform on target variable with timewindow set by user
+            features_df_wavelet = pd.DataFrame(feature_vectors, columns=feature_cols, index=df.iloc[:,0].index[window_size:])
+            # merge features dataframe with original data
+            df = pd.merge(df, features_df_wavelet, left_index=True, right_index=True)
+            # create a dataframe again with the index set as the first column
+            # assumption used: the 'date' column is the first column of the dataframe
+            features_df_plot = pd.DataFrame(feature_vectors, columns=feature_cols, index=df.iloc[:,0])
+            fig = px.line(features_df_plot, 
+                          x=features_df_plot.index, 
+                          y=['approx_mean'] + [f'detail{i+1}_mean' for i in range(level)],
+                          title='', 
+                          labels={'value': 'Coefficient Mean', 'variable': 'Subband'})
+            fig.update_layout(xaxis_title='Date')
+            st.plotly_chart(fig, use_container_width=True)
+            # Show Dataframe with features
+            my_text_paragraph('Wavelet Features Dataframe')
+            st.dataframe(features_df_wavelet, use_container_width=True)
+            
+    #################################################################
+    # ALL FEATURES COMBINED INTO A DATAFRAME
+    #################################################################
+    # SHOW DATAFRAME
+    with st.expander('', expanded=True):
+        my_text_header('Engineered Features')
+        my_text_paragraph('including target variable')
+        st.dataframe(df)
+        download_csv_button(df, my_file="dataframe_incl_features.csv", help_message="Download your dataset incl. features to .CSV")
             ###############################################################################
             # 5. Prepare Data
             ###############################################################################
-        with tab5:    
+        if menu_item == 'Prepare':    
             my_title('5. Prepare Data 🧪', "#FF9F00")
             with st.sidebar:
                 my_title('5. Prepare Data 🧪', "#FF9F00")
@@ -3475,7 +4377,7 @@ with tab1:
         ###############################################################################
         # 6. Feature Selection
         ###############################################################################
-        with tab6:    
+        if menu_item == 'Select':    
             my_title('6. Feature Selection 🍏🍐🍋', "#7B52AB ")
             with st.expander('ℹ️ Selection Methods', expanded=True):
                 st.markdown('''Let\'s **review** your **top features** to use in analysis with **three feature selection methods**:  
@@ -3487,7 +4389,7 @@ with tab1:
                 st.caption('NOTE: per common practice **only** the training dataset is used for feature selection to prevent **data leakage**.')   
             with st.sidebar:
                 # show Title in sidebar 'Feature Selection' with purple background
-                my_title('6. Feature Selection 🍏🍐🍋', "#7B52AB ")
+                my_title('6. Feature Selection 🍏🍐🍋', "#7B52AB")
                 # =============================================================================
                 # RFE Feature Selection - SIDEBAR FORM
                 # =============================================================================
@@ -3775,7 +4677,7 @@ with tab1:
         ###############################################################################
         # 7. Train Models
         ###############################################################################
-        with tab7:
+        if menu_item == 'Train':
             ################################################
             # Create a User Form to Select Model(s) to train
             ################################################
@@ -4014,7 +4916,7 @@ with tab1:
                             st.write(test_df)
                 
             # show on streamlit page the scoring results
-            with tab8:
+            if menu_item == 'Evaluate':
                 my_title("8. Evaluate Model Performance 🎯", "#2CB8A1")
                 # if the results dataframe is created already then you can continue code
                 if 'results_df' in globals():
@@ -4036,7 +4938,7 @@ with tab1:
             ###########################################################################################################################
             # 9. Hyper-parameter tuning
             ###########################################################################################################################
-            with tab9:
+            if menu_item == 'Tune':
                 my_title('9. Hyper-parameter Tuning⚙️', "#88466D")
                 # set variables needed
                 ######################
@@ -4290,7 +5192,7 @@ with tab1:
             ##############################################################################
             # 10. Forecast
             ##############################################################################
-            with tab10:
+            if menu_item == 'Forecast':
             #if uploaded_file is not None:
                 # DEFINE VARIABLES NEEDED FOR FORECAST
                 min_date = df['date'].min()
