@@ -105,8 +105,10 @@ results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features
 
 if 'results_df' not in st.session_state:
     st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
-
+    
+##############################
 # required for data cleaning
+##############################
 fill_method = None
 custom_fill_value = None
 freq_dict = None
@@ -126,7 +128,7 @@ if 'freq' not in st.session_state:
 
 # required for outlier detection / replacement
 if 'outlier_method' not in st.session_state:
-	st.session_state['outlier_method'] = 0
+	st.session_state['outlier_method'] = 'None'
 if 'outlier_isolationforest_contamination_value' not in st.session_state:
 	st.session_state['outlier_isolationforest_contamination_value'] = 0.01
 if 'outlier_threshold' not in st.session_state:
@@ -142,6 +144,74 @@ if 'outlier_kmeans_n_clusters' not in st.session_state:
 if 'outlier_kmeans_max_iter' not in st.session_state:
 	st.session_state['outlier_kmeans_max_iter'] = 100
 
+
+##############################
+# Prepare data
+##############################
+# =============================================================================
+# # initialize dataframe
+# df = pd.DataFrame(columns=['date', 'y'])
+# # Check if dataframe exists in session state
+# if 'df' not in st.session_state:
+#     st.session_state['df'] = df     
+#   
+# =============================================================================
+
+
+# initialize the checkbox values in the session state e.g. in-memory user session 
+# special calendar days - boolean variables
+lst_special_calendar_days = ['jan_sales',
+                            'val_day_lod',
+                            'val_day',
+                            'mother_day_lod',
+                            'mother_day',
+                            'father_day_lod',
+                            'pay_days',
+                            'father_day',
+                            'black_friday_lod',
+                            'black_friday',
+                            'cyber_monday',
+                            'christmas_day',
+                            'boxing_day']
+
+
+for special_calendar_day in lst_special_calendar_days:
+    if special_calendar_day not in st.session_state:
+        st.session_state[special_calendar_day] = True
+
+# dummy variables - boolean variables        
+lst_dummy_vars = ['year_dummies',
+                  'month_dummies',
+                  'day_dummies']
+
+for dummy in lst_dummy_vars:
+    if dummy not in st.session_state:
+        st.session_state[dummy] = True
+
+######## initialize checkbox sidebar values for feature engineering
+if 'select_all_seasonal' not in st.session_state:
+    st.session_state['select_all_seasonal'] = True
+if 'select_all_days' not in st.session_state:
+    st.session_state['select_all_days'] = True
+if 'select_dwt_features' not in st.session_state:
+    st.session_state['select_dwt_features'] = False
+
+
+# wavelet feature engineering options for user save in session state
+if 'wavelet_family' not in st.session_state:
+    st.session_state['wavelet_family'] = 'db4'
+    
+    
+if 'wavelet_level_decomposition' not in st.session_state:
+    st.session_state['wavelet_level_decomposition'] = 3
+
+if 'wavelet_window_size' not in st.session_state:
+    st.session_state['wavelet_window_size'] = 7
+
+
+
+
+########TEST################
 # show in streamlit the session state variables that are stored cache for the user session
 st.write(st.session_state)
 
@@ -157,7 +227,6 @@ def handle_click_fill_method_button():
         # via the radio button called "data_option"
        st.session_state['fill_method'] = fill_method              
  
-
 def vertical_spacer(n):
     for i in range(n):
         st.write("")
@@ -1271,7 +1340,7 @@ def plot_scaling_before_after(X_unscaled_train, X_train, numerical_features):
     # show the figure in streamlit app
     st.plotly_chart(fig, use_container_width=True)
 
-def plot_train_test_split(local_df, split_index):
+def plot_train_test_split(df, split_index):
     """
     Plot the train-test split of the given dataframe.
     
@@ -1288,31 +1357,31 @@ def plot_train_test_split(local_df, split_index):
         A plotly Figure object containing the train-test split plot.
     """
     # Get the absolute maximum value of the data
-    max_value = abs(local_df.iloc[:, 0]).max()
+    max_value = abs(df.iloc[:, 0]).max()
     fig = go.Figure()
     fig.add_trace(
-                    go.Scatter(x=local_df.index[:split_index],
-                               y=local_df.iloc[:split_index, 0],
+                    go.Scatter(x=df.index[:split_index],
+                               y=df.iloc[:split_index, 0],
                                mode='lines',
                                name='Train',
                                line=dict(color='#217CD0'))
                   )
     fig.add_trace(
-        go.Scatter(x=local_df.index[split_index:],
-                   y=local_df.iloc[split_index:, 0],
+        go.Scatter(x=df.index[split_index:],
+                   y=df.iloc[split_index:, 0],
                    mode='lines',
                    name='Test',
                    line=dict(color='#FFA500')))
     fig.update_layout(title='',
                       yaxis=dict(range=[-max_value*1.1, max_value*1.1]), # Set y-axis range to include positive and negative values
                       shapes=[dict(type='line',
-                                    x0=local_df.index[split_index],
+                                    x0=df.index[split_index],
                                     y0=-max_value*1.1, # Set y0 to -max_value*1.1
-                                    x1=local_df.index[split_index],
+                                    x1=df.index[split_index],
                                     y1=max_value*1.1, # Set y1 to max_value*1.1
                                     line=dict(color='grey',
                                               dash='dash'))],
-                      annotations=[dict(x=local_df.index[split_index],
+                      annotations=[dict(x=df.index[split_index],
                                         y=max_value*1.05,
                                         xref='x',
                                         yref='y',
@@ -1322,7 +1391,7 @@ def plot_train_test_split(local_df, split_index):
                                         arrowhead=1,
                                         ax=0,
                                         ay=-40)])
-    split_date = local_df.index[split_index-1]
+    split_date = df.index[split_index-1]
     fig.add_annotation(x=split_date,
                        y=0.95*max_value,
                        text=str(split_date.date()),
@@ -1772,8 +1841,8 @@ def perform_train_test_split_standardization(X, y, X_train, X_test, y_train, y_t
     Raises:
         ValueError: If the specified test-set size is greater than or equal to the total number of rows in the dataset.
     """
-    # Check if the specified test-set size is valid
-    if my_insample_forecast_steps >= len(df):
+    # Check If the specified test-set size is greater than or equal to the total number of rows in the dataset.
+    if my_insample_forecast_steps >= len(y):
         raise ValueError("Test-set size must be less than the total number of rows in the dataset.")
     if scaler_choice != "None":
         # Check if there are numerical features in the dataframe
@@ -1804,16 +1873,19 @@ def perform_train_test_split_standardization(X, y, X_train, X_test, y_train, y_t
     # Return the training and testing sets as well as the scaler used (if any)
     return X, y, X_train, X_test, y_train, y_test
 
-def train_test_split_slider():
+def train_test_split_slider(df):
     """
    Creates a slider for the user to choose the number of days or percentage for train/test split.
+
+   Args:
+       df (pd.DataFrame): Input DataFrame.
 
    Returns:
        tuple: A tuple containing the number of days and percentage for the in-sample forecast.
    """
     with st.sidebar:
-        with st.form('train test split'):
-            my_subheader('✂️ Train Test Split', my_style="#FF9F00", my_size=3)
+        with st.form('train/test split'):
+            my_text_paragraph('Train/Test Split')
             col1, col2 = st.columns(2)
             with col1:
                 split_type = st.radio("*Select split type:*", ("Days", "Percentage"), index=1)
@@ -1830,8 +1902,6 @@ def train_test_split_slider():
                 train_test_split_btn = st.form_submit_button("Submit", type="secondary")        
     return in_sample_forecast_steps, in_sample_forecast_perc
 
-
-    
 def compute_importance_scores(X, y, estimator):
     """
     Compute feature importance scores using permutation importance.
@@ -1989,29 +2059,29 @@ def create_calendar_special_days(df, start_date_calendar=None,  end_date_calenda
         rules = []
         # Seasonal trading events
         # only add Holiday if user checkmarked checkbox (e.g. equals True) 
-        if jan_sales:
+        if st.session_state['jan_sales']:
             rules.append(Holiday('January sale', month = 1, day = 1))
-        if val_day_lod:
+        if st.session_state['val_day_lod']:
             rules.append(Holiday('Valentine\'s Day [last order date]', month = 2, day = 14, offset = BDay(-2)))
-        if val_day:
+        if st.session_state['val_day']:
             rules.append(Holiday('Valentine\'s Day', month = 2, day = 14))
-        if mother_day_lod:
+        if st.session_state['mother_day_lod']:
             rules.append(Holiday('Mother\'s Day [last order date]', month = 5, day = 1, offset = BDay(-2)))
-        if mother_day:
+        if st.session_state['mother_day']:
             rules.append(Holiday('Mother\'s Day', month = 5, day = 1, offset = pd.DateOffset(weekday = SU(2))))
-        if father_day_lod:
+        if st.session_state['father_day_lod']:
             rules.append(Holiday('Father\'s Day [last order date]', month = 6, day = 1, offset = BDay(-2)))
-        if father_day:
+        if st.session_state['father_day']:
             rules.append(Holiday('Father\'s Day', month = 6, day = 1, offset = pd.DateOffset(weekday = SU(3))))
-        if black_friday_lod:
+        if st.session_state['black_friday_lod']:
             rules.append(Holiday("Black Friday [sale starts]", month = 11, day = 1, offset = [pd.DateOffset(weekday = SA(4)), BDay(-5)]))
-        if black_friday:
+        if st.session_state['black_friday']:
             rules.append(Holiday('Black Friday', month = 11, day = 1, offset = pd.DateOffset(weekday = FR(4))))
-        if cyber_monday:
+        if st.session_state['cyber_monday']:
             rules.append(Holiday("Cyber Monday", month = 11, day = 1, offset = [pd.DateOffset(weekday = SA(4)), pd.DateOffset(2)]))
-        if christmas_day:
+        if st.session_state['christmas_day']:
             rules.append(Holiday('Christmas Day [last order date]', month = 12, day = 25, offset = BDay(-2)))
-        if boxing_day:
+        if st.session_state['boxing_day']:
             rules.append(Holiday('Boxing Day sale', month = 12, day = 26))       
     calendar = UKEcommerceTradingCalendar()
     start = df_exogenous_vars.date.min()
@@ -2026,7 +2096,7 @@ def create_calendar_special_days(df, start_date_calendar=None,  end_date_calenda
     class UKEcommerceTradingCalendar(AbstractHolidayCalendar):
         rules = []
         # Pay days(based on fourth Friday of the month)
-        if pay_days == True:
+        if st.session_state['pay_days'] == True:
             rules = [
                     Holiday('January Pay Day', month = 1, day = 31, offset = BDay(-1)),
                     Holiday('February Pay Day', month = 2, day = 28, offset = BDay(-1)),
@@ -3127,7 +3197,7 @@ def outlier_form():
         max_iter (int or None): the maximum number of iterations to run for K-means clustering, or None if another method is selected
     """
     # set standard value e.g. otherwise UnboundLocalError error if isolation forest is not selected by user
-    outlier_method = 0
+    outlier_method = 'None'
     contamination = None
     random_state = None
     outlier_threshold = None
@@ -3211,8 +3281,13 @@ def outlier_form():
                                                  ''')
         # form to select outlier replacement method for each outlier detection method
         if outlier_method != 'None':
-            outlier_replacement_method = st.selectbox('*Select outlier replacement Method:*', ('Interpolation', 'Mean', 'Median'), help='''**`Replacement method`** determines the value to replace selected outliers with.   
-                                                            For example, you can replace them with the mean or median of the dataset.''')
+            outlier_replacement_method = st.selectbox('*Select outlier replacement method:*', ('Interpolation', 'Mean', 'Median'), help='''**`Replacement method`** determines the actual value(s) to replace detected outlier(s) with.   
+                                                        You can replace your outlier(s) with one of the following replacement methods:    
+                                                        - *linear interpolation algorithm* **(default option)**  
+                                                        - *mean*  
+                                                        - *median*    
+                                                        .
+                                                        ''')
         else:
             outlier_replacement_method = None
         col1, col2, col3 = st.columns([4,4,4])
@@ -3299,6 +3374,12 @@ def handle_outliers(data, method, outlier_threshold, q1, q3, max_iter, n_cluster
             data[col][outliers] = np.nan
             # interpolate missing values using linear method
             data[col] = data[col].interpolate(method='linear')
+            if pd.isnull(data[col].iloc[0]):
+                # Note: had an edge-case with quarterly data that had an outlier as first value and replaced it with NaN with interpolation and this imputes that NaN with second datapoint's value
+                st.warning(f"⚠️ Note: The first value in column '{col}' is **NaN** and will be replaced during interpolation. This introduces some bias into the data.")
+            # replace the first NaN value with the first non-NaN value in the column
+            first_non_nan = data[col].dropna().iloc[0]
+            data[col].fillna(first_non_nan, inplace=True)
     return data, outliers 
 # =============================================================================
 #     elif method == 'k-means':
@@ -3326,9 +3407,7 @@ print('ForecastGenie Print: Loaded Functions')
 # Create title with bubbles floating around
 ###############################################################################
 my_forecastgenie_title('ForecastGenie')
-# CREATE SIDEBAR MENU FOR HOME
-# 1. as sidebar menu
-# 1. as sidebar menu
+# CREATE SIDEBAR MENU FOR HOME / ABOUT / FAQ PAGES FOR USER
 with st.sidebar:
     sidebar_menu_item = option_menu(None, ["Home", "About", "FAQ"], 
         icons=["house", "file-person", "info-circle"], 
@@ -3512,7 +3591,7 @@ if sidebar_menu_item == 'FAQ':
             my_text_paragraph('ForecastGenie is a free, open-source application that enables users to perform time-series forecasting on their data. The application offers a range of advanced features and models to help users generate accurate forecasts and gain insights into their data.')
             
             my_text_paragraph('<b> What kind of data can I use with ForecastGenie? </b>', add_border=True)
-            my_text_paragraph('ForecastGenie accepts data in the form of Excel (.CSV) files, with the first column containing dates and the second column containing the target variable of interest. The application can handle a wide range of time-series data, including financial data, sales data, weather data, and more.')
+            my_text_paragraph('ForecastGenie accepts data in the form of common file types such as .CSV or .XLS. Hereby the first column should contain the dates and the second column containing the target variable of interest. The application can handle a wide range of time-series data, including financial data, sales data, weather data, and more.')
             
             my_text_paragraph('<b>What kind of models does ForecastGenie offer </b>?', add_border=True)
             my_text_paragraph('ForecastGenie offers a range of models to suit different data and use cases, including Naive, SARIMAX, and Prophet. The application also includes hyper-parameter tuning, enabling users to optimize the performance of their models and achieve more accurate forecasts.')
@@ -3604,6 +3683,7 @@ if sidebar_menu_item == 'FAQ':
                 st.write('')
                 st.write('')
                 st.write('')
+                
 print('ForecastGenie Print: Loaded About')
 ###############################################################################
 # 1. Create Button to Load Dataset (.CSV format) or select Demo Data
@@ -3634,7 +3714,7 @@ def handle_click_wo_button():
         # this new variable my_data_choice set it equal to information collected from the user
         # via the radio button called "data_option"
         st.session_state.my_data_choice = st.session_state.data_choice
-
+   
 with st.sidebar:
     my_title("Load Dataset 🚀 ", "#45B8AC") # 2CB8A1
     with st.expander('', expanded=True):
@@ -3684,8 +3764,6 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             my_text_paragraph('Doodle: Loading hearts...', my_font_size='12px')  
             
     if st.session_state.my_data_choice == "Upload Data" and uploaded_file is None:
-     
-        
         # let user upload a file
         # inform user what template to upload
         with st.expander("", expanded=True):
@@ -3707,7 +3785,6 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             st.image(image, caption="", use_column_width=True)
             my_text_paragraph('Doodle: Beep...Beep...Beep...uploading calendar values!', my_font_size='12px') 
 
-        
     # check if data is uploaded
     elif st.session_state.my_data_choice == "Upload Data" and uploaded_file is not None:
         # define dataframe from custom function to read from uploaded read_csv file
@@ -3796,7 +3873,6 @@ if menu_item == 'Explore' and sidebar_menu_item=='Home':
                 st.write("")
                 acf_pacf_btn = st.form_submit_button("Submit", type="secondary")   
             
-                
     ####################################################            
     # Explore MAIN PAGE (EDA)
     ####################################################
@@ -3846,6 +3922,7 @@ if menu_item == 'Explore' and sidebar_menu_item=='Home':
         # Display the image in Streamlit
         st.image(image, caption="", use_column_width=True)
         my_text_paragraph('Doodle: Dickey-Fuller Test', my_font_size='12px')
+        
     ###################################################################
     # AUTOCORRELATION PLOTS - Autocorrelation Plots (ACF & PACF) with optional Differencing applied
     ###################################################################
@@ -3876,7 +3953,7 @@ if menu_item == 'Explore' and sidebar_menu_item=='Home':
 ###############################################################################
 # 3. Data Cleaning
 ############################################################################### 
-if menu_item == 'Clean' and sidebar_menu_item=='Home':
+if menu_item == 'Clean' and sidebar_menu_item=='Home':    
     my_title("Data Cleaning 🧹", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
     with st.sidebar:
         my_title("Data Cleaning 🧹", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
@@ -3941,6 +4018,7 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             st.warning(f'💡 **{missing_values}** missing values are replaced by the **{fill_method}**, optionally you can change the *filling method* and press **\"Submit\"** from the sidebar menu.')
         elif missing_values != 0 and fill_method == 'Custom':
             st.warning(f'💡 **{missing_values}** missing values are replaced by custom value **{custom_fill_value}**, optionally you can change the *filling method* and press **\"Submit\"** from the sidebar menu.')
+        
         #******************************************************************
         # IMPUTE MISSING VALUES WITH FILL METHOD
         #******************************************************************
@@ -3990,8 +4068,8 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
     with st.sidebar:
         # display form and sliders for outlier handling method
         outlier_method, outlier_replacement_method, random_state, contamination, outlier_threshold , q1, q3, iqr_multiplier, n_clusters, max_iter = outlier_form()
-        
-    with st.expander('Outliers', expanded=True):
+
+    with st.expander('Outliers', expanded= True):
         # Set page subheader with custum function
         my_text_header('Handling outliers')
         
@@ -4045,10 +4123,8 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             #  show the dataframe of outliers
             st.info(f'ℹ️ You replaced **{len(outliers_df)} outlier(s)** with their respective **{outlier_replacement_method}(s)** utilizing **{outlier_method}**.')
 
-            # Apply the color scheme to the dataframe and display it
-            # convert to int - float looks bad in dataframe:
-            outliers_df_int = outliers_df.astype(int)
-            st.dataframe(outliers_df_int.style.apply(highlight_cols, axis=0), use_container_width=True)
+            # Apply the color scheme to the dataframe, round values by 2 decimals and display it in streamlit using full size of expander window
+            st.dataframe(outliers_df.style.format("{:.2f}").apply(highlight_cols, axis=0), use_container_width=True)
             # add download button for user to be able to download outliers
             download_csv_button(outliers_df, my_file="df_outliers.csv", set_index=True, help_message='Download outlier dataframe to .CSV')
         # if outliers are NOT found or None is selected as outlier detection method
@@ -4065,7 +4141,7 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
                                      name='Before',
                           marker=dict(color='#440154'),  opacity = 0.5))
             st.plotly_chart(fig_no_outliers, use_container_width=True)
-            my_text_paragraph(f'No <b> outlier detection </b> or <b> outlier replacement </b> method selected')
+            my_text_paragraph(f'No <b> outlier detection </b> or <b> outlier replacement </b> method selected...', my_font_size='14px')
 else:
     ##########################################################
     # ELSE user did not set the variables in 'clean' menu
@@ -4093,7 +4169,12 @@ df_cleaned_outliers_with_index = df_cleaned_outliers.copy(deep=True)
 df_cleaned_outliers_with_index.reset_index(inplace=True)
 # convert 'date' column to datetime in both DataFrames
 df_cleaned_outliers_with_index['date'] = pd.to_datetime(df_cleaned_outliers_with_index['date'])
-            
+
+# if sidebar menu item equals home then save the cleaned dataframe in memory to use for engineering features step
+#if sidebar_menu_item == 'Home':
+if 'df_cleaned_outliers_with_index' not in st.session_state:
+    st.session_state['df_cleaned_outliers_with_index'] = df_cleaned_outliers_with_index
+
 ###############################################################################
 # 4. Feature Engineering
 ###############################################################################
@@ -4108,38 +4189,44 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
         col1, col2, col3 = st.columns([0.1,8,3])
         with col3:
             # create checkbox for all seasonal days e.g. dummy variables for day/month/year
-            select_all_seasonal = st.checkbox(' ', value=True, label_visibility='visible', help='Include independent features, namely create dummy variables for each `day` of the week, `month` and `year` whereby the leave-1-out principle is applied to not have `perfect multi-collinearity` i.e. the sum of the dummy variables for each observation will otherwise always be equal to one.' )
+            select_all_seasonal = st.checkbox(' ', value = st.session_state['select_all_seasonal'], label_visibility='visible', help='Include independent features, namely create dummy variables for each `day` of the week, `month` and `year` whereby the leave-1-out principle is applied to not have `perfect multi-collinearity` i.e. the sum of the dummy variables for each observation will otherwise always be equal to one.' )
+            st.session_state['select_all_seasonal'] = select_all_seasonal
             # create checkbox for all special calendar days
-            select_all_days = st.checkbox(' ', value=True, label_visibility='visible', help='Include independent features including: official holidays, pay-days and significant sale dates.')
+            select_all_days = st.checkbox(' ', value = st.session_state['select_all_days'], label_visibility='visible', help='Include independent features including: official holidays, pay-days and significant sale dates.')
+            st.session_state['select_all_days'] = select_all_days
             # create checkbox for Discrete Wavelet Transform features which automatically is checked
-            select_dwt_features = st.checkbox(' ', value=False, label_visibility='visible', help='In feature engineering, wavelet transform can be used to extract useful information from a time series by decomposing it into different frequency bands. This is done by applying a mathematical function called the wavelet function to the time series data. The resulting wavelet coefficients can then be used as features in machine learning models.')
+            select_dwt_features = st.checkbox(' ', value = st.session_state['select_dwt_features'], label_visibility='visible', help='In feature engineering, wavelet transform can be used to extract useful information from a time series by decomposing it into different frequency bands. This is done by applying a mathematical function called the wavelet function to the time series data. The resulting wavelet coefficients can then be used as features in machine learning models.')
+            st.session_state['select_dwt_features'] = select_dwt_features
         with col2:
-            if select_all_days == True:
-               st.write("*🎁 All Special Calendar Days*")
-            else:
-                st.write("*🎁 No Special Calendar Days*") 
             if select_all_seasonal == True:
                 st.write("*🌓 All Seasonal Periods*")
             else:
                 st.write("*🌓 No Seasonal Periods*") 
+            if select_all_days == True:
+               st.write("*🎁 All Special Calendar Days*")
+            else:
+                st.write("*🎁 No Special Calendar Days*") 
             if select_dwt_features == True:
                 st.write("*🌊 All Wavelet Features*")
             else:
                 st.write("*🌊No Wavelet Features*") 
         with st.expander('🔽 Wavelet settings'):
-            wavelet_family = st.selectbox('*Select Wavelet Family*', 
-                                          ['db4', 'sym4', 'coif4'], 
+            wavelet_family = st.selectbox(label = '*Select Wavelet Family*', 
+                                          options = ['db4', 'sym4', 'coif4'], 
                                           label_visibility='visible', 
-                                          help=' A wavelet family is a set of wavelet functions that have different properties and characteristics.  \
+                                          index = ['db4', 'sym4', 'coif4'].index(st.session_state['wavelet_family']), # index = options.index(selected_method) 
+                                          help = ' A wavelet family is a set of wavelet functions that have different properties and characteristics.  \
                                           \n**`db4`** wavelet is commonly used for signals with *smooth variations* and *short-duration* pulses  \
                                           \n**`sym4`** wavelet is suited for signals with *sharp transitions* and *longer-duration* pulses.  \
                                           \n**`coif4`** wavelet, on the other hand, is often used for signals with *non-linear trends* and *abrupt* changes.  \
                                           \nIn general, the **`db4`** wavelet family is a good starting point, as it is a popular choice for a wide range of applications and has good overall performance.')
+            st.session_state['wavelet_family'] = wavelet_family
+            
             # set standard level of decomposition to 3 
             wavelet_level_decomposition = st.selectbox('*Select Level of Decomposition*', 
                                                        [1, 2, 3, 4, 5], 
                                                        label_visibility='visible', 
-                                                       index=3, 
+                                                       index = [1, 2, 3, 4, 5].index(st.session_state['wavelet_level_decomposition']), 
                                                        help='The level of decomposition refers to the number of times the signal is decomposed recursively into its approximation coefficients and detail coefficients.  \
                                                              \nIn wavelet decomposition, the signal is first decomposed into two components: a approximation component and a detail component.\
                                                              The approximation component represents the coarsest level of detail in the signal, while the detail component represents the finer details.  \
@@ -4148,12 +4235,15 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
                                                              \nEach level of decomposition captures different frequency bands and details in the signal, with higher levels of decomposition capturing finer and more subtle details.  \
                                                              However, higher levels of decomposition also require more computation and may introduce more noise or artifacts in the resulting representation of the signal.  \
                                                              \nThe choice of the level of decomposition depends on the specific application and the desired balance between accuracy and computational efficiency.')
+            st.session_state['wavelet_level_decomposition'] = wavelet_level_decomposition
+            
             # add slider or text input to choose window size
             wavelet_window_size = int(st.slider('*Select Window Size (in days)*', 
                                                 min_value=1, 
                                                 max_value=30, 
                                                 value=7, 
                                                 label_visibility='visible'))
+            st.session_state['wavelet_window_size'] = wavelet_window_size
         col1, col2, col3 = st.columns([4,4,4])
         with col2:
             # add submit button to form, when user presses it it updates the selection criteria
@@ -4171,41 +4261,60 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
         col0, col1, col2, col3, col4 = st.columns([2, 2, 2, 2, 1])
         with col1:
             year_dummies = st.checkbox('Year', value=select_all_seasonal)
+            st.session_state['year_dummies'] = year_dummies
         with col2:
             month_dummies = st.checkbox('Month', value=select_all_seasonal)
+            st.session_state['month_dummies'] = month_dummies
         with col3:
             day_dummies = st.checkbox('Day', value=select_all_seasonal)
+            st.session_state['day_dummies'] = day_dummies
         #my_text_paragraph('<b> Note </b> to prevent perfect multi-collinearity, leave-one-out is applied e.g. one year/month/day')
         vertical_spacer(2)
         my_text_header('Special Calendar Days')
         my_text_paragraph("🎁 Pick your special days to include: ")
         vertical_spacer(1)
+        
         ###############################################
         # create checkboxes for special days on page
         ###############################################
         col0, col1, col2, col3 = st.columns([6,12,12,1])
         with col1:
-            jan_sales = st.checkbox('January Sale', value=select_all_days)
-            val_day_lod = st.checkbox('Valentine\'s Day [last order date]', value=select_all_days)
-            val_day = st.checkbox('Valentine\'s Day', value=select_all_days)
-            mother_day_lod = st.checkbox('Mother\'s Day [last order date]', value=select_all_days)
-            mother_day = st.checkbox('Mother\'s Day', value=select_all_days)
-            father_day_lod = st.checkbox('Father\'s Day [last order date]', value=select_all_days)
-            pay_days = st.checkbox('Monthly Pay Days (4th Friday of month)', value=select_all_days)
+            jan_sales = st.checkbox('January Sale', value=st.session_state['select_all_days'])
+            st.session_state['jan_sales'] = jan_sales
+            val_day_lod = st.checkbox("Valentine's Day [last order date]", value=st.session_state['select_all_days'])
+            st.session_state['val_day_lod'] = val_day_lod
+            val_day = st.checkbox("Valentine's Day", value=st.session_state['select_all_days'])
+            st.session_state['val_day'] = val_day
+            mother_day_lod = st.checkbox("Mother's Day [last order date]", value=st.session_state['select_all_days'])
+            st.session_state['mother_day_lod'] = mother_day_lod
+            mother_day = st.checkbox("Mother's Day", value=select_all_days)
+            st.session_state['mother_day'] = mother_day
+            father_day_lod = st.checkbox("Father's Day [last order date]", value=st.session_state['select_all_days'])
+            st.session_state['father_day_lod'] = father_day_lod
+            pay_days = st.checkbox('Monthly Pay Days (4th Friday of month)', value=st.session_state['select_all_days'])
+            st.session_state['pay_days'] = pay_days
         with col2:
-            father_day = st.checkbox('Father\'s Day', value=select_all_days)
-            black_friday_lod = st.checkbox('Black Friday [sale starts]', value=select_all_days)
-            black_friday = st.checkbox('Black Friday', value=select_all_days)
-            cyber_monday = st.checkbox('Cyber Monday', value=select_all_days)
-            christmas_day = st.checkbox('Christmas Day [last order date]', value=select_all_days)
-            boxing_day = st.checkbox('Boxing Day sale', value=select_all_days)
-            
+            father_day = st.checkbox("Father's Day", value=st.session_state['select_all_days'])
+            st.session_state['father_day'] = father_day
+            black_friday_lod = st.checkbox('Black Friday [sale starts]', value=st.session_state['select_all_days'])
+            st.session_state['black_friday_lod'] = black_friday_lod
+            black_friday = st.checkbox('Black Friday', value=st.session_state['select_all_days'])
+            st.session_state['black_friday'] = black_friday
+            cyber_monday = st.checkbox('Cyber Monday', value=st.session_state['select_all_days'])
+            st.session_state['cyber_monday'] = cyber_monday
+            christmas_day = st.checkbox('Christmas Day [last order date]', value=st.session_state['select_all_days'])
+            st.session_state['christmas_day'] = christmas_day
+            boxing_day = st.checkbox('Boxing Day sale', value=st.session_state['select_all_days'])
+            st.session_state['boxing_day'] = boxing_day
+        
         # call very extensive function to create all days selected by users as features
-        df = create_calendar_special_days(df_cleaned_outliers_with_index)
+        #df = create_calendar_special_days(df_cleaned_outliers_with_index) ## replaced with session state in memory dataframe
+        df = create_calendar_special_days(st.session_state['df_cleaned_outliers_with_index'])
 
         # apply function to add year/month and day dummy variables
-        df = create_date_features(df, year_dummies=year_dummies, month_dummies=month_dummies, day_dummies=day_dummies)
+        df = create_date_features(df, year_dummies=st.session_state['year_dummies'], month_dummies=st.session_state['month_dummies'], day_dummies=st.session_state['day_dummies'])
         vertical_spacer(3)
+        
     #######################################
     # Discrete Wavelet Transform (DWT)
     #######################################
@@ -4215,10 +4324,10 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
             my_text_header('Discrete Wavelet Transform')
             my_text_paragraph('Feature Extraction')
             # define wavelet and level of decomposition
-            wavelet = wavelet_family
-            level = wavelet_level_decomposition
+            wavelet = st.session_state['wavelet_family']
+            level = st.session_state['wavelet_level_decomposition']
             # define window size (in days)
-            window_size = wavelet_window_size
+            window_size = st.session_state['wavelet_window_size']
             # create empty list to store feature vectors
             feature_vectors = []
             # loop over each window in the data
@@ -4257,7 +4366,7 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
             # Show Dataframe with features
             my_text_paragraph('Wavelet Features Dataframe')
             st.dataframe(features_df_wavelet, use_container_width=True)
-            
+   
     #################################################################
     # ALL FEATURES COMBINED INTO A DATAFRAME
     #################################################################
@@ -4267,168 +4376,191 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
         my_text_paragraph('including target variable')
         st.dataframe(df)
         download_csv_button(df, my_file="dataframe_incl_features.csv", help_message="Download your dataset incl. features to .CSV")
-            ###############################################################################
-            # 5. Prepare Data
-            ###############################################################################
-        if menu_item == 'Prepare':    
-            my_title('5. Prepare Data 🧪', "#FF9F00")
-            with st.sidebar:
-                my_title('5. Prepare Data 🧪', "#FF9F00")
-            ##########################################
-            # set date as index/ create local_df
-            ##########################################
-            # create copy of dataframe not altering original
-            local_df = df.copy(deep=True)
-            # set the date as the index of the pandas dataframe
-            local_df.index = pd.to_datetime(local_df['date'])
-            local_df.drop(columns='date', inplace=True)
-            # show user which descriptive variables are removed, that just had the purpose to inform user what dummy was from e.g. holiday days such as Martin Luther King Day
-            with st.expander('ℹ️ I removed the following descriptive columns automatically from analysis'):
-                local_df = remove_object_columns(local_df)
-            
-            ######################
-            # 5.1 TRAIN/TEST SPLIT
-            ######################
-            with st.expander("✂️ Train/Test Split", expanded=True):
-                my_header('Train/Test Split')
-                # create a caption on the page for user to read about rule-of-thumb train/test split 80:20 ratio
-                st.caption(f'<h6> <center> ℹ️ A commonly used ratio is 80:20 split between train and test set </center> <h6>', unsafe_allow_html=True)
-                # create sliders for user insample test-size (/train-size automatically as well)
-                my_insample_forecast_steps, my_insample_forecast_perc = train_test_split_slider()
-                # format as new variables insample_forecast steps in days/as percentage e.g. the test set to predict for
-                perc_test_set = "{:.2f}%".format((my_insample_forecast_steps/len(df))*100)
-                perc_train_set = "{:.2f}%".format(((len(df)-my_insample_forecast_steps)/len(df))*100)
-                #############################################################
-                # Create a figure with a scatter plot of the train/test split
-                #############################################################
-                # create figure with custom function for train/test split with plotly
-                # Set train/test split index
-                split_index = len(local_df) - my_insample_forecast_steps
-                train_test_fig = plot_train_test_split(local_df, split_index)
-                # show the plot inside streamlit app on page
-                st.plotly_chart(train_test_fig, use_container_width=True)
-                # show user the train test split currently set by user or default e.g. 80:20 train/test split
-                st.warning(f"ℹ️ train/test split currently equals :green[**{perc_train_set}**] and :green[**{perc_test_set}**] ")
-        
-            #******************************************
-            # CHANGE DATATYPES: for engineered features
-            #******************************************
-            columns_to_convert = {'holiday': 'uint8', 'calendar_event': 'uint8', 'pay_day': 'uint8', 'year': 'int32'}
-            for column, data_type in columns_to_convert.items():
-                if column in local_df:
-                    local_df[column] = local_df[column].astype(data_type)
-            # Normalize the numerical features only
-            # e.g. changed float64 to float to include other floats such as float32 and float16 data types
-            numerical_features = list(local_df.iloc[:, 1:].select_dtypes(include=['float', 'int64']).columns)
-            
-            ##############################
-            # 5.2 Normalization
-            ##############################
-            with st.sidebar:
-                with st.form('normalization'):
-                    my_subheader('⚖️ Normalization', my_style="#FF9F00", my_size=3)
-                    # Add selectbox for normalization choices
-                    if numerical_features:
-                        normalization_choices = {
-                                                "None": "Do not normalize the data",
-                                                "MinMaxScaler": "Scale features to a given range (default range is [0, 1]).",
-                                                "RobustScaler": "Scale features using statistics that are robust to outliers.",
-                                                "MaxAbsScaler": "Scale each feature by its maximum absolute value.",
-                                                "PowerTransformer": "Apply a power transformation to make the data more Gaussian-like.",
-                                                "QuantileTransformer": "Transform features to have a uniform or Gaussian distribution."
-                                                }
-                        # create a dropdown menu for user in sidebar to choose from a list of normalization methods
-                        normalization_choice = st.selectbox("*Select normalization method:*", 
-                                                            list(normalization_choices.keys()), 
-                                                            format_func=lambda x: f"{x} - {normalization_choices[x]}", 
-                                                            help='**`Normalization`** is a data pre-processing technique to transform the numerical data in a dataset to a standard scale or range.\
-                                                                    This process involves transforming the features of the dataset so that they have a common scale, which makes it easier for data scientists to analyze, compare, and draw meaningful insights from the data.')
-                    else:
-                       # if no numerical features show user a message to inform
-                       st.warning("No numerical features to normalize, you can try adding features!")
-                       # set normalization_choice to None
-                       normalization_choice = "None"
-                    # create form button centered on sidebar to submit user choice for normalization method
-                    col1, col2, col3 = st.columns([4,4,4])
-                    with col2:       
-                        normalization_btn = st.form_submit_button("Submit", type="secondary")
-                # apply function for normalizing the dataframe if user choice
-                # IF user selected a normalization_choice other then "None" the X_train and X_test will be scaled
-                X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(local_df, my_insample_forecast_steps, normalization_choice, numerical_features=numerical_features)
+else:
+    # TEST TEST TEST 05-18-2023
+    # else if user did not click on menu_item engineer and menu_button equals 'Home'
+    # Check if dataframe exists in session state
+    if 'df' not in st.session_state:
+        # call very extensive function to create all days selected by users as features
+        #df = create_calendar_special_days(df_cleaned_outliers_with_index) ## replaced with session state in memory dataframe
+        df = create_calendar_special_days(st.session_state['df_cleaned_outliers_with_index'])
+
+        # apply function to add year/month and day dummy variables
+        df = create_date_features(df, year_dummies=st.session_state['year_dummies'], month_dummies=st.session_state['month_dummies'], day_dummies=st.session_state['day_dummies'])
+        vertical_spacer(3)
                 
-            # if user did not select normalization (yet) then show user message to select normalization method in sidebar
-            if normalization_choice == "None":
-                # on page create expander
-                with st.expander('⚖️ Normalization ',expanded=True):
-                    my_header('Normalization') 
-                    my_subheader(f'Method: {normalization_choice}', my_size=6)
-                    st.info('👈 Please choose in the sidebar your normalization method for numerical columns. Note: columns with booleans will be excluded')
-            
-            # else show user the dataframe with the features that were normalized
-            else:
-                with st.expander('⚖️ Normalization',expanded=True):
-                    my_header('Normalized Features') 
-                    my_subheader(f'Method: {normalization_choice}', my_size=6)
-                    # need original (unnormalized) X_train as well for figure in order to show before/after normalization
-                    X_unscaled_train = df.iloc[:, 1:].iloc[:-my_insample_forecast_steps, :]
-                    # with custom function create the normalization plot with numerical features i.e. before/after scaling
-                    plot_scaling_before_after(X_unscaled_train, X_train, numerical_features)
-                    st.success(f'🎉 Good job! **{len(numerical_features)}** numerical features are normalized with **{normalization_choice}**!')
-                    st.write(X[numerical_features])
-                    # create download button for user, to download the standardized features dataframe with dates as index i.e. first column
-                    download_csv_button(X[numerical_features], my_file='standardized_features.csv', help_message='Download standardized features to .CSV', set_index=True)
-                    
-            ##############################
-            # 5.3 Standardization
-            ##############################            
-            with st.sidebar:
-                with st.form('standardization'):
-                    my_subheader('🦩 Standardization', my_style="#FF9F00", my_size=3)
-                    if numerical_features:
-                        standardization_choices = {
-                                                    "None": "Do not standardize the data",
-                                                    "StandardScaler": "Standardize features by removing the mean and scaling to unit variance.",
-                                                                                           }
-                        standardization_choice = st.selectbox("*Select standardization method:*", list(standardization_choices.keys()), format_func=lambda x: f"{x} - {standardization_choices[x]}"
-                                                              , help='**`Standardization`** is a preprocessing technique used to transform the numerical data to have zero mean and unit variance.\
-                                                                      This is achieved by subtracting the mean from each value and then dividing by the standard deviation.\
-                                                                      The resulting data will have a mean of zero and a standard deviation of one.\
-                                                                      The distribution of the data is changed by centering and scaling the values, which can make the data more interpretable and easier to compare across different features' )
-                    else:
-                        # if no numerical features show user a message to inform
-                       st.warning("No numerical features to standardize, you can try adding features!")
-                       # set normalization_choice to None
-                       standardization_choice = "None"
-                    
-                    # create form button centered on sidebar to submit user choice for standardization method   
-                    col1, col2, col3 = st.columns([4,4,4])
-                    with col2:       
-                        standardization_btn = st.form_submit_button("Submit", type="secondary")
+        # Add Wavelet Features
+        # TODO
+        #df = pd.merge(df, features_df_wavelet, left_index=True, right_index=True)
         
-                # apply function for normalizing the dataframe if user choice
-                # IF user selected a normalization_choice other then "None" the X_train and X_test will be scaled
-                X, y, X_train, X_test, y_train, y_test = perform_train_test_split_standardization(X,y,X_train, X_test, y_train, y_test, my_insample_forecast_steps, scaler_choice=standardization_choice, numerical_features=numerical_features)
-                
-            # if user did not select normalization (yet) then show user message to select normalization method in sidebar
-            if standardization_choice == "None":
-                # on page create expander
-                with st.expander('Standardization ',expanded=True):
-                    my_header('Standardization') 
-                    my_subheader(f'Method: {standardization_choice}', my_size=6)
-                    st.info('👈 Please choose in the sidebar your Standardization method for numerical columns. Note: columns with booleans will be excluded.')
-            # else show user the dataframe with the features that were normalized
+        st.session_state['df'] = df     
+              
+###############################################################################
+# 5. Prepare Data
+###############################################################################
+if menu_item == 'Prepare' and sidebar_menu_item=='Home':
+    my_title('Prepare Data 🧪', "#FF9F00", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
+    with st.sidebar:
+        my_title('Prepare Data 🧪', "#FF9F00", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
+       
+    ##########################################
+    # set date as index/ create local_df
+    ##########################################   
+    # create copy of dataframe not altering original
+    local_df = st.session_state['df'].copy(deep=True)
+    # set the date as the index of the pandas dataframe
+    #local_df.index = pd.to_datetime(local_df['date'])
+    #local_df.drop(columns='date', inplace=True)
+    # show user which descriptive variables are removed, that just had the purpose to inform user what dummy was from e.g. holiday days such as Martin Luther King Day
+    with st.expander('ℹ️ I removed the following descriptive columns automatically from analysis'):
+        local_df = remove_object_columns(local_df)
+        
+    # update df in session state without descriptive columns
+    st.session_state['df'] = local_df
+    ######################
+    # 5.1 TRAIN/TEST SPLIT
+    ######################
+    with st.expander("Train/Test Split", expanded=True):
+        my_text_header('Train/Test Split')
+        # create a caption on the page for user to read about rule-of-thumb train/test split 80:20 ratio
+        st.caption(f'<h6> <center> ℹ️ A commonly used ratio is 80:20 split between train and test set </center> <h6>', unsafe_allow_html=True)
+        # create sliders for user insample test-size (/train-size automatically as well)
+        my_insample_forecast_steps, my_insample_forecast_perc = train_test_split_slider(st.session_state['df'])
+        length_df = len(st.session_state['df'])
+        # format as new variables insample_forecast steps in days/as percentage e.g. the test set to predict for\
+        perc_test_set = "{:.2f}%".format((my_insample_forecast_steps/length_df)*100)
+        perc_train_set = "{:.2f}%".format(((length_df-my_insample_forecast_steps)/length_df)*100)
+        #############################################################
+        # Create a figure with a scatter plot of the train/test split
+        #############################################################
+        # create figure with custom function for train/test split with plotly
+        # Set train/test split index
+        split_index = length_df - my_insample_forecast_steps
+        train_test_fig = plot_train_test_split(st.session_state['df'], split_index)
+        # show the plot inside streamlit app on page
+        st.plotly_chart(train_test_fig, use_container_width=True)
+        # show user the train test split currently set by user or default e.g. 80:20 train/test split
+        st.warning(f"ℹ️ train/test split currently equals :green[**{perc_train_set}**] and :green[**{perc_test_set}**] ")
+
+    #******************************************
+    # CHANGE DATATYPES: for engineered features
+    #******************************************
+    columns_to_convert = {'holiday': 'uint8', 'calendar_event': 'uint8', 'pay_day': 'uint8', 'year': 'int32'}
+    for column, data_type in columns_to_convert.items():
+        if column in local_df:
+            local_df[column] = local_df[column].astype(data_type)
+    # Normalize the numerical features only
+    # e.g. changed float64 to float to include other floats such as float32 and float16 data types
+    numerical_features = list(local_df.iloc[:, 1:].select_dtypes(include=['float', 'int64']).columns)
+    
+    ##############################
+    # 5.2 Normalization
+    ##############################
+    with st.sidebar:
+        with st.form('normalization'):
+            my_text_paragraph('Normalization')
+            # Add selectbox for normalization choices
+            if numerical_features:
+                normalization_choices = {
+                                        "None": "Do not normalize the data",
+                                        "MinMaxScaler": "Scale features to a given range (default range is [0, 1]).",
+                                        "RobustScaler": "Scale features using statistics that are robust to outliers.",
+                                        "MaxAbsScaler": "Scale each feature by its maximum absolute value.",
+                                        "PowerTransformer": "Apply a power transformation to make the data more Gaussian-like.",
+                                        "QuantileTransformer": "Transform features to have a uniform or Gaussian distribution."
+                                        }
+                # create a dropdown menu for user in sidebar to choose from a list of normalization methods
+                normalization_choice = st.selectbox("*Select normalization method:*", 
+                                                    list(normalization_choices.keys()), 
+                                                    format_func=lambda x: f"{x} - {normalization_choices[x]}", 
+                                                    help='**`Normalization`** is a data pre-processing technique to transform the numerical data in a dataset to a standard scale or range.\
+                                                            This process involves transforming the features of the dataset so that they have a common scale, which makes it easier for data scientists to analyze, compare, and draw meaningful insights from the data.')
             else:
-                with st.expander('Standardization',expanded=True):
-                    my_header('Standardized Features') 
-                    my_subheader(f'Method: {standardization_choice}', my_size=6)
-                    # need original (unnormalized) X_train as well for figure in order to show before/after normalization
-                    X_unscaled_train = df.iloc[:, 1:].iloc[:-my_insample_forecast_steps, :]
-                    # with custom function create the normalization plot with numerical features i.e. before/after scaling
-                    plot_scaling_before_after(X_unscaled_train, X_train, numerical_features)
-                    st.info(f'numerical features standardized: {len(numerical_features)}')
-                    st.write(X[numerical_features])
-                    # create download button for user, to download the standardized features dataframe with dates as index i.e. first column
-                    download_csv_button(X[numerical_features], my_file='standardized_features.csv', help_message='Download standardized features to .CSV', set_index=True)
+               # if no numerical features show user a message to inform
+               st.warning("No numerical features to normalize, you can try adding features!")
+               # set normalization_choice to None
+               normalization_choice = "None"
+            # create form button centered on sidebar to submit user choice for normalization method
+            col1, col2, col3 = st.columns([4,4,4])
+            with col2:       
+                normalization_btn = st.form_submit_button("Submit", type="secondary")
+        # apply function for normalizing the dataframe if user choice
+        # IF user selected a normalization_choice other then "None" the X_train and X_test will be scaled
+        X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'], my_insample_forecast_steps, normalization_choice, numerical_features=numerical_features)
+        
+    # if user did not select normalization (yet) then show user message to select normalization method in sidebar
+    if normalization_choice == "None":
+        # on page create expander
+        with st.expander('Normalization ',expanded=True):
+            my_text_header('Normalization') 
+            my_text_paragraph(f'Method: {normalization_choice}')
+            st.info('👈 Please choose in the sidebar your normalization method for numerical columns. Note: columns with booleans will be excluded')
+    
+    # else show user the dataframe with the features that were normalized
+    else:
+        with st.expander('Normalization',expanded=True):
+            my_text_header('Normalized Features') 
+            my_text_paragraph(f'Method: {normalization_choice}')
+            # need original (unnormalized) X_train as well for figure in order to show before/after normalization
+            X_unscaled_train = df.iloc[:, 1:].iloc[:-my_insample_forecast_steps, :]
+            # with custom function create the normalization plot with numerical features i.e. before/after scaling
+            plot_scaling_before_after(X_unscaled_train, X_train, numerical_features)
+            st.success(f'🎉 Good job! **{len(numerical_features)}** numerical features are normalized with **{normalization_choice}**!')
+            st.write(X[numerical_features])
+            # create download button for user, to download the standardized features dataframe with dates as index i.e. first column
+            download_csv_button(X[numerical_features], my_file='standardized_features.csv', help_message='Download standardized features to .CSV', set_index=True)
+            
+    ##############################
+    # 5.3 Standardization
+    ##############################            
+    with st.sidebar:
+        with st.form('standardization'):
+            my_text_paragraph('Standardization')
+            if numerical_features:
+                standardization_choices = {
+                                            "None": "Do not standardize the data",
+                                            "StandardScaler": "Standardize features by removing the mean and scaling to unit variance.",
+                                                                                   }
+                standardization_choice = st.selectbox("*Select standardization method:*", list(standardization_choices.keys()), format_func=lambda x: f"{x} - {standardization_choices[x]}"
+                                                      , help='**`Standardization`** is a preprocessing technique used to transform the numerical data to have zero mean and unit variance.\
+                                                              This is achieved by subtracting the mean from each value and then dividing by the standard deviation.\
+                                                              The resulting data will have a mean of zero and a standard deviation of one.\
+                                                              The distribution of the data is changed by centering and scaling the values, which can make the data more interpretable and easier to compare across different features' )
+            else:
+                # if no numerical features show user a message to inform
+               st.warning("No numerical features to standardize, you can try adding features!")
+               # set normalization_choice to None
+               standardization_choice = "None"
+            
+            # create form button centered on sidebar to submit user choice for standardization method   
+            col1, col2, col3 = st.columns([4,4,4])
+            with col2:       
+                standardization_btn = st.form_submit_button("Submit", type="secondary")
+
+        # apply function for normalizing the dataframe if user choice
+        # IF user selected a normalization_choice other then "None" the X_train and X_test will be scaled
+        X, y, X_train, X_test, y_train, y_test = perform_train_test_split_standardization(X, y, X_train, X_test, y_train, y_test, my_insample_forecast_steps, scaler_choice=standardization_choice, numerical_features=numerical_features)
+        
+    # if user did not select normalization (yet) then show user message to select normalization method in sidebar
+    if standardization_choice == "None":
+        # on page create expander
+        with st.expander('Standardization ',expanded=True):
+            my_text_header('Standardization') 
+            my_text_paragraph(f'Method: {standardization_choice}')
+            st.info('👈 Please choose in the sidebar your Standardization method for numerical columns. Note: columns with booleans will be excluded.')
+    # else show user the dataframe with the features that were normalized
+    else:
+        with st.expander('Standardization',expanded=True):
+            my_text_header('Standardization') 
+            my_text_paragraph(f'Method: {standardization_choice}')
+            # need original (unnormalized) X_train as well for figure in order to show before/after normalization
+            X_unscaled_train = df.iloc[:, 1:].iloc[:-my_insample_forecast_steps, :]
+            # with custom function create the normalization plot with numerical features i.e. before/after scaling
+            plot_scaling_before_after(X_unscaled_train, X_train, numerical_features)
+            st.info(f'numerical features standardized: {len(numerical_features)}')
+            st.write(X[numerical_features])
+            # create download button for user, to download the standardized features dataframe with dates as index i.e. first column
+            download_csv_button(X[numerical_features], my_file='standardized_features.csv', help_message='Download standardized features to .CSV', set_index=True)
                     
         ###############################################################################
         # 6. Feature Selection
