@@ -1,52 +1,89 @@
 # -*- coding: utf-8 -*-
 """
-Streamlit App: ForecastGenie_TM 
-Forecast y based on timeseries data
-@author: tholl
+_____ _____ _____ _____ _____ _____ _____ _____ _____ _____ 
+\____\\____\\____\\____\\____\\____\\____\\____\\____\\____\
+  ___ ___  ___ ___ ___   _   ___ _____ ___ ___ _  _ ___ ___ 
+ | __/ _ \| _ \ __/ __| /_\ / __|_   _/ __| __| \| |_ _| __|
+ | _| (_) |   / _| (__ / _ \\__ \ | || (_ | _|| .` || || _| 
+ |_| \___/|_|_\___\___/_/ \_\___/ |_| \___|___|_|\_|___|___|    
+_____ _____ _____ _____ _____ _____ _____ _____ _____ _____ 
+\____\\____\\____\\____\\____\\____\\____\\____\\____\\____\
+    
+Streamlit App: ForecastGenie
+Forecast y based on X timeseries data
+@author: Tony Hollaar
+Date: 05/20/2023
+Version 1.3
+source ASCII ART: https://patorjk.com/software/taag/#p=display&v=0&f=Big&t=FORECASTGENIE
 """
-#########################################################################
-# Import required packages
-#########################################################################
+# =============================================================================
+#   _ _ _                    _           
+#  | (_) |                  (_)          
+#  | |_| |__  _ __ __ _ _ __ _  ___  ___ 
+#  | | | '_ \| '__/ _` | '__| |/ _ \/ __|
+#  | | | |_) | | | (_| | |  | |  __/\__ \
+#  |_|_|_.__/|_|  \__,_|_|  |_|\___||___/
+#                                        
+# =============================================================================
+#**************************
 # Import necessary packages
+#**************************
+import pandas as pd
+import numpy as np
 import streamlit as st
+
 from streamlit_extras.buy_me_a_coffee import button
 from streamlit_option_menu import option_menu
 
-import pandas as pd
-import numpy as np
-
+#**************************
 # Import datetime packages
-import datetime
+#**************************
+#import datetime
 from datetime import timedelta
 
+#**************************
 # Import itertools package
+#**************************
 import itertools
 
+#**************************
 # Import time package
+#**************************
 import time
 
+#**************************
 # Import math package
+#**************************
 import math
 
+#**************************
 # image processing
+#**************************
 from PIL import Image
 
+#***********************************
 # Import data visualization packages
+#***********************************
 import altair as alt
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+#****************************
 # Import statistical packages
+#****************************
 from scipy import stats
-from statsmodels.tsa.stattools import acf, pacf, adfuller
+#from statsmodels.tsa.stattools import acf
+from statsmodels.tsa.stattools import pacf, adfuller
 from scipy.stats import mode, kurtosis, skew, shapiro
-from statsmodels.stats.diagnostic import acorr_ljungbox
-from sklearn.model_selection import train_test_split
+#from statsmodels.stats.diagnostic import acorr_ljungbox
+#from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 
+#********************************
 # Import data processing packages
+#********************************
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler, MaxAbsScaler, PowerTransformer, QuantileTransformer
 import statsmodels.api as sm
 from statsmodels.tsa.statespace.sarimax import SARIMAX
@@ -62,164 +99,44 @@ import pywt
 from sklearn.feature_selection import mutual_info_regression
 from sklearn.decomposition import PCA
 from sklearn.ensemble import IsolationForest
-from sklearn.neighbors import NearestNeighbors
+#from sklearn.neighbors import NearestNeighbors
 from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
 from pandas.tseries.offsets import BDay
+import holidays
 from pandas.tseries.holiday import(
                                     AbstractHolidayCalendar, Holiday, DateOffset, \
                                     SU, MO, TU, WE, TH, FR, SA, \
                                     next_monday, nearest_workday, sunday_to_monday,
                                     EasterMonday, GoodFriday, Easter
                                   )
-    
-#########################################################################
+
+# =============================================================================
+#   _____        _____ ______    _____ ______ _______ _    _ _____  
+#  |  __ \ /\   / ____|  ____|  / ____|  ____|__   __| |  | |  __ \ 
+#  | |__) /  \ | |  __| |__    | (___ | |__     | |  | |  | | |__) |
+#  |  ___/ /\ \| | |_ |  __|    \___ \|  __|    | |  | |  | |  ___/ 
+#  | |  / ____ \ |__| | |____   ____) | |____   | |  | |__| | |     
+#  |_| /_/    \_\_____|______| |_____/|______|  |_|   \____/|_|     
+#                                                                                                                                    
+# =============================================================================
+#**********************************
 # SET PAGE CONFIGURATIONS STREAMLIT
-#########################################################################
+#**********************************
 st.set_page_config(page_title="ForecastGenie", 
                    layout="centered", # "centered" or "wide"
                    page_icon="🌀", 
                    initial_sidebar_state="expanded") # "auto" or "expanded" or "collapsed"
 
-###############################################################################
-# SET VARIABLES
-###############################################################################
-# create an empty dictionary to store the results of the models
-# that I call after I train the models to display on sidebar under hedaer "Evaluate Models"
-metrics_dict = {}
 
-# define calendar
-cal = calendar()
-
-# set the title of page
-st.title(":blue[]")
-
-# svg image of heart used for text on about page
-balloon_heart_svg = """
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-balloon-heart" viewBox="0 0 16 16">
-                      <path fill-rule="evenodd" d="m8 2.42-.717-.737c-1.13-1.161-3.243-.777-4.01.72-.35.685-.451 1.707.236 3.062C4.16 6.753 5.52 8.32 8 10.042c2.479-1.723 3.839-3.29 4.491-4.577.687-1.355.587-2.377.236-3.061-.767-1.498-2.88-1.882-4.01-.721L8 2.42Zm-.49 8.5c-10.78-7.44-3-13.155.359-10.063.045.041.089.084.132.129.043-.045.087-.088.132-.129 3.36-3.092 11.137 2.624.357 10.063l.235.468a.25.25 0 1 1-.448.224l-.008-.017c.008.11.02.202.037.29.054.27.161.488.419 1.003.288.578.235 1.15.076 1.629-.157.469-.422.867-.588 1.115l-.004.007a.25.25 0 1 1-.416-.278c.168-.252.4-.6.533-1.003.133-.396.163-.824-.049-1.246l-.013-.028c-.24-.48-.38-.758-.448-1.102a3.177 3.177 0 0 1-.052-.45l-.04.08a.25.25 0 1 1-.447-.224l.235-.468ZM6.013 2.06c-.649-.18-1.483.083-1.85.798-.131.258-.245.689-.08 1.335.063.244.414.198.487-.043.21-.697.627-1.447 1.359-1.692.217-.073.304-.337.084-.398Z"/>
-                    </svg>
-                    """
-
-# Initialize results_df in global scope that has model test evaluation results 
-results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
-
-if 'results_df' not in st.session_state:
-    st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
-    
-##############################
-# required for data cleaning
-##############################
-fill_method = None
-custom_fill_value = None
-freq_dict = None
-freq = None
-
-if 'fill_method' not in st.session_state:
-    # set value to 'backfill'
-    st.session_state['fill_method'] = 'Backfill'    
-if 'custom_fill_value' not in st.session_state:
-    # set value to None
-    st.session_state['custom_fill_value'] = 1
-if 'freq_dict' not in st.session_state:
-    st.session_state['freq_dict'] = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
-if 'freq' not in st.session_state:
-    # assume frequency is daily data for now -> expand to automated frequency detection later 
-    st.session_state['freq'] = 'Daily'
-
-# required for outlier detection / replacement
-if 'outlier_method' not in st.session_state:
-	st.session_state['outlier_method'] = 'None'
-if 'outlier_isolationforest_contamination_value' not in st.session_state:
-	st.session_state['outlier_isolationforest_contamination_value'] = 0.01
-if 'outlier_threshold' not in st.session_state:
-	st.session_state['outlier_threshold'] = 3.0
-if 'outlier_iqr_q1' not in st.session_state:
-	st.session_state['outlier_iqr_q1'] = 25
-if 'outlier_iqr_q3' not in st.session_state:
-	st.session_state['outlier_iqr_q3'] = 75
-if 'outlier_iqr_multiplier' not in st.session_state:
-	st.session_state['outlier_iqr_multiplier'] = 1.5
-if 'outlier_kmeans_n_clusters' not in st.session_state:
-	st.session_state['outlier_kmeans_n_clusters'] = 1.5
-if 'outlier_kmeans_max_iter' not in st.session_state:
-	st.session_state['outlier_kmeans_max_iter'] = 100
-
-
-##############################
-# Prepare data
-##############################
 # =============================================================================
-# # initialize dataframe
-# df = pd.DataFrame(columns=['date', 'y'])
-# # Check if dataframe exists in session state
-# if 'df' not in st.session_state:
-#     st.session_state['df'] = df     
-#   
+#   ______ _    _ _   _  _____ _______ _____ ____  _   _  _____ 
+#  |  ____| |  | | \ | |/ ____|__   __|_   _/ __ \| \ | |/ ____|
+#  | |__  | |  | |  \| | |       | |    | || |  | |  \| | (___  
+#  |  __| | |  | | . ` | |       | |    | || |  | | . ` |\___ \ 
+#  | |    | |__| | |\  | |____   | |   _| || |__| | |\  |____) |
+#  |_|     \____/|_| \_|\_____|  |_|  |_____\____/|_| \_|_____/ 
+#                                                               
 # =============================================================================
-
-
-# initialize the checkbox values in the session state e.g. in-memory user session 
-# special calendar days - boolean variables
-lst_special_calendar_days = ['jan_sales',
-                            'val_day_lod',
-                            'val_day',
-                            'mother_day_lod',
-                            'mother_day',
-                            'father_day_lod',
-                            'pay_days',
-                            'father_day',
-                            'black_friday_lod',
-                            'black_friday',
-                            'cyber_monday',
-                            'christmas_day',
-                            'boxing_day']
-
-
-for special_calendar_day in lst_special_calendar_days:
-    if special_calendar_day not in st.session_state:
-        st.session_state[special_calendar_day] = True
-
-# dummy variables - boolean variables        
-lst_dummy_vars = ['year_dummies',
-                  'month_dummies',
-                  'day_dummies']
-
-for dummy in lst_dummy_vars:
-    if dummy not in st.session_state:
-        st.session_state[dummy] = True
-
-######## initialize checkbox sidebar values for feature engineering
-if 'select_all_seasonal' not in st.session_state:
-    st.session_state['select_all_seasonal'] = True
-if 'select_all_days' not in st.session_state:
-    st.session_state['select_all_days'] = True
-if 'select_dwt_features' not in st.session_state:
-    st.session_state['select_dwt_features'] = False
-
-
-# wavelet feature engineering options for user save in session state
-if 'wavelet_family' not in st.session_state:
-    st.session_state['wavelet_family'] = 'db4'
-    
-    
-if 'wavelet_level_decomposition' not in st.session_state:
-    st.session_state['wavelet_level_decomposition'] = 3
-
-if 'wavelet_window_size' not in st.session_state:
-    st.session_state['wavelet_window_size'] = 7
-
-
-
-
-########TEST################
-# show in streamlit the session state variables that are stored cache for the user session
-st.write(st.session_state)
-
-# Logging
-print('ForecastGenie Print: Loaded Global Variables')
-###############################################################################
-# FUNCTIONS
-###############################################################################
 def handle_click_fill_method_button():
     # if key of radio button exists
     if st.session_state['fill_method']:
@@ -307,7 +224,6 @@ def highlight_cols(s):
 ############################
 # FORMATTING TEXT FUNCTIONS
 ############################
-
 def my_title(my_string, my_background_color="#45B8AC", gradient_colors=None):
     if gradient_colors is None:
         gradient_colors = f"{my_background_color}, #2CB8A1, #0072B2"
@@ -1788,6 +1704,8 @@ def perform_train_test_split(df, my_insample_forecast_steps, scaler_choice=None,
     # Scale the data if user selected a scaler choice in the normalization / standardization in streamlit sidebar
     if scaler_choice != "None":
         # Check if there are numerical features in the dataframe
+        st.write('numerical features in function perform_train_test_split', numerical_features)
+        st.write('X_train', X_train)
         if numerical_features:
             # Select only the numerical features to be scaled
             X_train_numeric = X_train[numerical_features]
@@ -1873,7 +1791,7 @@ def perform_train_test_split_standardization(X, y, X_train, X_test, y_train, y_t
     # Return the training and testing sets as well as the scaler used (if any)
     return X, y, X_train, X_test, y_train, y_test
 
-def train_test_split_slider(df):
+def train_test_split_slider(df, default_steps = 1, default_perc = 20):
     """
    Creates a slider for the user to choose the number of days or percentage for train/test split.
 
@@ -1883,24 +1801,38 @@ def train_test_split_slider(df):
    Returns:
        tuple: A tuple containing the number of days and percentage for the in-sample forecast.
    """
+    # set the number of insample steps (e.g. number of days) equal to the percentage which is 20% default or user changed slider then it uses the session_state
+    default_steps = math.ceil(len(df)*(default_perc/100))
+    default_perc = math.ceil(default_perc)
     with st.sidebar:
         with st.form('train/test split'):
             my_text_paragraph('Train/Test Split')
             col1, col2 = st.columns(2)
             with col1:
-                split_type = st.radio("*Select split type:*", ("Days", "Percentage"), index=1)
-                if split_type == "Days":
+                split_type = st.radio("*Select split type:*", ("Steps", "Percentage"), index=1,
+                                      help = "Set your preference for how you want to **split** the training data and test data:  \
+                                      \n- as a `percentage` (between 1% and 99%)  \
+                                      \n- in `steps` (for example number of days with daily data, number of weeks with weekly data, etc.)  \
+                                      \n- Note that the slider **rounds up** to the nearest whole number or percentage point when switching split type.")
+                if split_type == "Steps":
                     with col2:
-                        in_sample_forecast_steps = st.slider('*Size of the test-set in days:*', min_value=1, max_value=len(df)-1, value=int(len(df)*0.2), step=1, key='days')
-                        in_sample_forecast_perc = round((in_sample_forecast_steps / len(df)) * 100, 2)
+                        insample_forecast_steps = st.slider('*Size of the test-set in steps:*', 
+                                                            min_value=1, 
+                                                            max_value=len(df)-1, 
+                                                            value=default_steps, 
+                                                            step=1, 
+                                                            key='days',
+                                                            )
+                        insample_forecast_perc = round((insample_forecast_steps / len(df)) * 100, 2)
                 else:
                     with col2:
-                        in_sample_forecast_perc = st.slider('*Size of the test-set as percentage*', min_value=1, max_value=100, value=20, step=1, key='percentage')
-                        in_sample_forecast_steps = round((in_sample_forecast_perc / 100) * len(df))
+                        insample_forecast_perc = st.slider('*Size of the test-set as percentage*', min_value=1, max_value=99, value=default_perc, step=1, key='percentage')
+                        insample_forecast_steps = round((insample_forecast_perc / 100) * len(df))
+            # show submit button in streamlit centered in sidebar
             col1, col2, col3 = st.columns([4,4,4])
             with col2:       
                 train_test_split_btn = st.form_submit_button("Submit", type="secondary")        
-    return in_sample_forecast_steps, in_sample_forecast_perc
+    return insample_forecast_steps, insample_forecast_perc
 
 def compute_importance_scores(X, y, estimator):
     """
@@ -2025,6 +1957,191 @@ def create_date_features(df, year_dummies=True, month_dummies=True, day_dummies=
     df = df.loc[:,~df.columns.duplicated()]
     return df
 
+
+def create_calendar_holidays(df):
+    
+    try:
+        # Note: create_calendar_holidays FUNCTION BUILD ON TOP OF HOLIDAY PACKAGE
+        # some countries like Algeria have issues therefore if/else statement to catch it
+        # Define variables
+        start_date = df['date'].min()
+        end_date = df['date'].max()
+        
+        # Available countries and their country codes
+        country_data = [
+                        ('Albania', 'AL'),
+                        ('Algeria', 'DZ'),
+                        ('American Samoa', 'AS'),
+                        ('Andorra', 'AD'),
+                        ('Angola', 'AO'),
+                        ('Argentina', 'AR'),
+                        ('Armenia', 'AM'),
+                        ('Aruba', 'AW'),
+                        ('Australia', 'AU'),
+                        ('Austria', 'AT'),
+                        ('Azerbaijan', 'AZ'),
+                        ('Bahrain', 'BH'),
+                        ('Bangladesh', 'BD'),
+                        ('Belarus', 'BY'),
+                        ('Belgium', 'BE'),
+                        ('Bolivia', 'BO'),
+                        ('Bosnia and Herzegovina', 'BA'),
+                        ('Botswana', 'BW'),
+                        ('Brazil', 'BR'),
+                        ('Bulgaria', 'BG'),
+                        ('Burundi', 'BI'),
+                        ('Canada', 'CA'),
+                        ('Chile', 'CL'),
+                        ('China', 'CN'),
+                        ('Colombia', 'CO'),
+                        ('Costa Rica', 'CR'),
+                        ('Croatia', 'HR'),
+                        ('Cuba', 'CU'),
+                        ('Curacao', 'CW'),
+                        ('Cyprus', 'CY'),
+                        ('Czechia', 'CZ'),
+                        ('Denmark', 'DK'),
+                        ('Djibouti', 'DJ'),
+                        ('Dominican Republic', 'DO'),
+                        ('Ecuador', 'EC'),
+                        ('Egypt', 'EG'),
+                        ('Estonia', 'EE'),
+                        ('Eswatini', 'SZ'),
+                        ('Ethiopia', 'ET'),
+                        ('Finland', 'FI'),
+                        ('France', 'FR'),
+                        ('Georgia', 'GE'),
+                        ('Germany', 'DE'),
+                        ('Greece', 'GR'),
+                        ('Guam', 'GU'),
+                        ('Honduras', 'HN'),
+                        ('Hong Kong', 'HK'),
+                        ('Hungary', 'HU'),
+                        ('Iceland', 'IS'),
+                        ('India', 'IN'),
+                        ('Indonesia', 'ID'),
+                        ('Ireland', 'IE'),
+                        ('Isle of Man', 'IM'),
+                        ('Israel', 'IL'),
+                        ('Italy', 'IT'),
+                        ('Jamaica', 'JM'),
+                        ('Japan', 'JP'),
+                        ('Kazakhstan', 'KZ'),
+                        ('Kenya', 'KE'),
+                        ('Kyrgyzstan', 'KG'),
+                        ('Latvia', 'LV'),
+                        ('Lesotho', 'LS'),
+                        ('Liechtenstein', 'LI'),
+                        ('Lithuania', 'LT'),
+                        ('Luxembourg', 'LU'),
+                        ('Madagascar', 'MG'),
+                        ('Malawi', 'MW'),
+                        ('Malaysia', 'MY'),
+                        ('Malta', 'MT'),
+                        ('Marshall Islands', 'MH'),
+                        ('Mexico', 'MX'),
+                        ('Moldova', 'MD'),
+                        ('Monaco', 'MC'),
+                        ('Montenegro', 'ME'),
+                        ('Morocco', 'MA'),
+                        ('Mozambique', 'MZ'),
+                        ('Namibia', 'NA'),
+                        ('Netherlands', 'NL'),
+                        ('New Zealand', 'NZ'),
+                        ('Nicaragua', 'NI'),
+                        ('Nigeria', 'NG'),
+                        ('Northern Mariana Islands', 'MP'),
+                        ('North Macedonia', 'MK'),
+                        ('Norway', 'NO'),
+                        ('Pakistan', 'PK'),
+                        ('Panama', 'PA'),
+                        ('Paraguay', 'PY'),
+                        ('Peru', 'PE'),
+                        ('Philippines', 'PH'),
+                        ('Poland', 'PL'),
+                        ('Portugal', 'PT'),
+                        ('Puerto Rico', 'PR'),
+                        ('Romania', 'RO'),
+                        ('Russia', 'RU'),
+                        ('San Marino', 'SM'),
+                        ('Saudi Arabia', 'SA'),
+                        ('Serbia', 'RS'),
+                        ('Singapore', 'SG'),
+                        ('Slovakia', 'SK'),
+                        ('Slovenia', 'SI'),
+                        ('South Africa', 'ZA'),
+                        ('South Korea', 'KR'),
+                        ('Spain', 'ES'),
+                        ('Sweden', 'SE'),
+                        ('Switzerland', 'CH'),
+                        ('Taiwan', 'TW'),
+                        ('Thailand', 'TH'),
+                        ('Tunisia', 'TN'),
+                        ('Turkey', 'TR'),
+                        ('Ukraine', 'UA'),
+                        ('United Arab Emirates', 'AE'),
+                        ('United Kingdom', 'GB'),
+                        ('United States Minor Outlying Islands', 'UM'),
+                        ('United States of America', 'US'),
+                        ('United States Virgin Islands', 'VI'),
+                        ('Uruguay', 'UY'),
+                        ('Uzbekistan', 'UZ'),
+                        ('Vatican City', 'VA'),
+                        ('Venezuela', 'VE'),
+                        ('Vietnam', 'VN'),
+                        ('Virgin Islands (U.S.)', 'VI'),
+                        ('Zambia', 'ZM'),
+                        ('Zimbabwe', 'ZW')
+                        ]
+    
+        # default value for selectbox set it equal to country e.g. USA
+        us_index = country_data.index(('United States of America', 'US'))
+        
+        col1, col2, col3 = st.columns([1,2,1])
+        with col2:
+            # create selexbox in streamlit to show to user a drop-down menu to select a country
+            selected_country_name = st.selectbox("Select a country", [country[0] for country in country_data], index = us_index, label_visibility='hidden')
+        
+        # create empty container for the calendar
+        country_calendars = {}
+        
+        # iterate over all countries and try-except block for if holiday for country is not found in holiday python package
+        for name, code in country_data:
+            try:
+                country_calendars[name] = getattr(holidays, code)()
+            except AttributeError:
+                col1, col2, col3 = st.columns([1,2,1])
+                with col2:
+                    print(f"No holiday calendar found for country: {name}")
+                continue
+        
+        # Retrieve the country code for the selected country
+        selected_country_code = dict(country_data).get(selected_country_name)
+        
+        # Check if the selected country has a holiday calendar
+        if selected_country_name in country_calendars.keys():
+          country_holidays = holidays.country_holidays(selected_country_code)
+          # Set the start and end date for the date range
+          range_of_dates = pd.date_range(start_date, end_date)
+          
+          # create a dataframe for the date range
+          df_country_holidays = pd.DataFrame(index=range_of_dates)
+          df_country_holidays['is_holiday'] = [1 if date in country_holidays else 0 for date in range_of_dates]
+          df_country_holidays['holiday_desc'] = [country_holidays.get(date, '') for date in range_of_dates]
+          #st.write(df_country_holidays) # TEST IF TWO COLUMNS ARE CREATED CORRECTLY FOR COUNTRY HOLIDAYS
+          
+          # merge dataframe of index with dates, is_holiday, holiday_desc with original df
+          df = pd.merge(df, df_country_holidays, left_on='date', right_index=True, how='left')
+          #st.write(df) # TEST IF MERGE WAS SUCCESFULL
+          return df
+          
+        else:
+            col1, col2, col3 = st.columns([1,2,1])
+            with col2:  
+                return st.error(f"⚠️No holiday calendar found for country: **{selected_country_name}**")
+    except:
+        st.error('Forecastgenie Error: the function create_calendar_holidays() could not execute correctly, please contact the administrator...')
+
 def create_calendar_special_days(df, start_date_calendar=None,  end_date_calendar=None, select_all_days=True):
     """
     # source: https://practicaldatascience.co.uk/data-science/how-to-create-an-ecommerce-trading-calendar-using-pandas
@@ -2049,12 +2166,20 @@ def create_calendar_special_days(df, start_date_calendar=None,  end_date_calenda
     else:
         end_date_calendar = end_date_calendar
     df_exogenous_vars = pd.DataFrame({'date': pd.date_range(start = start_date_calendar, end = end_date_calendar)})
-    holidays = cal.holidays(start=start_date_calendar, end=end_date_calendar)
-    # holiday = true/ otherwise false
-    df_exogenous_vars['holiday'] = (df_exogenous_vars['date'].isin(holidays)).apply(lambda x: 1 if x==True else 0)
-    # create column for holiday description
-    df_exogenous_vars['holiday_desc'] = df_exogenous_vars['date'].apply(lambda x: my_holiday_name_func(x))
     
+# =============================================================================
+#     # ????????????????
+#     # TEST 2023-05-20
+#     # ????????????????
+#     
+#     # Get the holidays within the specified date range
+#     holiday_dates = cal.holidays(start=start_date_calendar, end=end_date_calendar)
+#     # holiday = true/ otherwise false
+#     df_exogenous_vars['holiday'] = (df_exogenous_vars['date'].isin(holiday_dates)).apply(lambda x: 1 if x==True else 0)
+#     # create column for holiday description
+#     df_exogenous_vars['holiday_desc'] = df_exogenous_vars['date'].apply(lambda x: my_holiday_name_func(x))
+#         
+# =============================================================================
     class UKEcommerceTradingCalendar(AbstractHolidayCalendar):
         rules = []
         # Seasonal trading events
@@ -2083,6 +2208,7 @@ def create_calendar_special_days(df, start_date_calendar=None,  end_date_calenda
             rules.append(Holiday('Christmas Day [last order date]', month = 12, day = 25, offset = BDay(-2)))
         if st.session_state['boxing_day']:
             rules.append(Holiday('Boxing Day sale', month = 12, day = 26))       
+    
     calendar = UKEcommerceTradingCalendar()
     start = df_exogenous_vars.date.min()
     end = df_exogenous_vars.date.max()
@@ -2125,8 +2251,9 @@ def create_calendar_special_days(df, start_date_calendar=None,  end_date_calenda
     # Reorder Columns to logical order e.g. value | description of value
     ###############################################################################
     # ??? improve this dynamically ???
-    df_exogenous_vars = df_exogenous_vars[['date', 'holiday', 'holiday_desc', 'calendar_event', 'calendar_event_desc', 'pay_day','pay_day_desc']]
-
+    #df_exogenous_vars = df_exogenous_vars[['date', 'holiday', 'holiday_desc', 'calendar_event', 'calendar_event_desc', 'pay_day','pay_day_desc']]
+    df_exogenous_vars = df_exogenous_vars[['date', 'calendar_event', 'calendar_event_desc', 'pay_day','pay_day_desc']]
+    
     ###############################################################################
     # combine exogenous vars with df_total | df_clean?
     ###############################################################################
@@ -2145,7 +2272,6 @@ def wait(seconds):
     with st.spinner(f"Please wait... {int(time.time() - start_time)} seconds passed"):
         time.sleep(seconds)     
 
-@st.cache_data
 def my_holiday_name_func(my_date):
     """
     This function takes a date as input and returns the name of the holiday that falls on that date.
@@ -2414,7 +2540,6 @@ def load_data():
         df_raw = pd.read_excel(uploaded_file, parse_dates=['date'])
     return df_raw
 
-@st.cache_data   
 def create_df_pred(y_test, y_pred, show_df_streamlit=True):
     try:
         df_preds = pd.DataFrame({'Actual': y_test.squeeze(), 'Predicted': y_pred.squeeze()})
@@ -2552,7 +2677,6 @@ def plot_actual_vs_predicted(df_preds, my_conf_interval):
     # Render the chart in Streamlit
     st.plotly_chart(fig, use_container_width=True)
     
-@st.cache_data   
 # remove datatypes object - e.g. descriptive columns not used in modeling
 def remove_object_columns(df):
     """
@@ -2645,9 +2769,7 @@ def resample_missing_dates(df, freq_dict, freq, original_freq):
 #     # do test with original freq
 #     st.write(freq_dict)
 #     st.write(freq)
-#     st.write(df)
-#     
-#     
+#     st.write(df) 
 # =============================================================================
 # =============================================================================
 #     # If resampling from higher frequency to lower frequency (e.g., monthly to quarterly),
@@ -2796,6 +2918,7 @@ def plot_overview(df, y):
         
     y_column_index = df.columns.get_loc(y)
     y_colname = df.columns[y_column_index]
+    
     # Create subplots
     all_subplot_titles = ('Daily Pattern', 
                         'Weekly Pattern', 
@@ -2848,7 +2971,7 @@ def plot_overview(df, y):
         # Yearly Pattern
         fig.add_trace(px.line(df_yearly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=1, col=1)
         fig.add_trace(px.histogram(df, x=y_colname, title='Histogram').data[0], row=2, col=1)
-
+    
     # Update layout
     my_text_header('Overview of Patterns')
     # define height of graph
@@ -2922,7 +3045,6 @@ def df_differencing(df, selection):
                         margin=dict(l=0, r=20, t=0, b=0),
                         height=200
                      )
-    
     return fig, df_select_diff
 
 def calc_pacf(data, nlags, method):
@@ -3285,8 +3407,7 @@ def outlier_form():
                                                         You can replace your outlier(s) with one of the following replacement methods:    
                                                         - *linear interpolation algorithm* **(default option)**  
                                                         - *mean*  
-                                                        - *median*    
-                                                        .
+                                                        - *median*
                                                         ''')
         else:
             outlier_replacement_method = None
@@ -3400,13 +3521,207 @@ def handle_outliers(data, method, outlier_threshold, q1, q3, max_iter, n_cluster
 #             for col in data.columns:
 #                 data[col][outliers] = medians[col]
 # =============================================================================
-    
+
+def handle_click_wo_button():
+    """
+    This function handles the click event without a button. It saves the session state of the user in-memory.
+    If the key of the radio button, 'data_choice', exists in the session state, the function assigns the value of 'data_choice' to a new variable, 'my_data_choice'.
+    """
+    # if key of radio button exists
+    if st.session_state.data_choice:
+        # this new variable my_data_choice set it equal to information collected from the user
+        # via the radio button called "data_option"
+        st.session_state.my_data_choice = st.session_state.data_choice
+
 # Log
 print('ForecastGenie Print: Loaded Functions')
-###############################################################################
+
+# =============================================================================
+#  __      __     _____  _____          ____  _      ______  _____ 
+#  \ \    / /\   |  __ \|_   _|   /\   |  _ \| |    |  ____|/ ____|
+#   \ \  / /  \  | |__) | | |    /  \  | |_) | |    | |__  | (___  
+#    \ \/ / /\ \ |  _  /  | |   / /\ \ |  _ <| |    |  __|  \___ \ 
+#     \  / ____ \| | \ \ _| |_ / ____ \| |_) | |____| |____ ____) |
+#      \/_/    \_\_|  \_\_____/_/    \_\____/|______|______|_____/ 
+#                                                                  
+# =============================================================================
+# SET VARIABLE DEFAULTS: demo data or uploaded data
+
+# check if df_raw not in current session state else add it
+if "df_raw" not in st.session_state:
+    # define an empty dataframe with two headers for date and target variable
+    st.session_state["df_raw"] = pd.DataFrame()
+    st.session_state.df_raw = generate_demo_data()
+    df_graph = st.session_state.df_raw.copy(deep=True)
+    df_total = st.session_state.df_raw.copy(deep=True)
+    # set minimum date
+    df_min = st.session_state.df_raw .iloc[:,0].min().date()
+    # set maximum date
+    df_max = st.session_state.df_raw .iloc[:,0].max().date()
+    
+if "df_graph" not in st.session_state:
+    df_graph = st.session_state.df_raw.copy(deep=True)
+    
+if "my_data_choice" not in st.session_state:
+    st.session_state.my_data_choice = "Demo Data"
+
+# create an empty dictionary to store the results of the models
+# that I call after I train the models to display on sidebar under hedaer "Evaluate Models"
+metrics_dict = {}
+
+# define calendar
+cal = calendar()
+
+# svg image of heart used for text on about page
+balloon_heart_svg = """
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-balloon-heart" viewBox="0 0 16 16">
+                      <path fill-rule="evenodd" d="m8 2.42-.717-.737c-1.13-1.161-3.243-.777-4.01.72-.35.685-.451 1.707.236 3.062C4.16 6.753 5.52 8.32 8 10.042c2.479-1.723 3.839-3.29 4.491-4.577.687-1.355.587-2.377.236-3.061-.767-1.498-2.88-1.882-4.01-.721L8 2.42Zm-.49 8.5c-10.78-7.44-3-13.155.359-10.063.045.041.089.084.132.129.043-.045.087-.088.132-.129 3.36-3.092 11.137 2.624.357 10.063l.235.468a.25.25 0 1 1-.448.224l-.008-.017c.008.11.02.202.037.29.054.27.161.488.419 1.003.288.578.235 1.15.076 1.629-.157.469-.422.867-.588 1.115l-.004.007a.25.25 0 1 1-.416-.278c.168-.252.4-.6.533-1.003.133-.396.163-.824-.049-1.246l-.013-.028c-.24-.48-.38-.758-.448-1.102a3.177 3.177 0 0 1-.052-.45l-.04.08a.25.25 0 1 1-.447-.224l.235-.468ZM6.013 2.06c-.649-.18-1.483.083-1.85.798-.131.258-.245.689-.08 1.335.063.244.414.198.487-.043.21-.697.627-1.447 1.359-1.692.217-.073.304-.337.084-.398Z"/>
+                    </svg>
+                    """
+
+# Initialize results_df in global scope that has model test evaluation results 
+results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
+
+if 'results_df' not in st.session_state:
+    st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
+
+
+#///////////////////////////////////////////////////
+# SET VARIABLE DEFAULTS: Required for Data Cleaning
+#///////////////////////////////////////////////////
+fill_method = None
+custom_fill_value = None
+freq_dict = None
+freq = None
+if 'fill_method' not in st.session_state:
+    # set value to 'backfill'
+    st.session_state['fill_method'] = 'Backfill'    
+if 'custom_fill_value' not in st.session_state:
+    # set value to None
+    st.session_state['custom_fill_value'] = 1
+if 'freq_dict' not in st.session_state:
+    st.session_state['freq_dict'] = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
+if 'freq' not in st.session_state:
+    # assume frequency is daily data for now -> expand to automated frequency detection later 
+    st.session_state['freq'] = 'Daily'
+    
+# required for outlier detection / replacement
+if 'outlier_method' not in st.session_state:
+	st.session_state['outlier_method'] = 'None'
+if 'outlier_isolationforest_contamination_value' not in st.session_state:
+	st.session_state['outlier_isolationforest_contamination_value'] = 0.01
+if 'outlier_threshold' not in st.session_state:
+	st.session_state['outlier_threshold'] = 3.0
+if 'outlier_iqr_q1' not in st.session_state:
+	st.session_state['outlier_iqr_q1'] = 25
+if 'outlier_iqr_q3' not in st.session_state:
+	st.session_state['outlier_iqr_q3'] = 75
+if 'outlier_iqr_multiplier' not in st.session_state:
+	st.session_state['outlier_iqr_multiplier'] = 1.5
+if 'outlier_kmeans_n_clusters' not in st.session_state:
+	st.session_state['outlier_kmeans_n_clusters'] = 1.5
+if 'outlier_kmeans_max_iter' not in st.session_state:
+	st.session_state['outlier_kmeans_max_iter'] = 100
+
+#///////////////////////////////////////////////////
+# SET VARIABLE DEFAULTS: Feature Engineering
+#///////////////////////////////////////////////////
+# initialize the checkbox values in the session state e.g. in-memory user session 
+lst_special_calendar_days = ['jan_sales',
+                            'val_day_lod',
+                            'val_day',
+                            'mother_day_lod',
+                            'mother_day',
+                            'father_day_lod',
+                            'pay_days',
+                            'father_day',
+                            'black_friday_lod',
+                            'black_friday',
+                            'cyber_monday',
+                            'christmas_day',
+                            'boxing_day']
+# set special calendar days to True - boolean variables
+for special_calendar_day in lst_special_calendar_days:
+    if special_calendar_day not in st.session_state:
+        st.session_state[special_calendar_day] = True
+
+# define list of dummy variables - boolean variables        
+lst_dummy_vars = ['year_dummies',
+                  'month_dummies',
+                  'day_dummies']
+# set dummy variables to True - boolean variables      
+for dummy in lst_dummy_vars:
+    if dummy not in st.session_state:
+        st.session_state[dummy] = True
+
+# initialize checkbox sidebar values for feature engineering
+if 'select_all_seasonal' not in st.session_state:
+    st.session_state['select_all_seasonal'] = True
+if 'select_country_holidays' not in st.session_state:
+    st.session_state['select_country_holidays'] = True   
+if 'select_all_days' not in st.session_state:
+    st.session_state['select_all_days'] = True
+if 'select_dwt_features' not in st.session_state:
+    st.session_state['select_dwt_features'] = False
+# wavelet feature engineering options for user save in session state
+if 'wavelet_family' not in st.session_state:
+    st.session_state['wavelet_family'] = 'db4'    
+if 'wavelet_level_decomposition' not in st.session_state:
+    st.session_state['wavelet_level_decomposition'] = 3
+if 'wavelet_window_size' not in st.session_state:
+    st.session_state['wavelet_window_size'] = 7
+
+#///////////////////////////////////////////////////
+# SET VARIABLE DEFAULTS: PREP
+#///////////////////////////////////////////////////
+# define my_insample_forecast_steps usesd for train/test split
+# for evaluation of test-set
+# set preprocessing method: "Normalization" to str: "None
+if 'normalization_choice' not in st.session_state:
+    st.session_state['normalization_choice'] = 'None'
+
+# save user choice in session state of in sample test-size
+if 'insample_forecast_perc' not in st.session_state:
+    st.session_state['insample_forecast_perc'] = 20
+    
+# save user choice in session state of in sample test-size
+if 'insample_forecast_steps' not in st.session_state:
+    st.session_state['insample_forecast_steps'] = 1
+    
+    
+    
+#///////////////////////////////////////////////////
+# ?????????????????? TEST ??????????????????????????
+#///////////////////////////////////////////////////
+# show in streamlit the session state variables that are stored cache for the user session
+st.write(st.session_state)
+
+# Logging
+print('ForecastGenie Print: Loaded Global Variables')
+
+# =============================================================================
+#   _______ _____ _______ _      ______ 
+#  |__   __|_   _|__   __| |    |  ____|
+#     | |    | |    | |  | |    | |__   
+#     | |    | |    | |  | |    |  __|  
+#     | |   _| |_   | |  | |____| |____ 
+#     |_|  |_____|  |_|  |______|______|
+#                                       
+# =============================================================================
+#******************************************
 # Create title with bubbles floating around
-###############################################################################
+#******************************************
 my_forecastgenie_title('ForecastGenie')
+
+# =============================================================================
+#    _____ _____ _____  ______ ____          _____    __  __ ______ _   _ _    _ 
+#   / ____|_   _|  __ \|  ____|  _ \   /\   |  __ \  |  \/  |  ____| \ | | |  | |
+#  | (___   | | | |  | | |__  | |_) | /  \  | |__) | | \  / | |__  |  \| | |  | |
+#   \___ \  | | | |  | |  __| |  _ < / /\ \ |  _  /  | |\/| |  __| | . ` | |  | |
+#   ____) |_| |_| |__| | |____| |_) / ____ \| | \ \  | |  | | |____| |\  | |__| |
+#  |_____/|_____|_____/|______|____/_/    \_\_|  \_\ |_|  |_|______|_| \_|\____/ 
+#                                                                                
+# =============================================================================  
 # CREATE SIDEBAR MENU FOR HOME / ABOUT / FAQ PAGES FOR USER
 with st.sidebar:
     sidebar_menu_item = option_menu(None, ["Home", "About", "FAQ"], 
@@ -3450,10 +3765,16 @@ with st.sidebar:
                 "border": "0px solid #45B8AC"
             }
         })
-
-###############################################################################
+# =============================================================================
+#   __  __          _____ _   _   __  __ ______ _   _ _    _ 
+#  |  \/  |   /\   |_   _| \ | | |  \/  |  ____| \ | | |  | |
+#  | \  / |  /  \    | | |  \| | | \  / | |__  |  \| | |  | |
+#  | |\/| | / /\ \   | | | . ` | | |\/| |  __| | . ` | |  | |
+#  | |  | |/ ____ \ _| |_| |\  | | |  | | |____| |\  | |__| |
+#  |_|  |_/_/    \_\_____|_| \_| |_|  |_|______|_| \_|\____/ 
+#                                                            
+# =============================================================================
 # CREATE MENU BAR FOR MAIN APP WITH BUTTONS OF DATA PIPELINE
-###############################################################################
 # Horizontal menu with default on first tab e.g. default_index=0
 menu_item = option_menu(None, ["Load", "Explore", "Clean", "Engineer", "Prepare", "Select", "Train", "Evaluate", "Tune", "Forecast"], 
             icons=['cloud-arrow-up', 'search', 'list-task', 'gear', 'shuffle', 'palette', "cpu", 'clipboard-check', 'sliders', 'graph-up-arrow'], 
@@ -3481,10 +3802,15 @@ menu_item = option_menu(None, ["Load", "Explore", "Clean", "Engineer", "Prepare"
                 "nav-link-selected": {"background-color": "#F0F0F0", "color": "black","opacity": "1", "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.3)", "border": "2px solid white", "border-radius": "5px"}
             })
 
-###############################################################################
-# Create About Information
-###############################################################################
-# ABOUT ME
+# =============================================================================
+#            ____   ____  _    _ _______   _____        _____ ______ 
+#      /\   |  _ \ / __ \| |  | |__   __| |  __ \ /\   / ____|  ____|
+#     /  \  | |_) | |  | | |  | |  | |    | |__) /  \ | |  __| |__   
+#    / /\ \ |  _ <| |  | | |  | |  | |    |  ___/ /\ \| | |_ |  __|  
+#   / ____ \| |_) | |__| | |__| |  | |    | |  / ____ \ |__| | |____ 
+#  /_/    \_\____/ \____/ \____/   |_|    |_| /_/    \_\_____|______|
+#                                                                    
+# =============================================================================
 if sidebar_menu_item == 'About':
     try:
         my_title('About')
@@ -3579,7 +3905,17 @@ if sidebar_menu_item == 'About':
                 
     except:
         st.error('ForecastGenie Error: "About" in sidebar-menu did not load properly')
+print('ForecastGenie Print: Loaded About Page')
 
+# =============================================================================
+#   ______      ____  
+#  |  ____/\   / __ \ 
+#  | |__ /  \ | |  | |
+#  |  __/ /\ \| |  | |
+#  | | / ____ \ |__| |
+#  |_|/_/    \_\___\_\
+#                     
+# =============================================================================
 if sidebar_menu_item == 'FAQ':
     my_title('FAQ')
     with st.expander('', expanded=True):
@@ -3684,37 +4020,17 @@ if sidebar_menu_item == 'FAQ':
                 st.write('')
                 st.write('')
                 
-print('ForecastGenie Print: Loaded About')
-###############################################################################
-# 1. Create Button to Load Dataset (.CSV format) or select Demo Data
-###############################################################################
-# LOAD SESSION STATE FOR DATAFRAME:
-#####################################################
-# check if df_raw not in current session state else add it
-if "df_raw" not in st.session_state:
-    # define an empty dataframe with two headers for date and target variable
-    st.session_state["df_raw"] = pd.DataFrame()
-    st.session_state.df_raw = generate_demo_data()
-    df_graph = st.session_state.df_raw.copy(deep=True)
-    df_total = st.session_state.df_raw.copy(deep=True)
-    # set minimum date
-    df_min = st.session_state.df_raw .iloc[:,0].min().date()
-    # set maximum date
-    df_max = st.session_state.df_raw .iloc[:,0].max().date()
-    
-if "df_graph" not in st.session_state:
-    df_graph = st.session_state.df_raw.copy(deep=True)
-    
-if "my_data_choice" not in st.session_state:
-    st.session_state.my_data_choice = "Demo Data"
+print('ForecastGenie Print: Loaded FAQ Page')
 
-def handle_click_wo_button():
-    # if key of radio button exists
-    if st.session_state.data_choice:
-        # this new variable my_data_choice set it equal to information collected from the user
-        # via the radio button called "data_option"
-        st.session_state.my_data_choice = st.session_state.data_choice
-   
+# =============================================================================
+#   _      ____          _____  
+#  | |    / __ \   /\   |  __ \ 
+#  | |   | |  | | /  \  | |  | |
+#  | |   | |  | |/ /\ \ | |  | |
+#  | |___| |__| / ____ \| |__| |
+#  |______\____/_/    \_\_____/ 
+#                               
+# =============================================================================   
 with st.sidebar:
     my_title("Load Dataset 🚀 ", "#45B8AC") # 2CB8A1
     with st.expander('', expanded=True):
@@ -3727,7 +4043,6 @@ with st.sidebar:
             st.write()
         if st.session_state.my_data_choice == "Upload Data":
             uploaded_file = st.file_uploader("Upload your .CSV file", type=["csv", "xls", "xlsx", "xlsm", "xlsb"], accept_multiple_files=False)
-        
 if menu_item == 'Load' and sidebar_menu_item=='Home':
     my_title("Load Dataset 🚀", "#45B8AC")
     if st.session_state.my_data_choice == "Demo Data":
@@ -3784,7 +4099,6 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             # Display the image in Streamlit
             st.image(image, caption="", use_column_width=True)
             my_text_paragraph('Doodle: Beep...Beep...Beep...uploading calendar values!', my_font_size='12px') 
-
     # check if data is uploaded
     elif st.session_state.my_data_choice == "Upload Data" and uploaded_file is not None:
         # define dataframe from custom function to read from uploaded read_csv file
@@ -3817,10 +4131,19 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             st.dataframe(df_graph, use_container_width=True)
             # download csv button
             download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
-            
+
+# =============================================================================
+#   ________   _______  _      ____  _____  ______ 
+#  |  ____\ \ / /  __ \| |    / __ \|  __ \|  ____|
+#  | |__   \ V /| |__) | |   | |  | | |__) | |__   
+#  |  __|   > < |  ___/| |   | |  | |  _  /|  __|  
+#  | |____ / . \| |    | |___| |__| | | \ \| |____ 
+#  |______/_/ \_\_|    |______\____/|_|  \_\______|
+#                                                  
+# =============================================================================         
 if menu_item == 'Explore' and sidebar_menu_item=='Home':    
     ####################################################
-    # load required variables
+    # load required variables for menu item
     ####################################################
     # apply function to get summary statistics and statistical test results of dependent variable (y)
     summary_statistics_df = create_summary_df(st.session_state.df_raw.iloc[:,1])
@@ -3865,8 +4188,7 @@ if menu_item == 'Explore' and sidebar_menu_item=='Home':
             # Display the plot based on the user's selection
             original_fig, df_select_diff = df_differencing(st.session_state.df_raw, selection)
             st.plotly_chart(original_fig, use_container_width=True)
-            
-            
+
             col1, col2, col3 = st.columns([4,4,4])
             with col2:
                 # create button in sidebar for the ACF and PACF Plot Parameters
@@ -3950,9 +4272,16 @@ if menu_item == 'Explore' and sidebar_menu_item=='Home':
             st.image(image, caption="", use_column_width=True)
             my_text_paragraph('Doodle: Autocorrelation', my_font_size='12px')
                    
-###############################################################################
-# 3. Data Cleaning
-############################################################################### 
+# =============================================================================
+#    _____ _      ______          _   _ 
+#   / ____| |    |  ____|   /\   | \ | |
+#  | |    | |    | |__     /  \  |  \| |
+#  | |    | |    |  __|   / /\ \ | . ` |
+#  | |____| |____| |____ / ____ \| |\  |
+#   \_____|______|______/_/    \_\_| \_|
+#                                       
+# =============================================================================
+# Data Cleaning
 if menu_item == 'Clean' and sidebar_menu_item=='Home':    
     my_title("Data Cleaning 🧹", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
     with st.sidebar:
@@ -3988,18 +4317,16 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
                     st.session_state['fill_method'] = fill_method
                 else:
                     # set the fill method in session state
-                    st.session_state['fill_method'] = (fill_method, custom_fill_value)
-                    
+                    st.session_state['fill_method'] = (fill_method, custom_fill_value)           
     with st.expander('', expanded=True):
         #*************************************************
         my_text_header('Handling missing data')
         #*************************************************    
         # Apply function to resample missing dates based on user set frequency
-        # freq = daily, weekly, monthly, quarterly, yearly
-        # resample_missing_dates(df, freq_dict, original_freq, freq)
         df_cleaned_dates = resample_missing_dates(df=st.session_state.df_raw, freq_dict=freq_dict, original_freq=original_freq, freq=st.session_state['freq'])
-        # check if there are no dates skipped for daily data
-        missing_dates = pd.date_range(start=st.session_state.df_raw['date'].min(), end=st.session_state.df_raw['date'].max()).difference(st.session_state.df_raw['date'])
+        # check if there are no dates skipped for frequency e.g. daily data missing days in between dates
+        missing_dates = pd.date_range(start = st.session_state.df_raw['date'].min(), 
+                                      end=st.session_state.df_raw['date'].max()).difference(st.session_state.df_raw['date'])
         missing_values = st.session_state.df_raw.iloc[:,1].isna().sum()
         # Convert the DatetimeIndex to a dataframe with a single column named 'Date'
         df_missing_dates = pd.DataFrame({'Skipped Dates': missing_dates})
@@ -4023,16 +4350,16 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
         # IMPUTE MISSING VALUES WITH FILL METHOD
         #******************************************************************
         df_clean = my_fill_method(df_cleaned_dates, fill_method, custom_fill_value)
-        # Display original DataFrame with highlighted NaN cells
-        # Create a copy of the original DataFrame with NaN cells highlighted in yellow
+
         col1, col2, col3, col4, col5 = st.columns([2, 0.5, 2, 0.5, 2])
         with col1:
             # highlight NaN values in yellow in dataframe
             # got warning: for part of code with `null_color='yellow'`:  `null_color` is deprecated: use `color` instead
+            df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
             highlighted_df = df_graph.style.highlight_null(color='yellow').format(precision=0)
             my_subheader('Original DataFrame', my_style="#333333", my_size=6)
             # show original dataframe unchanged but with highlighted missing NaN values
-            st.write(highlighted_df)
+            st.dataframe(highlighted_df, use_container_width=True)
         with col2:
             # show arrow which is a bootstrap icon from source: https://icons.getbootstrap.com/icons/arrow-right/
             st.markdown('<svg xmlns="http://www.w3.org/2000/svg" width="25" height="20" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">'
@@ -4060,7 +4387,7 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             # Show the cleaned dataframe with if needed dates inserted if skipped to NaN and then the values inserted with impute method user selected backfill/forward fill/mean/median
             st.write(df_clean_show)
         # create and show download button in streamlit to user to download the dataframe with imputations performed to missing values
-        download_csv_button(df_clean_show, my_file="df_imputed_missing_values.csv", set_index=True, help_message='Download cleaner dataframe to .CSV')
+        download_csv_button(df_clean_show, my_file="df_imputed_missing_values.csv", set_index=True, help_message='Download cleaned dataframe to .CSV')
     
     #########################################################
     # Handling Outliers
@@ -4162,37 +4489,47 @@ else:
     df_clean_show = copy_df_date_index(df_clean, datetime_to_date=True, date_to_index=True)
     # define the dataframe cleaned as regular df if no cleaning was performed
     df_cleaned_outliers = df_clean_show   
-
-##############################################################################################               
+    
+##################################################################################################################################
+#************************* PREPROCESSING DATA - CLEANING MISSING AND IF USER SELECTED ALSO OUTLIERS ******************************
+##################################################################################################################################
 # reset the index again to have index instead of date column as index for further processing
 df_cleaned_outliers_with_index = df_cleaned_outliers.copy(deep=True)
 df_cleaned_outliers_with_index.reset_index(inplace=True)
-# convert 'date' column to datetime in both DataFrames
+# convert 'date' column to datetime in DataFrame
 df_cleaned_outliers_with_index['date'] = pd.to_datetime(df_cleaned_outliers_with_index['date'])
+# TEST replaced if statement with always updating the dataframe in session state e.g. if user changed from demo data to uploading data
+st.session_state['df_cleaned_outliers_with_index'] = df_cleaned_outliers_with_index
 
-# if sidebar menu item equals home then save the cleaned dataframe in memory to use for engineering features step
-#if sidebar_menu_item == 'Home':
-if 'df_cleaned_outliers_with_index' not in st.session_state:
-    st.session_state['df_cleaned_outliers_with_index'] = df_cleaned_outliers_with_index
-
-###############################################################################
-# 4. Feature Engineering
-###############################################################################
+# =============================================================================
+#   ______ _   _  _____ _____ _   _ ______ ______ _____  
+#  |  ____| \ | |/ ____|_   _| \ | |  ____|  ____|  __ \ 
+#  | |__  |  \| | |  __  | | |  \| | |__  | |__  | |__) |
+#  |  __| | . ` | | |_ | | | | . ` |  __| |  __| |  _  / 
+#  | |____| |\  | |__| |_| |_| |\  | |____| |____| | \ \ 
+#  |______|_| \_|\_____|_____|_| \_|______|______|_|  \_\
+#                                                        
+# =============================================================================
+# FEATURE ENGINEERING
 if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
     my_title("Feature Engineering 🧰", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
     with st.sidebar:
         my_title("Feature Engineering 🧰", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
     with st.sidebar.form('feature engineering sidebar'):
         st.write('')
-        #my_text_paragraph('Add/Remove Features:')
         # show checkbox in middle of sidebar to select all features or none
         col1, col2, col3 = st.columns([0.1,8,3])
         with col3:
             # create checkbox for all seasonal days e.g. dummy variables for day/month/year
             select_all_seasonal = st.checkbox(' ', value = st.session_state['select_all_seasonal'], label_visibility='visible', help='Include independent features, namely create dummy variables for each `day` of the week, `month` and `year` whereby the leave-1-out principle is applied to not have `perfect multi-collinearity` i.e. the sum of the dummy variables for each observation will otherwise always be equal to one.' )
             st.session_state['select_all_seasonal'] = select_all_seasonal
+            # create checkbox for country holidays
+            select_country_holidays = st.checkbox(' ', value = st.session_state['select_country_holidays'], label_visibility='visible', 
+                                                  help='Include **`official holidays`** of a specified country  \
+                                                        \n**(default = USA)**')    
+            st.session_state['select_country_holidays'] = select_country_holidays
             # create checkbox for all special calendar days
-            select_all_days = st.checkbox(' ', value = st.session_state['select_all_days'], label_visibility='visible', help='Include independent features including: official holidays, pay-days and significant sale dates.')
+            select_all_days = st.checkbox(' ', value = st.session_state['select_all_days'], label_visibility='visible', help='Include independent features including: **`pay-days`** and significant **`sales`** dates.')
             st.session_state['select_all_days'] = select_all_days
             # create checkbox for Discrete Wavelet Transform features which automatically is checked
             select_dwt_features = st.checkbox(' ', value = st.session_state['select_dwt_features'], label_visibility='visible', help='In feature engineering, wavelet transform can be used to extract useful information from a time series by decomposing it into different frequency bands. This is done by applying a mathematical function called the wavelet function to the time series data. The resulting wavelet coefficients can then be used as features in machine learning models.')
@@ -4202,6 +4539,10 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
                 st.write("*🌓 All Seasonal Periods*")
             else:
                 st.write("*🌓 No Seasonal Periods*") 
+            if select_country_holidays == True:
+               st.write("*⛱️ All Holiday Periods*")
+            else:
+               st.write("*⛱️ All Holiday Periods*")
             if select_all_days == True:
                st.write("*🎁 All Special Calendar Days*")
             else:
@@ -4209,7 +4550,9 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
             if select_dwt_features == True:
                 st.write("*🌊 All Wavelet Features*")
             else:
-                st.write("*🌊No Wavelet Features*") 
+                st.write("*🌊No Wavelet Features*")
+                
+        # provide option for user in streamlit to adjust/set wavelet parameters
         with st.expander('🔽 Wavelet settings'):
             wavelet_family = st.selectbox(label = '*Select Wavelet Family*', 
                                           options = ['db4', 'sym4', 'coif4'], 
@@ -4244,10 +4587,12 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
                                                 value=7, 
                                                 label_visibility='visible'))
             st.session_state['wavelet_window_size'] = wavelet_window_size
+            
         col1, col2, col3 = st.columns([4,4,4])
         with col2:
             # add submit button to form, when user presses it it updates the selection criteria
             submitted = st.form_submit_button('Submit')
+    
     with st.expander("", expanded=True):
         ##############################
         # Add Day/Month/Year Features
@@ -4268,15 +4613,23 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
         with col3:
             day_dummies = st.checkbox('Day', value=select_all_seasonal)
             st.session_state['day_dummies'] = day_dummies
-        #my_text_paragraph('<b> Note </b> to prevent perfect multi-collinearity, leave-one-out is applied e.g. one year/month/day')
+
+        ###############################################
+        # create selectbox for country holidays
+        ###############################################
         vertical_spacer(2)
-        my_text_header('Special Calendar Days')
-        my_text_paragraph("🎁 Pick your special days to include: ")
-        vertical_spacer(1)
+        my_text_header('Holidays')
+        my_text_paragraph('⛱️ Select country-specific holidays to include:')
+        df = create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'])
+        # update the session_state
+        st.session_state['df_cleaned_outliers_with_index'] = df
         
         ###############################################
         # create checkboxes for special days on page
         ###############################################
+        my_text_header('Special Calendar Days')
+        my_text_paragraph("🎁 Pick your special days to include: ")
+        vertical_spacer(1)
         col0, col1, col2, col3 = st.columns([6,12,12,1])
         with col1:
             jan_sales = st.checkbox('January Sale', value=st.session_state['select_all_days'])
@@ -4307,17 +4660,25 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
             boxing_day = st.checkbox('Boxing Day sale', value=st.session_state['select_all_days'])
             st.session_state['boxing_day'] = boxing_day
         
+    # user checkmarked the box for all seasonal periods
+    if select_all_seasonal:
         # call very extensive function to create all days selected by users as features
         #df = create_calendar_special_days(df_cleaned_outliers_with_index) ## replaced with session state in memory dataframe
         df = create_calendar_special_days(st.session_state['df_cleaned_outliers_with_index'])
-
+        # update the session_state
+        st.session_state['df_cleaned_outliers_with_index'] = df
+    else:
+        df = st.session_state['df_cleaned_outliers_with_index']
+    
+    # user checkmarked the box for all seasonal periods
+    if select_all_days:
         # apply function to add year/month and day dummy variables
         df = create_date_features(df, year_dummies=st.session_state['year_dummies'], month_dummies=st.session_state['month_dummies'], day_dummies=st.session_state['day_dummies'])
-        vertical_spacer(3)
-        
-    #######################################
-    # Discrete Wavelet Transform (DWT)
-    #######################################
+        # update the session_state
+        st.session_state['df_cleaned_outliers_with_index'] = df
+    else:
+        pass
+    
     # if user checkmarked checkbox: Discrete Wavelet Transform
     if select_dwt_features:
         with st.expander('🌊 Wavelet Features', expanded=True):
@@ -4366,6 +4727,8 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
             # Show Dataframe with features
             my_text_paragraph('Wavelet Features Dataframe')
             st.dataframe(features_df_wavelet, use_container_width=True)
+    else:
+        pass
    
     #################################################################
     # ALL FEATURES COMBINED INTO A DATAFRAME
@@ -4376,47 +4739,107 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
         my_text_paragraph('including target variable')
         st.dataframe(df)
         download_csv_button(df, my_file="dataframe_incl_features.csv", help_message="Download your dataset incl. features to .CSV")
-else:
-    # TEST TEST TEST 05-18-2023
-    # else if user did not click on menu_item engineer and menu_button equals 'Home'
-    # Check if dataframe exists in session state
-    if 'df' not in st.session_state:
-        # call very extensive function to create all days selected by users as features
-        #df = create_calendar_special_days(df_cleaned_outliers_with_index) ## replaced with session state in memory dataframe
-        df = create_calendar_special_days(st.session_state['df_cleaned_outliers_with_index'])
-
-        # apply function to add year/month and day dummy variables
-        df = create_date_features(df, year_dummies=st.session_state['year_dummies'], month_dummies=st.session_state['month_dummies'], day_dummies=st.session_state['day_dummies'])
-        vertical_spacer(3)
-                
-        # Add Wavelet Features
-        # TODO
-        #df = pd.merge(df, features_df_wavelet, left_index=True, right_index=True)
         
-        st.session_state['df'] = df     
-              
-###############################################################################
-# 5. Prepare Data
-###############################################################################
-if menu_item == 'Prepare' and sidebar_menu_item=='Home':
+# else e.g. if user is not within menu_item == 'Engineer' and sidebar_menu_item is not 'Home':
+# execute code below...
+else:
+    pass
+# =============================================================================
+#     # TEST TEST TEST 05-18-2023
+#     # else if user did not click on menu_item engineer and menu_button equals 'Home'
+#     # Check if dataframe exists in session state
+#     if 'df' not in st.session_state:
+#         # call very extensive function to create all days selected by users as features
+#         #df = create_calendar_special_days(df_cleaned_outliers_with_index) ## replaced with session state in memory dataframe
+#         df = create_calendar_special_days(st.session_state['df_cleaned_outliers_with_index'])
+# 
+#         # apply function to add year/month and day dummy variables
+#         df = create_date_features(df, year_dummies=st.session_state['year_dummies'], month_dummies=st.session_state['month_dummies'], day_dummies=st.session_state['day_dummies'])
+#         vertical_spacer(3)
+#                 
+#         # Add Wavelet Features
+#         # TODO
+#         #df = pd.merge(df, features_df_wavelet, left_index=True, right_index=True)
+# 
+#         # save updated/transformed df to session state
+#         st.session_state['df'] = df     
+# =============================================================================
+# test write normal calendars and create option for user to select country holidays
+
+#create_calendar_holidays(st.session_state['df_cleaned_outliers_with_index'], start_date_calendar=None, end_date_calendar=None)
+# TEST HOLIDAY PACKAGE PYTHON TO CREATE DATAFRAME WITH HOLIDAYS FOR USER SELECTED COUNTRY
+#selected_country = st.selectbox("Select a country", [country[0] for country in country_data])
+# APPLY FUNCTION -> TEST
+
+########
+# TEST - ADD THIS
+#####
+# create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'])
+
+
+
+
+
+df = create_calendar_special_days(st.session_state['df_cleaned_outliers_with_index'])
+df = create_date_features(df, year_dummies=st.session_state['year_dummies'], month_dummies=st.session_state['month_dummies'], day_dummies=st.session_state['day_dummies'])
+
+
+# update datatypes for engineered features
+columns_to_convert = {'holiday': 'uint8', 'calendar_event': 'uint8', 'pay_day': 'uint8', 'year': 'int32'}
+for column, data_type in columns_to_convert.items():
+    if column in df:
+        df[column] = df[column].astype(data_type)
+        
+###############################################
+# update session state df with transformations: 
+# - added calendar days
+# - date dummy variables
+# - wavelet features 
+# - updated changed datatypes
+###############################################
+st.session_state['df'] = df     
+
+# assumption date column and y column are at index 0 and index 1 so start from column 3 e.g. index 2 to count potential numerical_features
+# e.g. changed float64 to float to include other floats such as float32 and float16 data types
+numerical_features = list(st.session_state['df'].iloc[:, 2:].select_dtypes(include=['float', 'int']).columns)
+
+# create copy of dataframe not altering original
+local_df = st.session_state['df'].copy(deep=True)
+
+# =============================================================================
+#   _____  _____  ______ _____        _____  ______ 
+#  |  __ \|  __ \|  ____|  __ \ /\   |  __ \|  ____|
+#  | |__) | |__) | |__  | |__) /  \  | |__) | |__   
+#  |  ___/|  _  /|  __| |  ___/ /\ \ |  _  /|  __|  
+#  | |    | | \ \| |____| |  / ____ \| | \ \| |____ 
+#  |_|    |_|  \_\______|_| /_/    \_\_|  \_\______|
+#                                                   
+# =============================================================================
+# Prepare Data
+
+# SET VARIABLES
+length_df = len(st.session_state['df'])
+
+if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
     my_title('Prepare Data 🧪', "#FF9F00", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
     with st.sidebar:
         my_title('Prepare Data 🧪', "#FF9F00", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
        
-    ##########################################
-    # set date as index/ create local_df
-    ##########################################   
-    # create copy of dataframe not altering original
-    local_df = st.session_state['df'].copy(deep=True)
-    # set the date as the index of the pandas dataframe
-    #local_df.index = pd.to_datetime(local_df['date'])
-    #local_df.drop(columns='date', inplace=True)
     # show user which descriptive variables are removed, that just had the purpose to inform user what dummy was from e.g. holiday days such as Martin Luther King Day
     with st.expander('ℹ️ I removed the following descriptive columns automatically from analysis'):
-        local_df = remove_object_columns(local_df)
         
+        local_df = remove_object_columns(local_df)
+        # show local_df to user in streamlit
+        st.write(local_df)
+    # Check if 'date' column exists in local_df
+    if 'date' in local_df.columns:
+        # set the date as the index of the pandas dataframe
+        local_df.index = pd.to_datetime(local_df['date'])
+        local_df.drop(columns='date', inplace=True)
+    
     # update df in session state without descriptive columns
     st.session_state['df'] = local_df
+    
     ######################
     # 5.1 TRAIN/TEST SPLIT
     ######################
@@ -4425,34 +4848,28 @@ if menu_item == 'Prepare' and sidebar_menu_item=='Home':
         # create a caption on the page for user to read about rule-of-thumb train/test split 80:20 ratio
         st.caption(f'<h6> <center> ℹ️ A commonly used ratio is 80:20 split between train and test set </center> <h6>', unsafe_allow_html=True)
         # create sliders for user insample test-size (/train-size automatically as well)
-        my_insample_forecast_steps, my_insample_forecast_perc = train_test_split_slider(st.session_state['df'])
-        length_df = len(st.session_state['df'])
+        my_insample_forecast_steps, my_insample_forecast_perc = train_test_split_slider(df = st.session_state['df'], 
+                                                                                        default_steps = st.session_state['insample_forecast_steps'], 
+                                                                                        default_perc = st.session_state['insample_forecast_perc'])
+        # update to session_state
+        st.session_state['insample_forecast_steps'] = my_insample_forecast_steps
+        st.session_state['insample_forecast_perc'] = my_insample_forecast_perc
+        
         # format as new variables insample_forecast steps in days/as percentage e.g. the test set to predict for\
-        perc_test_set = "{:.2f}%".format((my_insample_forecast_steps/length_df)*100)
-        perc_train_set = "{:.2f}%".format(((length_df-my_insample_forecast_steps)/length_df)*100)
+        perc_test_set = "{:.2f}%".format((st.session_state['insample_forecast_steps']/length_df)*100)
+        perc_train_set = "{:.2f}%".format(((length_df-st.session_state['insample_forecast_steps'])/length_df)*100)
         #############################################################
         # Create a figure with a scatter plot of the train/test split
         #############################################################
         # create figure with custom function for train/test split with plotly
         # Set train/test split index
-        split_index = length_df - my_insample_forecast_steps
+        split_index = min(length_df - st.session_state['insample_forecast_steps'], length_df - 1)
         train_test_fig = plot_train_test_split(st.session_state['df'], split_index)
         # show the plot inside streamlit app on page
         st.plotly_chart(train_test_fig, use_container_width=True)
         # show user the train test split currently set by user or default e.g. 80:20 train/test split
         st.warning(f"ℹ️ train/test split currently equals :green[**{perc_train_set}**] and :green[**{perc_test_set}**] ")
 
-    #******************************************
-    # CHANGE DATATYPES: for engineered features
-    #******************************************
-    columns_to_convert = {'holiday': 'uint8', 'calendar_event': 'uint8', 'pay_day': 'uint8', 'year': 'int32'}
-    for column, data_type in columns_to_convert.items():
-        if column in local_df:
-            local_df[column] = local_df[column].astype(data_type)
-    # Normalize the numerical features only
-    # e.g. changed float64 to float to include other floats such as float32 and float16 data types
-    numerical_features = list(local_df.iloc[:, 1:].select_dtypes(include=['float', 'int64']).columns)
-    
     ##############################
     # 5.2 Normalization
     ##############################
@@ -4470,11 +4887,14 @@ if menu_item == 'Prepare' and sidebar_menu_item=='Home':
                                         "QuantileTransformer": "Transform features to have a uniform or Gaussian distribution."
                                         }
                 # create a dropdown menu for user in sidebar to choose from a list of normalization methods
-                normalization_choice = st.selectbox("*Select normalization method:*", 
-                                                    list(normalization_choices.keys()), 
-                                                    format_func=lambda x: f"{x} - {normalization_choices[x]}", 
-                                                    help='**`Normalization`** is a data pre-processing technique to transform the numerical data in a dataset to a standard scale or range.\
+                normalization_choice = st.selectbox(label = "*Select normalization method:*", 
+                                                    options = list(normalization_choices.keys()), 
+                                                    
+                                                    format_func = lambda x: f"{x} - {normalization_choices[x]}", 
+                                                    help = '**`Normalization`** is a data pre-processing technique to transform the numerical data in a dataset to a standard scale or range.\
                                                             This process involves transforming the features of the dataset so that they have a common scale, which makes it easier for data scientists to analyze, compare, and draw meaningful insights from the data.')
+                # save user normalization choice in memory
+                st.session_state['normalization_choice'] = normalization_choice
             else:
                # if no numerical features show user a message to inform
                st.warning("No numerical features to normalize, you can try adding features!")
@@ -4484,9 +4904,10 @@ if menu_item == 'Prepare' and sidebar_menu_item=='Home':
             col1, col2, col3 = st.columns([4,4,4])
             with col2:       
                 normalization_btn = st.form_submit_button("Submit", type="secondary")
+        
         # apply function for normalizing the dataframe if user choice
         # IF user selected a normalization_choice other then "None" the X_train and X_test will be scaled
-        X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'], my_insample_forecast_steps, normalization_choice, numerical_features=numerical_features)
+        X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'], st.session_state['insample_forecast_steps'], st.session_state['normalization_choice'], numerical_features=numerical_features)
         
     # if user did not select normalization (yet) then show user message to select normalization method in sidebar
     if normalization_choice == "None":
@@ -4495,14 +4916,14 @@ if menu_item == 'Prepare' and sidebar_menu_item=='Home':
             my_text_header('Normalization') 
             my_text_paragraph(f'Method: {normalization_choice}')
             st.info('👈 Please choose in the sidebar your normalization method for numerical columns. Note: columns with booleans will be excluded')
-    
+
     # else show user the dataframe with the features that were normalized
     else:
         with st.expander('Normalization',expanded=True):
             my_text_header('Normalized Features') 
             my_text_paragraph(f'Method: {normalization_choice}')
             # need original (unnormalized) X_train as well for figure in order to show before/after normalization
-            X_unscaled_train = df.iloc[:, 1:].iloc[:-my_insample_forecast_steps, :]
+            X_unscaled_train = df.iloc[:, 1:].iloc[:-st.session_state['insample_forecast_steps'] , :]
             # with custom function create the normalization plot with numerical features i.e. before/after scaling
             plot_scaling_before_after(X_unscaled_train, X_train, numerical_features)
             st.success(f'🎉 Good job! **{len(numerical_features)}** numerical features are normalized with **{normalization_choice}**!')
@@ -4539,7 +4960,7 @@ if menu_item == 'Prepare' and sidebar_menu_item=='Home':
 
         # apply function for normalizing the dataframe if user choice
         # IF user selected a normalization_choice other then "None" the X_train and X_test will be scaled
-        X, y, X_train, X_test, y_train, y_test = perform_train_test_split_standardization(X, y, X_train, X_test, y_train, y_test, my_insample_forecast_steps, scaler_choice=standardization_choice, numerical_features=numerical_features)
+        X, y, X_train, X_test, y_train, y_test = perform_train_test_split_standardization(X, y, X_train, X_test, y_train, y_test, st.session_state['insample_forecast_steps'], scaler_choice=standardization_choice, numerical_features=numerical_features)
         
     # if user did not select normalization (yet) then show user message to select normalization method in sidebar
     if standardization_choice == "None":
@@ -4548,924 +4969,961 @@ if menu_item == 'Prepare' and sidebar_menu_item=='Home':
             my_text_header('Standardization') 
             my_text_paragraph(f'Method: {standardization_choice}')
             st.info('👈 Please choose in the sidebar your Standardization method for numerical columns. Note: columns with booleans will be excluded.')
+            
     # else show user the dataframe with the features that were normalized
     else:
         with st.expander('Standardization',expanded=True):
             my_text_header('Standardization') 
             my_text_paragraph(f'Method: {standardization_choice}')
             # need original (unnormalized) X_train as well for figure in order to show before/after normalization
-            X_unscaled_train = df.iloc[:, 1:].iloc[:-my_insample_forecast_steps, :]
+            X_unscaled_train = df.iloc[:, 1:].iloc[:-st.session_state['insample_forecast_steps'], :]
             # with custom function create the normalization plot with numerical features i.e. before/after scaling
             plot_scaling_before_after(X_unscaled_train, X_train, numerical_features)
             st.info(f'numerical features standardized: {len(numerical_features)}')
             st.write(X[numerical_features])
             # create download button for user, to download the standardized features dataframe with dates as index i.e. first column
             download_csv_button(X[numerical_features], my_file='standardized_features.csv', help_message='Download standardized features to .CSV', set_index=True)
-                    
-        ###############################################################################
-        # 6. Feature Selection
-        ###############################################################################
-        if menu_item == 'Select':    
-            my_title('6. Feature Selection 🍏🍐🍋', "#7B52AB ")
-            with st.expander('ℹ️ Selection Methods', expanded=True):
-                st.markdown('''Let\'s **review** your **top features** to use in analysis with **three feature selection methods**:  
-                            - Recursive Feature Elimination with Cross-Validation  
-                            - Principal Component Analysis  
-                            - Mutual Information  
-                            ''')
-                # Display a note to the user about using the training set for feature selection
-                st.caption('NOTE: per common practice **only** the training dataset is used for feature selection to prevent **data leakage**.')   
-            with st.sidebar:
-                # show Title in sidebar 'Feature Selection' with purple background
-                my_title('6. Feature Selection 🍏🍐🍋', "#7B52AB")
-                # =============================================================================
-                # RFE Feature Selection - SIDEBAR FORM
-                # =============================================================================
-                with st.form('rfe'):
-                     my_subheader('🎨 Recursive Feature Elimination', my_size=4, my_style='#7B52AB')
-                     # Add a slider to select the number of features to be selected by the RFECV algorithm
-                     num_features = st.slider('*Select number of top features to include:*', 
-                                              min_value=1, 
-                                              max_value=len(X.columns), 
-                                              value=5,
-                                              help = '**`Recursive Feature Elimination (RFE)`** is an algorithm that iteratively removes the least important features from the feature set until the desired number of features is reached.\
-                                                      \nIt assigns a rank to each feature based on their importance scores. It is possible to have multiple features with the same ranking because the importance scores of these features are identical or very close to each other.\
-                                                      \nThis can happen when the features are highly correlated or provide very similar information to the model.\
-                                                      \nIn such cases, the algorithm may not be able to distinguish between them and assign the same rank to multiple features.')
-                     # set the options for the rfe (recursive feature elimination)
-                     with st.expander('🔽 RFE Settings:', expanded=False):
-                         # Add a selectbox for the user to choose the estimator
-                         estimator_rfe = st.selectbox('*Set estimator:*', ['Linear Regression', 'Random Forest Regression'], 
-                                                      index=0, 
-                                                      help = 'The `estimator` parameter is used to specify the machine learning model that will be used to evaluate the importance of each feature. \
-                                                              The estimator is essentially the algorithm used to fit the data and make predictions.')
-                         # Set up the estimator based on the user's selection
-                         if estimator_rfe == 'Linear Regression':
-                             est_rfe = LinearRegression()
-                         elif estimator_rfe == 'Random Forest Regression':
-                             est_rfe = RandomForestRegressor()
-                         # Add a slider to select the number of n_splits for the RFE method
-                         timeseriessplit_value_rfe = st.slider('*Set number of splits for Cross-Validation:*', 
-                                                               min_value=2, 
-                                                               max_value=5, 
-                                                               value=5, 
-                                                               help='`Cross-validation` is a statistical method used to evaluate the performance of a model by splitting the dataset into multiple "folds," where each fold is used as a holdout set for testing the model trained on the remaining folds. \
-                                                                     The cross-validation procedure helps to estimate the performance of the model on unseen data and reduce the risk of overfitting.  \
-                                                                     In the context of RFE, the cv parameter specifies the number of folds to use for the cross-validation procedure.\
-                                                                     The RFE algorithm fits the estimator on the training set, evaluates the performance of the estimator on the validation set, and selects the best subset of features. \
-                                                                     The feature selection process is repeated for each fold of the cross-validation procedure.')
-                         # Add a slider in the sidebar for the user to set the number of steps parameter
-                         num_steps_rfe = st.slider('*Set Number of Steps*', 1, 10, 1, help='The `step` parameter controls the **number of features** to remove at each iteration of the RFE process.')
-                     
-                     col1, col2, col3 = st.columns([4,4,4])
-                     with col2:       
-                         rfe_btn = st.form_submit_button("Submit", type="secondary")
-            # =============================================================================
-            # RFE Feature Selection - PAGE RESULTS
-            # =============================================================================
-            try:
-                with st.expander('🎨 RFECV', expanded=True):
-                    # run function to perform recursive feature elimination with cross-validation and display results using plot
-                    selected_cols_rfe = rfe_cv(X_train, y_train, est_rfe, num_steps_rfe, num_features, timeseriessplit_value_rfe)
-            except:
-                selected_cols_rfe= []
-                st.warning(':red[**ERROR**: Recursive Feature Elimination with Cross-Validation could not execute...please adjust your selection criteria]')
-                     
-            # =============================================================================        
-            # PCA Feature Selection
-            # =============================================================================
-            with st.sidebar:    
-                with st.form('pca'):
-                    my_subheader('🧮 Principal Component Analysis', my_size=4, my_style='#7B52AB')
-                    # Add a slider to select the number of features to be selected by the PCA algorithm
-                    num_features_pca = st.slider('*Select number of top features to include:*', min_value=1, max_value=len(X.columns), value=5)
-                    col1, col2, col3 = st.columns([4,4,4])
-                    with col2:       
-                        pca_btn = st.form_submit_button("Submit", type="secondary")
-            try:
-                with st.expander('🧮 PCA', expanded=True):
-                    #my_subheader('Principal Component Analysis', my_size=4, my_style='#7B52AB')
-                    pca = PCA(n_components=num_features_pca)
-                    pca.fit(X_train)
-                    
-                    X_pca = pca.transform(X_train)
-                    selected_features_pca = ['PC{}'.format(i+1) for i in range(num_features_pca)]
-                    feature_names = X_train.columns
-                    
-                    # Sort features by explained variance ratio
-                    sorted_idx = np.argsort(pca.explained_variance_ratio_)[::-1]
-                    sorted_features = feature_names[sorted_idx]
-                    
-                    # Create plot
-                    fig = go.Figure()
-                    fig.add_trace(go.Bar(x=pca.explained_variance_ratio_[sorted_idx], y=sorted_features, 
-                                         orientation='h', text=np.round(pca.explained_variance_ratio_[sorted_idx] * 100, 2), textposition='auto'))
-                    fig.update_layout(title={
-                                            'text': f'Top {len(sorted_features)} <br> Principal Component Analysis Feature Selection',
-                                            'x': 0.5,
-                                            'y': 0.95,
-                                            'xanchor': 'center',
-                                            'yanchor': 'top'
-                                            },
-                                      xaxis_title='Explained Variance Ratio', yaxis_title='Feature Name')
-                    # Display plot in Streamlit
-                    st.plotly_chart(fig, use_container_width=True)
-                    
-                    # show top x features selected
-                    selected_cols_pca = sorted_features.tolist() 
-                    st.info(f'Top {len(selected_cols_pca)} features selected with PCA: {selected_cols_pca}')
-                    
-                    show_pca_info_btn = st.button(f'About PCA plot', use_container_width=True, type='secondary')
-                    if show_pca_info_btn == True:
-                        st.write('')
-                        # show user info about how to interpret the graph
-                        st.markdown('''When you fit a **PCA** model, it calculates the amount of variance that is captured by each principal component.
-                                The variance ratio is the fraction of the total variance in the data that is explained by each principal component.
-                                The sum of the variance ratios of all the principal components equals 1.
-                                The variance ratio is expressed as a percentage by multiplying it by 100, so it can be easily interpreted.  
-                                ''')
-                        st.markdown('''
-                                    For example, a variance ratio of 0.75 means that 75% of the total variance in the data is captured by the corresponding principal component.
-                                    ''')
-            except:
-                # if list is empty
-                selected_cols_pca = []
-                st.warning(':red[**ERROR**: Principal Component Analysis could not execute...please adjust your selection criteria]')
-            
-            # =============================================================================
-            # Mutual Information Feature Selection
-            # =============================================================================
-            try: 
-                with st.sidebar:
-                    with st.form('mifs'):
-                        my_subheader('🎏 Mutual Information', my_size=4, my_style='#7B52AB')
-                        # Add slider to select number of top features
-                        num_features = st.slider("*Select number of top features to include:*", min_value=1, max_value=len(X.columns), value=5, step=1)
-                        col1, col2, col3 = st.columns([4,4,4])
-                        with col2:       
-                            mifs_btn = st.form_submit_button("Submit", type="secondary")
-                with st.expander('🎏 MIFS', expanded=True):
-                    # Mutual information feature selection
-                    # mutual_info = mutual_info_classif(X, y, random_state=42)
-                    mutual_info = mutual_info_regression(X_train, y_train, random_state=42)
-                    selected_features_mi = X.columns[np.argsort(mutual_info)[::-1]][:num_features]
-                    
-                    # Create plot
-                    fig = go.Figure()
-                    fig.add_trace(go.Bar(x=mutual_info[np.argsort(mutual_info)[::-1]][:num_features],
-                                         y=selected_features_mi, 
-                                         orientation='h',
-                                         text=[f'{val:.2f}' for val in mutual_info[np.argsort(mutual_info)[::-1]][:num_features]],
-                                         textposition='inside'))
-                    fig.update_layout(title={'text': f'Top {num_features} <br> Mutual Information Feature Selection',
-                                            'x': 0.5,
-                                            'y': 0.95,
-                                            'xanchor': 'center',
-                                            'yanchor': 'top'})
-                    # Display plot in Streamlit
-                    st.plotly_chart(fig, use_container_width=True)
-                    
-                    ##############################################################
-                    # SELECT YOUR FAVORITE FEATURES TO INCLUDE IN MODELING
-                    ##############################################################            
-                    # Mutual Information Selection
-                    selected_cols_mifs = list(selected_features_mi)
-                    st.info(f'Top {num_features} features selected with MIFS: {selected_cols_mifs}')
-                    
-                    # create button to display information about mutual information feature selection
-                    show_mifs_info_btn = st.button(f'About MIFS plot', use_container_width=True, type='secondary')            
-                    if show_mifs_info_btn == True:
-                        st.write('')
-                        # show user info about how to interpret the graph
-                        st.markdown('''Mutual Information Feature Selection (MIFS) is a method for selecting the most important features in a dataset for predicting a target variable.  
-                                    It measures the mutual information between each feature and the target variable, 
-                                    using an entropy-based approach to quantify the amount of information that each feature provides about the target.  
-                                    Features with high mutual information values are considered to be more important in predicting the target variable
-                                    and features with low mutual information values are considered to be less important.  
-                                    MIFS helps improve the accuracy of predictive models by identifying the most informative features to include in the model.
-                                ''')
-            except: 
-                selected_cols_mifs = []
-                st.warning(':red[**ERROR**: Mutual Information Feature Selection could not execute...please adjust your selection criteria]')
-            # =============================================================================
-            # Correlation Analysis
-            # Remove Highly Correlated Features
-            # =============================================================================
-            try: 
-                with st.sidebar:
-                    with st.form('correlation analysis'):
-                        # set subheader of form
-                        my_subheader('🍻 Correlation Analysis', my_size=4, my_style='#08306B')
-                        # set slider threshold for correlation strength
-                        corr_threshold = st.slider("*Select Correlation Threshold*", 
-                                                   min_value=0.0, 
-                                                   max_value=1.0, 
-                                                   value=0.8, 
-                                                   step=0.05, 
-                                                   help='Set `Correlation Threshold` to determine which pair(s) of variables in the dataset are strongly correlated e.g. no correlation = 0, perfect correlation = 1')
-                        models = {'Linear Regression': LinearRegression(), 'Random Forest Regressor': RandomForestRegressor(n_estimators=100)}
-                        selected_corr_model = st.selectbox('*Select **model** for computing **importance scores** for highly correlated feature pairs, to drop the **least important** feature of each pair which is highly correlated*:', list(models.keys()))
-                        col1, col2, col3 = st.columns([4,4,4])
-                        with col2:       
-                            corr_btn = st.form_submit_button("Submit", type="secondary")
-                with st.expander('🍻 Correlation Analysis', expanded=True):
-                    st.write("")
-                    # Display output
-                    my_subheader(f'Pairwise Correlation')
-                    col1,col2,col3 = st.columns([5,3,5])
-                    with col2:
-                        st.caption(f'with threshold >={corr_threshold*100:.0f}%')
-                    ################################################################
-                    # PLOT HEATMAP WITH PAIRWISE CORRELATION OF INDEPENDENT FEATURES.
-                    ################################################################
-                    # Generate correlation heatmap for independent features based on threshold from slider set by user e.g. default to 0.8
-                    correlation_heatmap(X, correlation_threshold=corr_threshold)
-                    # Get the indices of the highly correlated features
-                    corr_matrix = X.corr()
-                    indices = np.where(abs(corr_matrix) >= corr_threshold)
-                    # Create a dataframe with the pairwise correlation values above the threshold
-                    df_pairwise = pd.DataFrame({
-                                                'feature1': corr_matrix.columns[indices[0]],
-                                                'feature2': corr_matrix.columns[indices[1]],
-                                                'correlation': corr_matrix.values[indices]
-                                               })
-                    ############################
-                    # Filter out Duplicate Pairs
-                    ############################
-                    # Sort feature pairs and drop duplicates
-                    df_pairwise = df_pairwise.assign(sorted_features=df_pairwise[['feature1', 'feature2']].apply(sorted, axis=1).apply(tuple))
-                    df_pairwise = df_pairwise.loc[df_pairwise['feature1'] != df_pairwise['feature2']].drop_duplicates(subset='sorted_features').drop(columns='sorted_features')
-                    # Sort by correlation and format output
-                    df_pairwise = df_pairwise.sort_values(by='correlation', ascending=False).reset_index(drop=True)
-                    df_pairwise['correlation'] = (df_pairwise['correlation']*100).apply('{:.2f}%'.format)
-                    # Display message with pairs in total_features
-                    if df_pairwise.empty:
-                        st.info(f'There are no **pairwise combinations** in the selected features with **correlation** larger than or equal to the user defined threshold of **{corr_threshold*100:.0f}%**')
-                        st.write("")
-                    else:
-                        st.markdown(f' <center> The following pairwise combinations of features have a correlation >= threshold: </center>', unsafe_allow_html=True)      
-                        st.write("")
-                        st.dataframe(df_pairwise, use_container_width=True)
-                        download_csv_button(df_pairwise, my_file="pairwise_correlation.csv", help_message='Download pairwise correlation to .CSV', set_index=False)
-                    st.markdown('---')
-                    # Find pairs in total_features
-                    total_features = np.unique(selected_cols_rfe + selected_cols_pca + selected_cols_mifs)
-                    # convert to list
-                    total_features = total_features.tolist()
-                    pairwise_features = list(df_pairwise[['feature1', 'feature2']].itertuples(index=False, name=None))
-                    pairwise_features_in_total_features = [pair for pair in pairwise_features if pair[0] in total_features and pair[1] in total_features]
-                    # IMPORTANCE SCORES
-                    # create estimator based on user selected model            
-                    estimator = models[selected_corr_model]
-                    estimator.fit(X, y) 
-                    # Compute feature importance scores or permutation importance scores
-                    importance_scores = compute_importance_scores(X, y, estimator)
-                    # ALTAIR CORRELATION CHART FUNCTION        
-                    altair_correlation_chart(total_features, importance_scores, pairwise_features_in_total_features, corr_threshold)
-            except:
-                st.warning(':red[**ERROR**: Error with Correlation Analysis...please adjust your selection criteria]')
-        
-            # =============================================================================
-            # Top features
-            # =============================================================================
-            with st.sidebar:        
-                with st.form('top_features'):
-                    my_subheader('Selected Features 🟡🟢🟣 ', my_size=4, my_style='#52B57F')
-                    # combine list of features selected from feature selection methods and only keep unique features excluding duplicate features
-                    #total_features = np.unique(selected_cols_rfe + selected_cols_pca + selected_cols_mifs)
-                    
-                    # combine 3 feature selection methods and show to user in multi-selectbox to adjust as needed
-                    feature_selection_user = st.multiselect("favorite features", list(total_features), list(total_features), label_visibility="collapsed")
-                    col1, col2, col3 = st.columns([4,4,4])
-                    with col2:       
-                        top_features_btn = st.form_submit_button("Submit", type="secondary")
-                        
-            ######################################################################################################
-            # redefine dynamic user picked features for X,y, X_train, X_test, y_train, y_test
-            ######################################################################################################
-            X = X.loc[:, feature_selection_user]
-            y = y
-            X_train = X[:(len(df)-my_insample_forecast_steps)]
-            X_test = X[(len(df)-my_insample_forecast_steps):]
-            # set endogenous variable train/test split
-            y_train = y[:(len(df)-my_insample_forecast_steps)]
-            y_test = y[(len(df)-my_insample_forecast_steps):]           
-        
-            with st.expander('🥇 Top Features Selected', expanded=True):
-                my_subheader('')
-                my_subheader('Your Feature Selection ', my_size=4, my_style='#7B52AB')
-                # create dataframe from list of features and specify column header
-                df_total_features = pd.DataFrame(total_features, columns = ['Top Features'])
-                st.dataframe(df_total_features, use_container_width=True)
-                # display the dataframe in streamlit
-                st.dataframe(X, use_container_width=True)
-                # create download button for forecast results to .csv
-                download_csv_button(X, my_file="features_dataframe.csv", help_message="Download your **features** to .CSV")
-        
-        ###############################################################################
-        # 7. Train Models
-        ###############################################################################
-        if menu_item == 'Train':
-            ################################################
-            # Create a User Form to Select Model(s) to train
-            ################################################
-            with st.sidebar:
-                my_title("7. Train Models 🔢", "#0072B2")
-            with st.sidebar.form('model_train_form'):
-                # generic graph settings
-                my_conf_interval = st.slider("*Set Confidence Interval (%)*", 
-                                             min_value=1, 
-                                             max_value=99, 
-                                             value=80, 
-                                             step=1, 
-                                             help='A confidence interval is a range of values around a sample statistic, such as a mean or proportion, which is likely to contain the true population parameter with a certain degree of confidence.\
-                                                   The level of confidence is typically expressed as a percentage, such as 95%, and represents the probability that the true parameter lies within the interval.\
-                                                   A wider interval will generally have a higher level of confidence, while a narrower interval will have a lower level of confidence.')
-                # define all models you want user to choose from
-                models = [('Naive Model', None),
-                          ('Linear Regression', LinearRegression(fit_intercept=True)), 
-                          ('SARIMAX', SARIMAX(y_train)),
-                          ('Prophet', Prophet())]
-                # create a checkbox for each model
-                selected_models = []
-        
-                for model_name, model in models:
-                    if st.checkbox(model_name):
-                        selected_models.append((model_name, model))
-                    if model_name == "Naive Model":
-                        custom_lag_value = None
-                        with st.expander('Naive Model Hyperparameters'):
-                            lag = st.selectbox('*Select seasonal **lag** for the Naive Model:*', ['None', 'Day', 'Week', 'Month', 'Year', 'Custom'])
-                            if lag == 'None':
-                                lag = None
-                            elif lag == 'Custom':
-                                lag = lag.lower()
-                                custom_lag_value = st.number_input("*If seasonal **lag** set to Custom, please set lag value (in days):*", value=5)
-                                if custom_lag_value != "":
-                                    custom_lag_value = int(custom_lag_value)
-                                else:
-                                    custom_lag_value = None
-                            else:
-                                # lag is lowercase string of selection from user in selectbox
-                                lag = lag.lower()
-                    if model_name == "SARIMAX":
-                        with st.expander('SARIMAX Hyperparameters', expanded=False):
-                            col1, col2, col3 = st.columns([5,1,5])
-                            with col1:
-                                p = st.number_input("Autoregressive Order (p):", value=1, min_value=0, max_value=10)
-                                d = st.number_input("Differencing (d):", value=1, min_value=0, max_value=10)
-                                q = st.number_input("Moving Average (q):", value=1, min_value=0, max_value=10)   
-                            with col3:
-                                P = st.number_input("Seasonal Autoregressive Order (P):", value=1, min_value=0, max_value=10)
-                                D = st.number_input("Seasonal Differencing (D):", value=1, min_value=0, max_value=10)
-                                Q = st.number_input("Seasonal Moving Average (Q):", value=1, min_value=0, max_value=10)
-                                s = st.number_input("Seasonal Periodicity (s):", value=7, min_value=1, help='`Seasonal periodicity` i.e. **$s$** in **SARIMAX** refers to the **number of observations per season**.\
-                                                                                                             \n\nFor example, if we have daily data with a weekly seasonal pattern, **s** would be 7 because there are 7 days in a week.\
-                                                                                                             Similarly, for monthly data with an annual seasonal pattern, **s** would be 12 because there are 12 months in a year.\
-                                                                                                             Here are some common values for **$s$**:\
-                                                                                                             \n- **Daily data** with **weekly** seasonality: **$s=7$** \
-                                                                                                             \n- **Monthly data** with **quarterly** seasonality: **$s=3$**\
-                                                                                                             \n- **Monthly data** with **yearly** seasonality: **$s=12$**\
-                                                                                                             \n- **Quarterly data** with **yearly** seasonality: **$s=4$**')
-                            st.caption('SARIMAX Hyperparameters')
-                            col1, col2, col3 = st.columns([5,1,5])
-                            with col1:
-                                # Add a selectbox for selecting enforce_stationarity
-                                enforce_stationarity = st.selectbox('Enforce Stationarity', [True, False], index=0 )
-                            with col3:
-                                # Add a selectbox for selecting enforce_invertibility
-                                enforce_invertibility = st.selectbox('Enforce Invertibility', [True, False], index=0)
-                    if model_name == "Prophet":
-                        with st.expander('Prophet Hyperparameters', expanded=False):
-                            horizon_option = int(st.slider('Set Forecast Horizon (default = 30 Days):', min_value=1, max_value=365, step=1, value=30, help='The horizon for a Prophet model is typically set to the number of time periods that you want to forecast into the future. This is also known as the forecasting horizon or prediction horizon.'))
-                            changepoint_prior_scale = st.slider("changepoint_prior_scale", min_value=0.001, max_value=1.0, value=0.05, step=0.01, help='This is probably the most impactful parameter. It determines the flexibility of the trend, and in particular how much the trend changes at the trend changepoints. As described in this documentation, if it is too small, the trend will be underfit and variance that should have been modeled with trend changes will instead end up being handled with the noise term. If it is too large, the trend will overfit and in the most extreme case you can end up with the trend capturing yearly seasonality. The default of 0.05 works for many time series, but this could be tuned; a range of [0.001, 0.5] would likely be about right. Parameters like this (regularization penalties; this is effectively a lasso penalty) are often tuned on a log scale.')
-                            seasonality_mode = str(st.selectbox("seasonality_mode", ["additive", "multiplicative"], index=1))
-                            seasonality_prior_scale = st.slider("seasonality_prior_scale", min_value=0.010, max_value=10.0, value=1.0, step=0.1)
-                            holidays_prior_scale = st.slider("holidays_prior_scale", min_value=0.010, max_value=10.0, value=1.0, step=0.1)
-                            yearly_seasonality = st.selectbox("yearly_seasonality", [True, False], index=0)
-                            weekly_seasonality = st.selectbox("weekly_seasonality", [True, False], index=0)
-                            daily_seasonality = st.selectbox("daily_seasonality", [True, False], index=0)
-                            interval_width = int(my_conf_interval/100)
-                    else:
-                        st.sidebar.empty()
-                
-                col1, col2, col3 = st.columns([4,4,4])
-                with col2: 
-                    train_models_btn = st.form_submit_button("Submit", type="secondary")
-            my_title("7. Train Models 🔢", "#0072B2")
-            # if nothing is selected by user display message to user to select models to train
-            if not train_models_btn and not selected_models:
-                st.info("👈 Select your models to train in the sidebar!🏋️‍♂️") 
-            # the code block to train the selected models will only be executed if both the button has been clicked and the list of selected models is not empty.
-            elif not selected_models:
-                st.warning("👈 Please select at least 1 model to train from the sidebar, when pressing the **\"Submit\"** button!🏋️‍♂️")
-            
-            ############################################################################### 
-            # 8. Evaluate Model Performance
-            ###############################################################################               
-            with tab7:
-                # define variables needed
-                # create a list of independent variables selected by user prior used 
-                # for results dataframe when evaluating models which variables were included.
-                features_str = get_feature_list(X)
-                with st.sidebar:
-                    my_title("8. Evaluate Model Performance 🎯", "#2CB8A1")
-                    # if nothing is selected by user display message to user to select models to train
-                    if not train_models_btn and selected_models:
-                        st.info("ℹ️ Train your models first, before results show here!")
-                if not train_models_btn and selected_models:
-                    st.info("ℹ️ Train your models first from the sidebar menu by pressing the **'Submit'** button, before results show here!")
-                if train_models_btn and selected_models:
-                    st.info("You can always retrain your models and adjust hyperparameters!")
-                    # iterate over all models and if user selected checkbox for model the model(s) is/are trained
-                    for model_name, model in selected_models:
-                        try:
-                            if model_name == "Naive Model":
-                                with st.expander('📈' + model_name, expanded=True):
-                                    df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test, lag=lag, custom_lag_value=custom_lag_value)
-                                    display_my_metrics(df_preds, "Naive Model")
-                                    # plot graph with actual versus insample predictions
-                                    plot_actual_vs_predicted(df_preds, my_conf_interval)
-                                    # show the dataframe
-                                    st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
-                                    # create download button for forecast results to .csv
-                                    download_csv_button(df_preds, my_file="insample_forecast_naivemodel_results.csv", help_message="Download your **Naive** model results to .CSV")
-                                    mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
-                                    # add test-results to sidebar Model Test Results dataframe
-                                    new_row = {'model_name': 'Naive Model',
-                                               'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
-                                               'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']),
-                                               'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
-                                               'features':features_str}
-                                    results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-                        except:
-                            st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
-                        try:
-                            if model_name == "Linear Regression":
-                                 # train the model
-                                 create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, model=model, model_name=model_name)
-                                 # append to sidebar table the results of the model train/test
-                                 new_row = {'model_name': 'Linear Regression',
-                                            'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
-                                            'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
-                                            'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
-                                            'features':features_str}
-                                 results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-                        except:
-                            st.warning(f'Linear Regression failed to train, please contact administrator!')
-                        try:
-                            if model_name == "SARIMAX":
-                                with st.expander('ℹ️ ' + model_name, expanded=True):
-                                    with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):   
-                                        # Assume df is your DataFrame with boolean columns - needed for SARIMAX model that does not handle boolean, but int instead
-                                        bool_cols = X_train.select_dtypes(include=bool).columns
-                                        X_train.loc[:, bool_cols] = X_train.loc[:, bool_cols].astype(int)
-                                        bool_cols = X_test.select_dtypes(include=bool).columns
-                                        X_test.loc[:, bool_cols] = X_test.loc[:, bool_cols].astype(int)
-                                        
-                                        # parameters have standard value but can be changed by user
-                                        preds_df = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
-                                        # show metric on streamlit page
-                                        display_my_metrics(preds_df, "SARIMAX")
-                                        # plot graph with actual versus insample predictions
-                                        plot_actual_vs_predicted(preds_df, my_conf_interval)
-                                        # show the dataframe
-                                        st.dataframe(preds_df.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
-                                        # create download button for forecast results to .csv
-                                        download_csv_button(preds_df, my_file="insample_forecast_sarimax_results.csv", help_message="Download your **SARIMAX** model results to .CSV")
-                                        # define metrics for sarimax model
-                                        mape, rmse, r2 = my_metrics(preds_df, model_name=model_name)
-                                        # display evaluation results on sidebar of streamlit_model_card
-                                        new_row = {'model_name': 'SARIMAX', 
-                                                   'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
-                                                   'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
-                                                   'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
-                                                   'features':features_str,
-                                                   'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}
-                                        # get the maximum index of the current results dataframe
-                                        results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-                        except:
-                            st.warning(f'SARIMAX failed to train, please contact administrator!')       
-                        if model_name == "Prophet": 
-                            with st.expander('ℹ️ ' + model_name, expanded=True):
-                                # use custom fucntion that creates in-sample prediction and return a dataframe with 'Actual', 'Predicted', 'Percentage_Diff', 'MAPE' 
-                                preds_df_prophet = predict_prophet(y_train,
-                                                                   y_test, 
-                                                                   changepoint_prior_scale=changepoint_prior_scale,
-                                                                   seasonality_mode=seasonality_mode,
-                                                                   seasonality_prior_scale=seasonality_prior_scale,
-                                                                   holidays_prior_scale=holidays_prior_scale,
-                                                                   yearly_seasonality=yearly_seasonality,
-                                                                   weekly_seasonality=weekly_seasonality,
-                                                                   daily_seasonality=daily_seasonality,
-                                                                   interval_width=interval_width)
-                                
-                                display_my_metrics(preds_df_prophet, "Prophet")
-                                # plot graph with actual versus insample predictions
-                                plot_actual_vs_predicted(preds_df_prophet, my_conf_interval)
-                                # show the dataframe
-                                st.dataframe(preds_df_prophet.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
-                                # create download button for forecast results to .csv
-                                download_csv_button(preds_df_prophet, my_file="insample_forecast_prophet_results.csv", help_message="Download your **Prophet** model results to .CSV")
-                                # define metrics for sarimax model
-                                mape, rmse, r2 = my_metrics(preds_df_prophet, model_name=model_name)
-                                # display evaluation results on sidebar of streamlit_model_card
-                                new_row = {'model_name': 'Prophet', 
-                                           'mape': '{:.2%}'.format(metrics_dict['Prophet']['mape']),
-                                           'rmse': '{:.2f}'.format(metrics_dict['Prophet']['rmse']), 
-                                           'r2': '{:.2f}'.format(metrics_dict['Prophet']['r2']),
-                                           'features': features_str,
-                                           'model settings': f' changepoint_prior_scale: {changepoint_prior_scale}, seasonality_prior_scale: {seasonality_prior_scale}, holidays_prior_scale: {holidays_prior_scale}, yearly_seasonality: {yearly_seasonality}, weekly_seasonality: {weekly_seasonality}, daily_seasonality: {daily_seasonality}, interval_width: {interval_width}'}
-                                
-                                results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-                with tab7: 
-                    # SHOW MODEL DOCUMENTATION AFTER MODELS RUN
-                    model_documentation(show=True)
-                    
-                    ###################################################################################################################
-                    # Add results_df to session state
-                    ###################################################################################################################
-                    with st.sidebar:
-                        with st.expander('', expanded=True):
-                            # table 1: latest run results of model performance
-                            my_subheader('Latest Model Test Results', my_size=4, my_style='#2CB8A1')
-                            if 'results_df' not in st.session_state:
-                                st.session_state.results_df = results_df
-                            else:
-                                st.session_state.results_df = pd.concat([st.session_state.results_df, results_df], ignore_index=True)
-                            # Show the results dataframe in the sidebar if there is at least one model selected
-                            if len(selected_models) > 0:
-                                st.dataframe(results_df)
-                            # table 2: ranking
-                            my_subheader('Top 3 Ranking All Test Results', my_size=4, my_style='#2CB8A1')
-                            # It converts the 'mape' column to floats, removes duplicates based on the 'model_name' and 'mape' columns, sorts the unique DataFrame by ascending 'mape' values, selects the top 3 rows, and displays the resulting DataFrame in Streamlit.
-                            test_df = st.session_state.results_df.assign(mape=st.session_state.results_df['mape'].str.rstrip('%').astype(float)).drop_duplicates(subset=['model_name', 'mape']).sort_values(by='mape', ascending=True).iloc[:3]
-                            st.write(test_df)
-                
-            # show on streamlit page the scoring results
-            if menu_item == 'Evaluate':
-                my_title("8. Evaluate Model Performance 🎯", "#2CB8A1")
-                # if the results dataframe is created already then you can continue code
-                if 'results_df' in globals():
-                    with st.expander('ℹ️ Test Results', expanded=True):
-                        my_header(my_string='Modeling Test Results', my_style="#2CB8A1")
-                        # create some empty newlines - for space between title and dataframe
-                        st.write("")
-                        st.write("")
-                        # show the dataframe with all the historical results stored from 
-                        # prior runs the cache e.g. called session_state in streamlit
-                        # from all train/test results with models selected by user
-                        st.dataframe(st.session_state.results_df, use_container_width=True)
-                        # download button
-                        download_csv_button(results_df, my_file="Modeling Test Results.csv", help_message="Download your Modeling Test Results to .CSV")
-                # if results_df is not created yet just tell user to train models first
-                else:
-                    st.info('Please select models to train first from sidebar menu and press **"Submit"**')
-                 
-            ###########################################################################################################################
-            # 9. Hyper-parameter tuning
-            ###########################################################################################################################
-            if menu_item == 'Tune':
-                my_title('9. Hyper-parameter Tuning⚙️', "#88466D")
-                # set variables needed
-                ######################
-                # set initial start time before hyper-parameter tuning is kicked-off
-                start_time = time.time()
-                # initialize variable for sarimax parameters p,d,q
-                param_mini = None
-                # initialize variable for sarimax model parameters P,D,Q,s
-                param_seasonal_mini = None
-            
-                # sidebar hyperparameter tuning
-                ################
-                with st.sidebar:
-                     my_title('9. Hyper-parameter Tuning⚙️', "#88466D")                    
-                     with st.form("hyper_parameter_tuning"):
-                         # create a multiselect checkbox with all model names selected by default
-                         # create a list of the selected models by the user in the training section of the streamlit app
-                         model_lst = [model_name for model_name, model in selected_models]
-                         # SELECT MODEL(S): let the user select the trained model(s) in a multi-selectbox for hyper-parameter tuning
-                         selected_model_names = st.multiselect('*Select Models*', model_lst, help='Selected Models are tuned utilizing **`Grid Search`**, which is a specific technique for hyperparameter tuning where a set of hyperparameters is defined and the model is trained and evaluated on all possible combinations')
-                         # SELECT EVALUATION METRIC: let user set evaluation metric for the hyper-parameter tuning
-                         metric = st.selectbox('*Select Evaluation Metric*', ['AIC', 'BIC', 'RMSE'], label_visibility='visible', 
-                                               help='**`AIC`** (**Akaike Information Criterion**): A measure of the quality of a statistical model, taking into account the goodness of fit and the complexity of the model. A lower AIC indicates a better model fit. \
-                                               \n**`BIC`** (**Bayesian Information Criterion**): Similar to AIC, but places a stronger penalty on models with many parameters. A lower BIC indicates a better model fit.  \
-                                               \n**`RMSE`** (**Root Mean Squared Error**): A measure of the differences between predicted and observed values in a regression model. It is the square root of the mean of the squared differences between predicted and observed values. A lower RMSE indicates a better model fit.')
-                         # Note that we set best_metric to -np.inf instead of np.inf since we want to maximize the R2 metric. 
-                         if metric in ['AIC', 'BIC', 'RMSE']:
-                             mini = float('+inf')
-                         else:
-                             # Set mini to positive infinity to ensure that the first value evaluated will become the minimum
-                             # minimum metric score will be saved under variable mini while looping thorugh parameter grid
-                             mini = float('-inf')
-                         # SARIMAX HYPER-PARAMETER GRID TO SELECT BY USER
-                         ##################################################
-                         with st.expander('SARIMAX GridSearch Parameters'):
-                             col1, col2, col3 = st.columns([5,1,5])
-                             with col1:
-                                 p_max = st.number_input("*Max Autoregressive Order (p):*", value=2, min_value=0, max_value=10)
-                                 d_max = st.number_input("*Max Differencing (d):*", value=1, min_value=0, max_value=10)
-                                 q_max = st.number_input("*Max Moving Average (q):*", value=2, min_value=0, max_value=10)   
-                             with col3:
-                                 P_max = st.number_input("*Max Seasonal Autoregressive Order (P):*", value=2, min_value=0, max_value=10)
-                                 D_max = st.number_input("*Max Seasonal Differencing (D):*", value=1, min_value=0, max_value=10)
-                                 Q_max = st.number_input("*Max Seasonal Moving Average (Q):*", value=2, min_value=0, max_value=10)
-                                 s = st.number_input("*Set Seasonal Periodicity (s):*", value=7, min_value=1)
-                         # PROPHET HYPER-PARAMETER GRID TO SELECT BY USER
-                         ##################################################
-                         with st.expander('Prophet GridSearch Parameters'):
-                            st.write('')
-                            col1, col2 = st.columns([5,1])
-                            with col1:
-                                # PROPHET MODEL HYPER-PARAMETER GRID WITH DOCUMENTATION
-                                # usually set to forecast horizon e.g. 30 days
-                                horizon_option = int(st.slider('Set Forecast Horizon (default = 30 Days):', min_value=1, max_value=365, step=1, value=30, help='The horizon for a Prophet model is typically set to the number of time periods that you want to forecast into the future. This is also known as the forecasting horizon or prediction horizon.'))
-                                # This is probably the most impactful parameter. It determines the flexibility of the trend, and in particular how much the trend changes at the trend changepoints. As described in this documentation, if it is too small, the trend will be underfit and variance that should have been modeled with trend changes will instead end up being handled with the noise term. If it is too large, the trend will overfit and in the most extreme case you can end up with the trend capturing yearly seasonality. The default of 0.05 works for many time series, but this could be tuned; a range of [0.001, 0.5] would likely be about right. Parameters like this (regularization penalties; this is effectively a lasso penalty) are often tuned on a log scale.
-                                changepoint_prior_scale_options = st.multiselect('*Changepoint Prior Scale*', [0.001, 0.01, 0.05, 0.1, 1], default = [0.001, 0.01, 0.1, 1], help='This is probably the most impactful parameter. It determines the flexibility of the trend, and in particular how much the trend changes at the trend changepoints. As described in this documentation, if it is too small, the trend will be underfit and variance that should have been modeled with trend changes will instead end up being handled with the noise term. If it is too large, the trend will overfit and in the most extreme case you can end up with the trend capturing yearly seasonality. The default of 0.05 works for many time series, but this could be tuned; a range of [0.001, 0.5] would likely be about right. Parameters like this (regularization penalties; this is effectively a lasso penalty) are often tuned on a log scale.')
-                                # Options are ['additive', 'multiplicative']. Default is 'additive', but many business time series will have multiplicative seasonality. 
-                                # This is best identified just from looking at the time series and seeing if the magnitude of seasonal fluctuations grows with the magnitude of the time series
-                                seasonality_mode_options = st.multiselect('*Seasonality Modes*', [ 'additive', 'multiplicative'], default = [ 'additive', 'multiplicative'])
-                                seasonality_prior_scale_options = st.multiselect('*Seasonality Prior Scales*', [0.01, 0.1, 1.0, 10.0], default = [0.01, 0.1, 1.0, 10.0])
-                                holidays_prior_scale_options = st.multiselect('*Holidays Prior Scales*', [0.01, 0.1, 1.0, 10.0], default = [0.01, 0.1, 1.0, 10.0])
-                                yearly_seasonality_options = st.multiselect('*Yearly Seasonality*', [True, False], default = [True, False])
-                                weekly_seasonality_options = st.multiselect('*Weekly Seasonality*', [True, False], default = [True, False])
-                                daily_seasonality_options = st.multiselect('*Daily Seasonality*', [True, False], default = [True, False])
-                                #interval_width=interval_width
-                                    
-                         sarimax_tuning_results = pd.DataFrame(columns=['SARIMAX (p,d,q)x(P,D,Q,s)', 'param', 'param_seasonal', metric])
-                         prophet_tuning_results = pd.DataFrame() # TEST
-                         # create vertical spacing columns
-                         col1, col2, col3 = st.columns([4,4,4])
-                         with col2: 
-                             # create submit button for the hyper-parameter tuning
-                             hp_tuning_btn = st.form_submit_button("Submit", type="secondary")    
-                      
-                # if user clicks the hyper-parameter tuning button run code below
-                if hp_tuning_btn == True and selected_model_names:
-                    # Set up a progress bar
-                    with st.spinner(f'Searching for optimal hyper-parameters...hold your horses 🐎🐎🐎 this might take a while to run!'):
-                        ################################
-                        # kick off the grid-search!
-                        ################################
-                        # set start time when grid-search is kicked-off to define total time it takes
-                        # as computationaly intensive
-                        start_time = time.time()
-                        # if the name of the model selected by user in multi-selectbox is selected when pressing the submit button then run hyper-parameter search for the model
-                        # note that naive model/linear regression are not added as they do not have hyper-parameters
-                        for model_name in selected_model_names:
-                            if model_name == "SARIMAX":
-                                # Define the parameter grid to search
-                                param_grid = {
-                                                'order': [(p, d, q) for p, d, q in itertools.product(range(p_max+1), range(d_max+1), range(q_max+1))],
-                                                'seasonal_order': [(p, d, q, s) for p, d, q in itertools.product(range(P_max+1), range(D_max+1), range(Q_max+1))]
-                                              }
-                                # Loop through each parameter combination in the parameter grid
-                                for param, param_seasonal in itertools.product(param_grid['order'], param_grid['seasonal_order']):
-                                        try:
-                                            # Create a SARIMAX model with the current parameter values
-                                            mod = SARIMAX(y,
-                                                          order=param,
-                                                          seasonal_order=param_seasonal,
-                                                          exog=X, 
-                                                          enforce_stationarity=enforce_stationarity,
-                                                          enforce_invertibility=enforce_invertibility)
-                                            # Fit the model to the data
-                                            results = mod.fit()
-                                            # Check if the current model has a lower AIC than the previous models
-                                            if metric == 'AIC':
-                                                if results.aic < mini:
-                                                    # If so, update the mini value and the parameter values for the model with the lowest AIC
-                                                    mini = results.aic
-                                                    param_mini = param
-                                                    param_seasonal_mini = param_seasonal
-                                            elif metric == 'BIC':
-                                                if results.bic < mini:
-                                                    # If so, update the mini value and the parameter values for the model with the lowest AIC
-                                                    mini = results.bic
-                                                    param_mini = param
-                                                    param_seasonal_mini = param_seasonal
-                                            elif metric == 'RMSE':
-                                                rmse = math.sqrt(results.mse)
-                                                if rmse < mini:
-                                                    mini = rmse
-                                                    param_mini = param
-                                                    param_seasonal_mini = param_seasonal
-                                                                     
-                                            # Append a new row to the dataframe with the parameter values and AIC score
-                                            sarimax_tuning_results = sarimax_tuning_results.append({'SARIMAX (p,d,q)x(P,D,Q,s)': f'{param} x {param_seasonal}', 
-                                                                           'param': param, 
-                                                                           'param_seasonal': param_seasonal, 
-                                                                           metric: "{:.2f}".format(mini)}, 
-                                                                           ignore_index=True)
-                                        # If the model fails to fit, skip it and continue to the next model
-                                        except:
-                                            continue
-                                # set the end of runtime
-                                end_time_sarimax = time.time()                  
-                            if model_name == "Prophet":
-                                horizon_int = horizon_option
-                                horizon_str = f'{horizon_int} days'  # construct horizon parameter string
-                                # define cutoffs
-                                cutoff_date = X_train.index[-(horizon_int+1)].strftime('%Y-%m-%d')
-                                # define the parameter grid - user can select options with multi-select box in streamlit app
-                                param_grid = {  
-                                                'changepoint_prior_scale': changepoint_prior_scale_options,
-                                                'seasonality_prior_scale': seasonality_prior_scale_options,
-                                                'changepoint_prior_scale': changepoint_prior_scale_options,
-                                                'seasonality_mode': seasonality_mode_options,
-                                                'seasonality_prior_scale': seasonality_prior_scale_options,
-                                                'holidays_prior_scale': holidays_prior_scale_options,
-                                                'yearly_seasonality': yearly_seasonality_options,
-                                                'weekly_seasonality': weekly_seasonality_options,
-                                                'daily_seasonality': daily_seasonality_options
-                                              }
-                                
-                                # Generate all combinations of parameters
-                                all_params = [dict(zip(param_grid.keys(), v)) for v in itertools.product(*param_grid.values())]
-                                rmses = [] # Store the RMSEs for each params here
-                                aics = []  # Store the AICs for each params here
-                                bics = []  # Store the BICs for each params here
-                                
-                                # for simplicity set only a single cutoff for train/test split defined by user in the streamlit app
-                                #cutoffs = pd.to_datetime(['2021-06-01', '2021-12-31']) # add list of dates 
-                                cutoffs = pd.to_datetime([cutoff_date])
-                                
-                                # preprocess the data (y_train/y_test) for prophet model with datestamp (DS) and target (y) column
-                                y_train_prophet = preprocess_data_prophet(y_train)
-                                y_test_prophet = preprocess_data_prophet(y_test)
-                                
-                                # Use cross validation to evaluate all parameters
-                                for params in all_params:
-                                    m = Prophet(**params)  # Fit model with given params
-                                    # train the model on the data with set parameters
-                                    m.fit(y_train_prophet)
+ 
+# TEST 05-20-2023 - need X for feature selection screen
+# apply function for normalizing the dataframe if user choice
+# IF user selected a normalization_choice other then "None" the X_train and X_test will be scaled
+X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'], st.session_state['insample_forecast_steps'], st.session_state['normalization_choice'], numerical_features=numerical_features)
 
-                                    # other examples of forecast horizon settings:
-                                    #df_cv2 = cross_validation(m, cutoffs=cutoffs, horizon='100 days')
-                                    #df_cv2 = cross_validation(m, cutoffs=cutoffs, horizon='365 days')
-                                    df_cv = cross_validation(m, cutoffs=cutoffs, horizon=horizon_str, parallel=False)
-                                    # rolling_window = 1 computes performance metrics using all the forecasted data to get a single performance metric number.
-                                    df_p = performance_metrics(df_cv, rolling_window=1)
-                                    rmses.append(df_p['rmse'].values[0])
-                                    # Get residuals to compute AIC and BIC
-                                    df_cv['residuals'] = df_cv['y'] - df_cv['yhat']
-                                    residuals = df_cv['residuals'].values
-                                    
-                                    # Compute AIC and BIC
-                                    nobs = len(residuals)
-                                    k = len(params)
-                                    loglik = -0.5 * nobs * (1 + np.log(2*np.pi) + np.log(np.sum(residuals**2)/nobs))
-                                    aic = -2 * loglik + 2 * k
-                                    bic = 2 * loglik + k * np.log(nobs)
-                                    # add AIC score to list
-                                    aics.append(aic)
-                                    # add BIC score to list
-                                    bics.append(bic)
-                                
-                                # create dataframe with parameter combinations
-                                prophet_tuning_results = pd.DataFrame(all_params)
-                                # add RMSE scores to dataframe
-                                prophet_tuning_results['rmse'] = rmses
-                                # add AIC scores to dataframe
-                                prophet_tuning_results['aic'] = aics
-                                # add BIC scores to dataframe
-                                prophet_tuning_results['bic'] = bics
-                                # set the end of runtime
-                                end_time_prophet = time.time()        
+# =============================================================================
+#    _____ ______ _      ______ _____ _______ 
+#   / ____|  ____| |    |  ____/ ____|__   __|
+#  | (___ | |__  | |    | |__ | |       | |   
+#   \___ \|  __| | |    |  __|| |       | |   
+#   ____) | |____| |____| |___| |____   | |   
+#  |_____/|______|______|______\_____|  |_|   
+#                                             
+# =============================================================================
+# Feature Selection
+if menu_item == 'Select':    
+    my_title('Feature Selection 🎨', "#7B52AB", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
+    with st.expander('ℹ️ Selection Methods', expanded=True):
+        st.markdown('''Let\'s **review** your **top features** to use in analysis with **three feature selection methods**:  
+                    - Recursive Feature Elimination with Cross-Validation  
+                    - Principal Component Analysis  
+                    - Mutual Information  
+                    ''')
+        # Display a note to the user about using the training set for feature selection
+        st.caption('NOTE: per common practice **only** the training dataset is used for feature selection to prevent **data leakage**.')   
+    with st.sidebar:
+        # show Title in sidebar 'Feature Selection' with purple background
+        my_title('Feature Selection 🎨', "#7B52AB", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
+        # =============================================================================
+        # RFE Feature Selection - SIDEBAR FORM
+        # =============================================================================
+        with st.form('rfe'):
+             my_text_paragraph('Recursive Feature Elimination')
+             # Add a slider to select the number of features to be selected by the RFECV algorithm
+             num_features = st.slider('*Select number of top features to include:*', 
+                                      min_value=1, 
+                                      max_value=len(X.columns), 
+                                      value=5,
+                                      help = '**`Recursive Feature Elimination (RFE)`** is an algorithm that iteratively removes the least important features from the feature set until the desired number of features is reached.\
+                                              \nIt assigns a rank to each feature based on their importance scores. It is possible to have multiple features with the same ranking because the importance scores of these features are identical or very close to each other.\
+                                              \nThis can happen when the features are highly correlated or provide very similar information to the model.\
+                                              \nIn such cases, the algorithm may not be able to distinguish between them and assign the same rank to multiple features.')
+             # set the options for the rfe (recursive feature elimination)
+             with st.expander('🔽 RFE Settings:', expanded=False):
+                 # Add a selectbox for the user to choose the estimator
+                 estimator_rfe = st.selectbox('*Set estimator:*', ['Linear Regression', 'Random Forest Regression'], 
+                                              index=0, 
+                                              help = 'The `estimator` parameter is used to specify the machine learning model that will be used to evaluate the importance of each feature. \
+                                                      The estimator is essentially the algorithm used to fit the data and make predictions.')
+                 # Set up the estimator based on the user's selection
+                 if estimator_rfe == 'Linear Regression':
+                     est_rfe = LinearRegression()
+                 elif estimator_rfe == 'Random Forest Regression':
+                     est_rfe = RandomForestRegressor()
+                 # Add a slider to select the number of n_splits for the RFE method
+                 timeseriessplit_value_rfe = st.slider('*Set number of splits for Cross-Validation:*', 
+                                                       min_value=2, 
+                                                       max_value=5, 
+                                                       value=5, 
+                                                       help='`Cross-validation` is a statistical method used to evaluate the performance of a model by splitting the dataset into multiple "folds," where each fold is used as a holdout set for testing the model trained on the remaining folds. \
+                                                             The cross-validation procedure helps to estimate the performance of the model on unseen data and reduce the risk of overfitting.  \
+                                                             In the context of RFE, the cv parameter specifies the number of folds to use for the cross-validation procedure.\
+                                                             The RFE algorithm fits the estimator on the training set, evaluates the performance of the estimator on the validation set, and selects the best subset of features. \
+                                                             The feature selection process is repeated for each fold of the cross-validation procedure.')
+                 # Add a slider in the sidebar for the user to set the number of steps parameter
+                 num_steps_rfe = st.slider('*Set Number of Steps*', 1, 10, 1, help='The `step` parameter controls the **number of features** to remove at each iteration of the RFE process.')
+             
+             col1, col2, col3 = st.columns([4,4,4])
+             with col2:       
+                 rfe_btn = st.form_submit_button("Submit", type="secondary")
+    # =============================================================================
+    # RFE Feature Selection - PAGE RESULTS
+    # =============================================================================
+    try:
+        with st.expander('🎨 RFECV', expanded=True):
+            # run function to perform recursive feature elimination with cross-validation and display results using plot
+            selected_cols_rfe = rfe_cv(X_train, y_train, est_rfe, num_steps_rfe, num_features, timeseriessplit_value_rfe)
+    except:
+        selected_cols_rfe= []
+        st.warning(':red[**ERROR**: Recursive Feature Elimination with Cross-Validation could not execute...please adjust your selection criteria]')
+             
+    # =============================================================================        
+    # PCA Feature Selection
+    # =============================================================================
+    with st.sidebar:    
+        with st.form('pca'):
+            my_subheader('🧮 Principal Component Analysis', my_size=4, my_style='#7B52AB')
+            # Add a slider to select the number of features to be selected by the PCA algorithm
+            num_features_pca = st.slider('*Select number of top features to include:*', min_value=1, max_value=len(X.columns), value=5)
+            col1, col2, col3 = st.columns([4,4,4])
+            with col2:       
+                pca_btn = st.form_submit_button("Submit", type="secondary")
+    try:
+        with st.expander('🧮 PCA', expanded=True):
+            #my_subheader('Principal Component Analysis', my_size=4, my_style='#7B52AB')
+            pca = PCA(n_components=num_features_pca)
+            pca.fit(X_train)
+            
+            X_pca = pca.transform(X_train)
+            selected_features_pca = ['PC{}'.format(i+1) for i in range(num_features_pca)]
+            feature_names = X_train.columns
+            
+            # Sort features by explained variance ratio
+            sorted_idx = np.argsort(pca.explained_variance_ratio_)[::-1]
+            sorted_features = feature_names[sorted_idx]
+            
+            # Create plot
+            fig = go.Figure()
+            fig.add_trace(go.Bar(x=pca.explained_variance_ratio_[sorted_idx], y=sorted_features, 
+                                 orientation='h', text=np.round(pca.explained_variance_ratio_[sorted_idx] * 100, 2), textposition='auto'))
+            fig.update_layout(title={
+                                    'text': f'Top {len(sorted_features)} <br> Principal Component Analysis Feature Selection',
+                                    'x': 0.5,
+                                    'y': 0.95,
+                                    'xanchor': 'center',
+                                    'yanchor': 'top'
+                                    },
+                              xaxis_title='Explained Variance Ratio', yaxis_title='Feature Name')
+            # Display plot in Streamlit
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # show top x features selected
+            selected_cols_pca = sorted_features.tolist() 
+            st.info(f'Top {len(selected_cols_pca)} features selected with PCA: {selected_cols_pca}')
+            
+            show_pca_info_btn = st.button(f'About PCA plot', use_container_width=True, type='secondary')
+            if show_pca_info_btn == True:
+                st.write('')
+                # show user info about how to interpret the graph
+                st.markdown('''When you fit a **PCA** model, it calculates the amount of variance that is captured by each principal component.
+                        The variance ratio is the fraction of the total variance in the data that is explained by each principal component.
+                        The sum of the variance ratios of all the principal components equals 1.
+                        The variance ratio is expressed as a percentage by multiplying it by 100, so it can be easily interpreted.  
+                        ''')
+                st.markdown('''
+                            For example, a variance ratio of 0.75 means that 75% of the total variance in the data is captured by the corresponding principal component.
+                            ''')
+    except:
+        # if list is empty
+        selected_cols_pca = []
+        st.warning(':red[**ERROR**: Principal Component Analysis could not execute...please adjust your selection criteria]')
+    
+    # =============================================================================
+    # Mutual Information Feature Selection
+    # =============================================================================
+    try: 
+        with st.sidebar:
+            with st.form('mifs'):
+                my_subheader('🎏 Mutual Information', my_size=4, my_style='#7B52AB')
+                # Add slider to select number of top features
+                num_features = st.slider("*Select number of top features to include:*", min_value=1, max_value=len(X.columns), value=5, step=1)
+                col1, col2, col3 = st.columns([4,4,4])
+                with col2:       
+                    mifs_btn = st.form_submit_button("Submit", type="secondary")
+        with st.expander('🎏 MIFS', expanded=True):
+            # Mutual information feature selection
+            mutual_info = mutual_info_regression(X_train, y_train, random_state=42)
+            selected_features_mi = X.columns[np.argsort(mutual_info)[::-1]][:num_features]
+            
+            # Create plot
+            fig = go.Figure()
+            fig.add_trace(go.Bar(x=mutual_info[np.argsort(mutual_info)[::-1]][:num_features],
+                                 y=selected_features_mi, 
+                                 orientation='h',
+                                 text=[f'{val:.2f}' for val in mutual_info[np.argsort(mutual_info)[::-1]][:num_features]],
+                                 textposition='inside'))
+            fig.update_layout(title={'text': f'Top {num_features} <br> Mutual Information Feature Selection',
+                                    'x': 0.5,
+                                    'y': 0.95,
+                                    'xanchor': 'center',
+                                    'yanchor': 'top'})
+            # Display plot in Streamlit
+            st.plotly_chart(fig, use_container_width=True)
+            
+            ##############################################################
+            # SELECT YOUR FAVORITE FEATURES TO INCLUDE IN MODELING
+            ##############################################################            
+            # Mutual Information Selection
+            selected_cols_mifs = list(selected_features_mi)
+            st.info(f'Top {num_features} features selected with MIFS: {selected_cols_mifs}')
+            
+            # create button to display information about mutual information feature selection
+            show_mifs_info_btn = st.button(f'About MIFS plot', use_container_width=True, type='secondary')            
+            if show_mifs_info_btn == True:
+                st.write('')
+                # show user info about how to interpret the graph
+                st.markdown('''Mutual Information Feature Selection (MIFS) is a method for selecting the most important features in a dataset for predicting a target variable.  
+                            It measures the mutual information between each feature and the target variable, 
+                            using an entropy-based approach to quantify the amount of information that each feature provides about the target.  
+                            Features with high mutual information values are considered to be more important in predicting the target variable
+                            and features with low mutual information values are considered to be less important.  
+                            MIFS helps improve the accuracy of predictive models by identifying the most informative features to include in the model.
+                        ''')
+    except: 
+        selected_cols_mifs = []
+        st.warning(':red[**ERROR**: Mutual Information Feature Selection could not execute...please adjust your selection criteria]')
+    # =============================================================================
+    # Correlation Analysis
+    # Remove Highly Correlated Features
+    # =============================================================================
+    try: 
+        with st.sidebar:
+            with st.form('correlation analysis'):
+                # set subheader of form
+                my_subheader('🍻 Correlation Analysis', my_size=4, my_style='#08306B')
+                # set slider threshold for correlation strength
+                corr_threshold = st.slider("*Select Correlation Threshold*", 
+                                           min_value=0.0, 
+                                           max_value=1.0, 
+                                           value=0.8, 
+                                           step=0.05, 
+                                           help='Set `Correlation Threshold` to determine which pair(s) of variables in the dataset are strongly correlated e.g. no correlation = 0, perfect correlation = 1')
+                models = {'Linear Regression': LinearRegression(), 'Random Forest Regressor': RandomForestRegressor(n_estimators=100)}
+                selected_corr_model = st.selectbox('*Select **model** for computing **importance scores** for highly correlated feature pairs, to drop the **least important** feature of each pair which is highly correlated*:', list(models.keys()))
+                col1, col2, col3 = st.columns([4,4,4])
+                with col2:       
+                    corr_btn = st.form_submit_button("Submit", type="secondary")
+        with st.expander('🍻 Correlation Analysis', expanded=True):
+            st.write("")
+            # Display output
+            my_subheader(f'Pairwise Correlation')
+            col1,col2,col3 = st.columns([5,3,5])
+            with col2:
+                st.caption(f'with threshold >={corr_threshold*100:.0f}%')
+            ################################################################
+            # PLOT HEATMAP WITH PAIRWISE CORRELATION OF INDEPENDENT FEATURES.
+            ################################################################
+            # Generate correlation heatmap for independent features based on threshold from slider set by user e.g. default to 0.8
+            correlation_heatmap(X, correlation_threshold=corr_threshold)
+            # Get the indices of the highly correlated features
+            corr_matrix = X.corr()
+            indices = np.where(abs(corr_matrix) >= corr_threshold)
+            # Create a dataframe with the pairwise correlation values above the threshold
+            df_pairwise = pd.DataFrame({
+                                        'feature1': corr_matrix.columns[indices[0]],
+                                        'feature2': corr_matrix.columns[indices[1]],
+                                        'correlation': corr_matrix.values[indices]
+                                       })
+            ############################
+            # Filter out Duplicate Pairs
+            ############################
+            # Sort feature pairs and drop duplicates
+            df_pairwise = df_pairwise.assign(sorted_features=df_pairwise[['feature1', 'feature2']].apply(sorted, axis=1).apply(tuple))
+            df_pairwise = df_pairwise.loc[df_pairwise['feature1'] != df_pairwise['feature2']].drop_duplicates(subset='sorted_features').drop(columns='sorted_features')
+            # Sort by correlation and format output
+            df_pairwise = df_pairwise.sort_values(by='correlation', ascending=False).reset_index(drop=True)
+            df_pairwise['correlation'] = (df_pairwise['correlation']*100).apply('{:.2f}%'.format)
+            # Display message with pairs in total_features
+            if df_pairwise.empty:
+                st.info(f'There are no **pairwise combinations** in the selected features with **correlation** larger than or equal to the user defined threshold of **{corr_threshold*100:.0f}%**')
+                st.write("")
+            else:
+                st.markdown(f' <center> The following pairwise combinations of features have a correlation >= threshold: </center>', unsafe_allow_html=True)      
+                st.write("")
+                st.dataframe(df_pairwise, use_container_width=True)
+                download_csv_button(df_pairwise, my_file="pairwise_correlation.csv", help_message='Download pairwise correlation to .CSV', set_index=False)
+            st.markdown('---')
+            # Find pairs in total_features
+            total_features = np.unique(selected_cols_rfe + selected_cols_pca + selected_cols_mifs)
+            # convert to list
+            total_features = total_features.tolist()
+            pairwise_features = list(df_pairwise[['feature1', 'feature2']].itertuples(index=False, name=None))
+            pairwise_features_in_total_features = [pair for pair in pairwise_features if pair[0] in total_features and pair[1] in total_features]
+            # IMPORTANCE SCORES
+            # create estimator based on user selected model            
+            estimator = models[selected_corr_model]
+            estimator.fit(X, y) 
+            # Compute feature importance scores or permutation importance scores
+            importance_scores = compute_importance_scores(X, y, estimator)
+            # ALTAIR CORRELATION CHART FUNCTION        
+            altair_correlation_chart(total_features, importance_scores, pairwise_features_in_total_features, corr_threshold)
+    except:
+        st.warning(':red[**ERROR**: Error with Correlation Analysis...please adjust your selection criteria]')
+
+    # =============================================================================
+    # Top features
+    # =============================================================================
+    with st.sidebar:        
+        with st.form('top_features'):
+            my_subheader('Selected Features 🟡🟢🟣 ', my_size=4, my_style='#52B57F')
+            # combine list of features selected from feature selection methods and only keep unique features excluding duplicate features
+            #total_features = np.unique(selected_cols_rfe + selected_cols_pca + selected_cols_mifs)
+            
+            # combine 3 feature selection methods and show to user in multi-selectbox to adjust as needed
+            feature_selection_user = st.multiselect("favorite features", list(total_features), list(total_features), label_visibility="collapsed")
+            col1, col2, col3 = st.columns([4,4,4])
+            with col2:       
+                top_features_btn = st.form_submit_button("Submit", type="secondary")
                 
-                    # if user presses "Submit" button for hyper-parameter tuning and selected a model or multiple models in dropdown multiselectbox then run code below
-                    if hp_tuning_btn == True and selected_model_names:
-                        # if SARIMAX model is inside the list of modelames then run code below:
-                        if 'SARIMAX' in selected_model_names:
-                            with st.expander('⚙️ SARIMAX', expanded=True):                     
-                                # Add a 'Rank' column based on the AIC score and sort by ascending rank
-                                # rank method: min: lowest rank in the group
-                                # rank method: dense: like ‘min’, but rank always increases by 1 between groups.
-                                sarimax_tuning_results['Rank'] = sarimax_tuning_results[metric].rank(method='min', ascending=True).astype(int)
-                                # sort values by rank
-                                sarimax_tuning_results = sarimax_tuning_results.sort_values('Rank', ascending=True)
-                                # show user dataframe of gridsearch results ordered by ranking
-                                st.dataframe(sarimax_tuning_results.set_index('Rank'), use_container_width=True)   
-                                #st.info(f"ℹ️ SARIMAX search for your optimal hyper-parameters finished in {end_time_sarimax - start_time:.2f} seconds")
-                                if not sarimax_tuning_results.empty:
-                                    st.write(f'🏆 **SARIMAX** set of parameters with the lowest {metric} of **{"{:.2f}".format(mini)}** found in **{end_time_sarimax - start_time:.2f}** seconds is:')  
-                                    st.write(f'- **`(p,d,q)(P,D,Q,s)`**: {sarimax_tuning_results.iloc[0,1]}{sarimax_tuning_results.iloc[0,2]}')
-            # =============================================================================
-            #                         st.write(f'- Order (p):')
-            #                         st.write('Differencing (d):')
-            #                         st.write('Moving Average (q):')
-            #                         st.write('Seasonal Order (P):')
-            #                         st.write('Seasonal Differencing (D):')
-            #                         st.write('Seasonal Moving Average (Q):')
-            #                         st.write('Seasonal Periodicity (s):')
-            # =============================================================================
-                        if 'Prophet' in selected_model_names:
-                            with st.expander('⚙️ Prophet', expanded=True):  
-                                if metric.lower() in prophet_tuning_results.columns:
-                                    prophet_tuning_results['Rank'] = prophet_tuning_results[metric.lower()].rank(method='min', ascending=True).astype(int)
-                                    # sort values by rank
-                                    prophet_tuning_results = prophet_tuning_results.sort_values('Rank', ascending=True)
-                                    # show user dataframe of gridsearch results ordered by ranking
-                                    st.dataframe(prophet_tuning_results.set_index('Rank'), use_container_width=True)
-                                    # provide button for user to download the hyperparameter tuning results
-                                    download_csv_button(prophet_tuning_results, my_file='Prophet_Hyperparameter_Gridsearch.csv', help_message='Download your Hyperparameter tuning results to .CSV')
-                                #st.success(f"ℹ️ Prophet search for your optimal hyper-parameters finished in **{end_time_prophet - start_time:.2f}** seconds")
-                                if not prophet_tuning_results.empty:
-                                    st.markdown(f'🏆 **Prophet** set of parameters with the lowest {metric} of **{"{:.2f}".format(prophet_tuning_results.loc[0,metric.lower()])}** found in **{end_time_prophet - start_time:.2f}** seconds are:')
-                                    st.write('\n'.join([f'- **`{param}`**: {prophet_tuning_results.loc[0, param]}' for param in prophet_tuning_results.columns[:6]]))
-                else:
-                    st.info('👈 Please select at least one model in the sidebar and press \"Submit\"!')
+    ######################################################################################################
+    # redefine dynamic user picked features for X,y, X_train, X_test, y_train, y_test
+    ######################################################################################################
+    X = X.loc[:, feature_selection_user]
+    y = y
+    X_train = X[:(len(df)-st.session_state['insample_forecast_steps'])]
+    X_test = X[(len(df)-st.session_state['insample_forecast_steps']):]
+    # set endogenous variable train/test split
+    y_train = y[:(len(df)-st.session_state['my_insample_forecast_steps'])]
+    y_test = y[(len(df)-st.session_state['insample_forecast_steps']):]           
+
+    with st.expander('🥇 Top Features Selected', expanded=True):
+        my_subheader('')
+        my_subheader('Your Feature Selection ', my_size=4, my_style='#7B52AB')
+        # create dataframe from list of features and specify column header
+        df_total_features = pd.DataFrame(total_features, columns = ['Top Features'])
+        st.dataframe(df_total_features, use_container_width=True)
+        # display the dataframe in streamlit
+        st.dataframe(X, use_container_width=True)
+        # create download button for forecast results to .csv
+        download_csv_button(X, my_file="features_dataframe.csv", help_message="Download your **features** to .CSV")
+        
+# =============================================================================
+#   _______ _____            _____ _   _ 
+#  |__   __|  __ \     /\   |_   _| \ | |
+#     | |  | |__) |   /  \    | | |  \| |
+#     | |  |  _  /   / /\ \   | | | . ` |
+#     | |  | | \ \  / ____ \ _| |_| |\  |
+#     |_|  |_|  \_\/_/    \_\_____|_| \_|
+#                                        
+# =============================================================================
+# TRAIN MODELS
+if menu_item == 'Train' and sidebar_menu_item == 'Home':
+    ################################################
+    # Create a User Form to Select Model(s) to train
+    ################################################
+    with st.sidebar:
+        my_title("7. Train Models 🔢", "#0072B2")
+    with st.sidebar.form('model_train_form'):
+        # generic graph settings
+        my_conf_interval = st.slider("*Set Confidence Interval (%)*", 
+                                     min_value=1, 
+                                     max_value=99, 
+                                     value=80, 
+                                     step=1, 
+                                     help='A confidence interval is a range of values around a sample statistic, such as a mean or proportion, which is likely to contain the true population parameter with a certain degree of confidence.\
+                                           The level of confidence is typically expressed as a percentage, such as 95%, and represents the probability that the true parameter lies within the interval.\
+                                           A wider interval will generally have a higher level of confidence, while a narrower interval will have a lower level of confidence.')
+        # define all models you want user to choose from
+        models = [('Naive Model', None),
+                  ('Linear Regression', LinearRegression(fit_intercept=True)), 
+                  ('SARIMAX', SARIMAX(y_train)),
+                  ('Prophet', Prophet())]
+        # create a checkbox for each model
+        selected_models = []
+
+        for model_name, model in models:
+            if st.checkbox(model_name):
+                selected_models.append((model_name, model))
+            if model_name == "Naive Model":
+                custom_lag_value = None
+                with st.expander('Naive Model Hyperparameters'):
+                    lag = st.selectbox('*Select seasonal **lag** for the Naive Model:*', ['None', 'Day', 'Week', 'Month', 'Year', 'Custom'])
+                    if lag == 'None':
+                        lag = None
+                    elif lag == 'Custom':
+                        lag = lag.lower()
+                        custom_lag_value = st.number_input("*If seasonal **lag** set to Custom, please set lag value (in days):*", value=5)
+                        if custom_lag_value != "":
+                            custom_lag_value = int(custom_lag_value)
+                        else:
+                            custom_lag_value = None
+                    else:
+                        # lag is lowercase string of selection from user in selectbox
+                        lag = lag.lower()
+            if model_name == "SARIMAX":
+                with st.expander('SARIMAX Hyperparameters', expanded=False):
+                    col1, col2, col3 = st.columns([5,1,5])
+                    with col1:
+                        p = st.number_input("Autoregressive Order (p):", value=1, min_value=0, max_value=10)
+                        d = st.number_input("Differencing (d):", value=1, min_value=0, max_value=10)
+                        q = st.number_input("Moving Average (q):", value=1, min_value=0, max_value=10)   
+                    with col3:
+                        P = st.number_input("Seasonal Autoregressive Order (P):", value=1, min_value=0, max_value=10)
+                        D = st.number_input("Seasonal Differencing (D):", value=1, min_value=0, max_value=10)
+                        Q = st.number_input("Seasonal Moving Average (Q):", value=1, min_value=0, max_value=10)
+                        s = st.number_input("Seasonal Periodicity (s):", value=7, min_value=1, help='`Seasonal periodicity` i.e. **$s$** in **SARIMAX** refers to the **number of observations per season**.\
+                                                                                                     \n\nFor example, if we have daily data with a weekly seasonal pattern, **s** would be 7 because there are 7 days in a week.\
+                                                                                                     Similarly, for monthly data with an annual seasonal pattern, **s** would be 12 because there are 12 months in a year.\
+                                                                                                     Here are some common values for **$s$**:\
+                                                                                                     \n- **Daily data** with **weekly** seasonality: **$s=7$** \
+                                                                                                     \n- **Monthly data** with **quarterly** seasonality: **$s=3$**\
+                                                                                                     \n- **Monthly data** with **yearly** seasonality: **$s=12$**\
+                                                                                                     \n- **Quarterly data** with **yearly** seasonality: **$s=4$**')
+                    st.caption('SARIMAX Hyperparameters')
+                    col1, col2, col3 = st.columns([5,1,5])
+                    with col1:
+                        # Add a selectbox for selecting enforce_stationarity
+                        enforce_stationarity = st.selectbox('Enforce Stationarity', [True, False], index=0 )
+                    with col3:
+                        # Add a selectbox for selecting enforce_invertibility
+                        enforce_invertibility = st.selectbox('Enforce Invertibility', [True, False], index=0)
+            if model_name == "Prophet":
+                with st.expander('Prophet Hyperparameters', expanded=False):
+                    horizon_option = int(st.slider('Set Forecast Horizon (default = 30 Days):', min_value=1, max_value=365, step=1, value=30, help='The horizon for a Prophet model is typically set to the number of time periods that you want to forecast into the future. This is also known as the forecasting horizon or prediction horizon.'))
+                    changepoint_prior_scale = st.slider("changepoint_prior_scale", min_value=0.001, max_value=1.0, value=0.05, step=0.01, help='This is probably the most impactful parameter. It determines the flexibility of the trend, and in particular how much the trend changes at the trend changepoints. As described in this documentation, if it is too small, the trend will be underfit and variance that should have been modeled with trend changes will instead end up being handled with the noise term. If it is too large, the trend will overfit and in the most extreme case you can end up with the trend capturing yearly seasonality. The default of 0.05 works for many time series, but this could be tuned; a range of [0.001, 0.5] would likely be about right. Parameters like this (regularization penalties; this is effectively a lasso penalty) are often tuned on a log scale.')
+                    seasonality_mode = str(st.selectbox("seasonality_mode", ["additive", "multiplicative"], index=1))
+                    seasonality_prior_scale = st.slider("seasonality_prior_scale", min_value=0.010, max_value=10.0, value=1.0, step=0.1)
+                    holidays_prior_scale = st.slider("holidays_prior_scale", min_value=0.010, max_value=10.0, value=1.0, step=0.1)
+                    yearly_seasonality = st.selectbox("yearly_seasonality", [True, False], index=0)
+                    weekly_seasonality = st.selectbox("weekly_seasonality", [True, False], index=0)
+                    daily_seasonality = st.selectbox("daily_seasonality", [True, False], index=0)
+                    interval_width = int(my_conf_interval/100)
+            else:
+                st.sidebar.empty()
+        
+        col1, col2, col3 = st.columns([4,4,4])
+        with col2: 
+            train_models_btn = st.form_submit_button("Submit", type="secondary")
+    my_title("7. Train Models 🔢", "#0072B2")
+    # if nothing is selected by user display message to user to select models to train
+    if not train_models_btn and not selected_models:
+        st.info("👈 Select your models to train in the sidebar!🏋️‍♂️") 
+    # the code block to train the selected models will only be executed if both the button has been clicked and the list of selected models is not empty.
+    elif not selected_models:
+        st.warning("👈 Please select at least 1 model to train from the sidebar, when pressing the **\"Submit\"** button!🏋️‍♂️")
+            
+# =============================================================================
+#   ________      __     _     _    _      _______ ______ 
+#  |  ____\ \    / /\   | |   | |  | |  /\|__   __|  ____|
+#  | |__   \ \  / /  \  | |   | |  | | /  \  | |  | |__   
+#  |  __|   \ \/ / /\ \ | |   | |  | |/ /\ \ | |  |  __|  
+#  | |____   \  / ____ \| |___| |__| / ____ \| |  | |____ 
+#  |______|   \/_/    \_\______\____/_/    \_\_|  |______|
+#                                                         
+# =============================================================================
+if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
+    # define variables needed
+    # create a list of independent variables selected by user prior used 
+    # for results dataframe when evaluating models which variables were included.
+    features_str = get_feature_list(X)
+    with st.sidebar:
+        my_title("Evaluate Model Performance 🎯", "#2CB8A1")
+        # if nothing is selected by user display message to user to select models to train
+        if not train_models_btn and selected_models:
+            st.info("ℹ️ Train your models first, before results show here!")
+    if not train_models_btn and selected_models:
+        st.info("ℹ️ Train your models first from the sidebar menu by pressing the **'Submit'** button, before results show here!")
+    if train_models_btn and selected_models:
+        st.info("You can always retrain your models and adjust hyperparameters!")
+        # iterate over all models and if user selected checkbox for model the model(s) is/are trained
+        for model_name, model in selected_models:
+            try:
+                if model_name == "Naive Model":
+                    with st.expander('📈' + model_name, expanded=True):
+                        df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test, lag=lag, custom_lag_value=custom_lag_value)
+                        display_my_metrics(df_preds, "Naive Model")
+                        # plot graph with actual versus insample predictions
+                        plot_actual_vs_predicted(df_preds, my_conf_interval)
+                        # show the dataframe
+                        st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                        # create download button for forecast results to .csv
+                        download_csv_button(df_preds, my_file="insample_forecast_naivemodel_results.csv", help_message="Download your **Naive** model results to .CSV")
+                        mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
+                        # add test-results to sidebar Model Test Results dataframe
+                        new_row = {'model_name': 'Naive Model',
+                                   'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
+                                   'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']),
+                                   'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
+                                   'features':features_str}
+                        results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+            except:
+                st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
+            try:
+                if model_name == "Linear Regression":
+                     # train the model
+                     create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, model=model, model_name=model_name)
+                     # append to sidebar table the results of the model train/test
+                     new_row = {'model_name': 'Linear Regression',
+                                'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
+                                'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
+                                'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
+                                'features':features_str}
+                     results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+            except:
+                st.warning(f'Linear Regression failed to train, please contact administrator!')
+            try:
+                if model_name == "SARIMAX":
+                    with st.expander('ℹ️ ' + model_name, expanded=True):
+                        with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):   
+                            # Assume df is your DataFrame with boolean columns - needed for SARIMAX model that does not handle boolean, but int instead
+                            bool_cols = X_train.select_dtypes(include=bool).columns
+                            X_train.loc[:, bool_cols] = X_train.loc[:, bool_cols].astype(int)
+                            bool_cols = X_test.select_dtypes(include=bool).columns
+                            X_test.loc[:, bool_cols] = X_test.loc[:, bool_cols].astype(int)
+                            
+                            # parameters have standard value but can be changed by user
+                            preds_df = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
+                            # show metric on streamlit page
+                            display_my_metrics(preds_df, "SARIMAX")
+                            # plot graph with actual versus insample predictions
+                            plot_actual_vs_predicted(preds_df, my_conf_interval)
+                            # show the dataframe
+                            st.dataframe(preds_df.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                            # create download button for forecast results to .csv
+                            download_csv_button(preds_df, my_file="insample_forecast_sarimax_results.csv", help_message="Download your **SARIMAX** model results to .CSV")
+                            # define metrics for sarimax model
+                            mape, rmse, r2 = my_metrics(preds_df, model_name=model_name)
+                            # display evaluation results on sidebar of streamlit_model_card
+                            new_row = {'model_name': 'SARIMAX', 
+                                       'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
+                                       'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
+                                       'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
+                                       'features':features_str,
+                                       'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}
+                            # get the maximum index of the current results dataframe
+                            results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+            except:
+                st.warning(f'SARIMAX failed to train, please contact administrator!')       
+            if model_name == "Prophet": 
+                with st.expander('ℹ️ ' + model_name, expanded=True):
+                    # use custom fucntion that creates in-sample prediction and return a dataframe with 'Actual', 'Predicted', 'Percentage_Diff', 'MAPE' 
+                    preds_df_prophet = predict_prophet(y_train,
+                                                       y_test, 
+                                                       changepoint_prior_scale=changepoint_prior_scale,
+                                                       seasonality_mode=seasonality_mode,
+                                                       seasonality_prior_scale=seasonality_prior_scale,
+                                                       holidays_prior_scale=holidays_prior_scale,
+                                                       yearly_seasonality=yearly_seasonality,
+                                                       weekly_seasonality=weekly_seasonality,
+                                                       daily_seasonality=daily_seasonality,
+                                                       interval_width=interval_width)
                     
-            ##############################################################################
-            # 10. Forecast
-            ##############################################################################
-            if menu_item == 'Forecast':
-            #if uploaded_file is not None:
-                # DEFINE VARIABLES NEEDED FOR FORECAST
-                min_date = df['date'].min()
-                max_date = df['date'].max()
-                max_value_calendar=None
-                # define maximum value in dataset for year, month day
-                year = max_date.year
-                month = max_date.month
-                day = max_date.day
-                end_date_calendar = df['date'].max()
-                # end date dataframe + 1 day into future is start date of forecast
-                start_date_forecast = end_date_calendar + timedelta(days=1)
-                
-                my_title('10. Forecast 🔮', "#48466D")   
-                with st.sidebar:
-                    my_title('10. Forecast 🔮', "#48466D")                    
-                    with st.form("📆 "):
-                        if select_dwt_features:
-                            # wavelet model choice forecast
-                            my_subheader('Select Model for Discrete Wavelet Feature(s) Forecast Estimates')
-                            model_type_wavelet = st.selectbox('Select a model', ['Support Vector Regression', 'Linear'], label_visibility='collapsed') 
-                        # define all models in list as we retrain models on entire dataset anyway
-                        selected_models_forecast_lst = ['Linear Regression', 'SARIMAX', 'Prophet']
-                        # SELECT MODEL(S) for Forecasting
-                        selected_model_names = st.multiselect('*Select Forecasting Models*', selected_models_forecast_lst, default=selected_models_forecast_lst)  
-                        # create column spacers
-                        col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 7, 7, 1, 6, 7, 1])
-                        with col2: 
-                            st.markdown(f'<h5 style="color: #48466D; background-color: #F0F2F6; padding: 12px; border-radius: 5px;"><center> End Date:</center></h5>', unsafe_allow_html=True)
-                        with col3:
-                            for model_name in selected_model_names:
-                                # if model is linear regression max out the time horizon to maximum possible
-                                if model_name == "Linear Regression":
-                                    # max value is it depends on the length of the input data and the forecasting method used. Linear regression can only forecast as much as the input data if you're using it for time series forecasting.
-                                    max_value_calendar = end_date_calendar + timedelta(days=len(df))
-                                if model_name == "SARIMAX":
-                                    max_value_calendar = None
-                            # create user input box for entering date in a streamlit calendar widget
-                            end_date_forecast = st.date_input("input forecast date", 
-                                                              value=start_date_forecast,
-                                                              min_value=start_date_forecast, 
-                                                              max_value=max_value_calendar, 
-                                                              label_visibility = 'collapsed')   
-                        with col5: 
-                            # set text information for dropdown frequency
-                            st.markdown(f'<h5 style="color: #48466D; background-color: #F0F2F6; padding: 12px; border-radius: 5px;"><center> Frequency:</center></h5>', unsafe_allow_html=True)
-                        with col6:
-                            # Define a dictionary of possible frequencies and their corresponding offsets
-                            forecast_freq_dict = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
-                            # Ask the user to select the frequency of the data
-                            forecast_freq = st.selectbox('Select the frequency of the data', list(forecast_freq_dict.keys()), label_visibility='collapsed')
-                            # get the value of the key e.g. D, W, M, Q or Y
-                            forecast_freq_letter = forecast_freq_dict[forecast_freq]
-                      
-                        # create additional linespace
-                        st.write("")
-                        # create vertical spacing columns
-                        col1, col2, col3 = st.columns([4,4,4])
-                        with col2:
-                            # create submit button for the forecast
-                            forecast_btn = st.form_submit_button("Submit", type="secondary")    
-                # when user clicks the forecast button then run below
-                if forecast_btn:
-                    #############################################
-                    # SET VARIABLES NEEDED FOR FORECASTING MODELS
-                    #############################################
-                    # create a date range for your forecast
-                    future_dates = pd.date_range(start=start_date_forecast, end=end_date_forecast, freq=forecast_freq_letter)
-                    # first create all dates in dataframe with 'date' column
-                    df_future_dates = future_dates.to_frame(index=False, name='date')
-                    # add the special calendar days
-                    df_future_dates = create_calendar_special_days(df_future_dates)
-                    # add the year/month/day dummy variables
-                    df_future_dates = create_date_features(df, year_dummies=year_dummies, month_dummies=month_dummies, day_dummies=day_dummies)
-                    # if user wants discrete wavelet features add them
-                    if select_dwt_features:
-                        df_future_dates = forecast_wavelet_features(X, features_df_wavelet, future_dates, df_future_dates)
-                    ##############################################
-                    # DEFINE X future
-                    ##############################################
-                    # select only features user selected from df e.g. slice df    
-                    X_future = df_future_dates.loc[:, ['date'] + [col for col in feature_selection_user if col in df_future_dates.columns]]
-                    # set the 'date' column as the index again
-                    X_future = copy_df_date_index(X_future, datetime_to_date=False, date_to_index=True)
-                    # iterate over each model name and model in list of lists
-                    for model_name in selected_model_names:
+                    display_my_metrics(preds_df_prophet, "Prophet")
+                    # plot graph with actual versus insample predictions
+                    plot_actual_vs_predicted(preds_df_prophet, my_conf_interval)
+                    # show the dataframe
+                    st.dataframe(preds_df_prophet.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                    # create download button for forecast results to .csv
+                    download_csv_button(preds_df_prophet, my_file="insample_forecast_prophet_results.csv", help_message="Download your **Prophet** model results to .CSV")
+                    # define metrics for sarimax model
+                    mape, rmse, r2 = my_metrics(preds_df_prophet, model_name=model_name)
+                    # display evaluation results on sidebar of streamlit_model_card
+                    new_row = {'model_name': 'Prophet', 
+                               'mape': '{:.2%}'.format(metrics_dict['Prophet']['mape']),
+                               'rmse': '{:.2f}'.format(metrics_dict['Prophet']['rmse']), 
+                               'r2': '{:.2f}'.format(metrics_dict['Prophet']['r2']),
+                               'features': features_str,
+                               'model settings': f' changepoint_prior_scale: {changepoint_prior_scale}, seasonality_prior_scale: {seasonality_prior_scale}, holidays_prior_scale: {holidays_prior_scale}, yearly_seasonality: {yearly_seasonality}, weekly_seasonality: {weekly_seasonality}, daily_seasonality: {daily_seasonality}, interval_width: {interval_width}'}
+                    
+                    results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+
+    # SHOW MODEL DOCUMENTATION AFTER MODELS RUN
+    model_documentation(show=True)
+    
+    ###################################################################################################################
+    # Add results_df to session state
+    ###################################################################################################################
+    with st.sidebar:
+        with st.expander('', expanded=True):
+            # table 1: latest run results of model performance
+            my_subheader('Latest Model Test Results', my_size=4, my_style='#2CB8A1')
+            if 'results_df' not in st.session_state:
+                st.session_state.results_df = results_df
+            else:
+                st.session_state.results_df = pd.concat([st.session_state.results_df, results_df], ignore_index=True)
+            # Show the results dataframe in the sidebar if there is at least one model selected
+            if len(selected_models) > 0:
+                st.dataframe(results_df)
+            # table 2: ranking
+            my_subheader('Top 3 Ranking All Test Results', my_size=4, my_style='#2CB8A1')
+            # It converts the 'mape' column to floats, removes duplicates based on the 'model_name' and 'mape' columns, sorts the unique DataFrame by ascending 'mape' values, selects the top 3 rows, and displays the resulting DataFrame in Streamlit.
+            test_df = st.session_state.results_df.assign(mape=st.session_state.results_df['mape'].str.rstrip('%').astype(float)).drop_duplicates(subset=['model_name', 'mape']).sort_values(by='mape', ascending=True).iloc[:3]
+            st.write(test_df)
+    
+    # show on streamlit page the scoring results
+    my_title("8. Evaluate Model Performance 🎯", "#2CB8A1")
+    # if the results dataframe is created already then you can continue code
+    if 'results_df' in globals():
+        with st.expander('ℹ️ Test Results', expanded=True):
+            my_header(my_string='Modeling Test Results', my_style="#2CB8A1")
+            # create some empty newlines - for space between title and dataframe
+            st.write("")
+            st.write("")
+            # show the dataframe with all the historical results stored from 
+            # prior runs the cache e.g. called session_state in streamlit
+            # from all train/test results with models selected by user
+            st.dataframe(st.session_state.results_df, use_container_width=True)
+            # download button
+            download_csv_button(results_df, my_file="Modeling Test Results.csv", help_message="Download your Modeling Test Results to .CSV")
+    # if results_df is not created yet just tell user to train models first
+    else:
+        st.info('Please select models to train first from sidebar menu and press **"Submit"**')
+
+# =============================================================================
+#   _______ _    _ _   _ ______ 
+#  |__   __| |  | | \ | |  ____|
+#     | |  | |  | |  \| | |__   
+#     | |  | |  | | . ` |  __|  
+#     | |  | |__| | |\  | |____ 
+#     |_|   \____/|_| \_|______|
+#                               
+# =============================================================================
+# 9. Hyper-parameter tuning
+if menu_item == 'Tune' and sidebar_menu_item == 'Home':
+    my_title('9. Hyper-parameter Tuning⚙️', "#88466D")
+    # set variables needed
+    ######################
+    # set initial start time before hyper-parameter tuning is kicked-off
+    start_time = time.time()
+    # initialize variable for sarimax parameters p,d,q
+    param_mini = None
+    # initialize variable for sarimax model parameters P,D,Q,s
+    param_seasonal_mini = None
+
+    # sidebar hyperparameter tuning
+    ################################
+    with st.sidebar:
+         my_title('9. Hyper-parameter Tuning⚙️', "#88466D")                    
+         with st.form("hyper_parameter_tuning"):
+             # create a multiselect checkbox with all model names selected by default
+             # create a list of the selected models by the user in the training section of the streamlit app
+             model_lst = [model_name for model_name, model in selected_models]
+             # SELECT MODEL(S): let the user select the trained model(s) in a multi-selectbox for hyper-parameter tuning
+             selected_model_names = st.multiselect('*Select Models*', model_lst, help='Selected Models are tuned utilizing **`Grid Search`**, which is a specific technique for hyperparameter tuning where a set of hyperparameters is defined and the model is trained and evaluated on all possible combinations')
+             # SELECT EVALUATION METRIC: let user set evaluation metric for the hyper-parameter tuning
+             metric = st.selectbox('*Select Evaluation Metric*', ['AIC', 'BIC', 'RMSE'], label_visibility='visible', 
+                                   help='**`AIC`** (**Akaike Information Criterion**): A measure of the quality of a statistical model, taking into account the goodness of fit and the complexity of the model. A lower AIC indicates a better model fit. \
+                                   \n**`BIC`** (**Bayesian Information Criterion**): Similar to AIC, but places a stronger penalty on models with many parameters. A lower BIC indicates a better model fit.  \
+                                   \n**`RMSE`** (**Root Mean Squared Error**): A measure of the differences between predicted and observed values in a regression model. It is the square root of the mean of the squared differences between predicted and observed values. A lower RMSE indicates a better model fit.')
+             # Note that we set best_metric to -np.inf instead of np.inf since we want to maximize the R2 metric. 
+             if metric in ['AIC', 'BIC', 'RMSE']:
+                 mini = float('+inf')
+             else:
+                 # Set mini to positive infinity to ensure that the first value evaluated will become the minimum
+                 # minimum metric score will be saved under variable mini while looping thorugh parameter grid
+                 mini = float('-inf')
+             # SARIMAX HYPER-PARAMETER GRID TO SELECT BY USER
+             ##################################################
+             with st.expander('SARIMAX GridSearch Parameters'):
+                 col1, col2, col3 = st.columns([5,1,5])
+                 with col1:
+                     p_max = st.number_input("*Max Autoregressive Order (p):*", value=2, min_value=0, max_value=10)
+                     d_max = st.number_input("*Max Differencing (d):*", value=1, min_value=0, max_value=10)
+                     q_max = st.number_input("*Max Moving Average (q):*", value=2, min_value=0, max_value=10)   
+                 with col3:
+                     P_max = st.number_input("*Max Seasonal Autoregressive Order (P):*", value=2, min_value=0, max_value=10)
+                     D_max = st.number_input("*Max Seasonal Differencing (D):*", value=1, min_value=0, max_value=10)
+                     Q_max = st.number_input("*Max Seasonal Moving Average (Q):*", value=2, min_value=0, max_value=10)
+                     s = st.number_input("*Set Seasonal Periodicity (s):*", value=7, min_value=1)
+             # PROPHET HYPER-PARAMETER GRID TO SELECT BY USER
+             ##################################################
+             with st.expander('Prophet GridSearch Parameters'):
+                st.write('')
+                col1, col2 = st.columns([5,1])
+                with col1:
+                    # PROPHET MODEL HYPER-PARAMETER GRID WITH DOCUMENTATION
+                    # usually set to forecast horizon e.g. 30 days
+                    horizon_option = int(st.slider('Set Forecast Horizon (default = 30 Days):', min_value=1, max_value=365, step=1, value=30, help='The horizon for a Prophet model is typically set to the number of time periods that you want to forecast into the future. This is also known as the forecasting horizon or prediction horizon.'))
+                    # This is probably the most impactful parameter. It determines the flexibility of the trend, and in particular how much the trend changes at the trend changepoints. As described in this documentation, if it is too small, the trend will be underfit and variance that should have been modeled with trend changes will instead end up being handled with the noise term. If it is too large, the trend will overfit and in the most extreme case you can end up with the trend capturing yearly seasonality. The default of 0.05 works for many time series, but this could be tuned; a range of [0.001, 0.5] would likely be about right. Parameters like this (regularization penalties; this is effectively a lasso penalty) are often tuned on a log scale.
+                    changepoint_prior_scale_options = st.multiselect('*Changepoint Prior Scale*', [0.001, 0.01, 0.05, 0.1, 1], default = [0.001, 0.01, 0.1, 1], help='This is probably the most impactful parameter. It determines the flexibility of the trend, and in particular how much the trend changes at the trend changepoints. As described in this documentation, if it is too small, the trend will be underfit and variance that should have been modeled with trend changes will instead end up being handled with the noise term. If it is too large, the trend will overfit and in the most extreme case you can end up with the trend capturing yearly seasonality. The default of 0.05 works for many time series, but this could be tuned; a range of [0.001, 0.5] would likely be about right. Parameters like this (regularization penalties; this is effectively a lasso penalty) are often tuned on a log scale.')
+                    # Options are ['additive', 'multiplicative']. Default is 'additive', but many business time series will have multiplicative seasonality. 
+                    # This is best identified just from looking at the time series and seeing if the magnitude of seasonal fluctuations grows with the magnitude of the time series
+                    seasonality_mode_options = st.multiselect('*Seasonality Modes*', [ 'additive', 'multiplicative'], default = [ 'additive', 'multiplicative'])
+                    seasonality_prior_scale_options = st.multiselect('*Seasonality Prior Scales*', [0.01, 0.1, 1.0, 10.0], default = [0.01, 0.1, 1.0, 10.0])
+                    holidays_prior_scale_options = st.multiselect('*Holidays Prior Scales*', [0.01, 0.1, 1.0, 10.0], default = [0.01, 0.1, 1.0, 10.0])
+                    yearly_seasonality_options = st.multiselect('*Yearly Seasonality*', [True, False], default = [True, False])
+                    weekly_seasonality_options = st.multiselect('*Weekly Seasonality*', [True, False], default = [True, False])
+                    daily_seasonality_options = st.multiselect('*Daily Seasonality*', [True, False], default = [True, False])
+                    #interval_width=interval_width
+                        
+             sarimax_tuning_results = pd.DataFrame(columns=['SARIMAX (p,d,q)x(P,D,Q,s)', 'param', 'param_seasonal', metric])
+             prophet_tuning_results = pd.DataFrame() # TEST
+             # create vertical spacing columns
+             col1, col2, col3 = st.columns([4,4,4])
+             with col2: 
+                 # create submit button for the hyper-parameter tuning
+                 hp_tuning_btn = st.form_submit_button("Submit", type="secondary")    
+          
+    # if user clicks the hyper-parameter tuning button run code below
+    if hp_tuning_btn == True and selected_model_names:
+        # Set up a progress bar
+        with st.spinner(f'Searching for optimal hyper-parameters...hold your horses 🐎🐎🐎 this might take a while to run!'):
+            ################################
+            # kick off the grid-search!
+            ################################
+            # set start time when grid-search is kicked-off to define total time it takes
+            # as computationaly intensive
+            start_time = time.time()
+            # if the name of the model selected by user in multi-selectbox is selected when pressing the submit button then run hyper-parameter search for the model
+            # note that naive model/linear regression are not added as they do not have hyper-parameters
+            for model_name in selected_model_names:
+                if model_name == "SARIMAX":
+                    # Define the parameter grid to search
+                    param_grid = {
+                                    'order': [(p, d, q) for p, d, q in itertools.product(range(p_max+1), range(d_max+1), range(q_max+1))],
+                                    'seasonal_order': [(p, d, q, s) for p, d, q in itertools.product(range(P_max+1), range(D_max+1), range(Q_max+1))]
+                                  }
+                    # Loop through each parameter combination in the parameter grid
+                    for param, param_seasonal in itertools.product(param_grid['order'], param_grid['seasonal_order']):
+                            try:
+                                # Create a SARIMAX model with the current parameter values
+                                mod = SARIMAX(y,
+                                              order=param,
+                                              seasonal_order=param_seasonal,
+                                              exog=X, 
+                                              enforce_stationarity=enforce_stationarity,
+                                              enforce_invertibility=enforce_invertibility)
+                                # Fit the model to the data
+                                results = mod.fit()
+                                # Check if the current model has a lower AIC than the previous models
+                                if metric == 'AIC':
+                                    if results.aic < mini:
+                                        # If so, update the mini value and the parameter values for the model with the lowest AIC
+                                        mini = results.aic
+                                        param_mini = param
+                                        param_seasonal_mini = param_seasonal
+                                elif metric == 'BIC':
+                                    if results.bic < mini:
+                                        # If so, update the mini value and the parameter values for the model with the lowest AIC
+                                        mini = results.bic
+                                        param_mini = param
+                                        param_seasonal_mini = param_seasonal
+                                elif metric == 'RMSE':
+                                    rmse = math.sqrt(results.mse)
+                                    if rmse < mini:
+                                        mini = rmse
+                                        param_mini = param
+                                        param_seasonal_mini = param_seasonal
+                                                         
+                                # Append a new row to the dataframe with the parameter values and AIC score
+                                sarimax_tuning_results = sarimax_tuning_results.append({'SARIMAX (p,d,q)x(P,D,Q,s)': f'{param} x {param_seasonal}', 
+                                                               'param': param, 
+                                                               'param_seasonal': param_seasonal, 
+                                                               metric: "{:.2f}".format(mini)}, 
+                                                               ignore_index=True)
+                            # If the model fails to fit, skip it and continue to the next model
+                            except:
+                                continue
+                    # set the end of runtime
+                    end_time_sarimax = time.time()                  
+                if model_name == "Prophet":
+                    horizon_int = horizon_option
+                    horizon_str = f'{horizon_int} days'  # construct horizon parameter string
+                    # define cutoffs
+                    cutoff_date = X_train.index[-(horizon_int+1)].strftime('%Y-%m-%d')
+                    # define the parameter grid - user can select options with multi-select box in streamlit app
+                    param_grid = {  
+                                    'changepoint_prior_scale': changepoint_prior_scale_options,
+                                    'seasonality_prior_scale': seasonality_prior_scale_options,
+                                    'changepoint_prior_scale': changepoint_prior_scale_options,
+                                    'seasonality_mode': seasonality_mode_options,
+                                    'seasonality_prior_scale': seasonality_prior_scale_options,
+                                    'holidays_prior_scale': holidays_prior_scale_options,
+                                    'yearly_seasonality': yearly_seasonality_options,
+                                    'weekly_seasonality': weekly_seasonality_options,
+                                    'daily_seasonality': daily_seasonality_options
+                                  }
+                    
+                    # Generate all combinations of parameters
+                    all_params = [dict(zip(param_grid.keys(), v)) for v in itertools.product(*param_grid.values())]
+                    rmses = [] # Store the RMSEs for each params here
+                    aics = []  # Store the AICs for each params here
+                    bics = []  # Store the BICs for each params here
+                    
+                    # for simplicity set only a single cutoff for train/test split defined by user in the streamlit app
+                    #cutoffs = pd.to_datetime(['2021-06-01', '2021-12-31']) # add list of dates 
+                    cutoffs = pd.to_datetime([cutoff_date])
+                    
+                    # preprocess the data (y_train/y_test) for prophet model with datestamp (DS) and target (y) column
+                    y_train_prophet = preprocess_data_prophet(y_train)
+                    y_test_prophet = preprocess_data_prophet(y_test)
+                    
+                    # Use cross validation to evaluate all parameters
+                    for params in all_params:
+                        m = Prophet(**params)  # Fit model with given params
+                        # train the model on the data with set parameters
+                        m.fit(y_train_prophet)
+
+                        # other examples of forecast horizon settings:
+                        #df_cv2 = cross_validation(m, cutoffs=cutoffs, horizon='100 days')
+                        #df_cv2 = cross_validation(m, cutoffs=cutoffs, horizon='365 days')
+                        df_cv = cross_validation(m, cutoffs=cutoffs, horizon=horizon_str, parallel=False)
+                        # rolling_window = 1 computes performance metrics using all the forecasted data to get a single performance metric number.
+                        df_p = performance_metrics(df_cv, rolling_window=1)
+                        rmses.append(df_p['rmse'].values[0])
+                        # Get residuals to compute AIC and BIC
+                        df_cv['residuals'] = df_cv['y'] - df_cv['yhat']
+                        residuals = df_cv['residuals'].values
+                        
+                        # Compute AIC and BIC
+                        nobs = len(residuals)
+                        k = len(params)
+                        loglik = -0.5 * nobs * (1 + np.log(2*np.pi) + np.log(np.sum(residuals**2)/nobs))
+                        aic = -2 * loglik + 2 * k
+                        bic = 2 * loglik + k * np.log(nobs)
+                        # add AIC score to list
+                        aics.append(aic)
+                        # add BIC score to list
+                        bics.append(bic)
+                    
+                    # create dataframe with parameter combinations
+                    prophet_tuning_results = pd.DataFrame(all_params)
+                    # add RMSE scores to dataframe
+                    prophet_tuning_results['rmse'] = rmses
+                    # add AIC scores to dataframe
+                    prophet_tuning_results['aic'] = aics
+                    # add BIC scores to dataframe
+                    prophet_tuning_results['bic'] = bics
+                    # set the end of runtime
+                    end_time_prophet = time.time()        
+    
+        # if user presses "Submit" button for hyper-parameter tuning and selected a model or multiple models in dropdown multiselectbox then run code below
+        if hp_tuning_btn == True and selected_model_names:
+            # if SARIMAX model is inside the list of modelames then run code below:
+            if 'SARIMAX' in selected_model_names:
+                with st.expander('⚙️ SARIMAX', expanded=True):                     
+                    # Add a 'Rank' column based on the AIC score and sort by ascending rank
+                    # rank method: min: lowest rank in the group
+                    # rank method: dense: like ‘min’, but rank always increases by 1 between groups.
+                    sarimax_tuning_results['Rank'] = sarimax_tuning_results[metric].rank(method='min', ascending=True).astype(int)
+                    # sort values by rank
+                    sarimax_tuning_results = sarimax_tuning_results.sort_values('Rank', ascending=True)
+                    # show user dataframe of gridsearch results ordered by ranking
+                    st.dataframe(sarimax_tuning_results.set_index('Rank'), use_container_width=True)   
+                    #st.info(f"ℹ️ SARIMAX search for your optimal hyper-parameters finished in {end_time_sarimax - start_time:.2f} seconds")
+                    if not sarimax_tuning_results.empty:
+                        st.write(f'🏆 **SARIMAX** set of parameters with the lowest {metric} of **{"{:.2f}".format(mini)}** found in **{end_time_sarimax - start_time:.2f}** seconds is:')  
+                        st.write(f'- **`(p,d,q)(P,D,Q,s)`**: {sarimax_tuning_results.iloc[0,1]}{sarimax_tuning_results.iloc[0,2]}')
+# =============================================================================
+#                         st.write(f'- Order (p):')
+#                         st.write('Differencing (d):')
+#                         st.write('Moving Average (q):')
+#                         st.write('Seasonal Order (P):')
+#                         st.write('Seasonal Differencing (D):')
+#                         st.write('Seasonal Moving Average (Q):')
+#                         st.write('Seasonal Periodicity (s):')
+# =============================================================================
+            if 'Prophet' in selected_model_names:
+                with st.expander('⚙️ Prophet', expanded=True):  
+                    if metric.lower() in prophet_tuning_results.columns:
+                        prophet_tuning_results['Rank'] = prophet_tuning_results[metric.lower()].rank(method='min', ascending=True).astype(int)
+                        # sort values by rank
+                        prophet_tuning_results = prophet_tuning_results.sort_values('Rank', ascending=True)
+                        # show user dataframe of gridsearch results ordered by ranking
+                        st.dataframe(prophet_tuning_results.set_index('Rank'), use_container_width=True)
+                        # provide button for user to download the hyperparameter tuning results
+                        download_csv_button(prophet_tuning_results, my_file='Prophet_Hyperparameter_Gridsearch.csv', help_message='Download your Hyperparameter tuning results to .CSV')
+                    #st.success(f"ℹ️ Prophet search for your optimal hyper-parameters finished in **{end_time_prophet - start_time:.2f}** seconds")
+                    if not prophet_tuning_results.empty:
+                        st.markdown(f'🏆 **Prophet** set of parameters with the lowest {metric} of **{"{:.2f}".format(prophet_tuning_results.loc[0,metric.lower()])}** found in **{end_time_prophet - start_time:.2f}** seconds are:')
+                        st.write('\n'.join([f'- **`{param}`**: {prophet_tuning_results.loc[0, param]}' for param in prophet_tuning_results.columns[:6]]))
+    else:
+        st.info('👈 Please select at least one model in the sidebar and press \"Submit\"!')
+                   
+# =============================================================================
+#   ______ ____  _____  ______ _____           _____ _______ 
+#  |  ____/ __ \|  __ \|  ____/ ____|   /\    / ____|__   __|
+#  | |__ | |  | | |__) | |__ | |       /  \  | (___    | |   
+#  |  __|| |  | |  _  /|  __|| |      / /\ \  \___ \   | |   
+#  | |   | |__| | | \ \| |___| |____ / ____ \ ____) |  | |   
+#  |_|    \____/|_|  \_\______\_____/_/    \_\_____/   |_|   
+#                                                            
+# =============================================================================
+if menu_item == 'Forecast':
+#if uploaded_file is not None:
+    # DEFINE VARIABLES NEEDED FOR FORECAST
+    min_date = df['date'].min()
+    max_date = df['date'].max()
+    max_value_calendar=None
+    # define maximum value in dataset for year, month day
+    year = max_date.year
+    month = max_date.month
+    day = max_date.day
+    end_date_calendar = df['date'].max()
+    # end date dataframe + 1 day into future is start date of forecast
+    start_date_forecast = end_date_calendar + timedelta(days=1)
+
+    my_title('Forecast 🔮', "#48466D")   
+    with st.sidebar:
+        my_title('Forecast 🔮', "#48466D")                    
+        with st.form("📆 "):
+            if select_dwt_features:
+                # wavelet model choice forecast
+                my_subheader('Select Model for Discrete Wavelet Feature(s) Forecast Estimates')
+                model_type_wavelet = st.selectbox('Select a model', ['Support Vector Regression', 'Linear'], label_visibility='collapsed') 
+            # define all models in list as we retrain models on entire dataset anyway
+            selected_models_forecast_lst = ['Linear Regression', 'SARIMAX', 'Prophet']
+            # SELECT MODEL(S) for Forecasting
+            selected_model_names = st.multiselect('*Select Forecasting Models*', selected_models_forecast_lst, default=selected_models_forecast_lst)  
+            # create column spacers
+            col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 7, 7, 1, 6, 7, 1])
+            with col2: 
+                st.markdown(f'<h5 style="color: #48466D; background-color: #F0F2F6; padding: 12px; border-radius: 5px;"><center> End Date:</center></h5>', unsafe_allow_html=True)
+            with col3:
+                for model_name in selected_model_names:
+                    # if model is linear regression max out the time horizon to maximum possible
+                    if model_name == "Linear Regression":
+                        # max value is it depends on the length of the input data and the forecasting method used. Linear regression can only forecast as much as the input data if you're using it for time series forecasting.
+                        max_value_calendar = end_date_calendar + timedelta(days=len(df))
+                    if model_name == "SARIMAX":
+                        max_value_calendar = None
+                # create user input box for entering date in a streamlit calendar widget
+                end_date_forecast = st.date_input("input forecast date", 
+                                                  value=start_date_forecast,
+                                                  min_value=start_date_forecast, 
+                                                  max_value=max_value_calendar, 
+                                                  label_visibility = 'collapsed')   
+            with col5: 
+                # set text information for dropdown frequency
+                st.markdown(f'<h5 style="color: #48466D; background-color: #F0F2F6; padding: 12px; border-radius: 5px;"><center> Frequency:</center></h5>', unsafe_allow_html=True)
+            with col6:
+                # Define a dictionary of possible frequencies and their corresponding offsets
+                forecast_freq_dict = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
+                # Ask the user to select the frequency of the data
+                forecast_freq = st.selectbox('Select the frequency of the data', list(forecast_freq_dict.keys()), label_visibility='collapsed')
+                # get the value of the key e.g. D, W, M, Q or Y
+                forecast_freq_letter = forecast_freq_dict[forecast_freq]
+          
+            # create additional linespace
+            st.write("")
+            # create vertical spacing columns
+            col1, col2, col3 = st.columns([4,4,4])
+            with col2:
+                # create submit button for the forecast
+                forecast_btn = st.form_submit_button("Submit", type="secondary")    
+    # when user clicks the forecast button then run below
+    if forecast_btn:
+        #############################################
+        # SET VARIABLES NEEDED FOR FORECASTING MODELS
+        #############################################
+        # create a date range for your forecast
+        future_dates = pd.date_range(start=start_date_forecast, end=end_date_forecast, freq=forecast_freq_letter)
+        # first create all dates in dataframe with 'date' column
+        df_future_dates = future_dates.to_frame(index=False, name='date')
+        # add the special calendar days
+        df_future_dates = create_calendar_special_days(df_future_dates)
+        # add the year/month/day dummy variables
+        df_future_dates = create_date_features(df, year_dummies=year_dummies, month_dummies=month_dummies, day_dummies=day_dummies)
+        # if user wants discrete wavelet features add them
+        if select_dwt_features:
+            df_future_dates = forecast_wavelet_features(X, features_df_wavelet, future_dates, df_future_dates)
+        ##############################################
+        # DEFINE X future
+        ##############################################
+        # select only features user selected from df e.g. slice df    
+        X_future = df_future_dates.loc[:, ['date'] + [col for col in feature_selection_user if col in df_future_dates.columns]]
+        # set the 'date' column as the index again
+        X_future = copy_df_date_index(X_future, datetime_to_date=False, date_to_index=True)
+        # iterate over each model name and model in list of lists
+        for model_name in selected_model_names:
 # =============================================================================
 #             def add_prediction_interval(model, X_future, alpha, df):
 #                 # calculate the prediction interval for the forecast data
@@ -5482,107 +5940,107 @@ if menu_item == 'Prepare' and sidebar_menu_item=='Home':
 #                 df['upper_pi'] = upper_pi
 #                 return df
 # =============================================================================
-                        if model_name == "Linear Regression":                
-                            model = LinearRegression()
-                            # train the model on all data (X) for which we have data in forecast that user feature selected
-                            # e.g. if X originaly had August, but the forecast does not have August
-                            model.fit(X.loc[:, [col for col in feature_selection_user if col in df_future_dates.columns]], y)
-                            # forecast (y_hat with dtype numpy array)
-                            y_forecast = model.predict(X_future) 
-                            # convert numpy array y_forecast to a dataframe
-                            df_forecast_lr = pd.DataFrame(y_forecast, columns = ['forecast']).round(0)
-                            # create a dataframe with the DatetimeIndex as the index
-                            df_future_dates_only = future_dates.to_frame(index=False, name='date')
-                            # combine dataframe of date with y_forecast
-                            df_forecast_lr = copy_df_date_index(df_future_dates_only.join(df_forecast_lr), datetime_to_date=False, date_to_index=True)
+            if model_name == "Linear Regression":                
+                model = LinearRegression()
+                # train the model on all data (X) for which we have data in forecast that user feature selected
+                # e.g. if X originaly had August, but the forecast does not have August
+                model.fit(X.loc[:, [col for col in feature_selection_user if col in df_future_dates.columns]], y)
+                # forecast (y_hat with dtype numpy array)
+                y_forecast = model.predict(X_future) 
+                # convert numpy array y_forecast to a dataframe
+                df_forecast_lr = pd.DataFrame(y_forecast, columns = ['forecast']).round(0)
+                # create a dataframe with the DatetimeIndex as the index
+                df_future_dates_only = future_dates.to_frame(index=False, name='date')
+                # combine dataframe of date with y_forecast
+                df_forecast_lr = copy_df_date_index(df_future_dates_only.join(df_forecast_lr), datetime_to_date=False, date_to_index=True)
 # =============================================================================
 #                 # Add the prediction interval to the forecast dataframe
 #                 alpha = 0.05  # Level of significance for the prediction interval
 #                 df_forecast_lr = add_prediction_interval(model, X_future, alpha, df_forecast_lr)
 # =============================================================================
-                            # create forecast model score card in streamlit
-                            with st.expander('ℹ️' + model_name + ' Forecast', expanded=True):   
-                                my_header(f'{model_name}')
-                                # Create the forecast plot
-                                plot_forecast(y, df_forecast_lr, title='')
-                                # set note that maximum chosen date can only be up to length of input data with Linear Regression Model
-                                #st.caption('Note: Linear Regression Model maximum end date depends on length of input data')
-                                # show dataframe / output of forecast in streamlit linear regression
-                                st.dataframe(df_forecast_lr, use_container_width=True)
-                                download_csv_button(df_forecast_lr, my_file="forecast_linear_regression_results.csv") 
-                        if model_name == "SARIMAX":
-                            # define model parameters
-                            order = (p,d,q)
-                            seasonal_order = (P,D,Q,s)
-                            # define model on all data (X)
-                            # Assume df is your DataFrame with boolean columns - needed for SARIMAX model that does not handle boolean, but int instead
-                            # X bool to int dtypes
-                            bool_cols = X.select_dtypes(include=bool).columns
-                            X.loc[:, bool_cols] = X.loc[:, bool_cols].astype(int)
-                            # X_future bool to int dtypes
-                            bool_cols = X_future.select_dtypes(include=bool).columns
-                            X_future.loc[:, bool_cols] = X_future.loc[:, bool_cols].astype(int)
-                            
-                            model = SARIMAX(endog = y, order=(p, d, q),  
-                                                 seasonal_order=(P, D, Q, s), 
-                                                 exog=X.loc[:, [col for col in feature_selection_user if col in df_future_dates.columns]], 
-                                                 enforce_invertibility=enforce_invertibility, 
-                                                 enforce_stationarity=enforce_stationarity).fit()
-                            # Forecast future values
-                            my_forecast_steps = (end_date_forecast-start_date_forecast.date()).days
-                            #y_forecast = model_fit.predict(start=start_date_forecast, end=(start_date_forecast + timedelta(days=len(X_future)-1)), exog=X_future)
-                            forecast_values = model.get_forecast(steps = my_forecast_steps, exog = X_future.iloc[:my_forecast_steps,:])
-            
-                            # set the start date of forecasted value e.g. +7 days for new date
-                            start_date = max_date + timedelta(days=1)
-                            # create pandas series before appending to the forecast dataframe
-                            date_series = pd.date_range(start=start_date, end=None, periods= my_forecast_steps, freq=forecast_freq_letter)
-                            # create dataframe
-                            df_forecast =  pd.DataFrame()
-                            # add date series to forecasting pandas dataframe
-                            df_forecast['date'] = date_series.to_frame(index = False)
-                            # convert forecast to integers (e.g. round it)
-                            df_forecast[('forecast')] = forecast_values.predicted_mean.values.astype(int).round(0)                      
-                            # set 'date' as the index of the dataframe
-                            df_forecast_sarimax = copy_df_date_index(df_forecast)
-                            with st.expander('ℹ️ ' + model_name + ' Forecast', expanded=True):   
-                                my_header(f'{model_name}')
-                                # Create the forecast plot
-                                plot_forecast(y, df_forecast_sarimax, title='')
-                                # set note that maximum chosen date can only be up to length of input data with Linear Regression Model
-                                #st.caption('Note: Linear Regression Model maximum end date depends on length of input data')
-                                # show dataframe / output of forecast in streamlit linear regression
-                                st.dataframe(df_forecast_sarimax, use_container_width=True)
-                        if model_name == "Prophet": # NOTE: Currently no X features included in this Prophet model
-                            forecast_prophet = pd.DataFrame()
-                            # prep data for specificalmodelly prophet model requirements, data should have ds column and y column
-                            y_prophet = preprocess_data_prophet(y)
-                            # define 
-                            m = Prophet(changepoint_prior_scale=changepoint_prior_scale,
-                                        seasonality_mode=seasonality_mode,
-                                        seasonality_prior_scale=seasonality_prior_scale,
-                                        holidays_prior_scale=holidays_prior_scale,
-                                        yearly_seasonality=yearly_seasonality,
-                                        weekly_seasonality=weekly_seasonality,
-                                        daily_seasonality=daily_seasonality,
-                                        interval_width=interval_width)
-                            # train the model on the entire dataset with set parameters
-                            m.fit(y_prophet)
-                            # Predict on the test set
-                            future = m.make_future_dataframe(periods=len(future_dates), freq='D')
-                            forecast_prophet = m.predict(future)
-                            # change name of yhat to forecast in df
-                            forecast_prophet['forecast'] = forecast_prophet['yhat'].round(0)
-                            #forecast_prophet['date'] = forecast_prophet['ds']
-                            forecast_prophet['date'] = forecast_prophet['ds']
-                            forecast_prophet = forecast_prophet[['date', 'forecast']]
-                            # set the date column as index column
-                            forecast_prophet = forecast_prophet.set_index('date')
-                            # cut off the insample forecast
-                            forecast_prophet= forecast_prophet[len(y):]
-                            with st.expander('ℹ️ ' + model_name + ' Forecast', expanded=True):
-                                my_header(f'{model_name}')
-                                plot_forecast(y, forecast_prophet, title='')
-                                # show dataframe / output of forecast in streamlit
-                                st.dataframe(forecast_prophet, use_container_width=True)
-                                download_csv_button(forecast_prophet, my_file="forecast_prophet_results.csv")
+                # create forecast model score card in streamlit
+                with st.expander('ℹ️' + model_name + ' Forecast', expanded=True):   
+                    my_header(f'{model_name}')
+                    # Create the forecast plot
+                    plot_forecast(y, df_forecast_lr, title='')
+                    # set note that maximum chosen date can only be up to length of input data with Linear Regression Model
+                    #st.caption('Note: Linear Regression Model maximum end date depends on length of input data')
+                    # show dataframe / output of forecast in streamlit linear regression
+                    st.dataframe(df_forecast_lr, use_container_width=True)
+                    download_csv_button(df_forecast_lr, my_file="forecast_linear_regression_results.csv") 
+            if model_name == "SARIMAX":
+                # define model parameters
+                order = (p,d,q)
+                seasonal_order = (P,D,Q,s)
+                # define model on all data (X)
+                # Assume df is your DataFrame with boolean columns - needed for SARIMAX model that does not handle boolean, but int instead
+                # X bool to int dtypes
+                bool_cols = X.select_dtypes(include=bool).columns
+                X.loc[:, bool_cols] = X.loc[:, bool_cols].astype(int)
+                # X_future bool to int dtypes
+                bool_cols = X_future.select_dtypes(include=bool).columns
+                X_future.loc[:, bool_cols] = X_future.loc[:, bool_cols].astype(int)
+                # define model SARIMAX
+                model = SARIMAX(endog = y, order=(p, d, q),  
+                                     seasonal_order=(P, D, Q, s), 
+                                     exog=X.loc[:, [col for col in feature_selection_user if col in df_future_dates.columns]], 
+                                     enforce_invertibility=enforce_invertibility, 
+                                     enforce_stationarity=enforce_stationarity).fit()
+                # Forecast future values
+                my_forecast_steps = (end_date_forecast-start_date_forecast.date()).days
+                #y_forecast = model_fit.predict(start=start_date_forecast, end=(start_date_forecast + timedelta(days=len(X_future)-1)), exog=X_future)
+                forecast_values = model.get_forecast(steps = my_forecast_steps, exog = X_future.iloc[:my_forecast_steps,:])
+
+                # set the start date of forecasted value e.g. +7 days for new date
+                start_date = max_date + timedelta(days=1)
+                # create pandas series before appending to the forecast dataframe
+                date_series = pd.date_range(start=start_date, end=None, periods= my_forecast_steps, freq=forecast_freq_letter)
+                # create dataframe
+                df_forecast =  pd.DataFrame()
+                # add date series to forecasting pandas dataframe
+                df_forecast['date'] = date_series.to_frame(index = False)
+                # convert forecast to integers (e.g. round it)
+                df_forecast[('forecast')] = forecast_values.predicted_mean.values.astype(int).round(0)                      
+                # set 'date' as the index of the dataframe
+                df_forecast_sarimax = copy_df_date_index(df_forecast)
+                with st.expander('ℹ️ ' + model_name + ' Forecast', expanded=True):   
+                    my_header(f'{model_name}')
+                    # Create the forecast plot
+                    plot_forecast(y, df_forecast_sarimax, title='')
+                    # set note that maximum chosen date can only be up to length of input data with Linear Regression Model
+                    #st.caption('Note: Linear Regression Model maximum end date depends on length of input data')
+                    # show dataframe / output of forecast in streamlit linear regression
+                    st.dataframe(df_forecast_sarimax, use_container_width=True)
+            if model_name == "Prophet": # NOTE: Currently no X features included in this Prophet model
+                forecast_prophet = pd.DataFrame()
+                # prep data for specificalmodelly prophet model requirements, data should have ds column and y column
+                y_prophet = preprocess_data_prophet(y)
+                # define 
+                m = Prophet(changepoint_prior_scale=changepoint_prior_scale,
+                            seasonality_mode=seasonality_mode,
+                            seasonality_prior_scale=seasonality_prior_scale,
+                            holidays_prior_scale=holidays_prior_scale,
+                            yearly_seasonality=yearly_seasonality,
+                            weekly_seasonality=weekly_seasonality,
+                            daily_seasonality=daily_seasonality,
+                            interval_width=interval_width)
+                # train the model on the entire dataset with set parameters
+                m.fit(y_prophet)
+                # Predict on the test set
+                future = m.make_future_dataframe(periods=len(future_dates), freq='D')
+                forecast_prophet = m.predict(future)
+                # change name of yhat to forecast in df
+                forecast_prophet['forecast'] = forecast_prophet['yhat'].round(0)
+                #forecast_prophet['date'] = forecast_prophet['ds']
+                forecast_prophet['date'] = forecast_prophet['ds']
+                forecast_prophet = forecast_prophet[['date', 'forecast']]
+                # set the date column as index column
+                forecast_prophet = forecast_prophet.set_index('date')
+                # cut off the insample forecast
+                forecast_prophet= forecast_prophet[len(y):]
+                with st.expander('ℹ️ ' + model_name + ' Forecast', expanded=True):
+                    my_header(f'{model_name}')
+                    plot_forecast(y, forecast_prophet, title='')
+                    # show dataframe / output of forecast in streamlit
+                    st.dataframe(forecast_prophet, use_container_width=True)
+                    download_csv_button(forecast_prophet, my_file="forecast_prophet_results.csv")
