@@ -26,43 +26,46 @@ source ASCII ART: https://patorjk.com/software/taag/#p=display&v=0&f=Big&t=FOREC
 #                                        
 # =============================================================================
 #**************************
-# Import necessary packages
+# Import basic packages
 #**************************
 import pandas as pd
 import numpy as np
 import streamlit as st
 
-from streamlit_extras.buy_me_a_coffee import button
+#**************************
+# Streamlit add-on packages
+#**************************
 from streamlit_option_menu import option_menu
+from streamlit_extras.buy_me_a_coffee import button
 
 #**************************
-# Import datetime packages
+# Import datetime 
 #**************************
-#import datetime
+import datetime
 from datetime import timedelta
 
 #**************************
-# Import itertools package
+# Import itertools 
 #**************************
 import itertools
 
 #**************************
-# Import time package
+# Time functions
 #**************************
 import time
 
 #**************************
-# Import math package
+# Math package
 #**************************
 import math
 
 #**************************
-# image processing
+# Image Processing 
 #**************************
 from PIL import Image
 
 #***********************************
-# Import data visualization packages
+# Data Visualization 
 #***********************************
 import altair as alt
 #import matplotlib.pyplot as plt
@@ -71,7 +74,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 #****************************
-# Import statistical packages
+# Statistical tools
 #****************************
 from scipy import stats
 #from statsmodels.tsa.stattools import acf
@@ -82,7 +85,7 @@ from scipy.stats import mode, kurtosis, skew, shapiro
 from sklearn.linear_model import LinearRegression
 
 #********************************
-# Import data processing packages
+# Data (Pre-) Processing
 #********************************
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler, MaxAbsScaler, PowerTransformer, QuantileTransformer
 import statsmodels.api as sm
@@ -375,6 +378,111 @@ def create_carousel_cards(num_cards, header_list, paragraph_list, font_family, f
         </style>
         """, unsafe_allow_html=True)
 
+# TEST v2 with back of card as well with text
+def create_carousel_cards_v2(num_cards, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back):
+    # note removing display: flex; inside the css code for .flashcard -> puts cards below eachother
+    # create empty list that will keep the html code needed for each card with header+text
+    card_html = []
+    # iterate over cards specified by user and join the headers and text of the lists
+    for i in range(num_cards):
+        card_html.append(f"""
+<div class="flashcard">                     
+    <div class='front'>
+        <h1 style='text-align:center;color:white; margin-bottom: 10px;padding: 25px;'>{header_list[i]}</h1>
+        <p style='text-align:center; font-family: {font_family}; font-size: {font_size_front};'>{paragraph_list_front[i]}</p>
+    </div>
+    <div class="back">
+        <p style='text-align:center; font-family: {font_family}; font-size: {font_size_back};'>{paragraph_list_back[i]}</p>
+    </div>
+</div>
+""")
+    # join all the html code for each card and join it into single html code with carousel wrapper
+    carousel_html = "<div class='carousel'>" + "".join(card_html) + "</div>"
+    # Display the carousel in streamlit
+    st.markdown(carousel_html, unsafe_allow_html=True)
+    # Create the CSS styling for the carousel
+    st.markdown(
+        f"""
+        <style>
+        /* Carousel Styling */
+        .carousel {{
+          grid-gap: 10px;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          scroll-behavior: smooth;
+          -webkit-overflow-scrolling: touch;
+          width: 100%;
+          margin: auto;
+        }}
+       .flashcard {{
+          display: inline-block; /* Display cards inline */
+          width: 400px;
+          height: 200px;
+          background-color: white;
+          border-radius: 10px;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+          perspective: 1000px;
+          margin-right: 400px; /* Add space between cards */
+          padding: 20px;
+          scroll-snap-align: center;
+        }}
+        .front, .back {{
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 400px;
+          height: 200px;
+          border-radius: 10px;
+          backface-visibility: hidden;
+          font-family: {font_family};
+          text-align: center;
+        }}
+        .front {{
+          
+          background: linear-gradient(to bottom left, #4e3fce, #7a5dc7, #9b7cc2, #bb9bbd, #dababd);
+          color: white;
+          transform: rotateY(0deg);
+        }}
+        .back {{
+        background: white;
+        color: #333333;
+        transform: rotateY(180deg);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        }}
+        .flashcard:hover .front {{
+          transform: rotateY(180deg);
+        }}
+        .flashcard:hover .back {{
+          transform: rotateY(0deg);
+        }}
+        .front h2, .back h2 {{
+          color: white;
+          text-align: center;
+          margin-top: 10%;
+          transform: translateY(-10%);
+          font-family: {font_family};
+          font-size: {font_size_front}px;
+        }}
+        .front h2 {{
+          padding-top: 10px;
+          line-height: 1.5;
+        }}
+        .back h2 {{
+          line-height: 2;
+        }}
+        .back p {{
+          margin: 20px; /* Add margin for paragraph text */
+          }}
+        /* Carousel Navigation Styling */
+        .carousel-nav {{
+          margin: 10px 0px;
+          text-align: center;
+        }}
+        </style>
+        """, unsafe_allow_html=True)
 #******************************************************************************
 # STATISTICAL TEST FUNCTIONS
 #******************************************************************************
@@ -1273,23 +1381,30 @@ def plot_train_test_split(df, split_index):
         A plotly Figure object containing the train-test split plot.
     """
     # Get the absolute maximum value of the data
-    max_value = abs(df.iloc[:, 0]).max()
+    max_value = df.iloc[:, 0].max()
+    min_value = min(df.iloc[:, 0].min(), 0)
     fig = go.Figure()
     fig.add_trace(
-                    go.Scatter(x=df.index[:split_index],
-                               y=df.iloc[:split_index, 0],
-                               mode='lines',
-                               name='Train',
-                               line=dict(color='#217CD0'))
+                  go.Scatter(  
+                              x=df.index[:split_index],
+                              y=df.iloc[:split_index, 0],
+                              mode='lines',
+                              name='Train',
+                              line=dict(color='#217CD0')
+                           )
                   )
     fig.add_trace(
-        go.Scatter(x=df.index[split_index:],
-                   y=df.iloc[split_index:, 0],
-                   mode='lines',
-                   name='Test',
-                   line=dict(color='#FFA500')))
-    fig.update_layout(title='',
-                      yaxis=dict(range=[-max_value*1.1, max_value*1.1]), # Set y-axis range to include positive and negative values
+                  go.Scatter(
+                               x=df.index[split_index:],
+                               y=df.iloc[split_index:, 0],
+                               mode='lines',
+                               name='Test',
+                               line=dict(color='#FFA500')
+                           )
+                  )
+    fig.update_layout(
+                      title='',
+                      yaxis=dict(range=[min_value*1.1, max_value*1.1]), # Set y-axis range to include positive and negative values
                       shapes=[dict(type='line',
                                     x0=df.index[split_index],
                                     y0=-max_value*1.1, # Set y0 to -max_value*1.1
@@ -1297,7 +1412,8 @@ def plot_train_test_split(df, split_index):
                                     y1=max_value*1.1, # Set y1 to max_value*1.1
                                     line=dict(color='grey',
                                               dash='dash'))],
-                      annotations=[dict(x=df.index[split_index],
+                      annotations=[dict(
+                                        x=df.index[split_index],
                                         y=max_value*1.05,
                                         xref='x',
                                         yref='y',
@@ -1306,13 +1422,18 @@ def plot_train_test_split(df, split_index):
                                         font=dict(color="grey", size=15),
                                         arrowhead=1,
                                         ax=0,
-                                        ay=-40)])
+                                        ay=-40
+                                       )
+                                   ]
+                      )
     split_date = df.index[split_index-1]
-    fig.add_annotation(x=split_date,
-                       y=0.95*max_value,
+    fig.add_annotation(
+                       x=split_date,
+                       y=0.99*max_value,
                        text=str(split_date.date()),
                        showarrow=False,
-                       font=dict(color="grey", size=15))
+                       font=dict(color="grey", size=16)
+                       )
     return fig    
 
 def correlation_heatmap(X, correlation_threshold=0.8):
@@ -1692,6 +1813,12 @@ def perform_train_test_split(df, my_insample_forecast_steps, scaler_choice=None,
     # Check if the specified test-set size is valid
     if my_insample_forecast_steps >= len(df):
         raise ValueError("Test-set size must be less than the total number of rows in the dataset.")
+        
+    # Initialize X_train_numeric_scaled with a default value
+    X_train_numeric_scaled = pd.DataFrame() # TEST
+    X_test_numeric_scaled = pd.DataFrame() # TEST
+    X_numeric_scaled = pd.DataFrame() # TEST
+   
     # Split the data into training and testing sets
     X = df.iloc[:, 1:]
     y = df.iloc[:, 0:1]
@@ -1701,38 +1828,45 @@ def perform_train_test_split(df, my_insample_forecast_steps, scaler_choice=None,
     y_test = y.iloc[-my_insample_forecast_steps:, :]
     # initialize variable
     scaler = ""
+    
     # Scale the data if user selected a scaler choice in the normalization / standardization in streamlit sidebar
     if scaler_choice != "None":
         # Check if there are numerical features in the dataframe
-        st.write('numerical features in function perform_train_test_split', numerical_features)
-        st.write('X_train', X_train)
+        #st.write('numerical features in function perform_train_test_split', numerical_features)
+        #st.write('X_train', X_train)
         if numerical_features:
             # Select only the numerical features to be scaled
             X_train_numeric = X_train[numerical_features]
             X_test_numeric = X_test[numerical_features]
             X_numeric = X[numerical_features]
-            if scaler_choice == "MinMaxScaler":
-                scaler = MinMaxScaler()
-            elif scaler_choice == "RobustScaler":
-                scaler = RobustScaler()
-            elif scaler_choice == "MaxAbsScaler":
-                scaler = MaxAbsScaler()
-            elif scaler_choice == "PowerTransformer":
-                scaler = PowerTransformer()
-            elif scaler_choice == "QuantileTransformer":
-                scaler = QuantileTransformer(n_quantiles=100, output_distribution="normal")
-            else:
-                raise ValueError("Invalid scaler choice. Please choose from: MinMaxScaler, RobustScaler, MaxAbsScaler, "
-                                 "PowerTransformer, QuantileTransformer")
+            
+            # Create the scaler based on the selected choice
+            scaler_choices = {
+                                "MinMaxScaler": MinMaxScaler(),
+                                "RobustScaler": RobustScaler(),
+                                "MaxAbsScaler": MaxAbsScaler(),
+                                "PowerTransformer": PowerTransformer(),
+                                "QuantileTransformer": QuantileTransformer(n_quantiles=100, output_distribution="normal")
+                            }
+                        
+            if scaler_choice not in scaler_choices:
+                           raise ValueError("Invalid scaler choice. Please choose from: MinMaxScaler, RobustScaler, MaxAbsScaler, "
+                                            "PowerTransformer, QuantileTransformer")
+
+            scaler = scaler_choices[scaler_choice]
+            
             # Fit the scaler on the training set and transform both the training and test sets
             X_train_numeric_scaled = scaler.fit_transform(X_train_numeric)
             X_train_numeric_scaled = pd.DataFrame(X_train_numeric_scaled, columns=X_train_numeric.columns, index=X_train_numeric.index)
+            
             X_test_numeric_scaled = scaler.transform(X_test_numeric)
             X_test_numeric_scaled = pd.DataFrame(X_test_numeric_scaled, columns=X_test_numeric.columns, index=X_test_numeric.index)
+            
             # refit the scaler on the entire exogenous features e.g. X which is used for forecasting beyond train/test sets
             X_numeric_scaled = scaler.fit_transform(X_numeric)
+            
             # Convert the scaled array back to a DataFrame and set the column names
-            X_numeric_scaled = pd.DataFrame(X_numeric_scaled, columns=X_numeric.columns, index=X_numeric.index)
+            X_numeric_scaled = pd.DataFrame(X_numeric_scaled, columns=X_numeric.columns, index=X_numeric.index)        
     # Replace the original
     if scaler_choice != "None":
         X_train[numerical_features] = X_train_numeric_scaled[numerical_features]
@@ -1957,9 +2091,17 @@ def create_date_features(df, year_dummies=True, month_dummies=True, day_dummies=
     df = df.loc[:,~df.columns.duplicated()]
     return df
 
-
-def create_calendar_holidays(df):
+def create_calendar_holidays(df, slider=True):   
+    """
+    Create a calendar of holidays for a given DataFrame.
     
+    Parameters:
+    - df (pandas.DataFrame): The input DataFrame containing a 'date' column.
+    
+    Returns:
+    - pandas.DataFrame: The input DataFrame with additional columns 'is_holiday' (1 if the date is a holiday, 0 otherwise)
+                        and 'holiday_desc' (description of the holiday, empty string if not a holiday).
+    """
     try:
         # Note: create_calendar_holidays FUNCTION BUILD ON TOP OF HOLIDAY PACKAGE
         # some countries like Algeria have issues therefore if/else statement to catch it
@@ -2093,15 +2235,29 @@ def create_calendar_holidays(df):
                         ('Zambia', 'ZM'),
                         ('Zimbabwe', 'ZW')
                         ]
-    
-        # default value for selectbox set it equal to country e.g. USA
+        # retrieve index of default country e.g. 'United States of America'
         us_index = country_data.index(('United States of America', 'US'))
         
-        col1, col2, col3 = st.columns([1,2,1])
-        with col2:
-            # create selexbox in streamlit to show to user a drop-down menu to select a country
-            selected_country_name = st.selectbox("Select a country", [country[0] for country in country_data], index = us_index, label_visibility='hidden')
+        if 'country_index' not in st.session_state:
+            # default value for selectbox set it equal to country e.g. USA
+            # set equal to the relative position e.g. index of country = United States in the list
+            st.session_state['country_index'] = us_index
+            
+        # add slider if user on the page with menu_item = 'Engineer' otherwise do not show slider
+        if slider == True:
+            col1, col2, col3 = st.columns([1,2,1])
+            with col2:
+                # create selexbox in streamlit to show to user a drop-down menu to select a country
+                selected_country_name = st.selectbox(label = "Select a country", 
+                                                     options = [country[0] for country in country_data], 
+                                                     index = st.session_state['country_index'], 
+                                                     label_visibility='collapsed')
+                st.session_state['country_index'] = next((i for i, (country, code) in enumerate(country_data) if country == selected_country_name), None)
         
+        # else do not add slider
+        else:
+            selected_country_name = country_data[st.session_state['country_index']][0]
+            
         # create empty container for the calendar
         country_calendars = {}
         
@@ -2116,7 +2272,8 @@ def create_calendar_holidays(df):
                 continue
         
         # Retrieve the country code for the selected country
-        selected_country_code = dict(country_data).get(selected_country_name)
+        #selected_country_code = dict(country_data).get(selected_country_name)
+        selected_country_code = country_data[st.session_state['country_index']][1] # TEST
         
         # Check if the selected country has a holiday calendar
         if selected_country_name in country_calendars.keys():
@@ -2167,19 +2324,6 @@ def create_calendar_special_days(df, start_date_calendar=None,  end_date_calenda
         end_date_calendar = end_date_calendar
     df_exogenous_vars = pd.DataFrame({'date': pd.date_range(start = start_date_calendar, end = end_date_calendar)})
     
-# =============================================================================
-#     # ????????????????
-#     # TEST 2023-05-20
-#     # ????????????????
-#     
-#     # Get the holidays within the specified date range
-#     holiday_dates = cal.holidays(start=start_date_calendar, end=end_date_calendar)
-#     # holiday = true/ otherwise false
-#     df_exogenous_vars['holiday'] = (df_exogenous_vars['date'].isin(holiday_dates)).apply(lambda x: 1 if x==True else 0)
-#     # create column for holiday description
-#     df_exogenous_vars['holiday_desc'] = df_exogenous_vars['date'].apply(lambda x: my_holiday_name_func(x))
-#         
-# =============================================================================
     class UKEcommerceTradingCalendar(AbstractHolidayCalendar):
         rules = []
         # Seasonal trading events
@@ -2678,7 +2822,7 @@ def plot_actual_vs_predicted(df_preds, my_conf_interval):
     st.plotly_chart(fig, use_container_width=True)
     
 # remove datatypes object - e.g. descriptive columns not used in modeling
-def remove_object_columns(df):
+def remove_object_columns(df, message_columns_removed = False):
     """
      Remove columns with 'object' datatype from the input dataframe.
     
@@ -2704,11 +2848,13 @@ def remove_object_columns(df):
     # Get a list of column names with object datatype
     obj_cols = df.select_dtypes(include='object').columns.tolist()
     # Remove the columns that are not needed
-    st.write('the following columns are removed from a copy of the dataframe due to their datatype (object)')
+    if message_columns_removed:
+        st.write('the following columns are removed from a copy of the dataframe due to their datatype (object)')
     obj_cols_to_remove = []
     for col in obj_cols:
         obj_cols_to_remove.append(col)
-    st.write(obj_cols_to_remove)
+    if message_columns_removed:
+        st.write(obj_cols_to_remove)
     df = df.drop(columns=obj_cols_to_remove)
     return df
 
@@ -4042,7 +4188,7 @@ with st.sidebar:
             # add vertical spacer
             st.write()
         if st.session_state.my_data_choice == "Upload Data":
-            uploaded_file = st.file_uploader("Upload your .CSV file", type=["csv", "xls", "xlsx", "xlsm", "xlsb"], accept_multiple_files=False)
+            uploaded_file = st.file_uploader("Upload your file", type=["csv", "xls", "xlsx", "xlsm", "xlsb"], accept_multiple_files=False, label_visibility='collapsed')
 if menu_item == 'Load' and sidebar_menu_item=='Home':
     my_title("Load Dataset 🚀", "#45B8AC")
     if st.session_state.my_data_choice == "Demo Data":
@@ -4271,7 +4417,10 @@ if menu_item == 'Explore' and sidebar_menu_item=='Home':
             # Display the image in Streamlit
             st.image(image, caption="", use_column_width=True)
             my_text_paragraph('Doodle: Autocorrelation', my_font_size='12px')
-                   
+
+# logging
+print('ForecastGenie Print: Ran Explore')
+                  
 # =============================================================================
 #    _____ _      ______          _   _ 
 #   / ____| |    |  ____|   /\   | \ | |
@@ -4468,7 +4617,7 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
                                      name='Before',
                           marker=dict(color='#440154'),  opacity = 0.5))
             st.plotly_chart(fig_no_outliers, use_container_width=True)
-            my_text_paragraph(f'No <b> outlier detection </b> or <b> outlier replacement </b> method selected...', my_font_size='14px')
+            my_text_paragraph(f'No <b> outlier detection </b> or <b> outlier replacement </b> method selected.', my_font_size='14px')
 else:
     ##########################################################
     # ELSE user did not set the variables in 'clean' menu
@@ -4617,9 +4766,10 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
         ###############################################
         # create selectbox for country holidays
         ###############################################
-        vertical_spacer(2)
+        vertical_spacer(1)
         my_text_header('Holidays')
         my_text_paragraph('⛱️ Select country-specific holidays to include:')
+        # apply function to create country specific holidays in columns is_holiday (boolean 1 if holiday otherwise 0) and holiday_desc for holiday_name
         df = create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'])
         # update the session_state
         st.session_state['df_cleaned_outliers_with_index'] = df
@@ -4659,7 +4809,7 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
             st.session_state['christmas_day'] = christmas_day
             boxing_day = st.checkbox('Boxing Day sale', value=st.session_state['select_all_days'])
             st.session_state['boxing_day'] = boxing_day
-        
+        vertical_spacer(3)
     # user checkmarked the box for all seasonal periods
     if select_all_seasonal:
         # call very extensive function to create all days selected by users as features
@@ -4744,6 +4894,7 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
 # execute code below...
 else:
     pass
+
 # =============================================================================
 #     # TEST TEST TEST 05-18-2023
 #     # else if user did not click on menu_item engineer and menu_button equals 'Home'
@@ -4779,13 +4930,17 @@ else:
 
 
 
-
-df = create_calendar_special_days(st.session_state['df_cleaned_outliers_with_index'])
+df = create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'], slider = False)
+#df = create_calendar_special_days(st.session_state['df_cleaned_outliers_with_index'])
+df = create_calendar_special_days(df)
 df = create_date_features(df, year_dummies=st.session_state['year_dummies'], month_dummies=st.session_state['month_dummies'], day_dummies=st.session_state['day_dummies'])
 
 
 # update datatypes for engineered features
-columns_to_convert = {'holiday': 'uint8', 'calendar_event': 'uint8', 'pay_day': 'uint8', 'year': 'int32'}
+columns_to_convert = {'holiday': 'uint8', 'calendar_event': 'uint8', 'pay_day': 'uint8', 'year': 'int32', 'is_holiday': 'uint8'}
+# TEST HAVING NO NUMERICAL FEATURES:
+#columns_to_convert = {'holiday': 'uint8', 'calendar_event': 'uint8', 'pay_day': 'uint8', 'year': 'uint8', 'is_holiday': 'uint8'}
+
 for column, data_type in columns_to_convert.items():
     if column in df:
         df[column] = df[column].astype(data_type)
@@ -4827,10 +4982,10 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
        
     # show user which descriptive variables are removed, that just had the purpose to inform user what dummy was from e.g. holiday days such as Martin Luther King Day
     with st.expander('ℹ️ I removed the following descriptive columns automatically from analysis'):
-        
-        local_df = remove_object_columns(local_df)
+        local_df = remove_object_columns(local_df, message_columns_removed=True)
         # show local_df to user in streamlit
         st.write(local_df)
+        
     # Check if 'date' column exists in local_df
     if 'date' in local_df.columns:
         # set the date as the index of the pandas dataframe
@@ -4845,7 +5000,6 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
     ######################
     with st.expander("Train/Test Split", expanded=True):
         my_text_header('Train/Test Split')
-        # create a caption on the page for user to read about rule-of-thumb train/test split 80:20 ratio
         st.caption(f'<h6> <center> ℹ️ A commonly used ratio is 80:20 split between train and test set </center> <h6>', unsafe_allow_html=True)
         # create sliders for user insample test-size (/train-size automatically as well)
         my_insample_forecast_steps, my_insample_forecast_perc = train_test_split_slider(df = st.session_state['df'], 
@@ -4858,9 +5012,8 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
         # format as new variables insample_forecast steps in days/as percentage e.g. the test set to predict for\
         perc_test_set = "{:.2f}%".format((st.session_state['insample_forecast_steps']/length_df)*100)
         perc_train_set = "{:.2f}%".format(((length_df-st.session_state['insample_forecast_steps'])/length_df)*100)
-        #############################################################
+       
         # Create a figure with a scatter plot of the train/test split
-        #############################################################
         # create figure with custom function for train/test split with plotly
         # Set train/test split index
         split_index = min(length_df - st.session_state['insample_forecast_steps'], length_df - 1)
@@ -4926,8 +5079,8 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
             X_unscaled_train = df.iloc[:, 1:].iloc[:-st.session_state['insample_forecast_steps'] , :]
             # with custom function create the normalization plot with numerical features i.e. before/after scaling
             plot_scaling_before_after(X_unscaled_train, X_train, numerical_features)
-            st.success(f'🎉 Good job! **{len(numerical_features)}** numerical features are normalized with **{normalization_choice}**!')
-            st.write(X[numerical_features])
+            st.success(f'🎉 Good job! **{len(numerical_features)}** numerical feature(s) are normalized with **{normalization_choice}**!')
+            st.dataframe(X[numerical_features].assign(date=X.index.date).reset_index(drop=True).set_index('date'), use_container_width=True) # TEST
             # create download button for user, to download the standardized features dataframe with dates as index i.e. first column
             download_csv_button(X[numerical_features], my_file='standardized_features.csv', help_message='Download standardized features to .CSV', set_index=True)
             
@@ -4984,10 +5137,30 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
             # create download button for user, to download the standardized features dataframe with dates as index i.e. first column
             download_csv_button(X[numerical_features], my_file='standardized_features.csv', help_message='Download standardized features to .CSV', set_index=True)
  
+    
+ 
+st.session_state['df'] = remove_object_columns(st.session_state['df'], message_columns_removed=False)
+
 # TEST 05-20-2023 - need X for feature selection screen
 # apply function for normalizing the dataframe if user choice
 # IF user selected a normalization_choice other then "None" the X_train and X_test will be scaled
-X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'], st.session_state['insample_forecast_steps'], st.session_state['normalization_choice'], numerical_features=numerical_features)
+#st.write('session state used for train test split',st.session_state['df']) # TEST
+X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'].set_index('date'), st.session_state['insample_forecast_steps'], st.session_state['normalization_choice'], numerical_features=numerical_features)
+
+# =============================================================================
+# st.write('X_train', X_train)
+# st.write('y_train', y_train)
+# 
+# =============================================================================
+# Update Session States of Dataframes
+st.session_state['X'] = X
+st.session_state['y'] = y
+st.session_state['X_train'] = X_train
+st.session_state['X_test'] = X_test
+st.session_state['y_train'] = y_train
+st.session_state['y_test'] = y_test
+#st.session_state['scaler'] = scaler
+
 
 # =============================================================================
 #    _____ ______ _      ______ _____ _______ 
@@ -5002,11 +5175,34 @@ X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.ses
 if menu_item == 'Select':    
     my_title('Feature Selection 🎨', "#7B52AB", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
     with st.expander('ℹ️ Selection Methods', expanded=True):
-        st.markdown('''Let\'s **review** your **top features** to use in analysis with **three feature selection methods**:  
-                    - Recursive Feature Elimination with Cross-Validation  
-                    - Principal Component Analysis  
-                    - Mutual Information  
-                    ''')
+        #my_text_header('Selection Methods')
+        vertical_spacer(2)
+        col1, col2, col3 = st.columns([3,8,2])
+        with col2:
+            title = 'Select your top features with 3 methods!'
+            # set gradient color of letters of title
+            gradient = '-webkit-linear-gradient(left, #9c27b0, #673ab7, #3f51b5, #2196f3, #03a9f4)'
+            # show in streamlit the title with gradient
+            st.markdown(f'<h1 style="text-align:center; background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient};"> {title} </h1>', unsafe_allow_html=True)
+            vertical_spacer(2)
+            #### TEST CAROUSEL ####
+            header_list = ['🎨', '🧮', '🎏']
+            paragraph_list_front = ["Recursive Feature Elimination", 
+                                    "Principal Component Analysis", 
+                                    "Mutual Information"
+                                    ]
+            
+            paragraph_list_back = ["Selection Method recursively removes features and building a model on the remaining features. <br> It then ranks the features based on their importance and eliminates the least important feature.", 
+                                   "", ""]
+            # define the font family to display the text of paragraph
+            font_family = "Trebuchet MS"
+            # define the paragraph text size
+            font_size_front = '18px'
+            font_size_back = '16px'        
+            # in streamlit create and show the user defined number of carousel cards with header+text
+            create_carousel_cards_v2(3, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back)
+            vertical_spacer(4)
+
         # Display a note to the user about using the training set for feature selection
         st.caption('NOTE: per common practice **only** the training dataset is used for feature selection to prevent **data leakage**.')   
     with st.sidebar:
@@ -5020,7 +5216,7 @@ if menu_item == 'Select':
              # Add a slider to select the number of features to be selected by the RFECV algorithm
              num_features = st.slider('*Select number of top features to include:*', 
                                       min_value=1, 
-                                      max_value=len(X.columns), 
+                                      max_value=len(st.session_state['X'].columns), 
                                       value=5,
                                       help = '**`Recursive Feature Elimination (RFE)`** is an algorithm that iteratively removes the least important features from the feature set until the desired number of features is reached.\
                                               \nIt assigns a rank to each feature based on their importance scores. It is possible to have multiple features with the same ranking because the importance scores of these features are identical or very close to each other.\
@@ -5054,23 +5250,28 @@ if menu_item == 'Select':
              col1, col2, col3 = st.columns([4,4,4])
              with col2:       
                  rfe_btn = st.form_submit_button("Submit", type="secondary")
+                 
     # =============================================================================
     # RFE Feature Selection - PAGE RESULTS
     # =============================================================================
-    try:
-        with st.expander('🎨 RFECV', expanded=True):
-            # run function to perform recursive feature elimination with cross-validation and display results using plot
-            selected_cols_rfe = rfe_cv(X_train, y_train, est_rfe, num_steps_rfe, num_features, timeseriessplit_value_rfe)
-    except:
-        selected_cols_rfe= []
-        st.warning(':red[**ERROR**: Recursive Feature Elimination with Cross-Validation could not execute...please adjust your selection criteria]')
+# =============================================================================
+#     try:
+# =============================================================================
+    with st.expander('🎨 RFECV', expanded=True):
+        # run function to perform recursive feature elimination with cross-validation and display results using plot
+        selected_cols_rfe = rfe_cv(st.session_state['X_train'], st.session_state['y_train'], est_rfe, num_steps_rfe, num_features, timeseriessplit_value_rfe)
+# =============================================================================
+#     except:
+#         selected_cols_rfe= []
+#         st.warning(':red[**ERROR**: Recursive Feature Elimination with Cross-Validation could not execute...please adjust your selection criteria]')
+# =============================================================================
              
     # =============================================================================        
     # PCA Feature Selection
     # =============================================================================
     with st.sidebar:    
         with st.form('pca'):
-            my_subheader('🧮 Principal Component Analysis', my_size=4, my_style='#7B52AB')
+            my_text_paragraph('Principal Component Analysis')
             # Add a slider to select the number of features to be selected by the PCA algorithm
             num_features_pca = st.slider('*Select number of top features to include:*', min_value=1, max_value=len(X.columns), value=5)
             col1, col2, col3 = st.columns([4,4,4])
@@ -5132,7 +5333,7 @@ if menu_item == 'Select':
     try: 
         with st.sidebar:
             with st.form('mifs'):
-                my_subheader('🎏 Mutual Information', my_size=4, my_style='#7B52AB')
+                my_text_paragraph('Mutual Information')
                 # Add slider to select number of top features
                 num_features = st.slider("*Select number of top features to include:*", min_value=1, max_value=len(X.columns), value=5, step=1)
                 col1, col2, col3 = st.columns([4,4,4])
@@ -5188,7 +5389,7 @@ if menu_item == 'Select':
         with st.sidebar:
             with st.form('correlation analysis'):
                 # set subheader of form
-                my_subheader('🍻 Correlation Analysis', my_size=4, my_style='#08306B')
+                my_text_paragraph('Correlation Analysis')
                 # set slider threshold for correlation strength
                 corr_threshold = st.slider("*Select Correlation Threshold*", 
                                            min_value=0.0, 
@@ -5263,7 +5464,7 @@ if menu_item == 'Select':
     # =============================================================================
     with st.sidebar:        
         with st.form('top_features'):
-            my_subheader('Selected Features 🟡🟢🟣 ', my_size=4, my_style='#52B57F')
+            my_text_paragraph('Selected Features')
             # combine list of features selected from feature selection methods and only keep unique features excluding duplicate features
             #total_features = np.unique(selected_cols_rfe + selected_cols_pca + selected_cols_mifs)
             
@@ -5281,7 +5482,7 @@ if menu_item == 'Select':
     X_train = X[:(len(df)-st.session_state['insample_forecast_steps'])]
     X_test = X[(len(df)-st.session_state['insample_forecast_steps']):]
     # set endogenous variable train/test split
-    y_train = y[:(len(df)-st.session_state['my_insample_forecast_steps'])]
+    y_train = y[:(len(df)-st.session_state['insample_forecast_steps'])]
     y_test = y[(len(df)-st.session_state['insample_forecast_steps']):]           
 
     with st.expander('🥇 Top Features Selected', expanded=True):
