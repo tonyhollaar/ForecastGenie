@@ -377,25 +377,132 @@ def create_carousel_cards(num_cards, header_list, paragraph_list, font_family, f
         }
         </style>
         """, unsafe_allow_html=True)
+# =============================================================================
+# # this is the independent cards with purple gradient version
+# def create_carousel_cards_v3(num_cards, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back):
+#     # note removing display: flex; inside the css code for .flashcard -> puts cards below eachother
+#     # create empty list that will keep the html code needed for each card with header+text
+#     card_html = []
+#     # iterate over cards specified by user and join the headers and text of the lists
+#     for i in range(num_cards):
+#         card_html.append(f"""<div class="flashcard">                     
+#                                 <div class='front'>
+#                                     <h1 style='text-align:center;color:white; margin-bottom: 10px;padding: 35px;'>{header_list[i]}</h1>
+#                                     <p style='text-align:center; font-family: {font_family}; font-size: {font_size_front};'>{paragraph_list_front[i]}</p>
+#                                 </div>
+#                                 <div class="back">
+#                                     <p style='text-align:center; font-family: {font_family}; font-size: {font_size_back};'>{paragraph_list_back[i]}</p>
+#                                 </div>
+#                             </div>
+#                             """)
+#     # join all the html code for each card and join it into single html code with carousel wrapper
+#     carousel_html = "<div class='carousel'>" + "".join(card_html) + "</div>"
+#     # Display the carousel in streamlit
+#     st.markdown(carousel_html, unsafe_allow_html=True)
+#     # Create the CSS styling for the carousel
+#     st.markdown(
+#         f"""
+#         <style>
+#         /* Carousel Styling */
+#         .carousel {{
+#           grid-gap: 10px;
+#           overflow-x: auto;
+#           scroll-snap-type: x mandatory;
+#           scroll-behavior: smooth;
+#           -webkit-overflow-scrolling: touch;
+#           width: 100%;
+#           margin: auto;
+#         }}
+#        .flashcard {{
+#           display: inline-block; /* Display cards inline */
+#           width: 400px;
+#           height: 200px;
+#           background-color: white;
+#           border-radius: 10px;
+#           box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+#           perspective: 100px;
+#           margin-bottom: 5px; /* Add space between cards */
+#           padding: 0px;
+#           scroll-snap-align: center;
+#         }}
+#         .front, .back {{
+#           position: absolute;
+#           top: 0;
+#           left: 0;
+#           width: 400px;
+#           height: 200px;
+#           border-radius: 10px;
+#           backface-visibility: hidden;
+#           font-family: {font_family};
+#           text-align: center;
+#         }}
+#         .front {{
+#           background: linear-gradient(to bottom left, #4e3fce, #7a5dc7, #9b7cc2, #bb9bbd, #c2b1c4);
+#           color: white;
+#           transform: rotateY(0deg);
+#         }}
+#         .back {{   
+#           background: linear-gradient(to bottom left, #941c8e, #763a9a, #4e62a3, #2e81ad, #12a9b4);
+#           -webkit-background-clip: text; /* Apply the background gradient to the text */
+#           -webkit-text-fill-color: transparent; /* Make the text transparent */
+#           background-color: #f5f5f5; /* Set the background color to off-white */
+#           color: #333333;
+#         transform: rotateY(180deg);
+#         display: flex;
+#         justify-content: center;
+#         align-items: center;
+#         flex-direction: column;
+#         }}                                
+#         .flashcard:hover .front {{
+#           transform: rotateY(180deg);
+#         }}
+#         .flashcard:hover .back {{
+#           transform: rotateY(0deg);
+#         }}
+#         .front h2, .back h2 {{
+#           color: white;
+#           text-align: center;
+#           margin-top: 10%;
+#           transform: translateY(-10%);
+#           font-family: {font_family};
+#           font-size: {font_size_front}px;
+#         }}
+#         .front h2 {{
+#           padding-top: 10px;
+#           line-height: 1.5;
+#         }}
+#         .back h2 {{
+#           line-height: 2;
+#         }}
+#         .back p {{
+#           margin: 20px; /* Add margin for paragraph text */
+#           }}
+#         /* Carousel Navigation Styling */
+#         .carousel-nav {{
+#           margin: 10px 0px;
+#           text-align: center;
+#         }}
+#         </style>
+#         """, unsafe_allow_html=True)
+# =============================================================================
 
-# TEST v2 with back of card as well with text
+# v2 with front and back of a flashcard as well with text on both sides and white background and gradient letters
 def create_carousel_cards_v2(num_cards, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back):
     # note removing display: flex; inside the css code for .flashcard -> puts cards below eachother
     # create empty list that will keep the html code needed for each card with header+text
     card_html = []
     # iterate over cards specified by user and join the headers and text of the lists
     for i in range(num_cards):
-        card_html.append(f"""
-<div class="flashcard">                     
-    <div class='front'>
-        <h1 style='text-align:center;color:white; margin-bottom: 10px;padding: 25px;'>{header_list[i]}</h1>
-        <p style='text-align:center; font-family: {font_family}; font-size: {font_size_front};'>{paragraph_list_front[i]}</p>
-    </div>
-    <div class="back">
-        <p style='text-align:center; font-family: {font_family}; font-size: {font_size_back};'>{paragraph_list_back[i]}</p>
-    </div>
-</div>
-""")
+        card_html.append(f"""<div class="flashcard">                     
+                                <div class='front'>
+                                    <h1 style='text-align:center;color:white; margin-top: 10px; margin-bottom: -10px;padding: 35px;'>{header_list[i]}</h1>
+                                    <p style='text-align:center; font-family: {font_family}; font-size: {font_size_front};'>{paragraph_list_front[i]}</p>
+                                </div>
+                                <div class="back">
+                                    <p style='text-align:center; font-family: {font_family}; font-size: {font_size_back};'>{paragraph_list_back[i]}</p>
+                                </div>
+                            </div>
+                            """)
     # join all the html code for each card and join it into single html code with carousel wrapper
     carousel_html = "<div class='carousel'>" + "".join(card_html) + "</div>"
     # Display the carousel in streamlit
@@ -407,23 +514,28 @@ def create_carousel_cards_v2(num_cards, header_list, paragraph_list_front, parag
         /* Carousel Styling */
         .carousel {{
           grid-gap: 10px;
+          justify-content: center; /* Center horizontally */
+          align-items: center; /* Center vertically */
           overflow-x: auto;
           scroll-snap-type: x mandatory;
           scroll-behavior: smooth;
           -webkit-overflow-scrolling: touch;
-          width: 100%;
-          margin: auto;
+          width: 400px;
+          margin: 0 0; /* Center horizontally by setting left and right margins to auto */
+          background-color: white; /* Add black background */
+          padding: 0px; /* Add padding for the black background */
+          border-radius: 10px; /* Add border-radius for rounded edges */
+          box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2), 0px -4px 8px rgba(0, 0, 0, 0.1); /* Add box shadow */
         }}
        .flashcard {{
           display: inline-block; /* Display cards inline */
           width: 400px;
           height: 200px;
           background-color: white;
-          border-radius: 10px;
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-          perspective: 1000px;
-          margin-right: 400px; /* Add space between cards */
-          padding: 20px;
+          border-radius: 5px;
+          perspective: 100px;
+          margin-bottom: 0px; /* Add space between cards */
+          padding: 0px;
           scroll-snap-align: center;
         }}
         .front, .back {{
@@ -432,34 +544,43 @@ def create_carousel_cards_v2(num_cards, header_list, paragraph_list_front, parag
           left: 0;
           width: 400px;
           height: 200px;
-          border-radius: 10px;
+          border-radius: 8px;
           backface-visibility: hidden;
           font-family: {font_family};
           text-align: center;
         }}
         .front {{
-          
-          background: linear-gradient(to bottom left, #4e3fce, #7a5dc7, #9b7cc2, #bb9bbd, #dababd);
-          color: white;
+          background: #f5f5f5;
+          color: transparent; /* Make the text transparent */
+          background-clip: text; /* Apply the background gradient to the text */
+          -webkit-background-clip: text; /* For Safari */
+          -webkit-text-fill-color: transparent; /* For Safari */
+          background-image: linear-gradient(to bottom left, #941c8e, #763a9a, #4e62a3, #2e81ad, #12a9b4); /* Set the background gradient */
           transform: rotateY(0deg);
         }}
         .back {{
-        background: white;
-        color: #333333;
-        transform: rotateY(180deg);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-        }}
+            /* ... other styles ... */
+            background: black;
+            color: transparent; /* Make the text transparent */
+            background-clip: text; /* Apply the background gradient to the text */
+            -webkit-background-clip: text; /* For Safari */
+            -webkit-text-fill-color: transparent; /* For Safari */
+            background-image: linear-gradient(to bottom left, #941c8e, #763a9a, #4e62a3, #2e81ad, #12a9b4); /* Set the background gradient */
+            transform: rotateY(180deg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }}                               
         .flashcard:hover .front {{
           transform: rotateY(180deg);
         }}
         .flashcard:hover .back {{
           transform: rotateY(0deg);
+          cursor: pointer; /* Change cursor to pointer on hover */
         }}
         .front h2, .back h2 {{
-          color: white;
+          color: black;
           text-align: center;
           margin-top: 10%;
           transform: translateY(-10%);
@@ -474,7 +595,7 @@ def create_carousel_cards_v2(num_cards, header_list, paragraph_list_front, parag
           line-height: 2;
         }}
         .back p {{
-          margin: 20px; /* Add margin for paragraph text */
+          margin: 24px; /* Add margin for paragraph text */
           }}
         /* Carousel Navigation Styling */
         .carousel-nav {{
@@ -1186,7 +1307,7 @@ def altair_correlation_chart(total_features, importance_scores, pairwise_feature
             grid_charts.append(alt.hconcat(*row_charts))
     grid_chart = alt.vconcat(*grid_charts, spacing=10)
     # create a streamlit container with a title and caption
-    my_subheader("Removing Highly Correlated Features")
+    my_text_paragraph("Removing Highly Correlated Features", my_font_size='26px')
     col1,col2,col3 = st.columns([5.5,4,5])
     with col2:
         st.caption(f'pair-wise features >={corr_threshold*100:.0f}%')
@@ -1259,10 +1380,19 @@ def create_rfe_plot(df_ranking):
     Returns:
         None
     """
+    # calculate number of top features chosen by user in slider
+    num_top_features = (len(df_ranking[df_ranking['Selected'] == 'Yes']))
+    
+    # streamlit title rfe plot
+    my_text_paragraph('Recursive Feature Elimination', my_font_size='26px')
+    # streamlit subtitle rfe plot
+    my_text_paragraph('with Cross-Validation (RFECV)', my_font_size='16px')
+    my_text_paragraph(f'<b> TOP {num_top_features}</b>', my_font_size='16px', my_font_family='Segui UI')
+    
     fig = px.scatter(df_ranking, x='Features', y='Ranking', color='Selected', hover_data=['Ranking'])
     fig.update_layout(
         title={
-            'text': 'Recursive Feature Elimination with Cross-Validation (RFECV)',
+            'text': '',
             'x': 0.5,
             'y': 0.95,
             'xanchor': 'center',
@@ -1763,6 +1893,7 @@ def rfe_cv(X_train, y_train, est_rfe, num_steps_rfe, num_features, timeseriesspl
     # Scatterplot the results
     #############################################################
     # Create the rfe plot
+    vertical_spacer(2)
     fig = create_rfe_plot(df_ranking)
     # Show the plot
     st.plotly_chart(fig, use_container_width=True)                       
@@ -1936,8 +2067,8 @@ def train_test_split_slider(df, default_steps = 1, default_perc = 20):
        tuple: A tuple containing the number of days and percentage for the in-sample forecast.
    """
     # set the number of insample steps (e.g. number of days) equal to the percentage which is 20% default or user changed slider then it uses the session_state
-    default_steps = math.ceil(len(df)*(default_perc/100))
-    default_perc = math.ceil(default_perc)
+    #default_steps = math.ceil(len(df)*(default_perc/100))
+    #default_perc = math.ceil(default_perc)
     with st.sidebar:
         with st.form('train/test split'):
             my_text_paragraph('Train/Test Split')
@@ -1950,17 +2081,21 @@ def train_test_split_slider(df, default_steps = 1, default_perc = 20):
                                       \n- Note that the slider **rounds up** to the nearest whole number or percentage point when switching split type.")
                 if split_type == "Steps":
                     with col2:
+                        if 'days' not in st.session_state:
+                            st.session_state.days = int(max(len(df)*0.2, 1))
+                           
                         insample_forecast_steps = st.slider('*Size of the test-set in steps:*', 
                                                             min_value=1, 
                                                             max_value=len(df)-1, 
-                                                            value=default_steps, 
+                                                          
                                                             step=1, 
                                                             key='days',
                                                             )
-                        insample_forecast_perc = round((insample_forecast_steps / len(df)) * 100, 2)
+                        insample_forecast_perc =  st.session_state.percentage
                 else:
                     with col2:
-                        insample_forecast_perc = st.slider('*Size of the test-set as percentage*', min_value=1, max_value=99, value=default_perc, step=1, key='percentage')
+
+                        insample_forecast_perc = st.slider('*Size of the test-set as percentage*', min_value=1, max_value=99, step=1, key='percentage')
                         insample_forecast_steps = round((insample_forecast_perc / 100) * len(df))
             # show submit button in streamlit centered in sidebar
             col1, col2, col3 = st.columns([4,4,4])
@@ -3823,6 +3958,9 @@ if 'wavelet_window_size' not in st.session_state:
 # define my_insample_forecast_steps usesd for train/test split
 # for evaluation of test-set
 # set preprocessing method: "Normalization" to str: "None
+if 'percentage' not in st.session_state:
+    st.session_state.percentage = 20
+
 if 'normalization_choice' not in st.session_state:
     st.session_state['normalization_choice'] = 'None'
 
@@ -3833,8 +3971,6 @@ if 'insample_forecast_perc' not in st.session_state:
 # save user choice in session state of in sample test-size
 if 'insample_forecast_steps' not in st.session_state:
     st.session_state['insample_forecast_steps'] = 1
-    
-    
     
 #///////////////////////////////////////////////////
 # ?????????????????? TEST ??????????????????????????
@@ -3875,8 +4011,8 @@ with st.sidebar:
         menu_icon="cast", default_index=0, orientation="horizontal",
         styles={
             "container": {
-                "padding": "40",
-                "background": "linear-gradient(45deg, #06D6A0, #82D8FF)",
+                "padding": "5px",
+                "background": "linear-gradient(45deg, #0C8F74, #99D8FF)",
                 "border-radius": "10px",
                 "box-shadow": "0px 0px 0px rgba(0, 0, 0, 0)"
             },
@@ -3907,7 +4043,7 @@ with st.sidebar:
                 "color": "white",
                 "opacity": "0.8",
                 "box-shadow": "0px 0px 2px rgba(0, 0, 0, 0.3)",
-                "border-radius": "5px",
+                "border-radius": "40px",
                 "border": "0px solid #45B8AC"
             }
         })
@@ -4092,16 +4228,16 @@ if sidebar_menu_item == 'FAQ':
             col1, col2, col3 = st.columns([1,30,1])
             with col2:
                 st.write('')
-                my_code = """<div class="flashcard">
-                              <div class="front">
+                my_code = """<div class="flashcard_faq">
+                              <div class="front_faq">
                                 <h2><center>Other Questions?</center></h2>
                               </div>
-                              <div class="back">
+                              <div class="back_faq">
                                 <h2><center>info@forecastgenie.com</center></h2>
                               </div>
                             </div>
                             <style>
-                            .flashcard {
+                            .flashcard_faq {
                               position: relative;
                               width: 400px;
                               height: 150px;
@@ -4111,7 +4247,7 @@ if sidebar_menu_item == 'FAQ':
                               perspective: 1000px;
                             }
                             
-                            .front, .back {
+                            .front_faq, .back_faq {
                               position: absolute;
                               top: 0;
                               left: 0;
@@ -4122,37 +4258,37 @@ if sidebar_menu_item == 'FAQ':
                               font-family: Arial;
                             }
                             
-                            .front {
+                            .front_faq {
                               background: linear-gradient(to bottom, #45B8AC , #3690c0);
                               color: white;
                               transform: rotateY(0deg);
                             }
                             
-                            .back {
+                            .back_faq {
                               background:linear-gradient(to bottom, #45B8AC , #3690c0);
                               color: black;
                               transform: rotateY(180deg);
                             }
                             
-                            .flashcard:hover .front {
+                            .flashcard_faq:hover .front_faq {
                               transform: rotateY(180deg);
                             }
                             
-                            .flashcard:hover .back {
+                            .flashcard_faq:hover .back_faq {
                               transform: rotateY(0deg);
                             }
-                            .front h2, .back h2 {
+                            .front_faq h2, .back_faq h2 {
                                 color: white;
                                 text-align: center;
                                 margin-top: 10%;
                                 transform: translateY(-10%);
                                 font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
                             }
-                            .front h2 {
+                            .front_faq h2 {
                                         font-size: 26px;
                                         line-height: 1.5;
                                         }
-                            .back h2 {
+                            .back_faq h2 {
                                         font-size: 22px;
                                         line-height: 2;
                                         }
@@ -5145,8 +5281,10 @@ st.session_state['df'] = remove_object_columns(st.session_state['df'], message_c
 # apply function for normalizing the dataframe if user choice
 # IF user selected a normalization_choice other then "None" the X_train and X_test will be scaled
 #st.write('session state used for train test split',st.session_state['df']) # TEST
-X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'].set_index('date'), st.session_state['insample_forecast_steps'], st.session_state['normalization_choice'], numerical_features=numerical_features)
-
+if 'date' in st.session_state['df']:
+    X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'].set_index('date'), st.session_state['insample_forecast_steps'], st.session_state['normalization_choice'], numerical_features=numerical_features)
+else:
+    X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'], st.session_state['insample_forecast_steps'], st.session_state['normalization_choice'], numerical_features=numerical_features)
 # =============================================================================
 # st.write('X_train', X_train)
 # st.write('y_train', y_train)
@@ -5161,7 +5299,6 @@ st.session_state['y_train'] = y_train
 st.session_state['y_test'] = y_test
 #st.session_state['scaler'] = scaler
 
-
 # =============================================================================
 #    _____ ______ _      ______ _____ _______ 
 #   / ____|  ____| |    |  ____/ ____|__   __|
@@ -5172,9 +5309,9 @@ st.session_state['y_test'] = y_test
 #                                             
 # =============================================================================
 # Feature Selection
-if menu_item == 'Select':    
+if menu_item == 'Select' and sidebar_menu_item == 'Home':    
     my_title('Feature Selection 🎨', "#7B52AB", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
-    with st.expander('ℹ️ Selection Methods', expanded=True):
+    with st.expander('', expanded=True):
         #my_text_header('Selection Methods')
         vertical_spacer(2)
         col1, col2, col3 = st.columns([3,8,2])
@@ -5187,24 +5324,24 @@ if menu_item == 'Select':
             vertical_spacer(2)
             #### TEST CAROUSEL ####
             header_list = ['🎨', '🧮', '🎏']
-            paragraph_list_front = ["Recursive Feature Elimination", 
-                                    "Principal Component Analysis", 
-                                    "Mutual Information"
+            paragraph_list_front = ["<b> Recursive Feature Elimination </b>", 
+                                    "<b>Principal Component Analysis</b>", 
+                                    "<b>Mutual Information</b>"
                                     ]
-            
-            paragraph_list_back = ["Selection Method recursively removes features and building a model on the remaining features. <br> It then ranks the features based on their importance and eliminates the least important feature.", 
-                                   "", ""]
+            paragraph_list_back = ["<b>RFE</b> is a <b>feature selection technique</b> that repeatedly removes feature(s) and each turn evaluates remaining features by ranking the features based on their importance scores and eliminates the least important feature. This process continues until a desired number of features is reached.", 
+                                   "<b>PCA</b> is a <b>feature selection technique</b> that repeatedly transforms and evaluates features based on their variance, reducing the dataset to a smaller set of uncorrelated variables called principal components. This process continues until a desired number of components is achieved.", 
+                                   "<b>MIFS </b>  short for `Mutual Information Feature Selection` is a <b>feature selection technique</b> that calculates the mutual information between each feature and the target to determine how much information each feature provides about the target."]
             # define the font family to display the text of paragraph
-            font_family = "Trebuchet MS"
+            font_family = "Helvetica"
             # define the paragraph text size
-            font_size_front = '18px'
-            font_size_back = '16px'        
+            font_size_front = '14px'
+            font_size_back = '15px'        
             # in streamlit create and show the user defined number of carousel cards with header+text
             create_carousel_cards_v2(3, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back)
-            vertical_spacer(4)
+            vertical_spacer(2)
 
         # Display a note to the user about using the training set for feature selection
-        st.caption('NOTE: per common practice **only** the training dataset is used for feature selection to prevent **data leakage**.')   
+        my_text_paragraph('NOTE: per common practice <b>only</b> the training dataset is used for feature selection to prevent <b>data leakage</b>.',my_font_size='12px', my_font_family='Arial')   
     with st.sidebar:
         # show Title in sidebar 'Feature Selection' with purple background
         my_title('Feature Selection 🎨', "#7B52AB", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
@@ -5227,7 +5364,7 @@ if menu_item == 'Select':
                  # Add a selectbox for the user to choose the estimator
                  estimator_rfe = st.selectbox('*Set estimator:*', ['Linear Regression', 'Random Forest Regression'], 
                                               index=0, 
-                                              help = 'The `estimator` parameter is used to specify the machine learning model that will be used to evaluate the importance of each feature. \
+                                              help = 'The **`estimator`** parameter is used to specify the machine learning model that will be used to evaluate the importance of each feature. \
                                                       The estimator is essentially the algorithm used to fit the data and make predictions.')
                  # Set up the estimator based on the user's selection
                  if estimator_rfe == 'Linear Regression':
@@ -5239,7 +5376,7 @@ if menu_item == 'Select':
                                                        min_value=2, 
                                                        max_value=5, 
                                                        value=5, 
-                                                       help='`Cross-validation` is a statistical method used to evaluate the performance of a model by splitting the dataset into multiple "folds," where each fold is used as a holdout set for testing the model trained on the remaining folds. \
+                                                       help='**`Cross-validation`** is a statistical method used to evaluate the performance of a model by splitting the dataset into multiple "folds," where each fold is used as a holdout set for testing the model trained on the remaining folds. \
                                                              The cross-validation procedure helps to estimate the performance of the model on unseen data and reduce the risk of overfitting.  \
                                                              In the context of RFE, the cv parameter specifies the number of folds to use for the cross-validation procedure.\
                                                              The RFE algorithm fits the estimator on the training set, evaluates the performance of the estimator on the validation set, and selects the best subset of features. \
@@ -5290,13 +5427,16 @@ if menu_item == 'Select':
             # Sort features by explained variance ratio
             sorted_idx = np.argsort(pca.explained_variance_ratio_)[::-1]
             sorted_features = feature_names[sorted_idx]
+            vertical_spacer(2)
+            my_text_paragraph(f'Principal Component Analysis', my_font_size='26px')
+            my_text_paragraph(f'<b>TOP {len(sorted_features)}</b>', my_font_size='16px', my_font_family='Segui UI')
             
             # Create plot
             fig = go.Figure()
             fig.add_trace(go.Bar(x=pca.explained_variance_ratio_[sorted_idx], y=sorted_features, 
                                  orientation='h', text=np.round(pca.explained_variance_ratio_[sorted_idx] * 100, 2), textposition='auto'))
             fig.update_layout(title={
-                                    'text': f'Top {len(sorted_features)} <br> Principal Component Analysis Feature Selection',
+                                    'text': '',
                                     'x': 0.5,
                                     'y': 0.95,
                                     'xanchor': 'center',
@@ -5309,7 +5449,6 @@ if menu_item == 'Select':
             # show top x features selected
             selected_cols_pca = sorted_features.tolist() 
             st.info(f'Top {len(selected_cols_pca)} features selected with PCA: {selected_cols_pca}')
-            
             show_pca_info_btn = st.button(f'About PCA plot', use_container_width=True, type='secondary')
             if show_pca_info_btn == True:
                 st.write('')
@@ -5344,6 +5483,9 @@ if menu_item == 'Select':
             mutual_info = mutual_info_regression(X_train, y_train, random_state=42)
             selected_features_mi = X.columns[np.argsort(mutual_info)[::-1]][:num_features]
             
+            vertical_spacer(2)
+            my_text_paragraph(' Mutual Information', my_font_size='26px',)
+            my_text_paragraph(f'<b> TOP {num_features} </b>', my_font_size='16px', my_font_family='Segui UI')
             # Create plot
             fig = go.Figure()
             fig.add_trace(go.Bar(x=mutual_info[np.argsort(mutual_info)[::-1]][:num_features],
@@ -5351,7 +5493,7 @@ if menu_item == 'Select':
                                  orientation='h',
                                  text=[f'{val:.2f}' for val in mutual_info[np.argsort(mutual_info)[::-1]][:num_features]],
                                  textposition='inside'))
-            fig.update_layout(title={'text': f'Top {num_features} <br> Mutual Information Feature Selection',
+            fig.update_layout(title={'text': '',
                                     'x': 0.5,
                                     'y': 0.95,
                                     'xanchor': 'center',
@@ -5405,7 +5547,7 @@ if menu_item == 'Select':
         with st.expander('🍻 Correlation Analysis', expanded=True):
             st.write("")
             # Display output
-            my_subheader(f'Pairwise Correlation')
+            my_text_paragraph('Pairwise Correlation', my_font_size='26px')
             col1,col2,col3 = st.columns([5,3,5])
             with col2:
                 st.caption(f'with threshold >={corr_threshold*100:.0f}%')
@@ -5487,7 +5629,8 @@ if menu_item == 'Select':
 
     with st.expander('🥇 Top Features Selected', expanded=True):
         my_subheader('')
-        my_subheader('Your Feature Selection ', my_size=4, my_style='#7B52AB')
+        my_text_paragraph('Your Feature Selection', my_font_size='26px')
+        vertical_spacer(2)
         # create dataframe from list of features and specify column header
         df_total_features = pd.DataFrame(total_features, columns = ['Top Features'])
         st.dataframe(df_total_features, use_container_width=True)
