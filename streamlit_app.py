@@ -37,7 +37,7 @@ import streamlit as st
 #**************************
 from streamlit_option_menu import option_menu
 from streamlit_extras.buy_me_a_coffee import button
-
+from streamlit_extras.dataframe_explorer import dataframe_explorer
 #**************************
 # Import datetime 
 #**************************
@@ -112,7 +112,7 @@ from pandas.tseries.holiday import(
                                     next_monday, nearest_workday, sunday_to_monday,
                                     EasterMonday, GoodFriday, Easter
                                   )
-
+ 
 # =============================================================================
 #   _____        _____ ______    _____ ______ _______ _    _ _____  
 #  |  __ \ /\   / ____|  ____|  / ____|  ____|__   __| |  | |  __ \ 
@@ -322,7 +322,31 @@ def my_forecastgenie_title(my_string, my_background_color="#2CB8A1"):
                 </style>
                 </div>
                 ''', unsafe_allow_html=True)
-                
+def train_models_carousel(my_title= 'Select your models to train in the sidebar!', ):
+    # gradient title
+    vertical_spacer(2)
+    title = my_title
+    # set gradient color of letters of title
+    gradient = '-webkit-linear-gradient(left, #0072B2, #673ab7, #3f51b5, #2196f3, #03a9f4)'
+    # show in streamlit the title with gradient
+    st.markdown(f'<h2 style="text-align:center; background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient};"> {title} </h2>', unsafe_allow_html=True)
+    vertical_spacer(2)
+    # show carousel of models
+    paragraph_list_back = ['The <b> Naive Model </b> uses the value of the previous observation (lag) as the prediction for the next observation. The lag can be defined based on various time intervals, such as daily, weekly, monthly, quarterly, yearly, or even a custom lag. The <b> Naive model </b> can serve as a quick and simple baseline.', 
+                           'The <b> Linear Regression Model </b> is a statistical technique used to analyze the relationship between a dependent variable and one or more independent variables. It assumes a linear relationship, aiming to find the best-fit line that minimizes the differences between observed and predicted values.', 
+                           'SARIMAX, short for <b>Seasonal Autoregressive Integrated Moving Average with Exogenous Variables</b>, is a powerful time series forecasting model that incorporates seasonal patterns and exogenous variables. It combines <i> autoregressive </i> (past values), <i> moving average </i> (averages of certain time spans), and <i> integrated </i> (calculating differences of subsequent values) components.', 
+                           '<b>Prophet</b> utilizes an additive model (sum of individual factors) that decomposes time series data into: <i>trend</i>, <i>seasonality</i>, and <i>holiday components</i>. It incorporates advanced statistical techniques and incorporates automatic detection of changepoints to handle irregularities in the data. It offers flexibility in handling missing data and outliers making it a powerful forecasting model.']
+    # create carousel cards for each model
+    header_list = ['Naive Model', 'Linear Regression', 'SARIMAX', 'Prophet']    
+    paragraph_list_front = ['', '', '', '']
+    # define the font family to display the text of paragraph
+    font_family = "Helvetica"
+    # define the paragraph text size
+    font_size_front = '14px'
+    font_size_back = '15px'        
+    create_carousel_cards_v2(4, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back)
+    vertical_spacer(2)
+                        
 def create_carousel_cards(num_cards, header_list, paragraph_list, font_family, font_size):
     # create empty list that will keep the html code needed for each card with header+text
     card_html = []
@@ -377,114 +401,112 @@ def create_carousel_cards(num_cards, header_list, paragraph_list, font_family, f
         }
         </style>
         """, unsafe_allow_html=True)
-# =============================================================================
-# # this is the independent cards with purple gradient version
-# def create_carousel_cards_v3(num_cards, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back):
-#     # note removing display: flex; inside the css code for .flashcard -> puts cards below eachother
-#     # create empty list that will keep the html code needed for each card with header+text
-#     card_html = []
-#     # iterate over cards specified by user and join the headers and text of the lists
-#     for i in range(num_cards):
-#         card_html.append(f"""<div class="flashcard">                     
-#                                 <div class='front'>
-#                                     <h1 style='text-align:center;color:white; margin-bottom: 10px;padding: 35px;'>{header_list[i]}</h1>
-#                                     <p style='text-align:center; font-family: {font_family}; font-size: {font_size_front};'>{paragraph_list_front[i]}</p>
-#                                 </div>
-#                                 <div class="back">
-#                                     <p style='text-align:center; font-family: {font_family}; font-size: {font_size_back};'>{paragraph_list_back[i]}</p>
-#                                 </div>
-#                             </div>
-#                             """)
-#     # join all the html code for each card and join it into single html code with carousel wrapper
-#     carousel_html = "<div class='carousel'>" + "".join(card_html) + "</div>"
-#     # Display the carousel in streamlit
-#     st.markdown(carousel_html, unsafe_allow_html=True)
-#     # Create the CSS styling for the carousel
-#     st.markdown(
-#         f"""
-#         <style>
-#         /* Carousel Styling */
-#         .carousel {{
-#           grid-gap: 10px;
-#           overflow-x: auto;
-#           scroll-snap-type: x mandatory;
-#           scroll-behavior: smooth;
-#           -webkit-overflow-scrolling: touch;
-#           width: 100%;
-#           margin: auto;
-#         }}
-#        .flashcard {{
-#           display: inline-block; /* Display cards inline */
-#           width: 400px;
-#           height: 200px;
-#           background-color: white;
-#           border-radius: 10px;
-#           box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-#           perspective: 100px;
-#           margin-bottom: 5px; /* Add space between cards */
-#           padding: 0px;
-#           scroll-snap-align: center;
-#         }}
-#         .front, .back {{
-#           position: absolute;
-#           top: 0;
-#           left: 0;
-#           width: 400px;
-#           height: 200px;
-#           border-radius: 10px;
-#           backface-visibility: hidden;
-#           font-family: {font_family};
-#           text-align: center;
-#         }}
-#         .front {{
-#           background: linear-gradient(to bottom left, #4e3fce, #7a5dc7, #9b7cc2, #bb9bbd, #c2b1c4);
-#           color: white;
-#           transform: rotateY(0deg);
-#         }}
-#         .back {{   
-#           background: linear-gradient(to bottom left, #941c8e, #763a9a, #4e62a3, #2e81ad, #12a9b4);
-#           -webkit-background-clip: text; /* Apply the background gradient to the text */
-#           -webkit-text-fill-color: transparent; /* Make the text transparent */
-#           background-color: #f5f5f5; /* Set the background color to off-white */
-#           color: #333333;
-#         transform: rotateY(180deg);
-#         display: flex;
-#         justify-content: center;
-#         align-items: center;
-#         flex-direction: column;
-#         }}                                
-#         .flashcard:hover .front {{
-#           transform: rotateY(180deg);
-#         }}
-#         .flashcard:hover .back {{
-#           transform: rotateY(0deg);
-#         }}
-#         .front h2, .back h2 {{
-#           color: white;
-#           text-align: center;
-#           margin-top: 10%;
-#           transform: translateY(-10%);
-#           font-family: {font_family};
-#           font-size: {font_size_front}px;
-#         }}
-#         .front h2 {{
-#           padding-top: 10px;
-#           line-height: 1.5;
-#         }}
-#         .back h2 {{
-#           line-height: 2;
-#         }}
-#         .back p {{
-#           margin: 20px; /* Add margin for paragraph text */
-#           }}
-#         /* Carousel Navigation Styling */
-#         .carousel-nav {{
-#           margin: 10px 0px;
-#           text-align: center;
-#         }}
-#         </style>
-#         """, unsafe_allow_html=True)
-# =============================================================================
+# this is the independent cards with purple gradient version
+def create_carousel_cards_v3(num_cards, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back):
+    # note removing display: flex; inside the css code for .flashcard -> puts cards below eachother
+    # create empty list that will keep the html code needed for each card with header+text
+    card_html = []
+    # iterate over cards specified by user and join the headers and text of the lists
+    for i in range(num_cards):
+        card_html.append(f"""<div class="flashcard">                     
+                                <div class='front'>
+                                    <h1 style='text-align:center;color:white; margin-bottom: 10px;padding: 35px;'>{header_list[i]}</h1>
+                                    <p style='text-align:center; font-family: {font_family}; font-size: {font_size_front};'>{paragraph_list_front[i]}</p>
+                                </div>
+                                <div class="back">
+                                    <p style='text-align:center; font-family: {font_family}; font-size: {font_size_back};'>{paragraph_list_back[i]}</p>
+                                </div>
+                            </div>
+                            """)
+    # join all the html code for each card and join it into single html code with carousel wrapper
+    carousel_html = "<div class='carousel'>" + "".join(card_html) + "</div>"
+    # Display the carousel in streamlit
+    st.markdown(carousel_html, unsafe_allow_html=True)
+    # Create the CSS styling for the carousel
+    st.markdown(
+        f"""
+        <style>
+        /* Carousel Styling */
+        .carousel {{
+          grid-gap: 10px;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          scroll-behavior: smooth;
+          -webkit-overflow-scrolling: touch;
+          width: 100%;
+          margin: auto;
+        }}
+       .flashcard {{
+          display: inline-block; /* Display cards inline */
+          width: 400px;
+          height: 200px;
+          background-color: white;
+          border-radius: 10px;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+          perspective: 100px;
+          margin-bottom: 5px; /* Add space between cards */
+          padding: 0px;
+          scroll-snap-align: center;
+        }}
+        .front, .back {{
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 400px;
+          height: 200px;
+          border-radius: 10px;
+          backface-visibility: hidden;
+          font-family: {font_family};
+          text-align: center;
+        }}
+        .front {{
+          background: linear-gradient(to bottom left, #4e3fce, #7a5dc7, #9b7cc2, #bb9bbd, #c2b1c4);
+          color: white;
+          transform: rotateY(0deg);
+        }}
+        .back {{   
+          background: linear-gradient(to bottom left, #941c8e, #763a9a, #4e62a3, #2e81ad, #12a9b4);
+          -webkit-background-clip: text; /* Apply the background gradient to the text */
+          -webkit-text-fill-color: transparent; /* Make the text transparent */
+          background-color: #f5f5f5; /* Set the background color to off-white */
+          color: #333333;
+        transform: rotateY(180deg);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        }}                                
+        .flashcard:hover .front {{
+          transform: rotateY(180deg);
+        }}
+        .flashcard:hover .back {{
+          transform: rotateY(0deg);
+        }}
+        .front h2, .back h2 {{
+          color: white;
+          text-align: center;
+          margin-top: 10%;
+          transform: translateY(-10%);
+          font-family: {font_family};
+          font-size: {font_size_front}px;
+        }}
+        .front h2 {{
+          padding-top: 10px;
+          line-height: 1.5;
+        }}
+        .back h2 {{
+          line-height: 2;
+        }}
+        .back p {{
+          margin: 20px; /* Add margin for paragraph text */
+          }}
+        /* Carousel Navigation Styling */
+        .carousel-nav {{
+          margin: 10px 0px;
+          text-align: center;
+        }}
+        </style>
+        """, unsafe_allow_html=True)
 
 # v2 with front and back of a flashcard as well with text on both sides and white background and gradient letters
 def create_carousel_cards_v2(num_cards, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back):
@@ -499,7 +521,7 @@ def create_carousel_cards_v2(num_cards, header_list, paragraph_list_front, parag
                                     <p style='text-align:center; font-family: {font_family}; font-size: {font_size_front};'>{paragraph_list_front[i]}</p>
                                 </div>
                                 <div class="back">
-                                    <p style='text-align:center; font-family: {font_family}; font-size: {font_size_back};'>{paragraph_list_back[i]}</p>
+                                    <p style='text-align:justify;  word-spacing: 1px; font-family: {font_family}; font-size: {font_size_back};'>{paragraph_list_back[i]}</p>
                                 </div>
                             </div>
                             """)
@@ -577,7 +599,7 @@ def create_carousel_cards_v2(num_cards, header_list, paragraph_list_front, parag
         }}
         .flashcard:hover .back {{
           transform: rotateY(0deg);
-          cursor: pointer; /* Change cursor to pointer on hover */
+          cursor: default; /* Change cursor to pointer on hover */
         }}
         .front h2, .back h2 {{
           color: black;
@@ -1978,7 +2000,7 @@ def perform_train_test_split(df, my_insample_forecast_steps, scaler_choice=None,
                                 "MaxAbsScaler": MaxAbsScaler(),
                                 "PowerTransformer": PowerTransformer(),
                                 "QuantileTransformer": QuantileTransformer(n_quantiles=100, output_distribution="normal")
-                            }
+                             }
                         
             if scaler_choice not in scaler_choices:
                            raise ValueError("Invalid scaler choice. Please choose from: MinMaxScaler, RobustScaler, MaxAbsScaler, "
@@ -3853,13 +3875,6 @@ metrics_dict = {}
 # define calendar
 cal = calendar()
 
-# svg image of heart used for text on about page
-balloon_heart_svg = """
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-balloon-heart" viewBox="0 0 16 16">
-                      <path fill-rule="evenodd" d="m8 2.42-.717-.737c-1.13-1.161-3.243-.777-4.01.72-.35.685-.451 1.707.236 3.062C4.16 6.753 5.52 8.32 8 10.042c2.479-1.723 3.839-3.29 4.491-4.577.687-1.355.587-2.377.236-3.061-.767-1.498-2.88-1.882-4.01-.721L8 2.42Zm-.49 8.5c-10.78-7.44-3-13.155.359-10.063.045.041.089.084.132.129.043-.045.087-.088.132-.129 3.36-3.092 11.137 2.624.357 10.063l.235.468a.25.25 0 1 1-.448.224l-.008-.017c.008.11.02.202.037.29.054.27.161.488.419 1.003.288.578.235 1.15.076 1.629-.157.469-.422.867-.588 1.115l-.004.007a.25.25 0 1 1-.416-.278c.168-.252.4-.6.533-1.003.133-.396.163-.824-.049-1.246l-.013-.028c-.24-.48-.38-.758-.448-1.102a3.177 3.177 0 0 1-.052-.45l-.04.08a.25.25 0 1 1-.447-.224l.235-.468ZM6.013 2.06c-.649-.18-1.483.083-1.85.798-.131.258-.245.689-.08 1.335.063.244.414.198.487-.043.21-.697.627-1.447 1.359-1.692.217-.073.304-.337.084-.398Z"/>
-                    </svg>
-                    """
-
 # Initialize results_df in global scope that has model test evaluation results 
 results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
 
@@ -3971,6 +3986,10 @@ if 'insample_forecast_perc' not in st.session_state:
 # save user choice in session state of in sample test-size
 if 'insample_forecast_steps' not in st.session_state:
     st.session_state['insample_forecast_steps'] = 1
+   
+# TRAIN MENU TEST
+if 'train_models_btn' not in st.session_state:
+    st.session_state['train_models_btn'] = False
     
 #///////////////////////////////////////////////////
 # ?????????????????? TEST ??????????????????????????
@@ -3980,6 +3999,90 @@ st.write(st.session_state)
 
 # Logging
 print('ForecastGenie Print: Loaded Global Variables')
+
+# =============================================================================
+#   _____ _____ ____  _   _  _____ 
+#  |_   _/ ____/ __ \| \ | |/ ____|
+#    | || |   | |  | |  \| | (___  
+#    | || |   | |  | | . ` |\___ \ 
+#   _| || |___| |__| | |\  |____) |
+#  |_____\_____\____/|_| \_|_____/ 
+#                                  
+# =============================================================================
+# svg image of heart used for text on about page
+balloon_heart_svg = """
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-balloon-heart" viewBox="0 0 16 16">
+                      <path fill-rule="evenodd" d="m8 2.42-.717-.737c-1.13-1.161-3.243-.777-4.01.72-.35.685-.451 1.707.236 3.062C4.16 6.753 5.52 8.32 8 10.042c2.479-1.723 3.839-3.29 4.491-4.577.687-1.355.587-2.377.236-3.061-.767-1.498-2.88-1.882-4.01-.721L8 2.42Zm-.49 8.5c-10.78-7.44-3-13.155.359-10.063.045.041.089.084.132.129.043-.045.087-.088.132-.129 3.36-3.092 11.137 2.624.357 10.063l.235.468a.25.25 0 1 1-.448.224l-.008-.017c.008.11.02.202.037.29.054.27.161.488.419 1.003.288.578.235 1.15.076 1.629-.157.469-.422.867-.588 1.115l-.004.007a.25.25 0 1 1-.416-.278c.168-.252.4-.6.533-1.003.133-.396.163-.824-.049-1.246l-.013-.028c-.24-.48-.38-.758-.448-1.102a3.177 3.177 0 0 1-.052-.45l-.04.08a.25.25 0 1 1-.447-.224l.235-.468ZM6.013 2.06c-.649-.18-1.483.083-1.85.798-.131.258-.245.689-.08 1.335.063.244.414.198.487-.043.21-.697.627-1.447 1.359-1.692.217-.073.304-.337.084-.398Z"/>
+                    </svg>
+                    """
+                    
+load_icon ="""
+ <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#45B8AC" class="bi bi-cloud-arrow-up" viewBox="0 0 16 16">
+   <path fill-rule="evenodd" d="M7.646 5.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 6.707V10.5a.5.5 0 0 1-1 0V6.707L6.354 7.854a.5.5 0 1 1-.708-.708l2-2z"/>
+   <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383zm.653.757c-.757.653-1.153 1.44-1.153 2.056v.448l-.445.049C2.064 6.805 1 7.952 1 9.318 1 10.785 2.23 12 3.781 12h8.906C13.98 12 15 10.988 15 9.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 4.825 10.328 3 8 3a4.53 4.53 0 0 0-2.941 1.1z"/>
+ </svg>
+"""
+
+explore_icon = """
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#217CD0" class="bi bi-search" viewBox="0 0 16 16">
+  <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+</svg>
+"""
+
+clean_icon = """
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#440154" class="bi bi-bezier2" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M1 2.5A1.5 1.5 0 0 1 2.5 1h1A1.5 1.5 0 0 1 5 2.5h4.134a1 1 0 1 1 0 1h-2.01c.18.18.34.381.484.605.638.992.892 2.354.892 3.895 0 1.993.257 3.092.713 3.7.356.476.895.721 1.787.784A1.5 1.5 0 0 1 12.5 11h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 1-1.5-1.5H6.866a1 1 0 1 1 0-1h1.711a2.839 2.839 0 0 1-.165-.2C7.743 11.407 7.5 10.007 7.5 8c0-1.46-.246-2.597-.733-3.355-.39-.605-.952-1-1.767-1.112A1.5 1.5 0 0 1 3.5 5h-1A1.5 1.5 0 0 1 1 3.5v-1zM2.5 2a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1zm10 10a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1z"/>
+</svg>
+"""
+
+engineer_icon = """
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#FF6F61" class="bi bi-gear" viewBox="0 0 16 16">
+  <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
+  <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
+</svg>
+"""
+
+prepare_icon = """
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#FF9F00" class="bi bi-shuffle" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M0 3.5A.5.5 0 0 1 .5 3H1c2.202 0 3.827 1.24 4.874 2.418.49.552.865 1.102 1.126 1.532.26-.43.636-.98 1.126-1.532C9.173 4.24 10.798 3 13 3v1c-1.798 0-3.173 1.01-4.126 2.082A9.624 9.624 0 0 0 7.556 8a9.624 9.624 0 0 0 1.317 1.918C9.828 10.99 11.204 12 13 12v1c-2.202 0-3.827-1.24-4.874-2.418A10.595 10.595 0 0 1 7 9.05c-.26.43-.636.98-1.126 1.532C4.827 11.76 3.202 13 1 13H.5a.5.5 0 0 1 0-1H1c1.798 0 3.173-1.01 4.126-2.082A9.624 9.624 0 0 0 6.444 8a9.624 9.624 0 0 0-1.317-1.918C4.172 5.01 2.796 4 1 4H.5a.5.5 0 0 1-.5-.5z"/>
+  <path d="M13 5.466V1.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384l-2.36 1.966a.25.25 0 0 1-.41-.192zm0 9v-3.932a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384l-2.36 1.966a.25.25 0 0 1-.41-.192z"/>
+</svg>
+"""
+
+select_icon = """
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#7B52AB" class="bi bi-sort-down" viewBox="0 0 16 16">
+  <path d="M3.5 2.5a.5.5 0 0 0-1 0v8.793l-1.146-1.147a.5.5 0 0 0-.708.708l2 1.999.007.007a.497.497 0 0 0 .7-.006l2-2a.5.5 0 0 0-.707-.708L3.5 11.293V2.5zm3.5 1a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zM7.5 6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5zm0 3a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3zm0 3a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1h-1z"/>
+</svg>
+"""
+
+train_icon = """
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#0072B2" class="bi bi-cpu" viewBox="0 0 16 16">
+  <path d="M5 0a.5.5 0 0 1 .5.5V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2A2.5 2.5 0 0 1 14 4.5h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14a2.5 2.5 0 0 1-2.5 2.5v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14A2.5 2.5 0 0 1 2 11.5H.5a.5.5 0 0 1 0-1H2v-1H.5a.5.5 0 0 1 0-1H2v-1H.5a.5.5 0 0 1 0-1H2v-1H.5a.5.5 0 0 1 0-1H2A2.5 2.5 0 0 1 4.5 2V.5A.5.5 0 0 1 5 0zm-.5 3A1.5 1.5 0 0 0 3 4.5v7A1.5 1.5 0 0 0 4.5 13h7a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 11.5 3h-7zM5 6.5A1.5 1.5 0 0 1 6.5 5h3A1.5 1.5 0 0 1 11 6.5v3A1.5 1.5 0 0 1 9.5 11h-3A1.5 1.5 0 0 1 5 9.5v-3zM6.5 6a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"/>
+</svg>
+"""
+
+evaluate_icon = """
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#2CB8A1" class="bi bi-clipboard-check" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
+  <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+  <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+</svg>
+"""
+
+tune_icon = """
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#88466D" class="bi bi-sliders" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M11.5 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM9.05 3a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0V3h9.05zM4.5 7a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM2.05 8a2.5 2.5 0 0 1 4.9 0H16v1H6.95a2.5 2.5 0 0 1-4.9 0H0V8h2.05zm9.45 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm-2.45 1a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0v-1h9.05z"/>
+</svg>
+"""
+
+forecast_icon = """
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-graph-up-arrow" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0Zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5Z"/>
+</svg>
+"""
+
+print('ForecastGenie Print: Loaded SVG ICONS')
+# =============================================================================
 
 # =============================================================================
 #   _______ _____ _______ _      ______ 
@@ -4012,22 +4115,22 @@ with st.sidebar:
         styles={
             "container": {
                 "padding": "5px",
-                "background": "linear-gradient(45deg, #0C8F74, #99D8FF)",
-                "border-radius": "10px",
-                "box-shadow": "0px 0px 0px rgba(0, 0, 0, 0)"
+                "background": "white", #"linear-gradient(45deg, #0C8F74, #99D8FF)",
+                "border-radius": "0px",
+                "box-shadow": "0px 0px 2px rgba(0, 0, 0, 0.2)"
             },
             "icon": {
-                "color": "white",
+                "color": "#45B8AC",
                 "font-size": "25px",
-                "margin-right": "5px"
+                "margin-right": "10px"
             }, 
             "nav-link": {
                             "font-family": "Helvetica Neue, sans-serif",
-                            "font-size": "16px",
+                            "font-size": "14px",
                             "font-weight": "normal",
                             "letter-spacing": "0.5px",
-                            "color": "white",
-                            "text-align": "left",
+                            "color": "#333333",
+                            "text-align": "center",
                             "margin": "0px",
                             "padding": "10px",
                             "background-color": "transparent",
@@ -4043,7 +4146,7 @@ with st.sidebar:
                 "color": "white",
                 "opacity": "0.8",
                 "box-shadow": "0px 0px 2px rgba(0, 0, 0, 0.3)",
-                "border-radius": "40px",
+                "border-radius": "5px",
                 "border": "0px solid #45B8AC"
             }
         })
@@ -4056,10 +4159,10 @@ with st.sidebar:
 #  |_|  |_/_/    \_\_____|_| \_| |_|  |_|______|_| \_|\____/ 
 #                                                            
 # =============================================================================
-# CREATE MENU BAR FOR MAIN APP WITH BUTTONS OF DATA PIPELINE
+# CREATE MAIN MENU BAR FOR APP WITH BUTTONS OF DATA PIPELINE
 # Horizontal menu with default on first tab e.g. default_index=0
 menu_item = option_menu(None, ["Load", "Explore", "Clean", "Engineer", "Prepare", "Select", "Train", "Evaluate", "Tune", "Forecast"], 
-            icons=['cloud-arrow-up', 'search', 'list-task', 'gear', 'shuffle', 'palette', "cpu", 'clipboard-check', 'sliders', 'graph-up-arrow'], 
+            icons=['cloud-arrow-up', 'search', 'bi-bezier2', 'gear', 'shuffle', 'bi-sort-down', "cpu", 'clipboard-check', 'sliders', 'graph-up-arrow'], 
             menu_icon="cast", default_index=0, orientation="horizontal", 
             styles={
                 "container": {
@@ -4081,7 +4184,12 @@ menu_item = option_menu(None, ["Load", "Explore", "Clean", "Engineer", "Prepare"
                     "background-color": "rgba(255, 255, 255, 0.3)",
                     "transition": "background-color 0.5s ease-out",
                 },
-                "nav-link-selected": {"background-color": "#F0F0F0", "color": "black","opacity": "1", "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.3)", "border": "2px solid white", "border-radius": "5px"}
+                "nav-link-selected": {"background-color": "#F0F0F0", 
+                                      "color": "black",
+                                      "opacity": "1", 
+                                      "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.3)", 
+                                      "border": "1px solid white", 
+                                      "border-radius": "5px"}
             })
 
 # =============================================================================
@@ -4313,8 +4421,9 @@ print('ForecastGenie Print: Loaded FAQ Page')
 #  |______\____/_/    \_\_____/ 
 #                               
 # =============================================================================   
+
 with st.sidebar:
-    my_title("Load Dataset 🚀 ", "#45B8AC") # 2CB8A1
+    my_title(f"{load_icon}", "#45B8AC")
     with st.expander('', expanded=True):
         # let user choose if they want to have app run with demo data or upload their own dataset
         col1, col2, col3 = st.columns(3)
@@ -4326,7 +4435,7 @@ with st.sidebar:
         if st.session_state.my_data_choice == "Upload Data":
             uploaded_file = st.file_uploader("Upload your file", type=["csv", "xls", "xlsx", "xlsm", "xlsb"], accept_multiple_files=False, label_visibility='collapsed')
 if menu_item == 'Load' and sidebar_menu_item=='Home':
-    my_title("Load Dataset 🚀", "#45B8AC")
+    my_title(f"{load_icon} Load Dataset ", "#45B8AC")
     if st.session_state.my_data_choice == "Demo Data":
         st.session_state.df_raw = generate_demo_data()
         df_raw = generate_demo_data()
@@ -4350,7 +4459,9 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             # Display Plotly Express figure in Streamlit
             display_dataframe_graph(df=df_graph, key=1)
             # show dataframe below graph        
-            st.dataframe(df_graph, use_container_width=True)
+            df_explore = dataframe_explorer(df_raw)
+            st.dataframe(df_explore, use_container_width=True)
+            
             # download csv button
             download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
             st.write('')  
@@ -4434,7 +4545,8 @@ if menu_item == 'Explore' and sidebar_menu_item=='Home':
     # EDA SIDEBAR
     ####################################################
     with st.sidebar:
-        my_title('Exploratory Data Analysis 🕵️‍♂️', my_background_color="#217CD0", gradient_colors="#217CD0,#555555")
+        my_title(f'{explore_icon}', my_background_color="#217CD0", gradient_colors="#217CD0,#555555")
+        #my_title(f"{load_icon}", "#45B8AC")
         ############### SIDEBAR METRICS ######################
         with st.expander(' ', expanded=True):
             # show in streamlit in sidebar Quick Summary tiles with e.g. rows/columns/start date/end date/mean/median
@@ -4481,7 +4593,7 @@ if menu_item == 'Explore' and sidebar_menu_item=='Home':
     # Explore MAIN PAGE (EDA)
     ####################################################
     # Set Subject Title
-    my_title('Exploratory Data Analysis 🕵️‍♂️', my_background_color="#217CD0", gradient_colors="#217CD0,#555555")
+    my_title(f'{explore_icon} Exploratory Data Analysis ', my_background_color="#217CD0", gradient_colors="#217CD0,#555555")
     # create expandable card with data exploration information
     with st.expander('', expanded=True):
         #############################################################################
@@ -4544,14 +4656,14 @@ if menu_item == 'Explore' and sidebar_menu_item=='Home':
         
         # AUTOCORRELATION DOODLE #
         # canva drawing autocorrelation
-        col1, col2, col3 = st.columns([4,10,4])
+        vertical_spacer(2)
+        st.markdown('---')
+        col1, col2, col3 = st.columns([1,3,1])
         with col2:
-            st.write('')
-            st.write('')
             # Load the canva demo_data image from subfolder images
             image = Image.open("./images/autocorrelation.png")
             # Display the image in Streamlit
-            st.image(image, caption="", use_column_width=True)
+            st.image(image, caption="", use_column_width='auto')
             my_text_paragraph('Doodle: Autocorrelation', my_font_size='12px')
 
 # logging
@@ -4568,9 +4680,9 @@ print('ForecastGenie Print: Ran Explore')
 # =============================================================================
 # Data Cleaning
 if menu_item == 'Clean' and sidebar_menu_item=='Home':    
-    my_title("Data Cleaning 🧹", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
+    my_title(f"{clean_icon} Data Cleaning", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
     with st.sidebar:
-        my_title("Data Cleaning 🧹", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
+        my_title(f"{clean_icon}", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
         # with your form have a button to click and values are updated in streamlit
         with st.form('data_cleaning'):
             my_text_paragraph('Handling Missing Data')      
@@ -4754,6 +4866,15 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
                           marker=dict(color='#440154'),  opacity = 0.5))
             st.plotly_chart(fig_no_outliers, use_container_width=True)
             my_text_paragraph(f'No <b> outlier detection </b> or <b> outlier replacement </b> method selected.', my_font_size='14px')
+            
+            # image outliers
+            st.markdown('---')
+            vertical_spacer(2)
+            col1, col2, col3 = st.columns([1,3,1])
+            with col2:
+                image_path = './images/outliers.png'
+                caption = 'Doodle: A Slippery Slope'
+                st.image(image_path, caption=caption)
 else:
     ##########################################################
     # ELSE user did not set the variables in 'clean' menu
@@ -4797,9 +4918,9 @@ st.session_state['df_cleaned_outliers_with_index'] = df_cleaned_outliers_with_in
 # =============================================================================
 # FEATURE ENGINEERING
 if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
-    my_title("Feature Engineering 🧰", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
+    my_title(f"{engineer_icon} Feature Engineering", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
     with st.sidebar:
-        my_title("Feature Engineering 🧰", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
+        my_title(f"{engineer_icon}", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
     with st.sidebar.form('feature engineering sidebar'):
         st.write('')
         # show checkbox in middle of sidebar to select all features or none
@@ -5071,7 +5192,6 @@ df = create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_in
 df = create_calendar_special_days(df)
 df = create_date_features(df, year_dummies=st.session_state['year_dummies'], month_dummies=st.session_state['month_dummies'], day_dummies=st.session_state['day_dummies'])
 
-
 # update datatypes for engineered features
 columns_to_convert = {'holiday': 'uint8', 'calendar_event': 'uint8', 'pay_day': 'uint8', 'year': 'int32', 'is_holiday': 'uint8'}
 # TEST HAVING NO NUMERICAL FEATURES:
@@ -5112,9 +5232,9 @@ local_df = st.session_state['df'].copy(deep=True)
 length_df = len(st.session_state['df'])
 
 if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
-    my_title('Prepare Data 🧪', "#FF9F00", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
+    my_title(f'{prepare_icon} Prepare Data', "#FF9F00", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
     with st.sidebar:
-        my_title('Prepare Data 🧪', "#FF9F00", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
+        my_title(f'{prepare_icon}', "#FF9F00", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
        
     # show user which descriptive variables are removed, that just had the purpose to inform user what dummy was from e.g. holiday days such as Martin Luther King Day
     with st.expander('ℹ️ I removed the following descriptive columns automatically from analysis'):
@@ -5269,11 +5389,9 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
             # with custom function create the normalization plot with numerical features i.e. before/after scaling
             plot_scaling_before_after(X_unscaled_train, X_train, numerical_features)
             st.info(f'numerical features standardized: {len(numerical_features)}')
-            st.write(X[numerical_features])
+            st.dataframe(X[numerical_features], use_container_width=True)
             # create download button for user, to download the standardized features dataframe with dates as index i.e. first column
             download_csv_button(X[numerical_features], my_file='standardized_features.csv', help_message='Download standardized features to .CSV', set_index=True)
- 
-    
  
 st.session_state['df'] = remove_object_columns(st.session_state['df'], message_columns_removed=False)
 
@@ -5310,7 +5428,7 @@ st.session_state['y_test'] = y_test
 # =============================================================================
 # Feature Selection
 if menu_item == 'Select' and sidebar_menu_item == 'Home':    
-    my_title('Feature Selection 🎨', "#7B52AB", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
+    my_title(f'{select_icon} Feature Selection', "#7B52AB", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
     with st.expander('', expanded=True):
         #my_text_header('Selection Methods')
         vertical_spacer(2)
@@ -5330,7 +5448,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                                     ]
             paragraph_list_back = ["<b>RFE</b> is a <b>feature selection technique</b> that repeatedly removes feature(s) and each turn evaluates remaining features by ranking the features based on their importance scores and eliminates the least important feature. This process continues until a desired number of features is reached.", 
                                    "<b>PCA</b> is a <b>feature selection technique</b> that repeatedly transforms and evaluates features based on their variance, reducing the dataset to a smaller set of uncorrelated variables called principal components. This process continues until a desired number of components is achieved.", 
-                                   "<b>MIFS </b>  short for `Mutual Information Feature Selection` is a <b>feature selection technique</b> that calculates the mutual information between each feature and the target to determine how much information each feature provides about the target."]
+                                   "<b>MIFS</b> aka <nobr>`Mutual Information Feature Selection`</nobr> is a <b>feature selection technique</b> that calculates the mutual information between each feature and the target to determine how much information each feature provides about the target."]
             # define the font family to display the text of paragraph
             font_family = "Helvetica"
             # define the paragraph text size
@@ -5344,7 +5462,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         my_text_paragraph('NOTE: per common practice <b>only</b> the training dataset is used for feature selection to prevent <b>data leakage</b>.',my_font_size='12px', my_font_family='Arial')   
     with st.sidebar:
         # show Title in sidebar 'Feature Selection' with purple background
-        my_title('Feature Selection 🎨', "#7B52AB", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
+        my_title(f'{select_icon}', "#7B52AB", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
         # =============================================================================
         # RFE Feature Selection - SIDEBAR FORM
         # =============================================================================
@@ -5654,7 +5772,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
     # Create a User Form to Select Model(s) to train
     ################################################
     with st.sidebar:
-        my_title("7. Train Models 🔢", "#0072B2")
+        my_title(f"{train_icon}", "#0072B2")
     with st.sidebar.form('model_train_form'):
         # generic graph settings
         my_conf_interval = st.slider("*Set Confidence Interval (%)*", 
@@ -5736,14 +5854,26 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
         col1, col2, col3 = st.columns([4,4,4])
         with col2: 
             train_models_btn = st.form_submit_button("Submit", type="secondary")
-    my_title("7. Train Models 🔢", "#0072B2")
+            # update session_state 
+            st.session_state['train_models_btn'] = train_models_btn
+    my_title(f"{train_icon} Train Models", "#0072B2", gradient_colors="#1A2980, #0072B2, #FEBD2E")
     # if nothing is selected by user display message to user to select models to train
     if not train_models_btn and not selected_models:
-        st.info("👈 Select your models to train in the sidebar!🏋️‍♂️") 
+        with st.expander('', expanded=True):
+            #st.info("👈 Select your models to train in the sidebar!🏋️‍♂️") 
+            col1, col2, col3 = st.columns([1,3,1])
+            with col2:
+
+                    
+
+                 
+                    
+                    # define the font family to display the text of paragraph
+                    train_models_carousel(my_title= 'Select your models to train in the sidebar!')
     # the code block to train the selected models will only be executed if both the button has been clicked and the list of selected models is not empty.
     elif not selected_models:
-        st.warning("👈 Please select at least 1 model to train from the sidebar, when pressing the **\"Submit\"** button!🏋️‍♂️")
-            
+        # show carousel of models
+        train_models_carousel(my_title= 'Please select at least 1 model to train from the sidebar!')
 # =============================================================================
 #   ________      __     _     _    _      _______ ______ 
 #  |  ____\ \    / /\   | |   | |  | |  /\|__   __|  ____|
@@ -5759,9 +5889,9 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
     # for results dataframe when evaluating models which variables were included.
     features_str = get_feature_list(X)
     with st.sidebar:
-        my_title("Evaluate Model Performance 🎯", "#2CB8A1")
+        my_title(f"{evaluate_icon}", "#2CB8A1")
         # if nothing is selected by user display message to user to select models to train
-        if not train_models_btn and selected_models:
+        if not st.session_state['train_models_btn'] and selected_models:
             st.info("ℹ️ Train your models first, before results show here!")
     if not train_models_btn and selected_models:
         st.info("ℹ️ Train your models first from the sidebar menu by pressing the **'Submit'** button, before results show here!")
@@ -5893,7 +6023,7 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
             st.write(test_df)
     
     # show on streamlit page the scoring results
-    my_title("8. Evaluate Model Performance 🎯", "#2CB8A1")
+    my_title(f"{evaluate_icon} Evaluate Model Performance", "#2CB8A1")
     # if the results dataframe is created already then you can continue code
     if 'results_df' in globals():
         with st.expander('ℹ️ Test Results', expanded=True):
@@ -5922,7 +6052,7 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
 # =============================================================================
 # 9. Hyper-parameter tuning
 if menu_item == 'Tune' and sidebar_menu_item == 'Home':
-    my_title('9. Hyper-parameter Tuning⚙️', "#88466D")
+    my_title(f'{tune_icon} Hyperparameter Tuning', "#88466D", gradient_colors="#1A2980, #88466D, #FEBD2E")
     # set variables needed
     ######################
     # set initial start time before hyper-parameter tuning is kicked-off
@@ -5935,7 +6065,7 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
     # sidebar hyperparameter tuning
     ################################
     with st.sidebar:
-         my_title('9. Hyper-parameter Tuning⚙️', "#88466D")                    
+         my_title(f'{tune_icon}', "#88466D")                    
          with st.form("hyper_parameter_tuning"):
              # create a multiselect checkbox with all model names selected by default
              # create a list of the selected models by the user in the training section of the streamlit app
