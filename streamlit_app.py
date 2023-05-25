@@ -12,7 +12,7 @@ _____ _____ _____ _____ _____ _____ _____ _____ _____ _____
 Streamlit App: ForecastGenie
 Forecast y based on X timeseries data
 @author: Tony Hollaar
-Date: 05/20/2023
+Date: 05/24/2023
 Version 1.3
 source ASCII ART: https://patorjk.com/software/taag/#p=display&v=0&f=Big&t=FORECASTGENIE
 """
@@ -38,6 +38,7 @@ import streamlit as st
 from streamlit_option_menu import option_menu
 from streamlit_extras.buy_me_a_coffee import button
 from streamlit_extras.dataframe_explorer import dataframe_explorer
+
 #**************************
 # Import datetime 
 #**************************
@@ -129,7 +130,6 @@ st.set_page_config(page_title="ForecastGenie",
                    layout="centered", # "centered" or "wide"
                    page_icon="🌀", 
                    initial_sidebar_state="expanded") # "auto" or "expanded" or "collapsed"
-
 
 # =============================================================================
 #   ______ _    _ _   _  _____ _______ _____ ____  _   _  _____ 
@@ -3621,20 +3621,18 @@ def outlier_form():
         n_clusters (int or None): the number of clusters to form for K-means clustering, or None if another method is selected
         max_iter (int or None): the maximum number of iterations to run for K-means clustering, or None if another method is selected
     """
-# =============================================================================
-#     def handle_form_callback():
-#         # save to user current session the variables set by user
-#         # variables are initialized at start of notebook in session state
-#         #st.session_state['outlier_detection_method'] = st.session_state['outlier_detection_method']
-#         #st.session_state['outlier_isolationforest_contamination_value'] = st.session_state['outlier_isolationforest_contamination_value']
-#         st.session_state['outlier_replacement_method'] = st.session_state['outlier_replacement_method']
-#         st.session_state['outlier_zscore_threshold'] = st.session_state['outlier_zscore_threshold']
-#         st.session_state['outlier_iqr_q1'] = st.session_state['outlier_iqr_q1']
-#         st.session_state['outlier_iqr_q3'] = st.session_state['outlier_iqr_q3']
-#         st.session_state['outlier_iqr_multiplier'] = st.session_state['outlier_iqr_multiplier']
-#         st.session_state['outlier_kmeans_n_clusters'] = st.session_state['outlier_kmeans_n_clusters']              
-#         st.session_state['outlier_kmeans_max_iter'] = st.session_state['outlier_kmeans_max_iter']
-# =============================================================================
+    def handle_form_callback():
+        # save to user current session the variables set by user
+        # variables are initialized at start of notebook in session state
+        st.session_state['outlier_detection_method'] = st.session_state['outlier_detection_method']
+        st.session_state['outlier_isolationforest_contamination_value'] = st.session_state['outlier_isolationforest_contamination_value']
+        st.session_state['outlier_replacement_method'] = st.session_state['outlier_replacement_method']
+        st.session_state['outlier_zscore_threshold'] = st.session_state['outlier_zscore_threshold']
+        st.session_state['outlier_iqr_q1'] = st.session_state['outlier_iqr_q1']
+        st.session_state['outlier_iqr_q3'] = st.session_state['outlier_iqr_q3']
+        st.session_state['outlier_iqr_multiplier'] = st.session_state['outlier_iqr_multiplier']
+        st.session_state['outlier_kmeans_n_clusters'] = st.session_state['outlier_kmeans_n_clusters']              
+        st.session_state['outlier_kmeans_max_iter'] = st.session_state['outlier_kmeans_max_iter']
         
     with st.form('outlier_form'):
         my_text_paragraph('Handling Outliers')
@@ -3658,7 +3656,7 @@ def outlier_form():
                                           max_value = 0.5, 
                                           step = 0.01, 
                                           value = st.session_state['outlier_isolationforest_contamination_value_2'] if 'outlier_isolationforest_contamination_value_2' in st.session_state else st.session_state['outlier_isolationforest_contamination_value'],
-                                          #key = 'outlier_isolationforest_contamination_value',
+                                          key = 'outlier_isolationforest_contamination_value',
                                           help ='''**`Contamination`** determines the *proportion of samples in the dataset that are considered to be outliers*.
                                                 It represents the expected fraction of the contamination within the data, which means it should be set to a value close to the percentage of outliers present in the data.  
                                                 A **higher** value of **contamination** will result in a **higher** number of **outliers** being detected, while a **lower** value will result in a **lower** number of **outliers** being detected.
@@ -3690,7 +3688,7 @@ def outlier_form():
                                               )
                 # set other variables
                 #####################
-                contamination =st.session_state['outlier_isolationforest_contamination_value']
+                contamination = st.session_state['outlier_isolationforest_contamination_value']
                 q1 = st.session_state['outlier_iqr_q1']
                 q3 = st.session_state['outlier_iqr_q3']  
                 iqr_multiplier = st.session_state['outlier_iqr_multiplier']
@@ -3702,7 +3700,6 @@ def outlier_form():
             col1, col2, col3 = st.columns([1,12,1])
             with col2:
                 # value=25.0
-                st.write(st.session_state.outlier_iqr_q1)
                 q1 = st.slider(
                                 label = 'Q1:', 
                                 min_value=0.0, 
@@ -3797,8 +3794,8 @@ def outlier_form():
             
         col1, col2, col3 = st.columns([4,4,4])
         with col2:
-            #st.form_submit_button('Submit', on_click=handle_form_callback)    
-            st.form_submit_button('Submit')  
+            st.form_submit_button('Submit', on_click = handle_form_callback)    
+            #st.form_submit_button('Submit')  
     return outlier_method, outlier_replacement_method, random_state, contamination, outlier_threshold , q1, q3, iqr_multiplier, n_clusters, max_iter
 
 def handle_outliers(data, method, outlier_threshold, q1, q3, max_iter, n_clusters=3, outlier_replacement_method='Median', contamination=0.01, random_state=10, iqr_multiplier=1.5):
@@ -3826,7 +3823,7 @@ def handle_outliers(data, method, outlier_threshold, q1, q3, max_iter, n_cluster
         # detect and replace outlier values using Isolation Forest
         model = IsolationForest(
             n_estimators=100,
-            contamination=contamination,
+            contamination=st.session_state['outlier_isolationforest_contamination_value_2'],
             random_state=random_state)
         model.fit(data)
         outliers = model.predict(data) == -1
@@ -3918,7 +3915,6 @@ print('ForecastGenie Print: Loaded Functions')
 #                                                                  
 # =============================================================================
 # SET VARIABLE DEFAULTS: demo data or uploaded data
-
 # check if df_raw not in current session state else add it
 if "df_raw" not in st.session_state:
     # define an empty dataframe with two headers for date and target variable
@@ -3953,7 +3949,6 @@ results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features
 if 'results_df' not in st.session_state:
     st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
 
-
 #///////////////////////////////////////////////////
 # SET VARIABLE DEFAULTS: Required for Data Cleaning
 #///////////////////////////////////////////////////
@@ -3980,6 +3975,7 @@ if 'outlier_replacement_method' not in st.session_state:
 	st.session_state['outlier_replacement_method'] = 'Interpolation'   
 if 'outlier_isolationforest_contamination_value' not in st.session_state:
 	st.session_state['outlier_isolationforest_contamination_value'] = 0.01
+    
 if 'outlier_zscore_threshold' not in st.session_state:
 	st.session_state['outlier_zscore_threshold'] = 3.0
 if 'outlier_iqr_q1' not in st.session_state:
@@ -4064,8 +4060,6 @@ if 'insample_forecast_steps' not in st.session_state:
 if 'normalization_choice' not in st.session_state:
     st.session_state['normalization_choice'] = 'None'
 
-
-   
 # TRAIN MENU TEST
 if 'train_models_btn' not in st.session_state:
     st.session_state['train_models_btn'] = False
@@ -4238,6 +4232,7 @@ with st.sidebar:
 #  |_|  |_/_/    \_\_____|_| \_| |_|  |_|______|_| \_|\____/ 
 #                                                            
 # =============================================================================
+# source for package: https://github.com/victoryhb/streamlit-option-menu
 # CREATE MAIN MENU BAR FOR APP WITH BUTTONS OF DATA PIPELINE
 # Horizontal menu with default on first tab e.g. default_index=0
 menu_item = option_menu(None, ["Load", "Explore", "Clean", "Engineer", "Prepare", "Select", "Train", "Evaluate", "Tune", "Forecast"], 
@@ -4923,25 +4918,36 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             
             ## OUTLIER FIGURE CODE
             fig_outliers = go.Figure()
-            fig_outliers.add_trace(go.Scatter(x=df_clean['date'], 
-                                     y=df_clean.iloc[:,1], 
-                                     mode='markers', 
-                                     name='Before',
-                          marker=dict(color='#440154'),  opacity = 0.5))
+            fig_outliers.add_trace(
+                                   go.Scatter(
+                                             x=df_clean['date'], 
+                                             y=df_clean.iloc[:,1], 
+                                             mode='markers', 
+                                             name='Before',
+                                             marker=dict(color='#440154'),  opacity = 0.5
+                                             )
+                                   )
             # add scatterplot
-            fig_outliers.add_trace(go.Scatter(x=df_cleaned_outliers.index, 
-                                     y= df_cleaned_outliers.iloc[:,0], 
-                                     mode='markers', 
-                                     name='After',
-                                     marker=dict(color='#45B8AC'), opacity = 1))
+            fig_outliers.add_trace(
+                                   go.Scatter(
+                                              x = df_cleaned_outliers.index, 
+                                              y = df_cleaned_outliers.iloc[:,0], 
+                                              mode='markers', 
+                                              name='After',
+                                              marker=dict(color='#45B8AC'), opacity = 1
+                                             )
+                                   )
             
             df_diff = df_cleaned_outliers.loc[outliers]
             # add scatterplot
-            fig_outliers.add_trace(go.Scatter(x=df_diff.index, 
-                                     y= df_diff.iloc[:,0], 
-                                     mode='markers', 
-                                     name='Outliers After',
-                                     marker=dict(color='#FFC300'),  opacity = 1))
+            fig_outliers.add_trace(go.Scatter(
+                                              x=df_diff.index, 
+                                              y= df_diff.iloc[:,0], 
+                                              mode='markers', 
+                                              name='Outliers After',
+                                              marker=dict(color='#FFC300'),  opacity = 1
+                                             )
+                                  )
 
             # show the outlier plot 
             st.plotly_chart(fig_outliers, use_container_width=True)
