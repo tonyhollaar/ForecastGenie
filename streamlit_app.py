@@ -39,6 +39,11 @@ from streamlit_option_menu import option_menu
 from streamlit_extras.buy_me_a_coffee import button
 from streamlit_extras.dataframe_explorer import dataframe_explorer
 
+# source: https://github.com/Mr-Milk/streamlit-fire-state
+# keep user preferences of streamlit st.form submissions in session state 
+# make available when switching between pages e.g. menu items
+from fire_state import create_store, form_update, get_state, set_state, get_store, set_store
+        
 #**************************
 # Import datetime 
 #**************************
@@ -3600,7 +3605,6 @@ def plot_acf(data, nlags):
  
 ######### OUTLIER DETECTION FUNCTIONS ##############
 def outlier_form():
-    
     """
     This function creates a streamlit form for handling outliers in a dataset using different outlier detection methods. 
     It allows the user to select one of the following methods: Isolation Forest, Z-score, or IQR.
@@ -3620,111 +3624,73 @@ def outlier_form():
         outlier_threshold (float or None): the outlier threshold for Z-score, or None if another method is selected
         n_clusters (int or None): the number of clusters to form for K-means clustering, or None if another method is selected
         max_iter (int or None): the maximum number of iterations to run for K-means clustering, or None if another method is selected
-    """
-    def handle_form_callback():
-        # save to user current session the variables set by user
-        # variables are initialized at start of notebook in session state
-        st.session_state['outlier_detection_method'] = st.session_state['outlier_detection_method']
-        st.session_state['outlier_isolationforest_contamination_value'] = st.session_state['outlier_isolationforest_contamination_value']
-        st.session_state['outlier_replacement_method'] = st.session_state['outlier_replacement_method']
-        st.session_state['outlier_zscore_threshold'] = st.session_state['outlier_zscore_threshold']
-        st.session_state['outlier_iqr_q1'] = st.session_state['outlier_iqr_q1']
-        st.session_state['outlier_iqr_q3'] = st.session_state['outlier_iqr_q3']
-        st.session_state['outlier_iqr_multiplier'] = st.session_state['outlier_iqr_multiplier']
-        st.session_state['outlier_kmeans_n_clusters'] = st.session_state['outlier_kmeans_n_clusters']              
-        st.session_state['outlier_kmeans_max_iter'] = st.session_state['outlier_kmeans_max_iter']
-        
+    """   
+
+    
+    # form for user to select outlier detection methods and parameters
     with st.form('outlier_form'):
         my_text_paragraph('Handling Outliers')
-        # form for user to select outlier handling method
+        # create user selectbox for outlier detection methods to choose from in Streamlit
         outlier_method = st.selectbox(
                                       label = '*Select outlier detection method:*',
                                       options = ('None', 'Isolation Forest', 'Z-score', 'IQR'),
-                                      # set the index equal to the updated session state else set index to first choice in tuple e.g. index = 0
-                                      index = ('None', 'Isolation Forest', 'Z-score', 'IQR').index(st.session_state['outlier_detection_method_2'])  if 'outlier_detection_method_2' in st.session_state else ('None', 'Isolation Forest', 'Z-score', 'IQR').index(st.session_state['outlier_detection_method'])
-                                      #key = 'outlier_detection_method'
+                                      key = key1
                                       )
         
         # load when user selects "Isolation Forest" and presses 'Submit' detection algorithm parameters
         if outlier_method == 'Isolation Forest':
             col1, col2, col3 = st.columns([1,12,1])
             with col2:
-                # value=0.01 replace by session_state
                 contamination = st.slider(
                                           label = 'Contamination:', 
                                           min_value = 0.01, 
                                           max_value = 0.5, 
                                           step = 0.01, 
-                                          value = st.session_state['outlier_isolationforest_contamination_value_2'] if 'outlier_isolationforest_contamination_value_2' in st.session_state else st.session_state['outlier_isolationforest_contamination_value'],
-                                          key = 'outlier_isolationforest_contamination_value',
-                                          help ='''**`Contamination`** determines the *proportion of samples in the dataset that are considered to be outliers*.
-                                                It represents the expected fraction of the contamination within the data, which means it should be set to a value close to the percentage of outliers present in the data.  
-                                                A **higher** value of **contamination** will result in a **higher** number of **outliers** being detected, while a **lower** value will result in a **lower** number of **outliers** being detected.
-                                                '''
+                                          key = key2,
+                                          help = '''**`Contamination`** determines the *proportion of samples in the dataset that are considered to be outliers*.
+                                                 It represents the expected fraction of the contamination within the data, which means it should be set to a value close to the percentage of outliers present in the data.  
+                                                 A **higher** value of **contamination** will result in a **higher** number of **outliers** being detected, while a **lower** value will result in a **lower** number of **outliers** being detected.
+                                                 '''
                                           )
-                
-            # set other variables
-            #####################
-            outlier_threshold = st.session_state['outlier_zscore_threshold']
-            q1 = st.session_state['outlier_iqr_q1']
-            q3 = st.session_state['outlier_iqr_q3']  
-            iqr_multiplier = st.session_state['outlier_iqr_multiplier']
-            n_clusters = st.session_state['outlier_kmeans_n_clusters']
-            max_iter = st.session_state['outlier_kmeans_max_iter']
-         
         # load when user selects "Z-Score" and presses 'Submit' detection algorithm parameters
         elif outlier_method == 'Z-score':
             col1, col2, col3 = st.columns([1,12,1])
             with col2:
-                # value = 3.0
                 outlier_threshold = st.slider(
                                               label = 'Threshold:', 
                                               min_value = 1.0, 
                                               max_value = 10.0, 
-                                              value = st.session_state['outlier_zscore_threshold_2'] if 'outlier_zscore_threshold_2' in st.session_state else st.session_state['outlier_zscore_threshold'],
-                                              #key = 'outlier_zscore_threshold', 
+                                              key = key3, 
                                               step=0.1, 
                                               help='Using a threshold of 3 for the z-score outlier detection means that any data point +3 standard deviations or -3 standard deviations away from the mean is considered an outlier'
                                               )
-                # set other variables
-                #####################
-                contamination = st.session_state['outlier_isolationforest_contamination_value']
-                q1 = st.session_state['outlier_iqr_q1']
-                q3 = st.session_state['outlier_iqr_q3']  
-                iqr_multiplier = st.session_state['outlier_iqr_multiplier']
-                n_clusters = st.session_state['outlier_kmeans_n_clusters']
-                max_iter = st.session_state['outlier_kmeans_max_iter']
-            
+                
         # load when user selects "IQR" and presses 'Submit' detection algorithm parameters
         elif outlier_method == 'IQR':
             col1, col2, col3 = st.columns([1,12,1])
             with col2:
-                # value=25.0
                 q1 = st.slider(
                                 label = 'Q1:', 
-                                min_value=0.0, 
-                                max_value=100.0, 
-                                value = st.session_state['outlier_iqr_q1_2'] if 'outlier_iqr_q1_2' in st.session_state else st.session_state['outlier_iqr_q1'],
-                                step=1.0, 
-                                #key='outlier_iqr_q1'
+                                min_value = 0.0, 
+                                max_value = 100.0, 
+                                step = 1.0, 
+                                key = key4
                               )
                 #value=75.0
                 q3 = st.slider(
                                 label = 'Q3:', 
-                                min_value=0.0, 
-                                max_value=100.0, 
-                                value = st.session_state['outlier_iqr_q3_2'] if 'outlier_iqr_q3_2' in st.session_state else st.session_state['outlier_iqr_q3'],
-                                step=1.0, 
-                                #key='outlier_iqr_q3'
+                                min_value = 0.0, 
+                                max_value = 100.0, 
+                                step = 1.0, 
+                                key = key5
                               )
                 # value=1.5
                 iqr_multiplier = st.slider(
                                            label = 'IQR multiplier:', 
                                            min_value = 1.0, 
                                            max_value = 5.0, 
-                                           value = st.session_state['outlier_iqr_multiplier_2'] if 'outlier_iqr_multiplier_2' in st.session_state else st.session_state['outlier_iqr_multiplier'],
                                            step = 0.1, 
-                                           #key = 'outlier_iqr_multiplier',
+                                           key = key6,
                                            help = '''**`IQR multiplier`** determines the value used to multiply the **Interquartile range** to detect outliers.   
                                                   For example, a value of 1.5 means that any value outside the range is considered an outlier, see formula:  
                                                   \n$Q_1 - 1.5*IQR < outlier < Q_3 + 1.5*IQR$
@@ -3734,71 +3700,30 @@ def outlier_form():
                                                   The same process is repeated to calculate the third quartile `Q3`, which is the value at which 75% of the data falls below.
                                                   '''
                                            )
-            # set other variables
-            #####################
-            contamination = st.session_state['outlier_isolationforest_contamination_value']
-            outlier_threshold = st.session_state['outlier_zscore_threshold']
-            n_clusters = st.session_state['outlier_kmeans_n_clusters']
-            max_iter = st.session_state['outlier_kmeans_max_iter']
-                    
-        # load when user selects "K-means clustering" and presses 'Submit' detection algorithm parameters
-        elif outlier_method == 'k-means':
-            col1, col2, col3 = st.columns([1,12,1])
-            with col2:
-                # value = 3
-                n_clusters = st.number_input(
-                                             label = 'Number of Clusters:', 
-                                             value = st.session_state['outlier_iqr_multiplier_2'] if 'outlier_iqr_multiplier_2' in st.session_state else st.session_state['outlier_iqr_multiplier'],
-                                             #key = 'outlier_kmeans_n_clusters', 
-                                             step=1,
-                                             help='''**`Number of Clusters`** is the number of clusters to form.
-                                                     The default value of 3 is a common value used for clustering small datasets.
-                                                  '''
-                                             )
-                # value = 100                                  
-                max_iter = st.number_input(label = 'Max Iterations:', 
-                                           step = 10,
-                                           key = 'outlier_kmeans_max_iter', 
-                                           help = '''**`Max Iterations`** is the maximum number of iterations to run.
-                                                    The default value of 100 is a common value used for small datasets.
-                                                   ''')
                                                    
-            contamination = st.session_state['outlier_isolationforest_contamination_value']
-            outlier_threshold = st.session_state['outlier_zscore_threshold']
-            q1 = st.session_state['outlier_iqr_q1']
-            q3 = st.session_state['outlier_iqr_q3']  
-            iqr_multiplier = st.session_state['outlier_iqr_multiplier']
+
         else:
-            contamination = st.session_state['outlier_isolationforest_contamination_value']
-            outlier_threshold = st.session_state['outlier_zscore_threshold']
-            q1 = st.session_state['outlier_iqr_q1']
-            q3 = st.session_state['outlier_iqr_q3']  
-            iqr_multiplier = st.session_state['outlier_iqr_multiplier']
-            n_clusters = st.session_state['outlier_kmeans_n_clusters']
-            max_iter = st.session_state['outlier_kmeans_max_iter']
+            st.write('outlier_form function has an issue with the parameters, please contact your administrator')
                             
         # form to select outlier replacement method for each outlier detection method
         if outlier_method != 'None':
             outlier_replacement_method = st.selectbox(label = '*Select outlier replacement method:*', 
                                                       options = ('Interpolation', 'Mean', 'Median'), 
-                                                      index = ('Interpolation', 'Mean', 'Median').index(st.session_state['outlier_replacement_method_2'])  if 'outlier_replacement_method_2' in st.session_state else ('Interpolation', 'Mean', 'Median').index(st.session_state['outlier_replacement_method']),
-                                                      #key = 'outlier_replacement_method',
+                                                      key = key7,
                                                       help = '''**`Replacement method`** determines the actual value(s) to replace detected outlier(s) with.   
                                                         You can replace your outlier(s) with one of the following replacement methods:    
                                                         - *linear interpolation algorithm* **(default option)**  
                                                         - *mean*  
                                                         - *median*
                                                         ''')
-        else:
-            outlier_replacement_method = st.session_state['outlier_replacement_method']
-            
+           
         col1, col2, col3 = st.columns([4,4,4])
         with col2:
-            st.form_submit_button('Submit', on_click = handle_form_callback)    
-            #st.form_submit_button('Submit')  
-    return outlier_method, outlier_replacement_method, random_state, contamination, outlier_threshold , q1, q3, iqr_multiplier, n_clusters, max_iter
-
-def handle_outliers(data, method, outlier_threshold, q1, q3, max_iter, n_clusters=3, outlier_replacement_method='Median', contamination=0.01, random_state=10, iqr_multiplier=1.5):
+            st.form_submit_button(label = 'Submit', 
+                                  on_click = form_update, 
+                                  args=("CLEAN_PAGE",))
+            
+def handle_outliers(data, method, outlier_threshold, q1, q3, outlier_replacement_method='Median', contamination=0.01, random_state=10, iqr_multiplier=1.5):
     """
     Detects and replaces outlier values in a dataset using various methods.
 
@@ -3823,7 +3748,7 @@ def handle_outliers(data, method, outlier_threshold, q1, q3, max_iter, n_cluster
         # detect and replace outlier values using Isolation Forest
         model = IsolationForest(
             n_estimators=100,
-            contamination=st.session_state['outlier_isolationforest_contamination_value_2'],
+            contamination=contamination,
             random_state=random_state)
         model.fit(data)
         outliers = model.predict(data) == -1
@@ -3871,25 +3796,6 @@ def handle_outliers(data, method, outlier_threshold, q1, q3, max_iter, n_cluster
             first_non_nan = data[col].dropna().iloc[0]
             data[col].fillna(first_non_nan, inplace=True)
     return data, outliers 
-# =============================================================================
-#     elif method == 'k-means':
-#         # detect and replace outlier values using k-means clustering
-#         model = KMeans(n_clusters=n_clusters, random_state=random_state)
-#         model.fit(data)
-#         distances = np.array(data) # your distances array
-#         distances = distances[~np.isnan(distances)] # exclude NaN values
-#         distances = np.min(cdist(data, model.cluster_centers_, 'euclidean'), axis=1)
-#         threshold = np.quantile(distances, 1 - contamination)
-#         outliers = distances > threshold
-#         if outlier_replacement_method == 'Mean':
-#             means = data.mean()
-#             for col in data.columns:
-#                 data[col][outliers] = means[col]
-#         elif outlier_replacement_method == 'Median':
-#             medians = data.median()
-#             for col in data.columns:
-#                 data[col][outliers] = medians[col]
-# =============================================================================
 
 def handle_click_wo_button():
     """
@@ -3956,39 +3862,13 @@ fill_method = None
 custom_fill_value = None
 freq_dict = None
 freq = None
-if 'fill_method' not in st.session_state:
-    # set value to 'backfill'
-    st.session_state['fill_method'] = 'Backfill'    
-if 'custom_fill_value' not in st.session_state:
-    # set value to None
-    st.session_state['custom_fill_value'] = 1
+
 if 'freq_dict' not in st.session_state:
     st.session_state['freq_dict'] = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
 if 'freq' not in st.session_state:
     # assume frequency is daily data for now -> expand to automated frequency detection later 
     st.session_state['freq'] = 'Daily'
     
-# required for outlier detection / replacement
-if 'outlier_detection_method' not in st.session_state:
-	st.session_state['outlier_detection_method'] = 'None'
-if 'outlier_replacement_method' not in st.session_state:
-	st.session_state['outlier_replacement_method'] = 'Interpolation'   
-if 'outlier_isolationforest_contamination_value' not in st.session_state:
-	st.session_state['outlier_isolationforest_contamination_value'] = 0.01
-    
-if 'outlier_zscore_threshold' not in st.session_state:
-	st.session_state['outlier_zscore_threshold'] = 3.0
-if 'outlier_iqr_q1' not in st.session_state:
-	st.session_state['outlier_iqr_q1'] = 25.0
-if 'outlier_iqr_q3' not in st.session_state:
-	st.session_state['outlier_iqr_q3'] = 75.0
-if 'outlier_iqr_multiplier' not in st.session_state:
-	st.session_state['outlier_iqr_multiplier'] = 1.5
-if 'outlier_kmeans_n_clusters' not in st.session_state:
-	st.session_state['outlier_kmeans_n_clusters'] = 1.5
-if 'outlier_kmeans_max_iter' not in st.session_state:
-	st.session_state['outlier_kmeans_max_iter'] = 100
-
 #///////////////////////////////////////////////////
 # SET VARIABLE DEFAULTS: Feature Engineering
 #///////////////////////////////////////////////////
@@ -4006,6 +3886,7 @@ lst_special_calendar_days = ['jan_sales',
                             'cyber_monday',
                             'christmas_day',
                             'boxing_day']
+
 # set special calendar days to True - boolean variables
 for special_calendar_day in lst_special_calendar_days:
     if special_calendar_day not in st.session_state:
@@ -4063,10 +3944,10 @@ if 'normalization_choice' not in st.session_state:
 # TRAIN MENU TEST
 if 'train_models_btn' not in st.session_state:
     st.session_state['train_models_btn'] = False
-    
-#///////////////////////////////////////////////////
-# ?????????????????? TEST ??????????????????????????
-#///////////////////////////////////////////////////
+
+#///////////////////////////////////////////////////////////////////
+# ?????????????????? TEST - FOR DEBUGGING ??????????????????????????
+#///////////////////////////////////////////////////////////////////
 # show in streamlit the session state variables that are stored cache for the user session
 st.write(st.session_state)
 
@@ -4485,9 +4366,10 @@ if sidebar_menu_item == 'FAQ':
                 st.write('')
                 st.write('')
                 st.write('')
-                
+  
+# LOGGING
 print('ForecastGenie Print: Loaded FAQ Page')
-
+    
 # =============================================================================
 #   _      ____          _____  
 #  | |    / __ \   /\   |  __ \ 
@@ -4497,7 +4379,6 @@ print('ForecastGenie Print: Loaded FAQ Page')
 #  |______\____/_/    \_\_____/ 
 #                               
 # =============================================================================   
-
 with st.sidebar:
     my_title(f"{load_icon}", "#45B8AC")
     with st.expander('', expanded=True):
@@ -4762,22 +4643,46 @@ print('ForecastGenie Print: Ran Explore')
 #   \_____|______|______/_/    \_\_| \_|
 #                                       
 # =============================================================================
+# Register state with initiate values in a slot (fire-state package utilized)
+# define keys and store them in memory with their associated values
+key1, key2, key3, key4, key5, key6, key7, key8 = create_store("CLEAN_PAGE", [
+("outlier_detection_method", "None"), # key1
+("outlier_isolationforest_contamination", 0.01), #key2
+("outlier_zscore_threshold", 3.0), #key3
+("outlier_iqr_q1", 25.0), #key4
+("outlier_iqr_q3", 75.0), #key5
+("outlier_iqr_multiplier", 1.5), #key6
+("outlier_replacement_method", "Interpolation"), #key7
+("run", 0)]) #key8
+
+
+key1_missing, key2_missing, key3_missing, key4_missing = create_store("CLEAN_PAGE_MISSING", [
+("missing_fill_method", "Backfill"), #key1
+("missing_custom_fill_value", "1"), #key2
+("data_frequency", 'Daily'), #key3
+("run", 0)]) #key4
+
+
 # Data Cleaning
 if menu_item == 'Clean' and sidebar_menu_item=='Home':    
     my_title(f"{clean_icon} Data Cleaning", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
     with st.sidebar:
         my_title(f"{clean_icon}", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
+        
         # with your form have a button to click and values are updated in streamlit
         with st.form('data_cleaning'):
             my_text_paragraph('Handling Missing Data')      
             # get user input for filling method
             fill_method = st.selectbox(label = '*Select filling method for missing values:*', 
-                                       options = ['Backfill', 'Forwardfill', 'Mean', 'Median', 'Mode', 'Custom'])
+                                       options = ['Backfill', 'Forwardfill', 'Mean', 'Median', 'Mode', 'Custom'],
+                                       key = key1_missing)
             #custom_fill_value = None ## commented out replaced with st.session_state['custom_fill_value'] 
             if fill_method == 'Custom':
                 #custom_fill_value = int(st.text_input('Enter custom value', value='0'))
-                custom_fill_value = st.text_input('*Insert custom value to replace missing value(s) with:*', value=st.session_state['custom_fill_value'], help='Please enter your **`custom value`** to impute missing values with, you can use a whole number or decimal point number')
-                st.session_state['custom_fill_value'] = custom_fill_value
+                custom_fill_value = st.text_input(label = '*Insert custom value to replace missing value(s) with:*', 
+                                                  key = key2_missing, 
+                                                  help = 'Please enter your **`custom value`** to impute missing values with, you can use a whole number or decimal point number')
+            
             # Define a dictionary of possible frequencies and their corresponding offsets
             freq_dict = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
             # infer and return the original data frequency e.g. 'M' and name e.g. 'Monthly'
@@ -4786,29 +4691,43 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             position = list(freq_dict.values()).index(original_freq)
             # Ask the user to select the frequency of the data
             # set the frequency that is inferred from the data itself with custom function to pre-selected e.g. index = ...
-            freq = st.selectbox('*Select the frequency of the data:*', list(freq_dict.keys()), index=position)
+            freq = st.selectbox('*Select the frequency of the data:*', 
+                                list(freq_dict.keys()), 
+                                #index=position,
+                                key = key3_missing)
+            
             col1, col2, col3 = st.columns([4,4,4])
             with col2:       
-                data_cleaning_btn = st.form_submit_button("Submit", type="secondary")
-                # save the user selections/submits in the app to be used when user switches menu items
-                # in other words, save the session state of the user for variables freq, fill_method
-                # freq set on top of script
-                st.session_state['freq'] = freq
-                # set the fill method in session state
-                if fill_method != 'Custom':
-                    st.session_state['fill_method'] = fill_method
-                else:
-                    # set the fill method in session state
-                    st.session_state['fill_method'] = (fill_method, custom_fill_value)           
+                data_cleaning_btn = st.form_submit_button("Submit", type="secondary", on_click=form_update, args=("CLEAN_PAGE_MISSING",))
+# =============================================================================
+#                 
+#                 # save the user selections/submits in the app to be used when user switches menu items
+#                 # in other words, save the session state of the user for variables freq, fill_method
+#                 # freq set on top of script
+#                 st.session_state['freq'] = freq
+# =============================================================================
+# =============================================================================
+#                 # set the fill method in session state
+#                 if fill_method != 'Custom':
+#                     st.session_state['fill_method'] = fill_method
+#                 else:
+#                     # set the fill method in session state
+#                     st.session_state['fill_method'] = (fill_method, custom_fill_value)           
+# =============================================================================
+
     with st.expander('', expanded=True):
         #*************************************************
         my_text_header('Handling missing data')
         #*************************************************    
         # Apply function to resample missing dates based on user set frequency
-        df_cleaned_dates = resample_missing_dates(df=st.session_state.df_raw, freq_dict=freq_dict, original_freq=original_freq, freq=st.session_state['freq'])
+        df_cleaned_dates = resample_missing_dates(df=st.session_state.df_raw, 
+                                                  freq_dict=freq_dict, 
+                                                  original_freq=original_freq, 
+                                                  freq=st.session_state['freq'])
+        
         # check if there are no dates skipped for frequency e.g. daily data missing days in between dates
         missing_dates = pd.date_range(start = st.session_state.df_raw['date'].min(), 
-                                      end=st.session_state.df_raw['date'].max()).difference(st.session_state.df_raw['date'])
+                                      end = st.session_state.df_raw['date'].max()).difference(st.session_state.df_raw['date'])
         missing_values = st.session_state.df_raw.iloc[:,1].isna().sum()
         # Convert the DatetimeIndex to a dataframe with a single column named 'Date'
         df_missing_dates = pd.DataFrame({'Skipped Dates': missing_dates})
@@ -4838,7 +4757,7 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             # highlight NaN values in yellow in dataframe
             # got warning: for part of code with `null_color='yellow'`:  `null_color` is deprecated: use `color` instead
             df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
-            highlighted_df = df_graph.style.highlight_null(color='yellow').format(precision=0)
+            highlighted_df = df_graph.style.highlight_null(color='yellow').format(precision=4)
             my_subheader('Original DataFrame', my_style="#333333", my_size=6)
             # show original dataframe unchanged but with highlighted missing NaN values
             st.dataframe(highlighted_df, use_container_width=True)
@@ -4856,13 +4775,11 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             # Filter the DataFrame to include only rows with missing values
             missing_df = copy_df_date_index(st.session_state.df_raw.loc[st.session_state.df_raw.iloc[:,1].isna(), st.session_state.df_raw.columns], datetime_to_date=True, date_to_index=True)
             st.write(missing_df)
-        
         with col4:
             # show arrow which is a bootstrap icon from source: https://icons.getbootstrap.com/icons/arrow-right/
             st.markdown('<svg xmlns="http://www.w3.org/2000/svg" width="25" height="20" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">'
                         '<path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>'
                         '</svg>', unsafe_allow_html=True)
-
         # Display cleaned Dataframe in Streamlit
         with col5:
             my_subheader('Cleaned Dataframe', my_style="#333333", my_size=6)
@@ -4877,39 +4794,32 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
     # Handling Outliers
     #########################################################
     with st.sidebar:
-        outlier_method, outlier_replacement_method, random_state, contamination, outlier_threshold , q1, q3, iqr_multiplier, n_clusters, max_iter = outlier_form()
-        
-        # TEST
-        # variables are initialized at start of notebook in session state
-        st.session_state['outlier_detection_method_2'] = outlier_method
-        st.session_state['outlier_replacement_method_2'] = outlier_replacement_method
-        st.session_state['outlier_isolationforest_contamination_value_2'] = contamination
-        st.session_state['outlier_zscore_threshold_2'] = outlier_threshold
-        st.session_state['outlier_iqr_q1_2'] = q1
-        st.session_state['outlier_iqr_q3_2'] = q3
-        st.session_state['outlier_iqr_multiplier_2'] = iqr_multiplier
-        st.session_state['outlier_kmeans_n_clusters_2'] = n_clusters            
-        st.session_state['outlier_kmeans_max_iter_2'] = max_iter
+        # call the function to get the outlier form in streamlit 'Handling Outliers'
+        outlier_form()
         
     with st.expander('Outliers', expanded= True):
+        #st.write(get_store("CLEAN_PAGE")) # also possible to get dictionary of the entire slot e.g. in memory outlier form user form
+        outlier_detection_method = get_state("CLEAN_PAGE", "outlier_detection_method")
+        outlier_zscore_threshold = get_state("CLEAN_PAGE", "outlier_zscore_threshold")
+        outlier_iqr_q1 = get_state("CLEAN_PAGE", "outlier_iqr_q1")
+        outlier_iqr_q3 = get_state("CLEAN_PAGE", "outlier_iqr_q1")
+        outlier_replacement_method = get_state("CLEAN_PAGE", "outlier_replacement_method")
+        outlier_isolationforest_contamination = get_state("CLEAN_PAGE", "outlier_isolationforest_contamination")
+        outlier_iqr_multiplier = get_state("CLEAN_PAGE", "outlier_iqr_multiplier")                    
+                                                         
         # Set page subheader with custum function
         my_text_header('Handling outliers')
         # Define function to generate form and sliders for outlier detection and handling
         ##############################################################################       
         df_cleaned_outliers, outliers = handle_outliers(df_clean_show, 
-                                                        st.session_state['outlier_detection_method_2'],
-                                                        st.session_state['outlier_zscore_threshold_2'],
-                                                        st.session_state['outlier_iqr_q1_2'],
-                                                        st.session_state['outlier_iqr_q3_2'],
-                                                        st.session_state['outlier_kmeans_max_iter_2'], 
-                                                        st.session_state['outlier_kmeans_n_clusters_2'], 
-                                                        st.session_state['outlier_replacement_method_2'],
-                                                        st.session_state['outlier_isolationforest_contamination_value_2'], 
+                                                        outlier_detection_method,
+                                                        outlier_zscore_threshold,
+                                                        outlier_iqr_q1,
+                                                        outlier_iqr_q3,
+                                                        outlier_replacement_method,
+                                                        outlier_isolationforest_contamination, 
                                                         random_state, 
-                                                        st.session_state['outlier_iqr_multiplier_2'])
-        
-        # if outliers are found with user chosen outlier detection method and e.g. not None is selected
-        # ... run code...
+                                                        outlier_iqr_multiplier)
         if outliers is not None and any(outliers):
             outliers_df = copy_df_date_index(df_clean[outliers], datetime_to_date=True, date_to_index=True).add_suffix('_outliers')
             df_cleaned_outliers = df_cleaned_outliers.add_suffix('_outliers_replaced')
@@ -4949,11 +4859,12 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
                                              )
                                   )
 
-            # show the outlier plot 
+            # show the outlier plot
+            st.session_state['fig_outliers'] = fig_outliers
+            # TEST IF STATEMENT ? st.session_state['fig_outliers'] else fig_outliers
             st.plotly_chart(fig_outliers, use_container_width=True)
             #  show the dataframe of outliers
-            #st.info(f'ℹ️ You replaced **{len(outliers_df)} outlier(s)** with their respective **{outlier_replacement_method}(s)** utilizing **{outlier_method}**.')
-
+            st.info(f'ℹ️ You replaced **{len(outliers_df)} outlier(s)** with their respective **{outlier_replacement_method}(s)** utilizing **{outlier_detection_method}**.')
             # Apply the color scheme to the dataframe, round values by 2 decimals and display it in streamlit using full size of expander window
             st.dataframe(outliers_df.style.format("{:.2f}").apply(highlight_cols, axis=0), use_container_width=True)
             # add download button for user to be able to download outliers
@@ -4999,7 +4910,9 @@ else:
     # infer and return the original data frequency e.g. 'M' and name e.g. 'Monthly'
     original_freq, original_freq_name = determine_df_frequency( st.session_state.df_raw , column_name='date')
     df_cleaned_dates = resample_missing_dates(st.session_state['df_raw'], freq_dict=st.session_state['freq_dict'], freq=st.session_state['freq'], original_freq=original_freq)
-    df_clean = my_fill_method(df_cleaned_dates, st.session_state.fill_method, custom_fill_value=st.session_state.custom_fill_value)
+    df_clean = my_fill_method(df = df_cleaned_dates, 
+                              fill_method = fill_method, 
+                              custom_fill_value = custom_fill_value)
     df_clean_show = copy_df_date_index(df_clean, datetime_to_date=True, date_to_index=True)
     # define the dataframe cleaned as regular df if no cleaning was performed
     df_cleaned_outliers = df_clean_show   
