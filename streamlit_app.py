@@ -4655,13 +4655,11 @@ key1, key2, key3, key4, key5, key6, key7, key8 = create_store("CLEAN_PAGE", [
 ("outlier_replacement_method", "Interpolation"), #key7
 ("run", 0)]) #key8
 
-
 key1_missing, key2_missing, key3_missing, key4_missing = create_store("CLEAN_PAGE_MISSING", [
 ("missing_fill_method", "Backfill"), #key1
 ("missing_custom_fill_value", "1"), #key2
 ("data_frequency", 'Daily'), #key3
 ("run", 0)]) #key4
-
 
 # Data Cleaning
 if menu_item == 'Clean' and sidebar_menu_item=='Home':    
@@ -4698,7 +4696,7 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             
             col1, col2, col3 = st.columns([4,4,4])
             with col2:       
-                data_cleaning_btn = st.form_submit_button("Submit", type="secondary", on_click=form_update, args=("CLEAN_PAGE_MISSING",))
+                data_cleaning_btn = st.form_submit_button("Submit", type="secondary", on_click = form_update, args=("CLEAN_PAGE_MISSING",))
 # =============================================================================
 #                 
 #                 # save the user selections/submits in the app to be used when user switches menu items
@@ -4720,10 +4718,10 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
         my_text_header('Handling missing data')
         #*************************************************    
         # Apply function to resample missing dates based on user set frequency
-        df_cleaned_dates = resample_missing_dates(df=st.session_state.df_raw, 
-                                                  freq_dict=freq_dict, 
-                                                  original_freq=original_freq, 
-                                                  freq=st.session_state['freq'])
+        df_cleaned_dates = resample_missing_dates(df = st.session_state.df_raw, 
+                                                  freq_dict = freq_dict, 
+                                                  original_freq = original_freq, 
+                                                  freq = freq)
         
         # check if there are no dates skipped for frequency e.g. daily data missing days in between dates
         missing_dates = pd.date_range(start = st.session_state.df_raw['date'].min(), 
@@ -4756,12 +4754,13 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
         with col1:
             # highlight NaN values in yellow in dataframe
             # got warning: for part of code with `null_color='yellow'`:  `null_color` is deprecated: use `color` instead
-            df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
-            highlighted_df = df_graph.style.highlight_null(color='yellow').format(precision=4)
+            df_graph = copy_df_date_index(my_df=df_graph, 
+                                          datetime_to_date=True, 
+                                          date_to_index=True)
+            highlighted_df = df_graph.style.highlight_null(color='yellow').format(precision = 2)
             my_subheader('Original DataFrame', my_style="#333333", my_size=6)
             # show original dataframe unchanged but with highlighted missing NaN values
             st.dataframe(highlighted_df, use_container_width=True)
-        
         with col2:
             # show arrow which is a bootstrap icon from source: https://icons.getbootstrap.com/icons/arrow-right/
             st.markdown('<svg xmlns="http://www.w3.org/2000/svg" width="25" height="20" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">'
