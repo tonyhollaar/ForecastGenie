@@ -632,6 +632,7 @@ def create_carousel_cards_v2(num_cards, header_list, paragraph_list_front, parag
         }}
         </style>
         """, unsafe_allow_html=True)
+        
 #******************************************************************************
 # STATISTICAL TEST FUNCTIONS
 #******************************************************************************
@@ -1847,7 +1848,7 @@ def forecast_wavelet_features(X, features_df_wavelet, future_dates, df_future_da
     """
     ########### START WAVELET CODE ###########  
     # if user selected checkbox for Discrete Wavelet Features run code run prediction for wavelet features
-    if select_dwt_features: 
+    if dwt_features_checkbox: 
         try:
             # only extract wavelet features
             X_wavelet_features = X.loc[:, features_df_wavelet.columns.intersection(X.columns)]
@@ -1970,8 +1971,11 @@ def perform_train_test_split(df, my_insample_forecast_steps, scaler_choice=None,
         ValueError: If the specified test-set size is greater than or equal to the total number of rows in the dataset.
     """
     # Check if the specified test-set size is valid
-    if my_insample_forecast_steps >= len(df):
-        raise ValueError("Test-set size must be less than the total number of rows in the dataset.")
+    # issue with switching data frequency e.g. testcase: daily to quarterly data commented out code for now...
+# =============================================================================
+#     if my_insample_forecast_steps >= len(df):
+#         raise ValueError("Test-set size must be less than the total number of rows in the dataset.")
+# =============================================================================
         
     # Initialize X_train_numeric_scaled with a default value
     X_train_numeric_scaled = pd.DataFrame() # TEST
@@ -2460,14 +2464,14 @@ def create_calendar_holidays(df, slider=True):
     except:
         st.error('Forecastgenie Error: the function create_calendar_holidays() could not execute correctly, please contact the administrator...')
 
-def create_calendar_special_days(df, start_date_calendar=None,  end_date_calendar=None, select_all_days=True):
+def create_calendar_special_days(df, start_date_calendar=None,  end_date_calendar=None, special_calendar_days_checkbox=True):
     """
     # source: https://practicaldatascience.co.uk/data-science/how-to-create-an-ecommerce-trading-calendar-using-pandas
     Create a trading calendar for an ecommerce business in the UK.
     
     Parameters:
     df (pd.DataFrame): Cleaned DataFrame containing order data with index
-    select_all_days (bool): Whether to select all days or only specific special days
+    special_calendar_days_checkbox (bool): Whether to select all days or only specific special days
     
     Returns:
     df_exogenous_vars (pd.DataFrame): DataFrame containing trading calendar with holiday and event columns
@@ -2489,29 +2493,29 @@ def create_calendar_special_days(df, start_date_calendar=None,  end_date_calenda
         rules = []
         # Seasonal trading events
         # only add Holiday if user checkmarked checkbox (e.g. equals True) 
-        if st.session_state['jan_sales']:
+        if get_state("ENGINEER_PAGE_VARS", "jan_sales"):
             rules.append(Holiday('January sale', month = 1, day = 1))
-        if st.session_state['val_day_lod']:
+        if get_state("ENGINEER_PAGE_VARS", "val_day_lod"):
             rules.append(Holiday('Valentine\'s Day [last order date]', month = 2, day = 14, offset = BDay(-2)))
-        if st.session_state['val_day']:
+        if get_state("ENGINEER_PAGE_VARS", "val_day"):
             rules.append(Holiday('Valentine\'s Day', month = 2, day = 14))
-        if st.session_state['mother_day_lod']:
+        if get_state("ENGINEER_PAGE_VARS", "mother_day_lod"):
             rules.append(Holiday('Mother\'s Day [last order date]', month = 5, day = 1, offset = BDay(-2)))
-        if st.session_state['mother_day']:
+        if get_state("ENGINEER_PAGE_VARS", "mother_day"):
             rules.append(Holiday('Mother\'s Day', month = 5, day = 1, offset = pd.DateOffset(weekday = SU(2))))
-        if st.session_state['father_day_lod']:
+        if get_state("ENGINEER_PAGE_VARS", "father_day_lod"):
             rules.append(Holiday('Father\'s Day [last order date]', month = 6, day = 1, offset = BDay(-2)))
-        if st.session_state['father_day']:
+        if get_state("ENGINEER_PAGE_VARS", "father_day"):
             rules.append(Holiday('Father\'s Day', month = 6, day = 1, offset = pd.DateOffset(weekday = SU(3))))
-        if st.session_state['black_friday_lod']:
+        if get_state("ENGINEER_PAGE_VARS", "black_friday_lod"):
             rules.append(Holiday("Black Friday [sale starts]", month = 11, day = 1, offset = [pd.DateOffset(weekday = SA(4)), BDay(-5)]))
-        if st.session_state['black_friday']:
+        if get_state("ENGINEER_PAGE_VARS", "black_friday"):
             rules.append(Holiday('Black Friday', month = 11, day = 1, offset = pd.DateOffset(weekday = FR(4))))
-        if st.session_state['cyber_monday']:
+        if get_state("ENGINEER_PAGE_VARS", "cyber_monday"):
             rules.append(Holiday("Cyber Monday", month = 11, day = 1, offset = [pd.DateOffset(weekday = SA(4)), pd.DateOffset(2)]))
-        if st.session_state['christmas_day']:
+        if get_state("ENGINEER_PAGE_VARS", "christmas_day"):
             rules.append(Holiday('Christmas Day [last order date]', month = 12, day = 25, offset = BDay(-2)))
-        if st.session_state['boxing_day']:
+        if get_state("ENGINEER_PAGE_VARS", "boxing_day"):
             rules.append(Holiday('Boxing Day sale', month = 12, day = 26))       
     
     calendar = UKEcommerceTradingCalendar()
@@ -2527,7 +2531,7 @@ def create_calendar_special_days(df, start_date_calendar=None,  end_date_calenda
     class UKEcommerceTradingCalendar(AbstractHolidayCalendar):
         rules = []
         # Pay days(based on fourth Friday of the month)
-        if st.session_state['pay_days'] == True:
+        if get_state("ENGINEER_PAGE_VARS", "pay_days") == True:
             rules = [
                     Holiday('January Pay Day', month = 1, day = 31, offset = BDay(-1)),
                     Holiday('February Pay Day', month = 2, day = 28, offset = BDay(-1)),
@@ -2555,8 +2559,6 @@ def create_calendar_special_days(df, start_date_calendar=None,  end_date_calenda
     ###############################################################################
     # Reorder Columns to logical order e.g. value | description of value
     ###############################################################################
-    # ??? improve this dynamically ???
-    #df_exogenous_vars = df_exogenous_vars[['date', 'holiday', 'holiday_desc', 'calendar_event', 'calendar_event_desc', 'pay_day','pay_day_desc']]
     df_exogenous_vars = df_exogenous_vars[['date', 'calendar_event', 'calendar_event_desc', 'pay_day','pay_day_desc']]
     
     ###############################################################################
@@ -3248,8 +3250,9 @@ def plot_overview(df, y):
     df_quarterly = df.resample('Q', on='date').mean().reset_index()
     df_yearly = df.resample('Y', on='date').mean().reset_index()
 
-    # Daily Pattern
+    
     if num_graph_start == 1:
+        # Daily Pattern
         fig.add_trace(px.line(df, x='date', y=y_colname, title='Daily Pattern').data[0], row=1, col=1)
         fig.add_trace(px.line(df_weekly, x='date', y=y_colname, title='Weekly Pattern').data[0], row=2, col=1)
         fig.add_trace(px.line(df_monthly, x='date', y=y_colname, title='Monthly Pattern').data[0], row=3, col=1)
@@ -3625,8 +3628,6 @@ def outlier_form():
         n_clusters (int or None): the number of clusters to form for K-means clustering, or None if another method is selected
         max_iter (int or None): the maximum number of iterations to run for K-means clustering, or None if another method is selected
     """   
-
-    
     # form for user to select outlier detection methods and parameters
     with st.form('outlier_form'):
         my_text_paragraph('Handling Outliers')
@@ -3634,7 +3635,7 @@ def outlier_form():
         outlier_method = st.selectbox(
                                       label = '*Select outlier detection method:*',
                                       options = ('None', 'Isolation Forest', 'Z-score', 'IQR'),
-                                      key = key1
+                                      key = key1_outlier
                                       )
         
         # load when user selects "Isolation Forest" and presses 'Submit' detection algorithm parameters
@@ -3646,7 +3647,7 @@ def outlier_form():
                                           min_value = 0.01, 
                                           max_value = 0.5, 
                                           step = 0.01, 
-                                          key = key2,
+                                          key = key2_outlier,
                                           help = '''**`Contamination`** determines the *proportion of samples in the dataset that are considered to be outliers*.
                                                  It represents the expected fraction of the contamination within the data, which means it should be set to a value close to the percentage of outliers present in the data.  
                                                  A **higher** value of **contamination** will result in a **higher** number of **outliers** being detected, while a **lower** value will result in a **lower** number of **outliers** being detected.
@@ -3660,9 +3661,9 @@ def outlier_form():
                                               label = 'Threshold:', 
                                               min_value = 1.0, 
                                               max_value = 10.0, 
-                                              key = key3, 
+                                              key = key3_outlier, 
                                               step=0.1, 
-                                              help='Using a threshold of 3 for the z-score outlier detection means that any data point +3 standard deviations or -3 standard deviations away from the mean is considered an outlier'
+                                              help = 'Using a threshold of 3 for the z-score outlier detection means that any data point +3 standard deviations or -3 standard deviations away from the mean is considered an outlier'
                                               )
                 
         # load when user selects "IQR" and presses 'Submit' detection algorithm parameters
@@ -3674,7 +3675,8 @@ def outlier_form():
                                 min_value = 0.0, 
                                 max_value = 100.0, 
                                 step = 1.0, 
-                                key = key4
+                                key = key4_outlier,
+                                help = 'Determines the value of the first quantile. If you have a Streamlit slider set at 25%, it represents the value below which e.g. 25% of the data points fall.'
                               )
                 #value=75.0
                 q3 = st.slider(
@@ -3682,15 +3684,17 @@ def outlier_form():
                                 min_value = 0.0, 
                                 max_value = 100.0, 
                                 step = 1.0, 
-                                key = key5
+                                key = key5_outlier,
+                                help = 'Determine the value of the third quantile. If you have a Streamlit slider set at 75%, it represents the value below which e.g. 75% of the data points fall.'
                               )
+                              
                 # value=1.5
                 iqr_multiplier = st.slider(
                                            label = 'IQR multiplier:', 
                                            min_value = 1.0, 
                                            max_value = 5.0, 
                                            step = 0.1, 
-                                           key = key6,
+                                           key = key6_outlier,
                                            help = '''**`IQR multiplier`** determines the value used to multiply the **Interquartile range** to detect outliers.   
                                                   For example, a value of 1.5 means that any value outside the range is considered an outlier, see formula:  
                                                   \n$Q_1 - 1.5*IQR < outlier < Q_3 + 1.5*IQR$
@@ -3699,9 +3703,10 @@ def outlier_form():
                                                   For example, to calculate the first quartile `Q1`, the dataset is divided into four equal parts, and the value at which 25% of the data falls below is taken as the first quartile. 
                                                   The same process is repeated to calculate the third quartile `Q3`, which is the value at which 75% of the data falls below.
                                                   '''
-                                           )
-                                                   
-
+                                           )          
+        elif outlier_method == 'None':
+            # do nothing if preset or set by user the detection method to None
+            pass
         else:
             st.write('outlier_form function has an issue with the parameters, please contact your administrator')
                             
@@ -3709,7 +3714,7 @@ def outlier_form():
         if outlier_method != 'None':
             outlier_replacement_method = st.selectbox(label = '*Select outlier replacement method:*', 
                                                       options = ('Interpolation', 'Mean', 'Median'), 
-                                                      key = key7,
+                                                      key = key7_outlier,
                                                       help = '''**`Replacement method`** determines the actual value(s) to replace detected outlier(s) with.   
                                                         You can replace your outlier(s) with one of the following replacement methods:    
                                                         - *linear interpolation algorithm* **(default option)**  
@@ -3873,51 +3878,91 @@ if 'freq' not in st.session_state:
 # SET VARIABLE DEFAULTS: Feature Engineering
 #///////////////////////////////////////////////////
 # initialize the checkbox values in the session state e.g. in-memory user session 
-lst_special_calendar_days = ['jan_sales',
-                            'val_day_lod',
-                            'val_day',
-                            'mother_day_lod',
-                            'mother_day',
-                            'father_day_lod',
-                            'pay_days',
-                            'father_day',
-                            'black_friday_lod',
-                            'black_friday',
-                            'cyber_monday',
-                            'christmas_day',
-                            'boxing_day']
+# =============================================================================
+# lst_special_calendar_days = ['jan_sales',
+#                             'val_day_lod',
+#                             'val_day',
+#                             'mother_day_lod',
+#                             'mother_day',
+#                             'father_day_lod',
+#                             'pay_days',
+#                             'father_day',
+#                             'black_friday_lod',
+#                             'black_friday',
+#                             'cyber_monday',
+#                             'christmas_day',
+#                             'boxing_day']
+# 
+# # set special calendar days to True - boolean variables
+# for special_calendar_day in lst_special_calendar_days:
+#     if special_calendar_day not in st.session_state:
+#         st.session_state[special_calendar_day] = True
+# 
+# # define list of dummy variables - boolean variables        
+# lst_dummy_vars = ['year_dummies',
+#                   'month_dummies',
+#                   'day_dummies']
+# # set dummy variables to True - boolean variables      
+# for dummy in lst_dummy_vars:
+#     if dummy not in st.session_state:
+#         st.session_state[dummy] = True
+# 
+# # initialize checkbox sidebar values for feature engineering
+# if 'calendar_dummies_checkbox' not in st.session_state:
+#     st.session_state['calendar_dummies_checkbox'] = True
+# if 'calendar_holidays_checkbox' not in st.session_state:
+#     st.session_state['calendar_holidays_checkbox'] = True   
+# if 'special_calendar_days_checkbox' not in st.session_state:
+#     st.session_state['special_calendar_days_checkbox'] = True
+# if 'dwt_features_checkbox' not in st.session_state:
+#     st.session_state['dwt_features_checkbox'] = False
+# # wavelet feature engineering options for user save in session state
+# if 'wavelet_family_selectbox' not in st.session_state:
+#     st.session_state['wavelet_family_selectbox'] = 'db4'    
+# if 'wavelet_level_decomposition_selectbox' not in st.session_state:
+#     st.session_state['wavelet_level_decomposition_selectbox'] = 3
+# if 'wavelet_window_size_slider' not in st.session_state:
+#     st.session_state['wavelet_window_size_slider'] = 7
+# =============================================================================
 
-# set special calendar days to True - boolean variables
-for special_calendar_day in lst_special_calendar_days:
-    if special_calendar_day not in st.session_state:
-        st.session_state[special_calendar_day] = True
+###################################################################################################
+# create a slot called "ENGINEER_PAGE" and assign keys with values within slot to persist in memory
+# note: this is because when switching streamlit pages normally the session_state would reset the in-memory saved variables 
+# such as user choices in sliders and checkboxes
+key1_engineer, key2_engineer, key3_engineer, key4_engineer, key5_engineer, key6_engineer, key7_engineer, key8_engineer = create_store("ENGINEER_PAGE",
+                                                                                                          [
+                                                                                                            ("calendar_dummies_checkbox", True),          #key1_engineer
+                                                                                                            ("calendar_holidays_checkbox", True),         #key2_engineer
+                                                                                                            ("special_calendar_days_checkbox", True),     #key3_engineer
+                                                                                                            ("dwt_features_checkbox", False),             #key4_engineer
+                                                                                                            ("wavelet_family_selectbox", "db4"),          #key5_engineer
+                                                                                                            ("wavelet_level_decomposition_selectbox", 3), #key6_engineer
+                                                                                                            ("wavelet_window_size_slider", 7),            #key7_engineer
+                                                                                                            ("run", 0)                                    #key8_engineer
+                                                                                                          ]
+                                                                                                        )
 
-# define list of dummy variables - boolean variables        
-lst_dummy_vars = ['year_dummies',
-                  'month_dummies',
-                  'day_dummies']
-# set dummy variables to True - boolean variables      
-for dummy in lst_dummy_vars:
-    if dummy not in st.session_state:
-        st.session_state[dummy] = True
-
-# initialize checkbox sidebar values for feature engineering
-if 'select_all_seasonal' not in st.session_state:
-    st.session_state['select_all_seasonal'] = True
-if 'select_country_holidays' not in st.session_state:
-    st.session_state['select_country_holidays'] = True   
-if 'select_all_days' not in st.session_state:
-    st.session_state['select_all_days'] = True
-if 'select_dwt_features' not in st.session_state:
-    st.session_state['select_dwt_features'] = False
-# wavelet feature engineering options for user save in session state
-if 'wavelet_family' not in st.session_state:
-    st.session_state['wavelet_family'] = 'db4'    
-if 'wavelet_level_decomposition' not in st.session_state:
-    st.session_state['wavelet_level_decomposition'] = 3
-if 'wavelet_window_size' not in st.session_state:
-    st.session_state['wavelet_window_size'] = 7
-
+key1_engineer_var, key2_engineer_var, key3_engineer_var, key4_engineer_var, key5_engineer_var, key6_engineer_var, key7_engineer_var, key8_engineer_var, key9_engineer_var, key10_engineer_var, \
+key11_engineer_var, key12_engineer_var, key13_engineer_var, key14_engineer_var, key15_engineer_var, key16_engineer_var, key17_engineer_var = create_store("ENGINEER_PAGE_VARS",
+                                                                                                          [("year_dummies_checkbox", True),             #key1_engineer 
+                                                                                                          ("month_dummies_checkbox", True),             #key2_engineer 
+                                                                                                          ("day_dummies_checkbox", True),               #key3_engineer 
+                                                                                                          ("jan_sales", True),                          #key4_engineer 
+                                                                                                          ("val_day_lod", True),                        #key5_engineer 
+                                                                                                          ("val_day", True),                            #key6_engineer 
+                                                                                                          ("mother_day_lod", True),                     #key7_engineer 
+                                                                                                          ("mother_day", True),                         #key8_engineer 
+                                                                                                          ("father_day_lod", True),                     #key9_engineer 
+                                                                                                          ("pay_days", True),                           #key10_engineer 
+                                                                                                          ("father_day", True),                         #key11_engineer 
+                                                                                                          ("black_friday_lod", True),                   #key12_engineer 
+                                                                                                          ("black_friday", True),                       #key13_engineer 
+                                                                                                          ("cyber_monday", True),                       #key14_engineer 
+                                                                                                          ("christmas_day", True),                      #key15_engineer 
+                                                                                                          ("boxing_day", True),                         #key16_engineer 
+                                                                                                          ("run", 0)                                    #key17_engineer
+                                                                                                        ]
+                                                                                                      )
 #///////////////////////////////////////////////////
 # SET VARIABLE DEFAULTS: PREP
 #///////////////////////////////////////////////////
@@ -4386,7 +4431,9 @@ with st.sidebar:
         col1, col2, col3 = st.columns(3)
         with col2:
             # radio button option for user to pick between demo data and load their own dataset
-            data_option = st.radio("*Choose an option:*", ["Demo Data", "Upload Data"], on_change=handle_click_wo_button, key='data_choice')
+            data_option = st.radio("*Choose an option:*", ["Demo Data", "Upload Data"], 
+                                   on_change=handle_click_wo_button, 
+                                   key='data_choice')
             # add vertical spacer
             st.write()
         if st.session_state.my_data_choice == "Upload Data":
@@ -4499,7 +4546,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
 #  |______/_/ \_\_|    |______\____/|_|  \_\______|
 #                                                  
 # =============================================================================         
-if menu_item == 'Explore' and sidebar_menu_item=='Home':    
+if menu_item == 'Explore' and sidebar_menu_item == 'Home':    
     ####################################################
     # load required variables for menu item
     ####################################################
@@ -4507,44 +4554,62 @@ if menu_item == 'Explore' and sidebar_menu_item=='Home':
     summary_statistics_df = create_summary_df(st.session_state.df_raw.iloc[:,1])
     
     ####################################################            
-    # EDA SIDEBAR
+    # Sidebar EDA parameters / buttons
     ####################################################
     with st.sidebar:
         my_title(f'{explore_icon}', my_background_color="#217CD0", gradient_colors="#217CD0,#555555")
-        #my_title(f"{load_icon}", "#45B8AC")
         ############### SIDEBAR METRICS ######################
         with st.expander(' ', expanded=True):
             # show in streamlit in sidebar Quick Summary tiles with e.g. rows/columns/start date/end date/mean/median
             eda_quick_summary()
         
-        # statistical tests
+        # Statistical tests
         with st.expander('', expanded=True):
             # create in sidebar quick insights with custom function
             eda_quick_insights(df=summary_statistics_df, my_string_column='Label')
            
-        # autocorrelation parameters form     
+        # Autocorrelation parameters form     
         with st.form('autocorrelation'):
             # Create sliders in sidebar for the parameters of PACF Plot
             st.write("")
             my_text_header('Autocorrelation ')
             my_text_paragraph('Plot Parameters')
             col1, col2, col3 = st.columns([4,1,4])
+            
             # Set default values for parameters
-            # set it to value = 30 or 50%-2 due to original and lag needed for plot
-            default_lags = min(30, int((len(st.session_state.df_raw)-2)/2))
-            default_method = "yw"  
-            nlags_acf = st.slider("*Lags ACF*", min_value=1, max_value=(len(st.session_state.df_raw)-1), value=default_lags)
+            key1_explore, key2_explore, key3_explore, key4_explore, key5_explore = create_store("EXPLORE_PAGE", [
+                ("lags_acf", min(30, int((len(st.session_state.df_raw)-2)/2))), #key1_explore
+                ("lags_pacf", min(30, int((len(st.session_state.df_raw)-2)/2))), #key2_explore
+                ("default_pacf_method", "yw"), #key3_explore
+                ("order_of_differencing_series", "Original Series"), #key4_explore
+                ("run", 0) #key5_explore
+            ])
+            
+            # create slider for number of lags for ACF Plot
+            nlags_acf = st.slider(label = "*Lags ACF*", 
+                                  min_value = 1, 
+                                  max_value = (len(st.session_state.df_raw)-1), 
+                                  key = key1_explore)
+            
             col1, col2, col3 = st.columns([4,1,4])
             with col1:
-                nlags_pacf = st.slider("*Lags PACF*", min_value=1, max_value=int((len(st.session_state.df_raw)-2)/2), value=default_lags)
+                # create slider for number of lags for PACF Plot
+                nlags_pacf = st.slider(label = "*Lags PACF*", 
+                                       min_value = 1, 
+                                       max_value = int((len(st.session_state.df_raw)-2)/2), 
+                                       key = key2_explore)
             with col3:
-                method_pacf = st.selectbox("*Method PACF*", [ 'ols', 'ols-inefficient', 'ols-adjusted', 'yw', 'ywa', 'ld', 'ywadjusted', 'yw_adjusted', 'ywm', 'ywmle', 'yw_mle', 'lda', 'ldadjusted', 'ld_adjusted', 'ldb', 'ldbiased', 'ld_biased'], index=0)
-            # Define the dropdown menu options
-            options = ['Original Series', 'First Order Difference', 'Second Order Difference', 'Third Order Difference']
-            # Create the sidebar dropdown menu
-            selection = st.selectbox('*Apply Differencing [Optional]:*', options)
+                # create dropdown menu for method to calculate the PACF Plot
+                method_pacf = st.selectbox(label = "*Method PACF*", 
+                                           options = [ 'ols', 'ols-inefficient', 'ols-adjusted', 'yw', 'ywa', 'ld', 'ywadjusted', 'yw_adjusted', 'ywm', 'ywmle', 'yw_mle', 'lda', 'ldadjusted', 'ld_adjusted', 'ldb', 'ldbiased', 'ld_biased'], 
+                                           key = key3_explore)
+            # create dropdown menu to select if you want the original series or differenced series that will also impact the ACF & PACF Plots
+            # next to having a preview in sidebar with the differenced series plotted if user selects 1st ,2nd or 3rd order difference
+            selection = st.selectbox('*Apply Differencing [Optional]:*', 
+                                     options = ['Original Series', 'First Order Difference', 'Second Order Difference', 'Third Order Difference'],
+                                     key = key4_explore)
             
-            # Display the plot based on the user's selection
+            # Display the original or data differenced Plot based on the user's selection
             original_fig, df_select_diff = df_differencing(st.session_state.df_raw, selection)
             st.plotly_chart(original_fig, use_container_width=True)
 
@@ -4552,7 +4617,7 @@ if menu_item == 'Explore' and sidebar_menu_item=='Home':
             with col2:
                 # create button in sidebar for the ACF and PACF Plot Parameters
                 st.write("")
-                acf_pacf_btn = st.form_submit_button("Submit", type="secondary")   
+                acf_pacf_btn = st.form_submit_button("Submit", type="secondary",  on_click=form_update, args=('EXPLORE_PAGE',))   
             
     ####################################################            
     # Explore MAIN PAGE (EDA)
@@ -4645,7 +4710,7 @@ print('ForecastGenie Print: Ran Explore')
 # =============================================================================
 # Register state with initiate values in a slot (fire-state package utilized)
 # define keys and store them in memory with their associated values
-key1, key2, key3, key4, key5, key6, key7, key8 = create_store("CLEAN_PAGE", [
+key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, key8_outlier = create_store("CLEAN_PAGE", [
 ("outlier_detection_method", "None"), # key1
 ("outlier_isolationforest_contamination", 0.01), #key2
 ("outlier_zscore_threshold", 3.0), #key3
@@ -4938,64 +5003,70 @@ st.session_state['df_cleaned_outliers_with_index'] = df_cleaned_outliers_with_in
 # =============================================================================
 # FEATURE ENGINEERING
 if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
+    
+    # set title of engineer page
     my_title(f"{engineer_icon} Feature Engineering", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
+    
     with st.sidebar:
+        # set title in sidebar for engineer page
         my_title(f"{engineer_icon}", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
+    
+    #create a user form in streamlit with options for feature engineering
     with st.sidebar.form('feature engineering sidebar'):
-        st.write('')
-        # show checkbox in middle of sidebar to select all features or none
+        # create empty newline
+        vertical_spacer(1)
+        # show checkboxes in middle of sidebar to select all features or none
         col1, col2, col3 = st.columns([0.1,8,3])
         with col3:
             # create checkbox for all seasonal days e.g. dummy variables for day/month/year
-            select_all_seasonal = st.checkbox(' ', value = st.session_state['select_all_seasonal'], label_visibility='visible', help='Include independent features, namely create dummy variables for each `day` of the week, `month` and `year` whereby the leave-1-out principle is applied to not have `perfect multi-collinearity` i.e. the sum of the dummy variables for each observation will otherwise always be equal to one.' )
-            st.session_state['select_all_seasonal'] = select_all_seasonal
+            calendar_dummies_checkbox = st.checkbox(label = ' ', 
+                                                    label_visibility='visible', 
+                                                    key = key1_engineer,
+                                                    help = 'Include independent features, namely create dummy variables for each `day` of the week, `month` and `year` whereby the leave-1-out principle is applied to not have `perfect multi-collinearity` i.e. the sum of the dummy variables for each observation will otherwise always be equal to one.'
+                                                    )
             # create checkbox for country holidays
-            select_country_holidays = st.checkbox(' ', value = st.session_state['select_country_holidays'], label_visibility='visible', 
-                                                  help='Include **`official holidays`** of a specified country  \
-                                                        \n**(default = USA)**')    
-            st.session_state['select_country_holidays'] = select_country_holidays
+            calendar_holidays_checkbox = st.checkbox(label = ' ', 
+                                                     label_visibility = 'visible', 
+                                                     key = key2_engineer, 
+                                                     help = 'Include **`official holidays`** of a specified country  \
+                                                          \n**(default = USA)**'
+                                                    )    
             # create checkbox for all special calendar days
-            select_all_days = st.checkbox(' ', value = st.session_state['select_all_days'], label_visibility='visible', help='Include independent features including: **`pay-days`** and significant **`sales`** dates.')
-            st.session_state['select_all_days'] = select_all_days
+            special_calendar_days_checkbox = st.checkbox(label = ' ', 
+                                                         label_visibility = 'visible', 
+                                                         key = key3_engineer,
+                                                         help = 'Include independent features including: **`pay-days`** and significant **`sales`** dates.'
+                                                         )
+
             # create checkbox for Discrete Wavelet Transform features which automatically is checked
-            select_dwt_features = st.checkbox(' ', value = st.session_state['select_dwt_features'], label_visibility='visible', help='In feature engineering, wavelet transform can be used to extract useful information from a time series by decomposing it into different frequency bands. This is done by applying a mathematical function called the wavelet function to the time series data. The resulting wavelet coefficients can then be used as features in machine learning models.')
-            st.session_state['select_dwt_features'] = select_dwt_features
+            dwt_features_checkbox = st.checkbox(label = ' ', 
+                                                label_visibility = 'visible', 
+                                                key = key4_engineer,
+                                                help = 'In feature engineering, wavelet transform can be used to extract useful information from a time series by decomposing it into different frequency bands. This is done by applying a mathematical function called the wavelet function to the time series data. The resulting wavelet coefficients can then be used as features in machine learning models.')
         with col2:
-            if select_all_seasonal == True:
-                st.write("*🌓 All Seasonal Periods*")
-            else:
-                st.write("*🌓 No Seasonal Periods*") 
-            if select_country_holidays == True:
-               st.write("*⛱️ All Holiday Periods*")
-            else:
-               st.write("*⛱️ All Holiday Periods*")
-            if select_all_days == True:
-               st.write("*🎁 All Special Calendar Days*")
-            else:
-                st.write("*🎁 No Special Calendar Days*") 
-            if select_dwt_features == True:
-                st.write("*🌊 All Wavelet Features*")
-            else:
-                st.write("*🌊No Wavelet Features*")
+            # show checkbox message if True/False for user options for Feature Selection
+            st.write("*🌓 All Seasonal Periods*" if calendar_dummies_checkbox else "*🌓 No Seasonal Periods*")
+            st.write("*⛱️ All Holiday Periods*" if calendar_holidays_checkbox else "*⛱️ No Holiday Periods*")
+            st.write("*🎁 All Special Calendar Days*" if special_calendar_days_checkbox else "*🎁 No Special Calendar Days*")
+            st.write("*🌊 All Wavelet Features*" if dwt_features_checkbox else "*🌊 No Wavelet Features*")
                 
         # provide option for user in streamlit to adjust/set wavelet parameters
         with st.expander('🔽 Wavelet settings'):
-            wavelet_family = st.selectbox(label = '*Select Wavelet Family*', 
+            wavelet_family_selectbox = st.selectbox(label = '*Select Wavelet Family*', 
                                           options = ['db4', 'sym4', 'coif4'], 
-                                          label_visibility='visible', 
-                                          index = ['db4', 'sym4', 'coif4'].index(st.session_state['wavelet_family']), # index = options.index(selected_method) 
+                                          label_visibility = 'visible', 
+                                          key = key5_engineer,
                                           help = ' A wavelet family is a set of wavelet functions that have different properties and characteristics.  \
                                           \n**`db4`** wavelet is commonly used for signals with *smooth variations* and *short-duration* pulses  \
                                           \n**`sym4`** wavelet is suited for signals with *sharp transitions* and *longer-duration* pulses.  \
                                           \n**`coif4`** wavelet, on the other hand, is often used for signals with *non-linear trends* and *abrupt* changes.  \
                                           \nIn general, the **`db4`** wavelet family is a good starting point, as it is a popular choice for a wide range of applications and has good overall performance.')
-            st.session_state['wavelet_family'] = wavelet_family
             
             # set standard level of decomposition to 3 
-            wavelet_level_decomposition = st.selectbox('*Select Level of Decomposition*', 
+            wavelet_level_decomposition_selectbox = st.selectbox('*Select Level of Decomposition*', 
                                                        [1, 2, 3, 4, 5], 
                                                        label_visibility='visible', 
-                                                       index = [1, 2, 3, 4, 5].index(st.session_state['wavelet_level_decomposition']), 
+                                                       key = key6_engineer, 
                                                        help='The level of decomposition refers to the number of times the signal is decomposed recursively into its approximation coefficients and detail coefficients.  \
                                                              \nIn wavelet decomposition, the signal is first decomposed into two components: a approximation component and a detail component.\
                                                              The approximation component represents the coarsest level of detail in the signal, while the detail component represents the finer details.  \
@@ -5004,41 +5075,41 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
                                                              \nEach level of decomposition captures different frequency bands and details in the signal, with higher levels of decomposition capturing finer and more subtle details.  \
                                                              However, higher levels of decomposition also require more computation and may introduce more noise or artifacts in the resulting representation of the signal.  \
                                                              \nThe choice of the level of decomposition depends on the specific application and the desired balance between accuracy and computational efficiency.')
-            st.session_state['wavelet_level_decomposition'] = wavelet_level_decomposition
             
             # add slider or text input to choose window size
-            wavelet_window_size = int(st.slider('*Select Window Size (in days)*', 
-                                                min_value=1, 
-                                                max_value=30, 
-                                                value=7, 
-                                                label_visibility='visible'))
-            st.session_state['wavelet_window_size'] = wavelet_window_size
+            wavelet_window_size_slider = int(st.slider(label = '*Select Window Size (in days)*', 
+                                                label_visibility = 'visible',
+                                                min_value = 1, 
+                                                max_value = 30, 
+                                                key = key7_engineer
+                                                )
+                                             )
             
         col1, col2, col3 = st.columns([4,4,4])
         with col2:
             # add submit button to form, when user presses it it updates the selection criteria
-            submitted = st.form_submit_button('Submit')
+            submitted = st.form_submit_button('Submit',  on_click=form_update, args=("ENGINEER_PAGE",))
     
     with st.expander("", expanded=True):
         ##############################
         # Add Day/Month/Year Features
-        ##############################
         # create checkboxes for user to checkmark if to include features
+        ##############################
         my_text_header('Dummy Variables')
         my_text_paragraph('🌓 Pick your time-based features to include: ')
         # vertical space / newline between header and checkboxes
-        st.write("")
+        vertical_spacer(1)
         # create columns for aligning in middle the checkboxes
         col0, col1, col2, col3, col4 = st.columns([2, 2, 2, 2, 1])
         with col1:
-            year_dummies = st.checkbox('Year', value=select_all_seasonal)
-            st.session_state['year_dummies'] = year_dummies
+            year_dummies_checkbox = st.checkbox(label = 'Year', 
+                                                key = key1_engineer_var)
         with col2:
-            month_dummies = st.checkbox('Month', value=select_all_seasonal)
-            st.session_state['month_dummies'] = month_dummies
+            month_dummies_checkbox = st.checkbox('Month', 
+                                        key = key2_engineer_var)
         with col3:
-            day_dummies = st.checkbox('Day', value=select_all_seasonal)
-            st.session_state['day_dummies'] = day_dummies
+            day_dummies_checkbox = st.checkbox('Day', 
+                                      key = key3_engineer_var)
 
         ###############################################
         # create selectbox for country holidays
@@ -5059,36 +5130,34 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
         vertical_spacer(1)
         col0, col1, col2, col3 = st.columns([6,12,12,1])
         with col1:
-            jan_sales = st.checkbox('January Sale', value=st.session_state['select_all_days'])
-            st.session_state['jan_sales'] = jan_sales
-            val_day_lod = st.checkbox("Valentine's Day [last order date]", value=st.session_state['select_all_days'])
-            st.session_state['val_day_lod'] = val_day_lod
-            val_day = st.checkbox("Valentine's Day", value=st.session_state['select_all_days'])
-            st.session_state['val_day'] = val_day
-            mother_day_lod = st.checkbox("Mother's Day [last order date]", value=st.session_state['select_all_days'])
-            st.session_state['mother_day_lod'] = mother_day_lod
-            mother_day = st.checkbox("Mother's Day", value=select_all_days)
-            st.session_state['mother_day'] = mother_day
-            father_day_lod = st.checkbox("Father's Day [last order date]", value=st.session_state['select_all_days'])
-            st.session_state['father_day_lod'] = father_day_lod
-            pay_days = st.checkbox('Monthly Pay Days (4th Friday of month)', value=st.session_state['select_all_days'])
-            st.session_state['pay_days'] = pay_days
+            # create unique function for each checkbox without form to be responsive
+            def jan_sales_change():                
+                if get_state("ENGINEER_PAGE_VARS", "jan_sales") == True:
+                    set_state("ENGINEER_PAGE_VARS", ("jan_sales", False))
+                else:
+                    set_state("ENGINEER_PAGE_VARS", ("jan_sales", True))
+                
+            jan_sales = st.checkbox(label = 'January Sale', value = get_state("ENGINEER_PAGE_VARS", "jan_sales"), on_change = jan_sales_change)
+            # update the state after user selection
+            #
+            
+            val_day_lod = st.checkbox(label = "Valentine's Day [last order date]", key = key5_engineer_var)
+            val_day = st.checkbox(label = "Valentine's Day", key = key6_engineer_var)
+            mother_day_lod = st.checkbox(label = "Mother's Day [last order date]", key = key7_engineer_var)
+            mother_day = st.checkbox(label = "Mother's Day", key = key8_engineer_var)
+            father_day_lod = st.checkbox(label = "Father's Day [last order date]", key = key9_engineer_var)
+            pay_days = st.checkbox(label = 'Monthly Pay Days (4th Friday of month)', key = key10_engineer_var)
         with col2:
-            father_day = st.checkbox("Father's Day", value=st.session_state['select_all_days'])
-            st.session_state['father_day'] = father_day
-            black_friday_lod = st.checkbox('Black Friday [sale starts]', value=st.session_state['select_all_days'])
-            st.session_state['black_friday_lod'] = black_friday_lod
-            black_friday = st.checkbox('Black Friday', value=st.session_state['select_all_days'])
-            st.session_state['black_friday'] = black_friday
-            cyber_monday = st.checkbox('Cyber Monday', value=st.session_state['select_all_days'])
-            st.session_state['cyber_monday'] = cyber_monday
-            christmas_day = st.checkbox('Christmas Day [last order date]', value=st.session_state['select_all_days'])
-            st.session_state['christmas_day'] = christmas_day
-            boxing_day = st.checkbox('Boxing Day sale', value=st.session_state['select_all_days'])
-            st.session_state['boxing_day'] = boxing_day
+            father_day = st.checkbox(label = "Father's Day", key = key11_engineer_var)
+            black_friday_lod = st.checkbox(label = 'Black Friday [sale starts]', key = key12_engineer_var)
+            black_friday = st.checkbox(label = 'Black Friday', key = key13_engineer_var)
+            cyber_monday = st.checkbox('Cyber Monday', key = key14_engineer_var)
+            christmas_day = st.checkbox(label = 'Christmas Day [last order date]', key = key15_engineer_var)
+            boxing_day = st.checkbox(label = 'Boxing Day sale', key = key16_engineer_var)
         vertical_spacer(3)
+        
     # user checkmarked the box for all seasonal periods
-    if select_all_seasonal:
+    if  special_calendar_days_checkbox:
         # call very extensive function to create all days selected by users as features
         #df = create_calendar_special_days(df_cleaned_outliers_with_index) ## replaced with session state in memory dataframe
         df = create_calendar_special_days(st.session_state['df_cleaned_outliers_with_index'])
@@ -5098,24 +5167,27 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
         df = st.session_state['df_cleaned_outliers_with_index']
     
     # user checkmarked the box for all seasonal periods
-    if select_all_days:
+    if calendar_dummies_checkbox:
         # apply function to add year/month and day dummy variables
-        df = create_date_features(df, year_dummies=st.session_state['year_dummies'], month_dummies=st.session_state['month_dummies'], day_dummies=st.session_state['day_dummies'])
+        df = create_date_features(df, 
+                                  year_dummies = year_dummies_checkbox, 
+                                  month_dummies = month_dummies_checkbox,
+                                  day_dummies = day_dummies_checkbox)
         # update the session_state
         st.session_state['df_cleaned_outliers_with_index'] = df
     else:
         pass
     
     # if user checkmarked checkbox: Discrete Wavelet Transform
-    if select_dwt_features:
+    if dwt_features_checkbox:
         with st.expander('🌊 Wavelet Features', expanded=True):
             my_text_header('Discrete Wavelet Transform')
             my_text_paragraph('Feature Extraction')
             # define wavelet and level of decomposition
-            wavelet = st.session_state['wavelet_family']
-            level = st.session_state['wavelet_level_decomposition']
+            wavelet = wavelet_family_selectbox
+            level = wavelet_level_decomposition_selectbox
             # define window size (in days)
-            window_size = st.session_state['wavelet_window_size']
+            window_size = wavelet_window_size_slider
             # create empty list to store feature vectors
             feature_vectors = []
             # loop over each window in the data
@@ -5210,7 +5282,10 @@ else:
 df = create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'], slider = False)
 #df = create_calendar_special_days(st.session_state['df_cleaned_outliers_with_index'])
 df = create_calendar_special_days(df)
-df = create_date_features(df, year_dummies=st.session_state['year_dummies'], month_dummies=st.session_state['month_dummies'], day_dummies=st.session_state['day_dummies'])
+df = create_date_features(df, 
+                          year_dummies = get_state("ENGINEER_PAGE_VARS", "year_dummies_checkbox"), 
+                          month_dummies = get_state("ENGINEER_PAGE_VARS", "month_dummies_checkbox"), 
+                          day_dummies = get_state("ENGINEER_PAGE_VARS", "day_dummies_checkbox"))
 
 # update datatypes for engineered features
 columns_to_convert = {'holiday': 'uint8', 'calendar_event': 'uint8', 'pay_day': 'uint8', 'year': 'int32', 'is_holiday': 'uint8'}
@@ -6347,7 +6422,7 @@ if menu_item == 'Forecast':
     with st.sidebar:
         my_title('Forecast 🔮', "#48466D")                    
         with st.form("📆 "):
-            if select_dwt_features:
+            if dwt_features_checkbox:
                 # wavelet model choice forecast
                 my_subheader('Select Model for Discrete Wavelet Feature(s) Forecast Estimates')
                 model_type_wavelet = st.selectbox('Select a model', ['Support Vector Regression', 'Linear'], label_visibility='collapsed') 
@@ -6403,9 +6478,9 @@ if menu_item == 'Forecast':
         # add the special calendar days
         df_future_dates = create_calendar_special_days(df_future_dates)
         # add the year/month/day dummy variables
-        df_future_dates = create_date_features(df, year_dummies=year_dummies, month_dummies=month_dummies, day_dummies=day_dummies)
+        df_future_dates = create_date_features(df, year_dummies=year_dummies_checkbox, month_dummies=month_dummies_checkbox, day_dummies=day_dummies_checkbox)
         # if user wants discrete wavelet features add them
-        if select_dwt_features:
+        if dwt_features_checkbox:
             df_future_dates = forecast_wavelet_features(X, features_df_wavelet, future_dates, df_future_dates)
         ##############################################
         # DEFINE X future
