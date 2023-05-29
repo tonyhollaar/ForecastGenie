@@ -131,7 +131,7 @@ from pandas.tseries.holiday import(
 #**********************************
 # SET PAGE CONFIGURATIONS STREAMLIT
 #**********************************
-st.set_page_config(page_title="ForecastGenie", 
+st.set_page_config(page_title="ForecastGenie™️", 
                    layout="centered", # "centered" or "wide"
                    page_icon="🌀", 
                    initial_sidebar_state="expanded") # "auto" or "expanded" or "collapsed"
@@ -1343,7 +1343,7 @@ def altair_correlation_chart(total_features, importance_scores, pairwise_feature
     # show altair chart with pairwise correlation importance scores and in red lowest and green highest
     st.altair_chart(grid_chart, use_container_width=True)
 
-def display_dataframe_graph(df, key=0):
+def display_dataframe_graph(df, key=0, my_chart_color = '#217CD0'):
     """
     Displays a line chart of a Pandas DataFrame using Plotly Express.
 
@@ -1370,7 +1370,7 @@ def display_dataframe_graph(df, key=0):
     # Set Plotly configuration options
     fig.update_layout(width=800, height=400, xaxis=dict(title='Date'), yaxis=dict(title='', rangemode='tozero'), legend=dict(x=0.9, y=0.9))
     # set line color and width
-    fig.update_traces(line=dict(color='#217CD0', width=2, dash='solid'))
+    fig.update_traces(line=dict(color = my_chart_color, width= 2, dash = 'solid'))
     # Add the range slider to the layout
     fig.update_layout(
         xaxis=dict(
@@ -1395,7 +1395,7 @@ def display_dataframe_graph(df, key=0):
             type='date'
         )
     )
-    
+
     # Display Plotly Express figure in Streamlit
     st.plotly_chart(fig, use_container_width=True, key=key)
     
@@ -3204,9 +3204,22 @@ def plot_overview(df, y):
     Plot an overview of daily, weekly, monthly, quarterly, and yearly patterns
     for a given dataframe and column.
     """
-    # initiate variable
+    
+    # initiate variables
+    ####################
+    # Update layout
+    my_text_header('Overview of Patterns')
+    vertical_spacer(1)
     num_graph_start = 1
     freq, my_freq_name = determine_df_frequency(df, column_name='date')
+    # set color picker for user centered on page
+    col1, col2, col3 = st.columns([6,1,6])   
+    with col2:
+        	my_chart_color = st.color_picker(label = 'Color', 
+        									 value = get_state("COLORS", "chart_patterns"), 
+        									 label_visibility = 'collapsed',
+                                         )
+    set_state("COLORS", ("chart_patterns", my_chart_color))
     # DAILY
     if freq == 'D':
         num_graph_start = 1
@@ -3250,7 +3263,6 @@ def plot_overview(df, y):
     df_quarterly = df.resample('Q', on='date').mean().reset_index()
     df_yearly = df.resample('Y', on='date').mean().reset_index()
 
-    
     if num_graph_start == 1:
         # Daily Pattern
         fig.add_trace(px.line(df, x='date', y=y_colname, title='Daily Pattern').data[0], row=1, col=1)
@@ -3259,6 +3271,14 @@ def plot_overview(df, y):
         fig.add_trace(px.line(df_quarterly, x='date', y=y_colname, title='Quarterly Pattern').data[0], row=4, col=1)
         fig.add_trace(px.line(df_yearly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=5, col=1)
         fig.add_trace(px.histogram(df, x=y_colname, title='Histogram').data[0], row=6, col=1)
+        # set color for graphs
+        fig.update_traces(line_color=my_chart_color, row=1, col=1)
+        fig.update_traces(line_color=my_chart_color, row=2, col=1)
+        fig.update_traces(line_color=my_chart_color, row=3, col=1)
+        fig.update_traces(line_color=my_chart_color, row=4, col=1)
+        fig.update_traces(line_color=my_chart_color, row=5, col=1)
+        fig.update_traces(marker_color=my_chart_color, row=6, col=1)
+        
     if num_graph_start == 2:
         # Weekly Pattern
         fig.add_trace(px.line(df_weekly, x='date', y=y_colname, title='Weekly Pattern').data[0], row=1, col=1)
@@ -3266,24 +3286,41 @@ def plot_overview(df, y):
         fig.add_trace(px.line(df_quarterly, x='date', y=y_colname, title='Quarterly Pattern').data[0], row=3, col=1)
         fig.add_trace(px.line(df_yearly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=4, col=1)
         fig.add_trace(px.histogram(df, x=y_colname, title='Histogram').data[0], row=5, col=1)
+        # set color for graphs
+        fig.update_traces(line_color=my_chart_color, row=1, col=1)
+        fig.update_traces(line_color=my_chart_color, row=2, col=1)
+        fig.update_traces(line_color=my_chart_color, row=3, col=1)
+        fig.update_traces(line_color=my_chart_color, row=4, col=1)
+        fig.update_traces(marker_color=my_chart_color, row=5, col=1)
+        
     if num_graph_start == 3:
         # Monthly Pattern
         fig.add_trace(px.line(df_monthly, x='date', y=y_colname, title='Monthly Pattern').data[0], row=1, col=1)
         fig.add_trace(px.line(df_quarterly, x='date', y=y_colname, title='Quarterly Pattern').data[0], row=2, col=1)
         fig.add_trace(px.line(df_yearly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=3, col=1)
         fig.add_trace(px.histogram(df, x=y_colname, title='Histogram').data[0], row=4, col=1)
+        # set color for graphs
+        fig.update_traces(line_color=my_chart_color, row=1, col=1)
+        fig.update_traces(line_color=my_chart_color, row=2, col=1)
+        fig.update_traces(line_color=my_chart_color, row=3, col=1)
+        fig.update_traces(marker_color=my_chart_color, row=4, col=1)
     if num_graph_start == 4:
         # Quarterly Pattern
         fig.add_trace(px.line(df_quarterly, x='date', y=y_colname, title='Quarterly Pattern').data[0], row=1, col=1)
         fig.add_trace(px.line(df_yearly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=2, col=1)
         fig.add_trace(px.histogram(df, x=y_colname, title='Histogram').data[0], row=3, col=1)
+        # set color for graphs
+        fig.update_traces(line_color=my_chart_color, row=1, col=1)
+        fig.update_traces(line_color=my_chart_color, row=2, col=1)
+        fig.update_traces(marker_color=my_chart_color, row=3, col=1)
     if num_graph_start == 5:
         # Yearly Pattern
         fig.add_trace(px.line(df_yearly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=1, col=1)
         fig.add_trace(px.histogram(df, x=y_colname, title='Histogram').data[0], row=2, col=1)
+        # set color for graphs
+        fig.update_traces(line_color=my_chart_color, row=1, col=1)
+        fig.update_traces(marker_color=my_chart_color, row=2, col=1)
     
-    # Update layout
-    my_text_header('Overview of Patterns')
     # define height of graph
     my_height = len(my_subplot_titles)*266
     # set height dynamically e.g. 6 graphs maximum but less if frequency is not daily data and x 266 (height) per graph
@@ -3825,6 +3862,14 @@ print('ForecastGenie Print: Loaded Functions')
 #      \/_/    \_\_|  \_\_____/_/    \_\____/|______|______|_____/ 
 #                                                                  
 # =============================================================================
+
+# store color scheme for app
+create_store("COLORS", [
+    ("chart_color", "#45B8AC"),
+    ("chart_patterns", "#0068c9"),
+    ("run", 0)
+])
+
 # SET VARIABLE DEFAULTS: demo data or uploaded data
 # check if df_raw not in current session state else add it
 if "df_raw" not in st.session_state:
@@ -4015,7 +4060,12 @@ balloon_heart_svg = """
                     </svg>
                     """
                     
-load_icon ="""
+paint_bucket_icon = """<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#999999" class="bi bi-paint-bucket" viewBox="0 0 16 16">
+  <path d="M6.192 2.78c-.458-.677-.927-1.248-1.35-1.643a2.972 2.972 0 0 0-.71-.515c-.217-.104-.56-.205-.882-.02-.367.213-.427.63-.43.896-.003.304.064.664.173 1.044.196.687.556 1.528 1.035 2.402L.752 8.22c-.277.277-.269.656-.218.918.055.283.187.593.36.903.348.627.92 1.361 1.626 2.068.707.707 1.441 1.278 2.068 1.626.31.173.62.305.903.36.262.05.64.059.918-.218l5.615-5.615c.118.257.092.512.05.939-.03.292-.068.665-.073 1.176v.123h.003a1 1 0 0 0 1.993 0H14v-.057a1.01 1.01 0 0 0-.004-.117c-.055-1.25-.7-2.738-1.86-3.494a4.322 4.322 0 0 0-.211-.434c-.349-.626-.92-1.36-1.627-2.067-.707-.707-1.441-1.279-2.068-1.627-.31-.172-.62-.304-.903-.36-.262-.05-.64-.058-.918.219l-.217.216zM4.16 1.867c.381.356.844.922 1.311 1.632l-.704.705c-.382-.727-.66-1.402-.813-1.938a3.283 3.283 0 0 1-.131-.673c.091.061.204.15.337.274zm.394 3.965c.54.852 1.107 1.567 1.607 2.033a.5.5 0 1 0 .682-.732c-.453-.422-1.017-1.136-1.564-2.027l1.088-1.088c.054.12.115.243.183.365.349.627.92 1.361 1.627 2.068.706.707 1.44 1.278 2.068 1.626.122.068.244.13.365.183l-4.861 4.862a.571.571 0 0 1-.068-.01c-.137-.027-.342-.104-.608-.252-.524-.292-1.186-.8-1.846-1.46-.66-.66-1.168-1.32-1.46-1.846-.147-.265-.225-.47-.251-.607a.573.573 0 0 1-.01-.068l3.048-3.047zm2.87-1.935a2.44 2.44 0 0 1-.241-.561c.135.033.324.11.562.241.524.292 1.186.8 1.846 1.46.45.45.83.901 1.118 1.31a3.497 3.497 0 0 0-1.066.091 11.27 11.27 0 0 1-.76-.694c-.66-.66-1.167-1.322-1.458-1.847z"/>
+</svg>
+"""
+
+load_icon = """
  <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#45B8AC" class="bi bi-cloud-arrow-up" viewBox="0 0 16 16">
    <path fill-rule="evenodd" d="M7.646 5.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 6.707V10.5a.5.5 0 0 1-1 0V6.707L6.354 7.854a.5.5 0 1 1-.708-.708l2-2z"/>
    <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383zm.653.757c-.757.653-1.153 1.44-1.153 2.056v.448l-.445.049C2.064 6.805 1 7.952 1 9.318 1 10.785 2.23 12 3.781 12h8.906C13.98 12 15 10.988 15 9.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 4.825 10.328 3 8 3a4.53 4.53 0 0 0-2.941 1.1z"/>
@@ -4438,6 +4488,7 @@ with st.sidebar:
             st.write()
         if st.session_state.my_data_choice == "Upload Data":
             uploaded_file = st.file_uploader("Upload your file", type=["csv", "xls", "xlsx", "xlsm", "xlsb"], accept_multiple_files=False, label_visibility='collapsed')
+        
 if menu_item == 'Load' and sidebar_menu_item=='Home':
     my_title(f"{load_icon} Load Dataset ", "#45B8AC")
     if st.session_state.my_data_choice == "Demo Data":
@@ -4448,7 +4499,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
         df_min = df_raw.iloc[:,0].min().date()
         df_max = df_raw.iloc[:,0].max().date()
         with st.expander('', expanded=True):
-            my_text_header('Demo Data')
+            my_text_header('Demo Data')                      
             # create 3 columns for spacing
             col1, col2, col3 = st.columns([1,3,1])
             # short message about dataframe that has been loaded with shape (# rows, # columns)
@@ -4460,8 +4511,16 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
             # set caption
             st.caption('')
+            col1, col2, col3 = st.columns([8,1,8])           
+            with col2:
+                my_chart_color = st.color_picker(label = 'Color', 
+                                                 value = get_state("COLORS", "chart_color"), 
+                                                 #on_change = on_click_event,
+                                                 label_visibility = 'collapsed')    
+                
+                set_state("COLORS", ("chart_color", my_chart_color))
             # Display Plotly Express figure in Streamlit
-            display_dataframe_graph(df=df_graph, key=1)
+            display_dataframe_graph(df=df_graph, key=1, my_chart_color = my_chart_color)
             # show dataframe below graph   
             # try to use add-on package of streamlit dataframe_explorer
             try:
@@ -4472,12 +4531,14 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
                 st.dataframe(df_graph, use_container_width=True)
             # download csv button
             download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
-            st.write('')  
+            vertical_spacer(1)
+            st.markdown('---')
             # Load the canva demo_data image from subfolder images
-            image = Image.open("./images/load_demo.png")
+
+            # Load the canva demo_data image from subfolder images
+            image = Image.open("./images/demo_header.png")
             # Display the image in Streamlit
             st.image(image, caption="", use_column_width=True)
-            my_text_paragraph('Doodle: Loading hearts...', my_font_size='12px')  
             
     if st.session_state.my_data_choice == "Upload Data" and uploaded_file is None:
         # let user upload a file
@@ -4485,7 +4546,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
         with st.expander("", expanded=True):
             my_text_header("Instructions")
             vertical_spacer(2)
-            col1, col2,col3 = st.columns([1,8,1])
+            col1, col2, col3 = st.columns([1,8,1])
             with col2:
                 my_text_paragraph('''👈 Please upload a file with your <b><span style="color:#00bf63">dates</span></b> and <b><span style="color:#ff3131">values</span></b> in below order:<br><br>
                          - first column named: <b><span style="color:#00bf63">date</span></b> in format: mm/dd/yyyy e.g. 12/31/2023<br>
@@ -4527,7 +4588,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             st.caption('')
             #############################################################################
             ## display/plot graph of dataframe
-            display_dataframe_graph(df=df_graph, key=2)
+            display_dataframe_graph(df=df_graph, key=2, my_chart_color = my_chart_color)
             # show dataframe below graph        
             try:
                 df_explore = dataframe_explorer(st.session_state['df_raw'])
@@ -4648,7 +4709,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
     # Call function for plotting Graphs of Seasonal Patterns D/W/M/Q/Y in Plotly Charts
     #############################################################################
     with st.expander('', expanded=True):
-        plot_overview(st.session_state.df_raw, y=st.session_state.df_raw.columns[1])
+        plot_overview(df = st.session_state.df_raw, y=st.session_state.df_raw.columns[1])
         
     ###################################################################  
     # AUGMENTED DICKEY-FULLER TEST
