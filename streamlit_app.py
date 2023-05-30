@@ -32,6 +32,11 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 
+from streamlit_lottie import st_lottie
+        
+import json
+import requests
+
 #**************************
 # Streamlit add-on packages
 #**************************
@@ -3199,19 +3204,42 @@ def determine_df_frequency(df, column_name='date'):
     except:
         print(f'Error in function "determine_df_frequency()": could not determine frequency of uploaded data.')
         
+def adjust_brightness(hex_color, brightness_factor):
+    """
+    Adjusts the brightness of a given hex color.
+
+    Args:
+        hex_color (str): The hex color code (e.g., '#RRGGBB').
+        brightness_factor (float): The factor by which to adjust the brightness. 
+                                  Values less than 1.0 decrease brightness, 
+                                  while values greater than 1.0 increase brightness.
+
+    Returns:
+        str: The adjusted hex color code.
+
+    """
+    # Convert hex color to RGB
+    rgb_color = tuple(int(hex_color[i:i+2], 16) for i in (1, 3, 5))
+    # Adjust brightness
+    adjusted_rgb_color = tuple(max(0, min(255, int(round(c * brightness_factor)))) for c in rgb_color)
+    # Convert RGB back to hex color
+    adjusted_hex_color = '#' + ''.join(format(c, '02x') for c in adjusted_rgb_color)
+    return adjusted_hex_color
+       
 def plot_overview(df, y):
     """
     Plot an overview of daily, weekly, monthly, quarterly, and yearly patterns
     for a given dataframe and column.
     """
-    
     # initiate variables
     ####################
+    num_graph_start = 1
+    freq, my_freq_name = determine_df_frequency(df, column_name='date')
+
     # Update layout
     my_text_header('Overview of Patterns')
     vertical_spacer(1)
-    num_graph_start = 1
-    freq, my_freq_name = determine_df_frequency(df, column_name='date')
+    
     # set color picker for user centered on page
     col1, col2, col3 = st.columns([6,1,6])   
     with col2:
@@ -3250,6 +3278,7 @@ def plot_overview(df, y):
                         'Histogram')
     
     my_subplot_titles = all_subplot_titles[num_graph_start-1:]
+    
     # set figure with 6 rows and 1 column with needed subplot titles and set the row_ieght
     fig = make_subplots(rows=len(my_subplot_titles), cols=1,
                         subplot_titles=my_subplot_titles,
@@ -3270,15 +3299,60 @@ def plot_overview(df, y):
         fig.add_trace(px.line(df_monthly, x='date', y=y_colname, title='Monthly Pattern').data[0], row=3, col=1)
         fig.add_trace(px.line(df_quarterly, x='date', y=y_colname, title='Quarterly Pattern').data[0], row=4, col=1)
         fig.add_trace(px.line(df_yearly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=5, col=1)
-        fig.add_trace(px.histogram(df, x=y_colname, title='Histogram').data[0], row=6, col=1)
-        # set color for graphs
+        
+        # HISTOGRAM
+        #########################################################################################
+        # 1.Histogram's Normal Distribution Curve Calculation & Color
+        # Scott's Rule: calculate number of bins based on st. dev.
+        bin_width = 3.5 * np.std(df[y_colname]) / (len(df[y_colname]) ** (1/3))
+        num_bins = math.ceil((np.max(df[y_colname]) - np.min(df[y_colname])) / bin_width)
+        
+        mean = df[y_colname].mean()
+        std = df[y_colname].std()
+        
+        x_vals = np.linspace(df[y_colname].min(), df[y_colname].max(), 100) # Generate x-values
+        y_vals = (np.exp(-(x_vals - mean)**2 / (2 * std**2)) / (np.sqrt(2 * np.pi) * std) * len(df[y_colname]) * bin_width) # Calculate y-values
+        
+        # define adjusted brightness color of normal distribution trace
+        adjusted_color = adjust_brightness(my_chart_color, 2)
+        
+        # Check for NaN values in the column
+        if df[y_colname].isnull().any():
+            vertical_spacer(2)
+            st.info('**ForecastGenie**: replaced your missing values with zero in a copy of original dataframe, in order to plot the Histogram. No worries I kept the original dataframe in one piece.')
+            # Handle missing values in copy of dataframe -> do not want to change original df
+            df = df.copy(deep=True)
+            
+            df[y_colname].fillna(0, inplace=True)  # Replace NaN values with a specific value
+        else:
+            pass
+        
+        # 2. Absolute Frequency
+        #---------------------------------------------------------
+        if get_state("HIST", "histogram_freq_type") == "Absolute":
+            histogram_trace = px.histogram(df, x=y_colname, title='Histogram', nbins=num_bins) # Define Histogram Trace
+            fig.add_trace(histogram_trace.data[0], row=6, col=1)  # Histogram
+            fig.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines', line_color= adjusted_color, showlegend=False), row=6, col=1) # Normal Dist Curve
+            fig.add_vline(x=mean, line_dash="dash", line_color=adjusted_color, row=6, col=1) # Mean line
+       
+        # 3. Relative Frequency
+        #---------------------------------------------------------
+        elif get_state("HIST", "histogram_freq_type") == "Relative":
+            #fig.add_trace(px.histogram(df, x = y_colname , title='Histogram', nbins = num_bins).data[0], row=6, col=1) # Histogram
+            hist, bins = np.histogram(df[y_colname], bins=num_bins)
+            rel_freq = hist / np.sum(hist)
+            fig.add_trace(go.Bar(x=bins, y=rel_freq, name='Relative Frequency', showlegend=False), row=6, col=1)
+        else:
+            st.error('FORECASTGENIE ERROR: Could not execute the plot of the Histogram, please contact your administrator.')
+            
+        # Set color for graphs
         fig.update_traces(line_color=my_chart_color, row=1, col=1)
         fig.update_traces(line_color=my_chart_color, row=2, col=1)
         fig.update_traces(line_color=my_chart_color, row=3, col=1)
         fig.update_traces(line_color=my_chart_color, row=4, col=1)
         fig.update_traces(line_color=my_chart_color, row=5, col=1)
-        fig.update_traces(marker_color=my_chart_color, row=6, col=1)
-        
+        fig.update_traces(marker_color=my_chart_color, row=6, col=1) 
+
     if num_graph_start == 2:
         # Weekly Pattern
         fig.add_trace(px.line(df_weekly, x='date', y=y_colname, title='Weekly Pattern').data[0], row=1, col=1)
@@ -3291,8 +3365,7 @@ def plot_overview(df, y):
         fig.update_traces(line_color=my_chart_color, row=2, col=1)
         fig.update_traces(line_color=my_chart_color, row=3, col=1)
         fig.update_traces(line_color=my_chart_color, row=4, col=1)
-        fig.update_traces(marker_color=my_chart_color, row=5, col=1)
-        
+        fig.update_traces(marker_color=my_chart_color, row=5, col=1)        
     if num_graph_start == 3:
         # Monthly Pattern
         fig.add_trace(px.line(df_monthly, x='date', y=y_colname, title='Monthly Pattern').data[0], row=1, col=1)
@@ -3323,11 +3396,13 @@ def plot_overview(df, y):
     
     # define height of graph
     my_height = len(my_subplot_titles)*266
+    
     # set height dynamically e.g. 6 graphs maximum but less if frequency is not daily data and x 266 (height) per graph
     fig.update_layout(height = my_height)
+    
     # Display in Streamlit app
     st.plotly_chart(fig, use_container_width=True)
-
+    
 #################### PACF GRAPH ###########################################
 # Define functions to calculate PACF
 #################### PACF GRAPH ###########################################
@@ -4158,8 +4233,8 @@ my_forecastgenie_title('ForecastGenie')
 # =============================================================================  
 # CREATE SIDEBAR MENU FOR HOME / ABOUT / FAQ PAGES FOR USER
 with st.sidebar:
-    sidebar_menu_item = option_menu(None, ["Home", "About", "FAQ"], 
-        icons=["house", "file-person", "info-circle"], 
+    sidebar_menu_item = option_menu(None, ["Home", "About", "FAQ", "Doc"], 
+        icons=["house", "file-person", "info-circle", "file-text"], 
         menu_icon="cast", default_index=0, orientation="horizontal",
         styles={
             "container": {
@@ -4361,6 +4436,46 @@ print('ForecastGenie Print: Loaded About Page')
 if sidebar_menu_item == 'FAQ':
     my_title('FAQ')
     with st.expander('', expanded=True):
+                
+        # lottie animation
+        # set path
+      
+          
+        col1, col2, col3 = st.columns([4,3,4])    
+        
+        with col1:
+            path = "./images/137106-question-mark.json"
+            with open(path,"r") as file:
+                url = json.load(file)
+                # show lottie file in streamlit  
+                # source: https://lottiefiles.com/68689-cute-astronaut-read-book-on-planet-cartoon
+                st_lottie(url,
+                reverse=False,
+                height=160,
+                width=399,
+                speed=0.2,
+                loop=True,
+                quality='high',
+                key='question-mark'
+                )
+        with col2:
+            path = "./images/astronaut-with-space-shuttle.json"
+            with open(path,"r") as file:
+                 url = json.load(file)
+                 # show lottie file in streamlit  
+                 # source: https://lottiefiles.com/68689-cute-astronaut-read-book-on-planet-cartoon
+                 st_lottie(url,
+                             reverse=False,
+                             height=200,
+                             width=200,
+                             speed=1,
+                             loop=True,
+                             quality='high',
+                             key='astronaut'
+                         )
+        
+        
+        
         st.write('')
         col1, col2, col3 = st.columns([2,8,2])
         with col2:
@@ -4371,7 +4486,7 @@ if sidebar_menu_item == 'FAQ':
             my_text_paragraph('<b> What kind of data can I use with ForecastGenie? </b>', add_border=True)
             my_text_paragraph('ForecastGenie accepts data in the form of common file types such as .CSV or .XLS. Hereby the first column should contain the dates and the second column containing the target variable of interest. The application can handle a wide range of time-series data, including financial data, sales data, weather data, and more.')
             
-            my_text_paragraph('<b>What kind of models does ForecastGenie offer </b>?', add_border=True)
+            my_text_paragraph('<b>What kind of models does ForecastGenie offer? </b>', add_border=True)
             my_text_paragraph('ForecastGenie offers a range of models to suit different data and use cases, including Naive, SARIMAX, and Prophet. The application also includes hyper-parameter tuning, enabling users to optimize the performance of their models and achieve more accurate forecasts.')
             
             my_text_paragraph('<b> What kind of metrics does ForecastGenie use to evaluate model performance? </b>', add_border=True)
@@ -4464,6 +4579,78 @@ if sidebar_menu_item == 'FAQ':
   
 # LOGGING
 print('ForecastGenie Print: Loaded FAQ Page')
+
+if sidebar_menu_item == 'Doc':
+    with st.expander('', expanded=True):
+        # Display the static image
+        my_text_header('Documentation')
+        vertical_spacer(6)
+        
+
+          
+        col1, col2, col3 = st.columns([4,4,4])    
+        with col2:
+            # lottie animation
+            # set path
+            path = "./images/reading.json"
+            with open(path,"r") as file:
+                url = json.load(file)
+            # show lottie file in streamlit  
+            # source: https://lottiefiles.com/68689-cute-astronaut-read-book-on-planet-cartoon
+            st_lottie(url,
+                        reverse=False,
+                        height=200,
+                        width=200,
+                        speed=1,
+                        loop=True,
+                        quality='high',
+                        key='astronaut'
+                    )
+        vertical_spacer(16)
+        st.markdown('---')    
+        # DOC: LOAD
+        my_text_header('<b> Step 1: </b> <br> Load Dataset')
+        # lottie animation
+        # set path
+        path = "./images/99274-loading.json"
+        with open(path,"r") as file:
+            url = json.load(file)
+        col1, col2, col3 = st.columns([4,4,4])    
+        with col2: 
+           # show lottie file in streamlit  
+            # source: https://lottiefiles.com/68689-cute-astronaut-read-book-on-planet-cartoon
+            st_lottie(url,
+                        reverse=False,
+                        height=200,
+                        width=200,
+                        speed=0.5,
+                        loop=True,
+                        quality='high',
+                        key='loading'
+                    )
+      
+
+        col1, col2, col3 = st.columns([2,6,2])    
+        with col2:
+            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.')
+
+        vertical_spacer(2)
+        st.markdown('---') 
+        
+        # DOC: EDA
+        ################################                
+        my_text_header('<b> Step 2: </b> <br> Exploratory Data Analysis')
+    
+        col1, col2, col3 = st.columns([0.1,20,1])
+        with col2:
+            # banner for EDA
+            static_path = "./images/explore_header.svg"
+            st.image(static_path, caption="", clamp=True)
+
+            # text
+            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.')
+
+
     
 # =============================================================================
 #   _      ____          _____  
@@ -4534,9 +4721,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             vertical_spacer(1)
             st.markdown('---')
             # Load the canva demo_data image from subfolder images
-
-            # Load the canva demo_data image from subfolder images
-            image = Image.open("./images/demo_header.png")
+            image = Image.open("./images/demo_footer.png")
             # Display the image in Streamlit
             st.image(image, caption="", use_column_width=True)
             
@@ -4586,6 +4771,14 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
             # set caption
             st.caption('')
+            col1, col2, col3 = st.columns([8,1,8])           
+            with col2:
+                my_chart_color = st.color_picker(label = 'Color', 
+                                                 value = get_state("COLORS", "chart_color"), 
+                                                 #on_change = on_click_event,
+                                                 label_visibility = 'collapsed')    
+                
+                set_state("COLORS", ("chart_color", my_chart_color))
             #############################################################################
             ## display/plot graph of dataframe
             display_dataframe_graph(df=df_graph, key=2, my_chart_color = my_chart_color)
@@ -4598,6 +4791,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             # download csv button
             download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
 
+key_hist = create_store("HIST", [("histogram_freq_type", "Absolute"),  ("run", 0)])
 # =============================================================================
 #   ________   _______  _      ____  _____  ______ 
 #  |  ____\ \ / /  __ \| |    / __ \|  __ \|  ____|
@@ -4607,7 +4801,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
 #  |______/_/ \_\_|    |______\____/|_|  \_\______|
 #                                                  
 # =============================================================================         
-if menu_item == 'Explore' and sidebar_menu_item == 'Home':    
+if menu_item == 'Explore' and sidebar_menu_item == 'Home':  
     ####################################################
     # load required variables for menu item
     ####################################################
@@ -4709,7 +4903,29 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
     # Call function for plotting Graphs of Seasonal Patterns D/W/M/Q/Y in Plotly Charts
     #############################################################################
     with st.expander('', expanded=True):
+        # show all graphs with patterns in streamlit
         plot_overview(df = st.session_state.df_raw, y=st.session_state.df_raw.columns[1])
+        
+        def hist_change_freq():
+            try:
+                # update in memory value for radio button / save user choice of histogram freq
+                index_freq_type = ("Relative" if frequency_type == "Absolute" else "Absolute")
+                set_state("HIST", ("histogram_freq_type", index_freq_type))
+            except:
+                set_state("HIST", ("histogram_freq_type", "Absolute"))
+                
+        # radio button for user to select frequency of hist: absolute values or relative
+        col1, col2, col3 = st.columns([10,9,9])
+        with col2:
+            # Add radio button for frequency type of histogram
+            frequency_type = st.radio(label = "*Select histogram frequency type:*", 
+                                      options = ("Absolute", "Relative"), 
+                                      index = 1 if get_state("HIST", "histogram_freq_type") == "Relative" else 0,
+                                      on_change = hist_change_freq,
+                                      horizontal = True)
+        vertical_spacer(3)   
+        
+      
         
     ###################################################################  
     # AUGMENTED DICKEY-FULLER TEST
