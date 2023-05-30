@@ -150,6 +150,25 @@ st.set_page_config(page_title="ForecastGenie™️",
 #  |_|     \____/|_| \_|\_____|  |_|  |_____\____/|_| \_|_____/ 
 #                                                               
 # =============================================================================
+def show_lottie_animation(url, key, reverse=False, height=400, width=400, speed=1, loop=True, quality='high', col_sizes=[1, 3, 1], margin_before = 0, margin_after = 0):
+    with open(url, "r") as file:
+        animation_url = json.load(file)
+
+    col1, col2, col3 = st.columns(col_sizes)
+    with col2:
+        vertical_spacer(margin_before)
+        
+        st_lottie(animation_url,
+                  reverse=reverse,
+                  height=height,
+                  width=width,
+                  speed=speed,
+                  loop=loop,
+                  quality=quality,
+                  key=key
+                  )
+        vertical_spacer(margin_after)
+
 def handle_click_fill_method_button():
     # if key of radio button exists
     if st.session_state['fill_method']:
@@ -163,8 +182,9 @@ def vertical_spacer(n):
 
 def eda_quick_insights(df, my_string_column):
     my_text_header('Quick Insights')
-    st.write('')
-    col1,  col2 = st.columns([1,3])
+    show_lottie_animation(url = "./images/telescope.json", key="telescope", width=300, height=300, col_sizes=[2,3,2], margin_before=1)
+
+    col1,  col2 = st.columns([1,2])
     with col2:
         # Filter out NaN and '-' values from 'Label' column
         label_values = df[my_string_column].dropna().apply(lambda x: x.strip()).replace('-', '').tolist()
@@ -265,9 +285,10 @@ def my_text_paragraph(my_string,
                        my_font_weight=200,
                        my_font_size='18px',
                        my_line_height=1.5,
-                       add_border=False):
+                       add_border=False,
+                       border_color = "#45B8AC"):
     if add_border:
-        border_style = f'border: 2px solid #45B8AC; border-radius: 10px; padding: 10px; box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);'
+        border_style = f'border: 2px solid {border_color}; border-radius: 10px; padding: 10px; box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);'
     else:
         border_style = ''
     paragraph = f'<p style="text-align:{my_text_align}; font-family:{my_font_family}; font-weight:{my_font_weight}; font-size:{my_font_size}; line-height:{my_line_height}; background-color: rgba(255, 255, 255, 0); {border_style}">{my_string}</p>'
@@ -359,6 +380,7 @@ def train_models_carousel(my_title= 'Select your models to train in the sidebar!
     vertical_spacer(2)
                         
 def create_carousel_cards(num_cards, header_list, paragraph_list, font_family, font_size):
+    # note: #purple gradient: background: linear-gradient(to bottom right, #F08A5D, #FABA63, #2E9CCA, #4FB99F, #dababd);
     # create empty list that will keep the html code needed for each card with header+text
     card_html = []
     # iterate over cards specified by user and join the headers and text of the lists
@@ -392,7 +414,8 @@ def create_carousel_cards(num_cards, header_list, paragraph_list, font_family, f
           height: 200px;
           margin: 30px;
           padding: 20px;
-          background: linear-gradient(to bottom left, #4e3fce, #7a5dc7, #9b7cc2, #bb9bbd, #dababd);
+          background: linear-gradient(to bottom left, #F08A5D, #FABA63);
+                                      #  '-webkit-linear-gradient(left, #F08A5D, #FABA63, #2E9CCA, #4FB99F)'
           box-shadow: 10px 10px 10px 0px rgba(0, 0, 0, 0.1);
           border-radius: 20px;
           text-align: center;
@@ -669,6 +692,8 @@ def eda_quick_summary():
     try:
         # Display the header for the quick summary
         my_text_header('Quick Summary')
+        show_lottie_animation(url = "./images/58666-sputnik-mission-launch.json", key='test', width=200, height=200, speed = 0.2, col_sizes=[4,4,4])
+        
         # Create columns for organizing the metrics
         col1, col2, col3, col4, col5 = st.columns([15, 25, 5, 25, 15])
         with col2:
@@ -682,10 +707,10 @@ def eda_quick_summary():
                 border: 0px solid {metric_color};
                 border-radius: 10px;
                 background-color: #ffffff;
-                box-shadow: 0px 0px 15px -5px rgba(0,0,0,0.15);
+                box-shadow: 0px 0px 15px -5px rgba(0,0,0,0.8);
                 padding: 20px;
                 margin: 10px;
-                height: 80px; /* add this line to set the height of the container */
+                height: 100px; /* add this line to set the height of the container */
                 font-family: {font_family};
                 font-size: {font_size};
                 color: {metric_color};
@@ -708,6 +733,14 @@ def eda_quick_summary():
             mean_val = np.round(st.session_state.df_raw.iloc[:, 1].mean(), 2)
             # Position the metrics on top of the gradient
             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Mean</div><div>{mean_val}</div></div></div>', unsafe_allow_html=True)
+        
+            min_val = np.round(st.session_state.df_raw.iloc[:, 1].min(skipna=True), 2)
+            # Position the metrics on top of the gradient
+            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Minimum</div><div>{min_val}</div></div></div>', unsafe_allow_html=True)
+            
+            std_val = np.round(np.nanstd(st.session_state.df_raw.iloc[:, 1], ddof=0), 2)
+            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">StDev</div><div>{std_val}</div></div></div>', unsafe_allow_html=True)
+            
         with col4:
             # Compute and display the number of columns as a metric
             cols = st.session_state.df_raw.shape[1]
@@ -726,7 +759,15 @@ def eda_quick_summary():
             median_val = np.round(st.session_state.df_raw.iloc[:, 1].median(skipna=True), 2)
             # Position the metrics on top of the gradient
             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Median</div><div>{median_val}</div></div></div>', unsafe_allow_html=True)
-    
+            
+            max_val = np.round(st.session_state.df_raw.iloc[:, 1].max(skipna=True), 2)
+            # Position the metrics on top of the gradient
+            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Maximum</div><div>{max_val}</div></div></div>', unsafe_allow_html=True)
+        
+            mode_val = st.session_state.df_raw.iloc[:, 1].dropna().mode().round(2).iloc[0]
+            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Mode</div><div>{mode_val}</div></div></div>', unsafe_allow_html=True)
+        
+            
             # vertical spacer
             vertical_spacer(2)
     except:
@@ -3237,8 +3278,9 @@ def plot_overview(df, y):
     freq, my_freq_name = determine_df_frequency(df, column_name='date')
 
     # Update layout
-    my_text_header('Overview of Patterns')
-    vertical_spacer(1)
+    my_text_header('Patterns')
+    
+    show_lottie_animation(url="./images/spacemug.json", key='spacemug', width=300, height=300, col_sizes = [2,4,2])
     
     # set color picker for user centered on page
     col1, col2, col3 = st.columns([6,1,6])   
@@ -4328,66 +4370,72 @@ menu_item = option_menu(None, ["Load", "Explore", "Clean", "Engineer", "Prepare"
 # =============================================================================
 if sidebar_menu_item == 'About':
     try:
-        my_title('About')
+        
         with st.expander('', expanded=True):
             # Title with gradient
             #####################
-            # vertical spacers
-            st.write('')
-            st.write('')
             # set title
-            title = '\"Hi 👋 Welcome to the ForecastGenie app!\"'
-            # set gradient color of letters of title
-            gradient = '-webkit-linear-gradient(left, #F08A5D, #FABA63, #2E9CCA, #4FB99F)'
-            # show in streamlit the title with gradient
-            st.markdown(f'<h1 style="text-align:center; background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient};"> {title} </h1>', unsafe_allow_html=True)
-            # vertical spacer
-            st.write('')
+            vertical_spacer(2)
+            my_text_paragraph('About', my_font_size='36px')
+            show_lottie_animation(url="./images/89601-solar-system.json", key='solar_system', speed = 1, width=400, reverse=False, height=400, margin_before = 2, margin_after=10)
+            st.markdown('---')
+            
+# =============================================================================
+#             title = '\"Hi 👋 Welcome to the ForecastGenie app!\"'
+#             # set gradient color of letters of title
+#             gradient = '-webkit-linear-gradient(left, #F08A5D, #FABA63, #2E9CCA, #4FB99F)'
+#             # show in streamlit the title with gradient
+#             st.markdown(f'<h1 style="text-align:center; background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient};"> {title} </h1>', unsafe_allow_html=True)
+#             # vertical spacer
+#             st.write('')
+# =============================================================================
             col1, col2, col3 = st.columns([2,8,2])
             with col2:
-                # Create Carousel Cards
-                # define for each card the header in the header list
-                header_list = ["	📈", 
-                               "🔍",  
-                               "🧹",  
-                               "🧰",  
-                               "🔢"]
-                # define for each card the corresponding paragraph in the list
-                paragraph_list = ["Forecasting made easy", 
-                                  "Professional data analysis", 
-                                  "Automated data cleaning", 
-                                  "Intelligent feature engineering", 
-                                  "User-friendly interface", 
-                                  "Versatile model training"]
-                # define the font family to display the text of paragraph
-                font_family = "Trebuchet MS"
-                # define the paragraph text size
-                font_size = '18px'
-                # in streamlit create and show the user defined number of carousel cards with header+text
-                create_carousel_cards(4, header_list, paragraph_list, font_family, font_size)
+# =============================================================================
+#                 # Create Carousel Cards
+#                 # define for each card the header in the header list
+#                 header_list = ["	📈", 
+#                                "🔍",  
+#                                "🧹",  
+#                                "🧰",  
+#                                "🔢"]
+#                 # define for each card the corresponding paragraph in the list
+#                 paragraph_list = ["Forecasting made easy", 
+#                                   "Professional data analysis", 
+#                                   "Automated data cleaning", 
+#                                   "Intelligent feature engineering", 
+#                                   "User-friendly interface", 
+#                                   "Versatile model training"]
+#                 # define the font family to display the text of paragraph
+#                 font_family = "Trebuchet MS"
+#                 # define the paragraph text size
+#                 font_size = '18px'
+#                 # in streamlit create and show the user defined number of carousel cards with header+text
+#                 create_carousel_cards(4, header_list, paragraph_list, font_family, font_size)
+# =============================================================================
                 
                 #################################
                 # ABOUT MENU - HEADERS+PARAGRAPHS
                 #################################
                 # What does it do?
                 my_text_header('What does it do?')
-                my_text_paragraph('🕵️‍♂️ <b> Analyze data:', add_border=True)
+                my_text_paragraph('🕵️‍♂️ <b> Analyze data:', add_border=True, border_color = "#F08A5D")
                 my_text_paragraph('Inspect seasonal patterns and distribution of the data', add_border=False)
-                my_text_paragraph('🧹 <b> Cleaning data: </b>', add_border=True)
+                my_text_paragraph('🧹 <b> Cleaning data: </b>', add_border=True, border_color = "#F08A5D")
                 my_text_paragraph('Automatic detection and replacing missing data points and remove outliers')
-                my_text_paragraph('🧰 <b> Feature Engineering: </b>', add_border=True)
+                my_text_paragraph('🧰 <b> Feature Engineering: </b>', add_border=True,border_color = "#F08A5D")
                 my_text_paragraph(' Add holidays, calendar day/week/month/year and optional wavelet features')
-                my_text_paragraph('⚖️ <b> Normalization and Standardization </b>', add_border=True)
+                my_text_paragraph('⚖️ <b> Normalization and Standardization </b>', add_border=True, border_color = "#F08A5D")
                 my_text_paragraph('Select from industry standard techniques')
-                my_text_paragraph('🍏 <b> Feature Selection: </b>', add_border=True)
+                my_text_paragraph('🍏 <b> Feature Selection: </b>', add_border=True, border_color = "#F08A5D")
                 my_text_paragraph('</b> Only keep relevant features based on feature selection techniques')
-                my_text_paragraph('🍻 <b> Correlation Analysis:</b> ', add_border=True)
+                my_text_paragraph('🍻 <b> Correlation Analysis:</b> ', add_border=True, border_color = "#F08A5D")
                 my_text_paragraph('Automatically remove highly correlated features')
-                my_text_paragraph('🔢 <b> Train Models:</b>', add_border=True)
+                my_text_paragraph('🔢 <b> Train Models:</b>', add_border=True, border_color = "#F08A5D")
                 my_text_paragraph('Including Naive, Linear, SARIMAX and Prophet Models')
-                my_text_paragraph('🎯 <b> Evaluate Model Performance:', add_border=True)
+                my_text_paragraph('🎯 <b> Evaluate Model Performance:', add_border=True, border_color = "#F08A5D")
                 my_text_paragraph('Benchmark models performance with evaluation metrics')
-                my_text_paragraph('🔮  <b> Forecast:', add_border=True)
+                my_text_paragraph('🔮  <b> Forecast:', add_border=True, border_color = "#F08A5D")
                 my_text_paragraph('Forecast your variable of interest with ease by selecting your desired end-date from the calendar')
                 
                 # What do I need?
@@ -4434,15 +4482,11 @@ print('ForecastGenie Print: Loaded About Page')
 #                     
 # =============================================================================
 if sidebar_menu_item == 'FAQ':
-    my_title('FAQ')
     with st.expander('', expanded=True):
-                
-        # lottie animation
-        # set path
-      
-          
-        col1, col2, col3 = st.columns([4,3,4])    
-        
+        vertical_spacer(2)
+        my_text_paragraph('FAQ', my_font_size='36px')
+        vertical_spacer(8)
+        col1, col2, col3 = st.columns([4,3,4])            
         with col1:
             path = "./images/137106-question-mark.json"
             with open(path,"r") as file:
@@ -4476,25 +4520,26 @@ if sidebar_menu_item == 'FAQ':
         
         
         
-        st.write('')
+        vertical_spacer(17)
+        st.markdown('---')
         col1, col2, col3 = st.columns([2,8,2])
         with col2:
             # FAQ - Questions and Answers
             my_text_paragraph('<b> What is ForecastGenie? </b>', add_border=True)
             my_text_paragraph('ForecastGenie is a free, open-source application that enables users to perform time-series forecasting on their data. The application offers a range of advanced features and models to help users generate accurate forecasts and gain insights into their data.')
-            
+            vertical_spacer(1)
             my_text_paragraph('<b> What kind of data can I use with ForecastGenie? </b>', add_border=True)
             my_text_paragraph('ForecastGenie accepts data in the form of common file types such as .CSV or .XLS. Hereby the first column should contain the dates and the second column containing the target variable of interest. The application can handle a wide range of time-series data, including financial data, sales data, weather data, and more.')
-            
+            vertical_spacer(1)
             my_text_paragraph('<b>What kind of models does ForecastGenie offer? </b>', add_border=True)
             my_text_paragraph('ForecastGenie offers a range of models to suit different data and use cases, including Naive, SARIMAX, and Prophet. The application also includes hyper-parameter tuning, enabling users to optimize the performance of their models and achieve more accurate forecasts.')
-            
+            vertical_spacer(1)
             my_text_paragraph('<b> What kind of metrics does ForecastGenie use to evaluate model performance? </b>', add_border=True)
             my_text_paragraph('ForecastGenie uses a range of business-standard evaluation metrics to assess the accuracy of forecasting models, including Mean Absolute Error (MAE), Mean Squared Error (MSE), Root Mean Squared Error (RMSE), and more. These metrics provide users with a reliable and objective measure of their model\'s performance.')
-            
+            vertical_spacer(1)
             my_text_paragraph('<b>Is ForecastGenie really free? </b>', add_border=True)
             my_text_paragraph('Yes! ForecastGenie is completely free and open-source. If you find the application useful and would like to show your support, you can choose to "buy the creator a coffee" using the link provided on the app. However, this is entirely optional, and there are no hidden fees or costs associated with using ForecastGenie.')
-            
+            vertical_spacer(1)
             my_text_paragraph('<b>Is ForecastGenie suitable for non-technical users? </b>', add_border=True)
             my_text_paragraph('Yes! ForecastGenie is designed to be user-friendly and intuitive, even for users with little or no technical experience. The application includes automated data cleaning and feature engineering, making it easy to prepare your data for forecasting. Additionally, the user interface is simple and easy to navigate, with clear instructions and prompts throughout the process.')
             
@@ -4571,11 +4616,7 @@ if sidebar_menu_item == 'FAQ':
                 # show flashcard in streamlit                    
                 st.markdown(my_code, unsafe_allow_html=True)
                 # vertical spacers
-                st.write('')
-                st.write('')
-                st.write('')
-                st.write('')
-                st.write('')
+                vertical_spacer(5)
   
 # LOGGING
 print('ForecastGenie Print: Loaded FAQ Page')
@@ -4584,51 +4625,12 @@ if sidebar_menu_item == 'Doc':
     with st.expander('', expanded=True):
         # Display the static image
         my_text_header('Documentation')
-        vertical_spacer(6)
-        
-
-          
-        col1, col2, col3 = st.columns([4,4,4])    
-        with col2:
-            # lottie animation
-            # set path
-            path = "./images/reading.json"
-            with open(path,"r") as file:
-                url = json.load(file)
-            # show lottie file in streamlit  
-            # source: https://lottiefiles.com/68689-cute-astronaut-read-book-on-planet-cartoon
-            st_lottie(url,
-                        reverse=False,
-                        height=200,
-                        width=200,
-                        speed=1,
-                        loop=True,
-                        quality='high',
-                        key='astronaut'
-                    )
-        vertical_spacer(16)
+        # show lottie animation - astronaut reading while sitting on planet
+        # source: https://lottiefiles.com/68689-cute-astronaut-read-book-on-planet-cartoon
+        show_lottie_animation(url = "./images/reading.json", key = 'astronaut', height=200, width=200, speed = 1, loop=True, quality='high', col_sizes = [4,4,4], margin_before=10, margin_after=16)
         st.markdown('---')    
         # DOC: LOAD
         my_text_header('<b> Step 1: </b> <br> Load Dataset')
-        # lottie animation
-        # set path
-        path = "./images/99274-loading.json"
-        with open(path,"r") as file:
-            url = json.load(file)
-        col1, col2, col3 = st.columns([4,4,4])    
-        with col2: 
-           # show lottie file in streamlit  
-            # source: https://lottiefiles.com/68689-cute-astronaut-read-book-on-planet-cartoon
-            st_lottie(url,
-                        reverse=False,
-                        height=200,
-                        width=200,
-                        speed=0.5,
-                        loop=True,
-                        quality='high',
-                        key='loading'
-                    )
-      
 
         col1, col2, col3 = st.columns([2,6,2])    
         with col2:
@@ -4639,14 +4641,9 @@ if sidebar_menu_item == 'Doc':
         
         # DOC: EDA
         ################################                
-        my_text_header('<b> Step 2: </b> <br> Exploratory Data Analysis')
-    
-        col1, col2, col3 = st.columns([0.1,20,1])
+        my_text_header('<b> Step 2: </b> <br> Explore Dataset')
+        col1, col2, col3 = st.columns([2,6,2])    
         with col2:
-            # banner for EDA
-            static_path = "./images/explore_header.svg"
-            st.image(static_path, caption="", clamp=True)
-
             # text
             my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.')
 
@@ -4686,9 +4683,12 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
         df_min = df_raw.iloc[:,0].min().date()
         df_max = df_raw.iloc[:,0].max().date()
         with st.expander('', expanded=True):
-            my_text_header('Demo Data')                      
+            my_text_header('Demo Data')     
+            show_lottie_animation("./images/107590-rocket-launch.json", key='rocket_launch', speed=1, height=160, width=399)
+                 
             # create 3 columns for spacing
             col1, col2, col3 = st.columns([1,3,1])
+            
             # short message about dataframe that has been loaded with shape (# rows, # columns)
             col2.markdown(f"<center>Your <b>dataframe</b> has <b><font color='#555555'>{st.session_state.df_raw.shape[0]}</b></font> \
                            rows and <b><font color='#555555'>{st.session_state.df_raw.shape[1]}</b></font> columns <br> with date range: \
@@ -4697,7 +4697,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             # create deepcopy of dataframe which will be manipulated for graphs
             df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
             # set caption
-            st.caption('')
+            vertical_spacer(2)
             col1, col2, col3 = st.columns([8,1,8])           
             with col2:
                 my_chart_color = st.color_picker(label = 'Color', 
@@ -4719,11 +4719,6 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             # download csv button
             download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
             vertical_spacer(1)
-            st.markdown('---')
-            # Load the canva demo_data image from subfolder images
-            image = Image.open("./images/demo_footer.png")
-            # Display the image in Streamlit
-            st.image(image, caption="", use_column_width=True)
             
     if st.session_state.my_data_choice == "Upload Data" and uploaded_file is None:
         # let user upload a file
@@ -4813,16 +4808,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
     ####################################################
     with st.sidebar:
         my_title(f'{explore_icon}', my_background_color="#217CD0", gradient_colors="#217CD0,#555555")
-        ############### SIDEBAR METRICS ######################
-        with st.expander(' ', expanded=True):
-            # show in streamlit in sidebar Quick Summary tiles with e.g. rows/columns/start date/end date/mean/median
-            eda_quick_summary()
         
-        # Statistical tests
-        with st.expander('', expanded=True):
-            # create in sidebar quick insights with custom function
-            eda_quick_insights(df=summary_statistics_df, my_string_column='Label')
-           
         # Autocorrelation parameters form     
         with st.form('autocorrelation'):
             # Create sliders in sidebar for the parameters of PACF Plot
@@ -4884,16 +4870,25 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         #############################################################################
         # Summary Statistics
         #############################################################################
+
+        # show in streamlit in sidebar Quick Summary tiles with e.g. rows/columns/start date/end date/mean/median
+        eda_quick_summary()
+        st.markdown('---')
         # display in streamlit subheader
-        my_text_header('Summary')
-        # create linespace
-        st.write("")
-        # Display summary statistics table
-        st.dataframe(display_summary_statistics(st.session_state.df_raw), use_container_width=True)
+# =============================================================================
+#         my_text_header('Summary')
+#         # create linespace
+#         st.write("")
+#         # Display summary statistics table
+#         st.dataframe(display_summary_statistics(st.session_state.df_raw), use_container_width=True)
+# =============================================================================
         
         #######################################
         # Statistical tests
         #####################################
+        # create in sidebar quick insights with custom function
+        eda_quick_insights(df=summary_statistics_df, my_string_column='Label')
+        st.markdown('---')
         my_text_header('Insights')
         # show dataframe for statistical test results
         st.dataframe(summary_statistics_df, use_container_width=True)
@@ -5056,8 +5051,10 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
 # =============================================================================
 
     with st.expander('', expanded=True):
+        
         #*************************************************
         my_text_header('Handling missing data')
+        show_lottie_animation(url = "./images/ufo.json", key='jumping_dots', width=300, height=300, speed = 1, col_sizes=[2,4,2])
         #*************************************************    
         # Apply function to resample missing dates based on user set frequency
         df_cleaned_dates = resample_missing_dates(df = st.session_state.df_raw, 
@@ -6095,6 +6092,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
     with st.sidebar:        
         with st.form('top_features'):
             my_text_paragraph('Selected Features')
+            
             # combine list of features selected from feature selection methods and only keep unique features excluding duplicate features
             #total_features = np.unique(selected_cols_rfe + selected_cols_pca + selected_cols_mifs)
             
@@ -6115,10 +6113,13 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
     y_train = y[:(len(df)-st.session_state['insample_forecast_steps'])]
     y_test = y[(len(df)-st.session_state['insample_forecast_steps']):]           
 
+
+
+        
     with st.expander('🥇 Top Features Selected', expanded=True):
         my_subheader('')
         my_text_paragraph('Your Feature Selection', my_font_size='26px')
-        vertical_spacer(2)
+        show_lottie_animation(url = "./images/89033-star-in-hand-baby-astronaut.json", key = 'austronaut-star', margin_before=1, margin_after=2)
         # create dataframe from list of features and specify column header
         df_total_features = pd.DataFrame(total_features, columns = ['Top Features'])
         st.dataframe(df_total_features, use_container_width=True)
