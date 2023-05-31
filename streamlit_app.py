@@ -5678,6 +5678,7 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
         # show user the train test split currently set by user or default e.g. 80:20 train/test split
         st.warning(f"ℹ️ train/test split currently equals :green[**{perc_train_set}**] and :green[**{perc_test_set}**] ")
 
+        
     ##############################
     # 5.2 Normalization
     ##############################
