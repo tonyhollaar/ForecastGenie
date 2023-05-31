@@ -4950,11 +4950,13 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         with col2:
             st.write(adf_result)
         vertical_spacer(2)
-        # Doodle Dickey-Fuller Test
-        image = Image.open("./images/adf_test.png")
-        # Display the image in Streamlit
-        st.image(image, caption="", use_column_width=True)
-        my_text_paragraph('Doodle: Dickey-Fuller Test', my_font_size='12px')
+# =============================================================================
+#         # Doodle Dickey-Fuller Test
+#         image = Image.open("./images/adf_test.png")
+#         # Display the image in Streamlit
+#         st.image(image, caption="", use_column_width=True)
+#         my_text_paragraph('Doodle: Dickey-Fuller Test', my_font_size='12px')
+# =============================================================================
         
     ###################################################################
     # AUTOCORRELATION PLOTS - Autocorrelation Plots (ACF & PACF) with optional Differencing applied
@@ -4972,17 +4974,19 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         # create 3 buttons, about ACF/PACF/Difference for more explanation on the ACF and PACF plots
         acf_pacf_info()
         
-        # AUTOCORRELATION DOODLE #
-        # canva drawing autocorrelation
-        vertical_spacer(2)
-        st.markdown('---')
-        col1, col2, col3 = st.columns([1,3,1])
-        with col2:
-            # Load the canva demo_data image from subfolder images
-            image = Image.open("./images/autocorrelation.png")
-            # Display the image in Streamlit
-            st.image(image, caption="", use_column_width='auto')
-            my_text_paragraph('Doodle: Autocorrelation', my_font_size='12px')
+# =============================================================================
+#         # AUTOCORRELATION DOODLE #
+#         # canva drawing autocorrelation
+#         vertical_spacer(2)
+#         st.markdown('---')
+#         col1, col2, col3 = st.columns([1,3,1])
+#         with col2:
+#             # Load the canva demo_data image from subfolder images
+#             image = Image.open("./images/autocorrelation.png")
+#             # Display the image in Streamlit
+#             st.image(image, caption="", use_column_width='auto')
+#             my_text_paragraph('Doodle: Autocorrelation', my_font_size='12px')
+# =============================================================================
 
 # logging
 print('ForecastGenie Print: Ran Explore')
@@ -5240,14 +5244,16 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             st.plotly_chart(fig_no_outliers, use_container_width=True)
             my_text_paragraph(f'No <b> outlier detection </b> or <b> outlier replacement </b> method selected.', my_font_size='14px')
             
-            # image outliers
-            st.markdown('---')
-            vertical_spacer(2)
-            col1, col2, col3 = st.columns([1,3,1])
-            with col2:
-                image_path = './images/outliers.png'
-                caption = 'Doodle: A Slippery Slope'
-                st.image(image_path, caption=caption)
+# =============================================================================
+#             # image outliers
+#             st.markdown('---')
+#             vertical_spacer(2)
+#             col1, col2, col3 = st.columns([1,3,1])
+#             with col2:
+#                 image_path = './images/outliers.png'
+#                 caption = 'Doodle: A Slippery Slope'
+#                 st.image(image_path, caption=caption)
+# =============================================================================
 else:
     ##########################################################
     # ELSE user did not set the variables in 'clean' menu
