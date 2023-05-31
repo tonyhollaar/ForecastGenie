@@ -182,9 +182,8 @@ def vertical_spacer(n):
 
 def eda_quick_insights(df, my_string_column):
     my_text_header('Quick Insights')
-    show_lottie_animation(url = "./images/telescope.json", key="telescope", width=300, height=300, col_sizes=[2,3,2], margin_before=1)
-
-    col1,  col2 = st.columns([1,2])
+    vertical_spacer(2)
+    col1, col2, col3 = st.columns([2, 8, 2])
     with col2:
         # Filter out NaN and '-' values from 'Label' column
         label_values = df[my_string_column].dropna().apply(lambda x: x.strip()).replace('-', '').tolist()
@@ -193,7 +192,7 @@ def eda_quick_insights(df, my_string_column):
         # Create an HTML unordered list with each non-NaN and non-'-' value as a list item
         html_list = "<div class='my-list'>"
         for i, value in enumerate(label_values):
-            html_list += f"<li><span class='my-number'>{i+1}</span>{value}</li>"
+            html_list += f"<li><span class='my-number'>{i + 1}</span>{value}</li>"
         html_list += "</div>"
         # Display the HTML list using Streamlit
         st.markdown(
@@ -203,10 +202,15 @@ def eda_quick_insights(df, my_string_column):
                     font-size: 16px;
                     line-height: 1.4;
                     margin-bottom: 10px;
+                    margin-left: 50px;
+                    background-color: white;
+                    border-radius: 10px;
+                    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+                    padding: 20px;
                 }}
                 .my-list li {{
-                    margin: 0 0 10px 0;
-                    padding-left: 25px;
+                    margin: 10px 10px 10px 10px;
+                    padding-left: 30px;
                     position: relative;
                 }}
                 .my-number {{
@@ -230,7 +234,7 @@ def eda_quick_insights(df, my_string_column):
         )
         # vertical spacer
         vertical_spacer(1)
-
+    show_lottie_animation(url="./images/telescope.json", key="telescope", width=300, height=300, col_sizes=[2, 3, 2], margin_before=1)
 #################################
 # FORMATTING DATAFRAMES FUNCTIONS
 #################################
@@ -4635,13 +4639,22 @@ if sidebar_menu_item == 'Doc':
         col1, col2, col3 = st.columns([2,6,2])    
         with col2:
             my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.')
-
         vertical_spacer(2)
         st.markdown('---') 
         
         # DOC: EDA
         ################################                
         my_text_header('<b> Step 2: </b> <br> Explore Dataset')
+        col1, col2, col3 = st.columns([2,6,2])    
+        with col2:
+            # text
+            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.')
+        vertical_spacer(2)
+        st.markdown('---') 
+            
+        # DOC: Clean
+        ################################                
+        my_text_header('<b> Step 3: </b> <br> Clean Dataset')
         col1, col2, col3 = st.columns([2,6,2])    
         with col2:
             # text
@@ -4753,6 +4766,8 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
         df_max = st.session_state.df_raw.iloc[:,0].max().date()
         with st.expander('', expanded=True):
             my_text_header('Uploaded Data')
+            show_lottie_animation("./images/107590-rocket-launch.json", key='rocket_launch', speed=1, height=160, width=399)
+                 
             # create 3 columns for spacing
             col1, col2, col3 = st.columns([1,3,1])
             # display df shape and date range min/max for user
@@ -4928,7 +4943,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
     # Show Augmented Dickey-Fuller Statistical Test Result with hypotheses
     with st.expander('ADF', expanded=True):
         my_text_header('Augmented Dickey-Fuller')
-        vertical_spacer(1)
+        show_lottie_animation(url="./images/22776-visitor-brings-news-from-mars.json", key="visitor_from_mars", speed=0.8, width=250, height=250, col_sizes = [2,3,2], margin_before=1)
         # Augmented Dickey-Fuller (ADF) test results
         adf_result = adf_test(st.session_state.df_raw, 1)
         col1, col2, col3 = st.columns([1,3,1])
@@ -4946,6 +4961,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
     ###################################################################
     with st.expander('', expanded=True):     
         my_text_header('Autocorrelation')
+        show_lottie_animation(url="./images/newton.json", key='newtons_cradle', height=300, width=300, col_sizes=[3,6,3])
         ############################## ACF & PACF ################################
         # set data equal to the second column e.g. expecting first column 'date' 
         data = df_select_diff
@@ -5280,7 +5296,7 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
     
     # set title of engineer page
     my_title(f"{engineer_icon} Feature Engineering", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
-    
+
     with st.sidebar:
         # set title in sidebar for engineer page
         my_title(f"{engineer_icon}", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
@@ -5365,6 +5381,7 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
             submitted = st.form_submit_button('Submit',  on_click=form_update, args=("ENGINEER_PAGE",))
     
     with st.expander("", expanded=True):
+        show_lottie_animation(url="./images/aJ7Ra5vpQB.json", key="robot_engineering", width=350, height=350, speed=1, col_sizes= [1,3,1])
         ##############################
         # Add Day/Month/Year Features
         # create checkboxes for user to checkmark if to include features
@@ -5509,8 +5526,13 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
     # SHOW DATAFRAME
     with st.expander('', expanded=True):
         my_text_header('Engineered Features')
-        my_text_paragraph('including target variable')
-        st.dataframe(df)
+
+        # show number of features
+        features_df = len(df.columns)-1
+        my_text_paragraph(f'{features_df}')
+        
+        show_lottie_animation(url="./images/features_round.json", key="features_round", width=400, height=400)
+        st.dataframe(df, use_container_width=True)
         download_csv_button(df, my_file="dataframe_incl_features.csv", help_message="Download your dataset incl. features to .CSV")
         
 # else e.g. if user is not within menu_item == 'Engineer' and sidebar_menu_item is not 'Home':
@@ -5626,6 +5648,10 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
     with st.expander("Train/Test Split", expanded=True):
         my_text_header('Train/Test Split')
         st.caption(f'<h6> <center> ℹ️ A commonly used ratio is 80:20 split between train and test set </center> <h6>', unsafe_allow_html=True)
+        
+        #show_lottie_animation(url="./images/55011-edit-cut-icon.json", key="edit-cut-icon", width=200, height=200, col_sizes[2,4,2])
+        
+        
         # create sliders for user insample test-size (/train-size automatically as well)
         my_insample_forecast_steps, my_insample_forecast_perc = train_test_split_slider(df = st.session_state['df'])
         # update to session_state
