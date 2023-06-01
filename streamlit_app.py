@@ -44,6 +44,10 @@ from streamlit_option_menu import option_menu
 from streamlit_extras.buy_me_a_coffee import button
 from streamlit_extras.dataframe_explorer import dataframe_explorer
 
+# source: https://github.com/inspurer/streamlit-marquee
+# scrolling text
+from streamlit_marquee import streamlit_marquee
+
 # source: https://github.com/Mr-Milk/streamlit-fire-state
 # keep user preferences of streamlit st.form submissions in session state 
 # make available when switching between pages e.g. menu items
@@ -150,6 +154,46 @@ st.set_page_config(page_title="ForecastGenie™️",
 #  |_|     \____/|_| \_|\_____|  |_|  |_____\____/|_| \_|_____/ 
 #                                                               
 # =============================================================================
+def stock_ticker(text, speed=15):
+    st.markdown(
+        f"""
+        <style>
+        .ticker-outer-container {{
+            width: 100%;
+            overflow: hidden;
+        }}
+
+        .ticker-container {{
+            display: flex;
+            white-space: nowrap;
+            animation: ticker-animation {speed}s linear infinite;
+        }}
+
+        .ticker-item {{
+            display: inline-block;
+        }}
+
+        @keyframes ticker-animation {{
+            0% {{
+                transform: translateX(99%); /*text is positioned to the right and initially not visible. At 100%*/
+            }}
+            100% {{
+                transform: translateX(-400%); /*which means the text is moved to the left by 200% of its container's width*/
+            }}
+        }}
+        </style>
+        <div class="ticker-outer-container">
+            <div class="ticker-container">
+                <div class="ticker-item">{text} |</div>
+                <div class="ticker-item">{text} |</div>
+                <div class="ticker-item">{text} |</div>
+                <div class="ticker-item">{text} |</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 def show_lottie_animation(url, key, reverse=False, height=400, width=400, speed=1, loop=True, quality='high', col_sizes=[1, 3, 1], margin_before = 0, margin_after = 0):
     with open(url, "r") as file:
         animation_url = json.load(file)
@@ -234,7 +278,6 @@ def eda_quick_insights(df, my_string_column):
         )
         # vertical spacer
         vertical_spacer(1)
-    show_lottie_animation(url="./images/telescope.json", key="telescope", width=300, height=300, col_sizes=[2, 3, 2], margin_before=1)
 #################################
 # FORMATTING DATAFRAMES FUNCTIONS
 #################################
@@ -671,6 +714,113 @@ def create_carousel_cards_v2(num_cards, header_list, paragraph_list_front, parag
 ################################################
 # SUMMARY STATISTICS DESCRIPTIVE LABEL FUNCTIONS
 ################################################
+# =============================================================================
+# def eda_quick_summary():
+#     """
+#     Displays a quick summary of the exploratory data analysis (EDA) metrics.
+#     
+#     This function calculates and displays various metrics based on the provided DataFrame `df_raw`. The metrics include:
+#     - Number of rows
+#     - Minimum date
+#     - Percentage of missing data
+#     - Mean of the second column
+#     - Number of columns
+#     - Maximum date
+#     - Frequency of time-series data
+#     - Median of the first column
+#     
+#     The metrics are displayed in a visually appealing format using Streamlit columns and CSS styling.
+#     
+#     Parameters:
+#     None
+#     
+#     Returns:
+#     None
+#     """
+#     try:
+#         # Display the header for the quick summary
+#         my_text_header('Quick Summary')
+#         show_lottie_animation(url = "./images/58666-sputnik-mission-launch.json", key='test', width=150, height=150, speed = 0.1, col_sizes=[4,2,4])
+#         
+#         # Create columns for organizing the metrics
+#         col1, col2, col3, col4, col5 = st.columns([15, 25, 5, 25, 15])
+#         with col2:
+#             # Define CSS style for the metrics container
+#             font_family = 'Arial'
+#             font_size = '16px'
+#             header_color = '#217CD0'
+#             metric_color = '#555555'
+#             container_style = f'''
+#                 position: relative;
+#                 border: 0px solid {metric_color};
+#                 border-radius: 10px;
+#                 background-color: #ffffff;
+#                 box-shadow: 0px 0px 15px -5px rgba(0,0,0,0.8);
+#                 padding: 20px;
+#                 margin: 10px;
+#                 height: 100px; /* add this line to set the height of the container */
+#                 font-family: {font_family};
+#                 font-size: {font_size};
+#                 color: {metric_color};
+#             '''
+#             
+#             # Compute and display the number of rows as a metric
+#             rows = st.session_state.df_raw.shape[0]
+#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color};">Rows</div><div style="color:{metric_color};">{rows}</div></div></div>', unsafe_allow_html=True)
+#     
+#             # Compute and display the min date as a metric
+#             min_date = str(st.session_state.df_raw.iloc[:, 0].min().date())
+#             # Position the metrics on top of the gradient
+#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Start Date</div><div>{min_date}</div></div></div>', unsafe_allow_html=True)
+#             
+#             # percentage missing data
+#             percent_missing = "{:.2%}".format(round((st.session_state.df_raw.iloc[:, 1].isna().mean()),2))
+#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Missing</div><div>{percent_missing}</div></div></div>', unsafe_allow_html=True)
+#             
+#             # Compute and display the mean of the second column as a metric
+#             mean_val = np.round(st.session_state.df_raw.iloc[:, 1].mean(), 2)
+#             # Position the metrics on top of the gradient
+#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Mean</div><div>{mean_val}</div></div></div>', unsafe_allow_html=True)
+#         
+#             min_val = np.round(st.session_state.df_raw.iloc[:, 1].min(skipna=True), 2)
+#             # Position the metrics on top of the gradient
+#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Minimum</div><div>{min_val}</div></div></div>', unsafe_allow_html=True)
+#             
+#             std_val = np.round(np.nanstd(st.session_state.df_raw.iloc[:, 1], ddof=0), 2)
+#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">StDev</div><div>{std_val}</div></div></div>', unsafe_allow_html=True)
+#             
+#         with col4:
+#             # Compute and display the number of columns as a metric
+#             cols = st.session_state.df_raw.shape[1]
+#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color};">Columns</div><div style="color:{metric_color};">{cols}</div></div></div>', unsafe_allow_html=True)
+#             
+#             # Compute and display the max date as a metric
+#             max_date = str(st.session_state.df_raw.iloc[:, 0].max().date())
+#             # Position the metrics on top of the gradient
+#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">End Date</div><div>{max_date}</div></div></div>', unsafe_allow_html=True)
+#             
+#             # frequency timeseries data
+#             dataframe_freq, dataframe_freq_name = determine_df_frequency(st.session_state.df_raw, column_name='date')
+#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Frequency</div><div>{dataframe_freq_name}</div></div></div>', unsafe_allow_html=True)
+#            
+#             # Compute and display the median of the first column as a metric
+#             median_val = np.round(st.session_state.df_raw.iloc[:, 1].median(skipna=True), 2)
+#             # Position the metrics on top of the gradient
+#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Median</div><div>{median_val}</div></div></div>', unsafe_allow_html=True)
+#             
+#             max_val = np.round(st.session_state.df_raw.iloc[:, 1].max(skipna=True), 2)
+#             # Position the metrics on top of the gradient
+#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Maximum</div><div>{max_val}</div></div></div>', unsafe_allow_html=True)
+#         
+#             mode_val = st.session_state.df_raw.iloc[:, 1].dropna().mode().round(2).iloc[0]
+#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Mode</div><div>{mode_val}</div></div></div>', unsafe_allow_html=True)
+# 
+#             # vertical spacer
+#             vertical_spacer(2)
+#     except:
+#         st.write('Error: could not show the quick summary stats...please contact admin')
+# =============================================================================
+
 def eda_quick_summary():
     """
     Displays a quick summary of the exploratory data analysis (EDA) metrics.
@@ -684,6 +834,7 @@ def eda_quick_summary():
     - Maximum date
     - Frequency of time-series data
     - Median of the first column
+    - Minimum of the fourth column
     
     The metrics are displayed in a visually appealing format using Streamlit columns and CSS styling.
     
@@ -693,90 +844,79 @@ def eda_quick_summary():
     Returns:
     None
     """
+    # Define CSS style for the metrics container
+    container_style = '''
+        border-radius: 10px;
+        background-color: #ffffff;
+        box-shadow: 0px 0px 15px -5px rgba(0,0,0,0.8);
+        padding: 25px;
+        margin: 10px;
+        width: 100%;
+        max-width: 800px;
+        display: flex; /* add this line to enable flexbox */
+        justify-content: center; /* add this line to horizontally center-align the metrics */
+        align-items: center; /* add this line to vertically center-align the metrics */
+        text-align: center; /* add this line to center-align the metrics */
+        font-family: Arial;
+        font-size: 16px;
+        color: #555555;
+    '''
     try:
         # Display the header for the quick summary
         my_text_header('Quick Summary')
-        show_lottie_animation(url = "./images/58666-sputnik-mission-launch.json", key='test', width=200, height=200, speed = 0.2, col_sizes=[4,4,4])
-        
-        # Create columns for organizing the metrics
-        col1, col2, col3, col4, col5 = st.columns([15, 25, 5, 25, 15])
+        show_lottie_animation(url="./images/58666-sputnik-mission-launch.json", key='test', width=150, height=150,
+                              speed=1, col_sizes=[45, 40, 40], margin_before=1)
+
+        col1, col2, col3 = st.columns([21,60,21])
         with col2:
-            # Define CSS style for the metrics container
-            font_family = 'Arial'
-            font_size = '16px'
-            header_color = '#217CD0'
-            metric_color = '#555555'
-            container_style = f'''
-                position: relative;
-                border: 0px solid {metric_color};
-                border-radius: 10px;
-                background-color: #ffffff;
-                box-shadow: 0px 0px 15px -5px rgba(0,0,0,0.8);
-                padding: 20px;
-                margin: 10px;
-                height: 100px; /* add this line to set the height of the container */
-                font-family: {font_family};
-                font-size: {font_size};
-                color: {metric_color};
-            '''
-            
-            # Compute and display the number of rows as a metric
+            # Compute and display the metrics for the first column
             rows = st.session_state.df_raw.shape[0]
-            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color};">Rows</div><div style="color:{metric_color};">{rows}</div></div></div>', unsafe_allow_html=True)
-    
-            # Compute and display the min date as a metric
             min_date = str(st.session_state.df_raw.iloc[:, 0].min().date())
-            # Position the metrics on top of the gradient
-            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Start Date</div><div>{min_date}</div></div></div>', unsafe_allow_html=True)
-            
-            # percentage missing data
-            percent_missing = "{:.2%}".format(round((st.session_state.df_raw.iloc[:, 1].isna().mean()),2))
-            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Missing</div><div>{percent_missing}</div></div></div>', unsafe_allow_html=True)
-            
-            # Compute and display the mean of the second column as a metric
+            percent_missing = "{:.2%}".format(round((st.session_state.df_raw.iloc[:, 1].isna().mean()), 2))
             mean_val = np.round(st.session_state.df_raw.iloc[:, 1].mean(), 2)
-            # Position the metrics on top of the gradient
-            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Mean</div><div>{mean_val}</div></div></div>', unsafe_allow_html=True)
-        
             min_val = np.round(st.session_state.df_raw.iloc[:, 1].min(skipna=True), 2)
-            # Position the metrics on top of the gradient
-            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Minimum</div><div>{min_val}</div></div></div>', unsafe_allow_html=True)
-            
             std_val = np.round(np.nanstd(st.session_state.df_raw.iloc[:, 1], ddof=0), 2)
-            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">StDev</div><div>{std_val}</div></div></div>', unsafe_allow_html=True)
             
-        with col4:
-            # Compute and display the number of columns as a metric
+            # Compute and display the metrics for the second column
             cols = st.session_state.df_raw.shape[1]
-            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color};">Columns</div><div style="color:{metric_color};">{cols}</div></div></div>', unsafe_allow_html=True)
-            
-            # Compute and display the max date as a metric
             max_date = str(st.session_state.df_raw.iloc[:, 0].max().date())
-            # Position the metrics on top of the gradient
-            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">End Date</div><div>{max_date}</div></div></div>', unsafe_allow_html=True)
-            
-            # frequency timeseries data
             dataframe_freq, dataframe_freq_name = determine_df_frequency(st.session_state.df_raw, column_name='date')
-            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Frequency</div><div>{dataframe_freq_name}</div></div></div>', unsafe_allow_html=True)
-           
-            # Compute and display the median of the first column as a metric
             median_val = np.round(st.session_state.df_raw.iloc[:, 1].median(skipna=True), 2)
-            # Position the metrics on top of the gradient
-            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Median</div><div>{median_val}</div></div></div>', unsafe_allow_html=True)
-            
             max_val = np.round(st.session_state.df_raw.iloc[:, 1].max(skipna=True), 2)
-            # Position the metrics on top of the gradient
-            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Maximum</div><div>{max_val}</div></div></div>', unsafe_allow_html=True)
-        
             mode_val = st.session_state.df_raw.iloc[:, 1].dropna().mode().round(2).iloc[0]
-            st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Mode</div><div>{mode_val}</div></div></div>', unsafe_allow_html=True)
-        
-            
-            # vertical spacer
+            st.write(
+                    f'<div style="{container_style}">'
+                    f'<div style="display: flex; justify-content: space-between; margin-bottom: 0px;margin-left: 60px; margin-right: 0px; margin-top: 0px;">'
+                    f'<div style="text-align: center; margin-right: 50px;">'
+                    f'<div><b style="color: #217cd0;">Rows</b></div><div>{rows}</div><br/>'
+                    f'<div><b style="color: #217cd0;">Start Date</b></div><div>{min_date}</div><br/>'
+                    f'<div><b style="color: #217cd0;">Missing</b></div><div>{percent_missing}</div><br/>'
+                    f'<div><b style="color: #217cd0;">Mean</b></div><div>{mean_val}</div><br/>'
+                    f'<div><b style="color: #217cd0;">Minimum</b></div><div>{min_val}</div><br/>'
+                    f'<div><b style="color: #217cd0;">StDev</b></div><div>{std_val}</div><br/>'
+                    f'</div>'
+                    f'<div style="text-align: center;">'
+                    f'<div><b style="color: #217cd0;">Columns</b></div><div>{cols}</div><br/>'
+                    f'<div><b style="color: #217cd0;">Max Date</b></div><div>{max_date}</div><br/>'
+                    f'<div><b style="color: #217cd0;">Frequency</b></div><div>{dataframe_freq_name}</div><br/>'
+                    f'<div><b style="color: #217cd0;">Median</b></div><div>{median_val}</div><br/>'
+                    f'<div><b style="color: #217cd0;">Maximum</b></div><div>{max_val}</div><br/>'
+                    f'<div><b style="color: #217cd0;">Mode</b></div><div>{mode_val}</div><br/>'
+                    f'</div>'
+                    f'</div>'
+                    f'</div>'
+                    ,
+                unsafe_allow_html=True)
+                    # vertical spacer
             vertical_spacer(2)
     except:
         st.write('Error: could not show the quick summary stats...please contact admin')
-        
+
+
+
+
+
+    
 def create_summary_df(data):
     """
     Create a DataFrame with summary statistics for the input data.
@@ -2162,7 +2302,7 @@ def train_test_split_slider(df):
                                       help = "Set your preference for how you want to **split** the training data and test data:  \
                                       \n- as a `percentage` (between 1% and 99%)  \
                                       \n- in `steps` (for example number of days with daily data, number of weeks with weekly data, etc.)  \
-                                      \n- Note that the slider **rounds up** to the nearest whole number or percentage point when switching split type.")
+                                      ")
                
                 if split_type == "Steps":
                     with col2:
@@ -3062,13 +3202,53 @@ def remove_object_columns(df, message_columns_removed = False):
     obj_cols = df.select_dtypes(include='object').columns.tolist()
     # Remove the columns that are not needed
     if message_columns_removed:
-        st.write('the following columns are removed from a copy of the dataframe due to their datatype (object)')
-    obj_cols_to_remove = []
-    for col in obj_cols:
-        obj_cols_to_remove.append(col)
-    if message_columns_removed:
-        st.write(obj_cols_to_remove)
-    df = df.drop(columns=obj_cols_to_remove)
+        # Create an HTML unordered list with each non-NaN and non-'-' value as a list item
+        html_list = "<div class='my-list'>"
+        for i, value in enumerate(obj_cols):
+            html_list += f"<li><span class='my-number'>{i + 1}</span>{value}</li>"
+        html_list += "</div>"
+        # Display the HTML list using Streamlit
+        col1, col2, col3 = st.columns([4,8,4])
+        with col2: 
+            st.markdown(
+                f"""
+                <style>
+                    .my-list {{
+                        font-size: 16px;
+                        line-height: 1.4;
+                        margin-bottom: 10px;
+                        margin-left: 50px;
+                        background-color: white;
+                        border-radius: 10px;
+                        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+                        padding: 20px;
+                    }}
+                    .my-list li {{
+                        margin: 10px 10px 10px 10px;
+                        padding-left: 30px;
+                        position: relative;
+                        color: grey;
+                    }}
+                    .my-number {{
+                        font-weight: bold;
+                        color: white;
+                        background-color: #14c8d3;
+                        border-radius: 50%;
+                        text-align: center;
+                        width: 20px;
+                        height: 20px;
+                        line-height: 20px;
+                        display: inline-block;
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                    }}
+                </style>
+                {html_list}
+                """,
+                unsafe_allow_html=True
+            )
+    df = df.drop(columns=obj_cols)
     return df
 
 def copy_df_date_index(my_df, datetime_to_date=True, date_to_index=True):
@@ -3270,6 +3450,62 @@ def adjust_brightness(hex_color, brightness_factor):
     # Convert RGB back to hex color
     adjusted_hex_color = '#' + ''.join(format(c, '02x') for c in adjusted_rgb_color)
     return adjusted_hex_color
+
+
+
+def plot_histogram(df, y_colname, fig, row, col, my_chart_color):
+    """
+    Plot a histogram with normal distribution curve for a given dataframe and column.
+    Adds the histogram and normal distribution curve to the specified plotly figure.
+    The figure is updated in place.
+
+    Parameters:
+    - df (pandas.DataFrame): The dataframe containing the data.
+    - y_colname (str): The column name for the histogram.
+    - fig (plotly.graph_objects.Figure): The plotly figure to update.
+    - row (int): The row position of the subplot to add the histogram.
+    - col (int): The column position of the subplot to add the histogram.
+    """
+    # Histogram's Normal Distribution Curve Calculation & Color
+    # Scott's Rule: calculate number of bins based on st. dev.
+    bin_width = 3.5 * np.std(df[y_colname]) / (len(df[y_colname]) ** (1/3))
+    num_bins = math.ceil((np.max(df[y_colname]) - np.min(df[y_colname])) / bin_width)
+
+    mean = df[y_colname].mean()
+    std = df[y_colname].std()
+
+    x_vals = np.linspace(df[y_colname].min(), df[y_colname].max(), 100) # Generate x-values
+    y_vals = (np.exp(-(x_vals - mean)**2 / (2 * std**2)) / (np.sqrt(2 * np.pi) * std) * len(df[y_colname]) * bin_width) # Calculate y-values
+
+    # Define adjusted brightness color of normal distribution trace
+    adjusted_color = adjust_brightness(my_chart_color, 2)
+
+    # Check for NaN values in the column
+    if df[y_colname].isnull().any():
+        vertical_spacer(2)
+        st.info('**ForecastGenie**: replaced your missing values with zero in a copy of original dataframe, in order to plot the Histogram. No worries I kept the original dataframe in one piece.')
+        # Handle missing values in copy of dataframe -> do not want to change original df
+        df = df.copy(deep=True)
+        df[y_colname].fillna(0, inplace=True)  # Replace NaN values with zero
+    else:
+        pass
+
+    # Plot histogram based on frequency type
+    freq_type = get_state("HIST", "histogram_freq_type")
+    
+    if freq_type == "Absolute":
+        histogram_trace = px.histogram(df, x=y_colname, title='Histogram', nbins=num_bins) # Define Histogram Trace
+        fig.add_trace(histogram_trace.data[0], row=row, col=col)  # Histogram
+        fig.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines', line_color=adjusted_color, showlegend=False), row=row, col=col) # Normal Dist Curve
+        fig.add_vline(x=mean, line_dash="dash", line_color=adjusted_color, row=row, col=col) # Mean line
+
+    elif freq_type == "Relative":
+        hist, bins = np.histogram(df[y_colname], bins=num_bins)
+        rel_freq = hist / np.sum(hist)
+        fig.add_trace(go.Bar(x=bins, y=rel_freq, name='Relative Frequency', showlegend=False), row=row, col=col)
+
+    else:
+        st.error('FORECASTGENIE ERROR: Could not execute the plot of the Histogram, please contact your administrator.')
        
 def plot_overview(df, y):
     """
@@ -3284,10 +3520,10 @@ def plot_overview(df, y):
     # Update layout
     my_text_header('Patterns')
     
-    show_lottie_animation(url="./images/spacemug.json", key='spacemug', width=300, height=300, col_sizes = [2,4,2])
+    show_lottie_animation(url="./images/spacemug.json", key='spacemug', width=200, height=200, col_sizes = [4,4,4])
     
     # set color picker for user centered on page
-    col1, col2, col3 = st.columns([6,1,6])   
+    col1, col2, col3 = st.columns([16,2,16])   
     with col2:
         	my_chart_color = st.color_picker(label = 'Color', 
         									 value = get_state("COLORS", "chart_patterns"), 
@@ -3321,7 +3557,9 @@ def plot_overview(df, y):
                         'Monthly Pattern',
                         'Quarterly Pattern', 
                         'Yearly Pattern', 
-                        'Histogram')
+                        'Boxplot',
+                        'Histogram', 
+                       )
     
     my_subplot_titles = all_subplot_titles[num_graph_start-1:]
     
@@ -3331,7 +3569,8 @@ def plot_overview(df, y):
                         # the row_heights parameter is set to [0.2] * 5 + [0.5]
                         # which means that the first five rows will have a height of 0.2 each
                         # and the last row will have a height of 0.5 for the histogram with larger height.
-                        row_heights=[0.2] * (len(my_subplot_titles)-1) + [0.5]) 
+                        row_heights=[0.2] * (len(my_subplot_titles)-2) + [0.7] + [0.5]) 
+    
     # define intervals for resampling
     df_weekly = df.resample('W', on='date').mean().reset_index()
     df_monthly =  df.resample('M', on='date').mean().reset_index()
@@ -3345,52 +3584,9 @@ def plot_overview(df, y):
         fig.add_trace(px.line(df_monthly, x='date', y=y_colname, title='Monthly Pattern').data[0], row=3, col=1)
         fig.add_trace(px.line(df_quarterly, x='date', y=y_colname, title='Quarterly Pattern').data[0], row=4, col=1)
         fig.add_trace(px.line(df_yearly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=5, col=1)
-        
-        # HISTOGRAM
-        #########################################################################################
-        # 1.Histogram's Normal Distribution Curve Calculation & Color
-        # Scott's Rule: calculate number of bins based on st. dev.
-        bin_width = 3.5 * np.std(df[y_colname]) / (len(df[y_colname]) ** (1/3))
-        num_bins = math.ceil((np.max(df[y_colname]) - np.min(df[y_colname])) / bin_width)
-        
-        mean = df[y_colname].mean()
-        std = df[y_colname].std()
-        
-        x_vals = np.linspace(df[y_colname].min(), df[y_colname].max(), 100) # Generate x-values
-        y_vals = (np.exp(-(x_vals - mean)**2 / (2 * std**2)) / (np.sqrt(2 * np.pi) * std) * len(df[y_colname]) * bin_width) # Calculate y-values
-        
-        # define adjusted brightness color of normal distribution trace
-        adjusted_color = adjust_brightness(my_chart_color, 2)
-        
-        # Check for NaN values in the column
-        if df[y_colname].isnull().any():
-            vertical_spacer(2)
-            st.info('**ForecastGenie**: replaced your missing values with zero in a copy of original dataframe, in order to plot the Histogram. No worries I kept the original dataframe in one piece.')
-            # Handle missing values in copy of dataframe -> do not want to change original df
-            df = df.copy(deep=True)
-            
-            df[y_colname].fillna(0, inplace=True)  # Replace NaN values with a specific value
-        else:
-            pass
-        
-        # 2. Absolute Frequency
-        #---------------------------------------------------------
-        if get_state("HIST", "histogram_freq_type") == "Absolute":
-            histogram_trace = px.histogram(df, x=y_colname, title='Histogram', nbins=num_bins) # Define Histogram Trace
-            fig.add_trace(histogram_trace.data[0], row=6, col=1)  # Histogram
-            fig.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines', line_color= adjusted_color, showlegend=False), row=6, col=1) # Normal Dist Curve
-            fig.add_vline(x=mean, line_dash="dash", line_color=adjusted_color, row=6, col=1) # Mean line
-       
-        # 3. Relative Frequency
-        #---------------------------------------------------------
-        elif get_state("HIST", "histogram_freq_type") == "Relative":
-            #fig.add_trace(px.histogram(df, x = y_colname , title='Histogram', nbins = num_bins).data[0], row=6, col=1) # Histogram
-            hist, bins = np.histogram(df[y_colname], bins=num_bins)
-            rel_freq = hist / np.sum(hist)
-            fig.add_trace(go.Bar(x=bins, y=rel_freq, name='Relative Frequency', showlegend=False), row=6, col=1)
-        else:
-            st.error('FORECASTGENIE ERROR: Could not execute the plot of the Histogram, please contact your administrator.')
-            
+        fig.add_trace(px.box(df, y=y_colname, title='Boxplot of {}'.format(y_colname)).data[0], row=6, col=1)
+        plot_histogram(df = df, y_colname = y_colname, fig = fig, row=7, col=1, my_chart_color = my_chart_color)                        
+
         # Set color for graphs
         fig.update_traces(line_color=my_chart_color, row=1, col=1)
         fig.update_traces(line_color=my_chart_color, row=2, col=1)
@@ -3398,47 +3594,64 @@ def plot_overview(df, y):
         fig.update_traces(line_color=my_chart_color, row=4, col=1)
         fig.update_traces(line_color=my_chart_color, row=5, col=1)
         fig.update_traces(marker_color=my_chart_color, row=6, col=1) 
-
+        fig.update_traces(marker_color=my_chart_color, row=7, col=1) 
+        
     if num_graph_start == 2:
         # Weekly Pattern
         fig.add_trace(px.line(df_weekly, x='date', y=y_colname, title='Weekly Pattern').data[0], row=1, col=1)
         fig.add_trace(px.line(df_monthly, x='date', y=y_colname, title='Monthly Pattern').data[0], row=2, col=1)
         fig.add_trace(px.line(df_quarterly, x='date', y=y_colname, title='Quarterly Pattern').data[0], row=3, col=1)
         fig.add_trace(px.line(df_yearly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=4, col=1)
-        fig.add_trace(px.histogram(df, x=y_colname, title='Histogram').data[0], row=5, col=1)
+        fig.add_trace(px.box(df, y=y_colname, title='Boxplot of {}'.format(y_colname)).data[0], row=5, col=1)
+        plot_histogram(df = df, y_colname = y_colname, fig = fig, row=6, col=1, my_chart_color = my_chart_color)               
+        
         # set color for graphs
         fig.update_traces(line_color=my_chart_color, row=1, col=1)
         fig.update_traces(line_color=my_chart_color, row=2, col=1)
         fig.update_traces(line_color=my_chart_color, row=3, col=1)
         fig.update_traces(line_color=my_chart_color, row=4, col=1)
-        fig.update_traces(marker_color=my_chart_color, row=5, col=1)        
+        fig.update_traces(marker_color=my_chart_color, row=5, col=1)     
+        fig.update_traces(marker_color=my_chart_color, row=6, col=1)
+        
     if num_graph_start == 3:
         # Monthly Pattern
         fig.add_trace(px.line(df_monthly, x='date', y=y_colname, title='Monthly Pattern').data[0], row=1, col=1)
-        fig.add_trace(px.line(df_quarterly, x='date', y=y_colname, title='Quarterly Pattern').data[0], row=2, col=1)
-        fig.add_trace(px.line(df_yearly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=3, col=1)
-        fig.add_trace(px.histogram(df, x=y_colname, title='Histogram').data[0], row=4, col=1)
+        fig.add_trace(px.line(df_monthly, x='date', y=y_colname, title='Quarterly Pattern').data[0], row=2, col=1)
+        fig.add_trace(px.line(df_monthly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=3, col=1)
+        fig.add_trace(px.box(df, y=y_colname, title='Boxplot of {}'.format(y_colname)).data[0], row=4, col=1)
+        plot_histogram(df = df, y_colname = y_colname, fig = fig, row=5, col=1, my_chart_color = my_chart_color)      
+        
         # set color for graphs
         fig.update_traces(line_color=my_chart_color, row=1, col=1)
         fig.update_traces(line_color=my_chart_color, row=2, col=1)
         fig.update_traces(line_color=my_chart_color, row=3, col=1)
         fig.update_traces(marker_color=my_chart_color, row=4, col=1)
+        fig.update_traces(marker_color=my_chart_color, row=5, col=1)
+        
     if num_graph_start == 4:
         # Quarterly Pattern
         fig.add_trace(px.line(df_quarterly, x='date', y=y_colname, title='Quarterly Pattern').data[0], row=1, col=1)
         fig.add_trace(px.line(df_yearly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=2, col=1)
-        fig.add_trace(px.histogram(df, x=y_colname, title='Histogram').data[0], row=3, col=1)
+        fig.add_trace(px.box(df, y=y_colname, title='Boxplot of {}'.format(y_colname)).data[0], row=3, col=1)
+        plot_histogram(df = df, y_colname = y_colname, fig = fig, row=4, col=1, my_chart_color = my_chart_color)     
+        
+        
         # set color for graphs
         fig.update_traces(line_color=my_chart_color, row=1, col=1)
         fig.update_traces(line_color=my_chart_color, row=2, col=1)
         fig.update_traces(marker_color=my_chart_color, row=3, col=1)
+        fig.update_traces(marker_color=my_chart_color, row=4, col=1)
+    
     if num_graph_start == 5:
         # Yearly Pattern
         fig.add_trace(px.line(df_yearly, x='date', y=y_colname, title='Yearly Pattern').data[0], row=1, col=1)
-        fig.add_trace(px.histogram(df, x=y_colname, title='Histogram').data[0], row=2, col=1)
+        fig.add_trace(px.box(df, y=y_colname, title='Boxplot of {}'.format(y_colname)).data[0], row=2, col=1)
+        plot_histogram(df = df, y_colname = y_colname, fig = fig, row=3, col=1, my_chart_color = my_chart_color)     
+        
         # set color for graphs
         fig.update_traces(line_color=my_chart_color, row=1, col=1)
         fig.update_traces(marker_color=my_chart_color, row=2, col=1)
+        fig.update_traces(marker_color=my_chart_color, row=3, col=1)
     
     # define height of graph
     my_height = len(my_subplot_titles)*266
@@ -4471,7 +4684,29 @@ if sidebar_menu_item == 'About':
                     button(username="tonyhollaar", floating=False, width=221,  text = 'Buy me a coffee', bg_color = '#FFFFFF', font='Cookie', font_color='black', coffee_color='black')
                 # About App
                 st.caption(f'<h7><center> ForecastGenie version: `1.2` <br>  Release date: `05-14-2023`  </center></h7>', unsafe_allow_html=True)    
-                
+            # scrolling/marquee text effect
+            space_quotes = """ "That's one small step for man, one giant leap for mankind." - Neil Armstrong, Apollo 11 astronaut, upon stepping onto the lunar surface in 1969  \
+                            | "The sky is not the limit; it's just the beginning." - Astronaut Kathy Sullivan, the first American woman to perform a spacewalk\
+                            | "Look again at that dot. That's here. That's home. That's us." - Carl Sagan
+                            """
+            #stock_ticker(space_quotes, speed = 30)
+            st.markdown('---')
+            streamlit_marquee(**{
+                # the marquee container background color
+                'background': "#f5f5f5",
+                # the marquee text size
+                'fontSize': '16px',
+                # the marquee text color
+                "color": "#000000",
+                # the marquee text content
+                'content': space_quotes,
+                # the marquee container width
+                'width': '800px',
+                # the marquee container line height
+                'lineHeight': "0px",
+                # the marquee duration
+                'animationDuration': '45s',
+            })
     except:
         st.error('ForecastGenie Error: "About" in sidebar-menu did not load properly')
 print('ForecastGenie Print: Loaded About Page')
@@ -4630,8 +4865,7 @@ if sidebar_menu_item == 'Doc':
         # Display the static image
         my_text_header('Documentation')
         # show lottie animation - astronaut reading while sitting on planet
-        # source: https://lottiefiles.com/68689-cute-astronaut-read-book-on-planet-cartoon
-        show_lottie_animation(url = "./images/reading.json", key = 'astronaut', height=200, width=200, speed = 1, loop=True, quality='high', col_sizes = [4,4,4], margin_before=10, margin_after=16)
+        show_lottie_animation(url = "./images/reading.json", key = 'astronaut_reading', height=200, width=200, speed = 1, loop=True, quality='high', col_sizes = [4,4,4], margin_before=10, margin_after=16)
         st.markdown('---')    
         # DOC: LOAD
         my_text_header('<b> Step 1: </b> <br> Load Dataset')
@@ -4802,6 +5036,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
 
 key_hist = create_store("HIST", [("histogram_freq_type", "Absolute"),  ("run", 0)])
+
 # =============================================================================
 #   ________   _______  _      ____  _____  ______ 
 #  |  ____\ \ / /  __ \| |    / __ \|  __ \|  ____|
@@ -4934,9 +5169,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                                       on_change = hist_change_freq,
                                       horizontal = True)
         vertical_spacer(3)   
-        
-      
-        
+
     ###################################################################  
     # AUGMENTED DICKEY-FULLER TEST
     ###################################################################
@@ -4963,7 +5196,6 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
     ###################################################################
     with st.expander('', expanded=True):     
         my_text_header('Autocorrelation')
-        show_lottie_animation(url="./images/newton.json", key='newtons_cradle', height=300, width=300, col_sizes=[3,6,3])
         ############################## ACF & PACF ################################
         # set data equal to the second column e.g. expecting first column 'date' 
         data = df_select_diff
@@ -5625,6 +5857,9 @@ local_df = st.session_state['df'].copy(deep=True)
 # =============================================================================
 # Prepare Data
 
+
+
+
 # SET VARIABLES
 length_df = len(st.session_state['df'])
 
@@ -5634,11 +5869,16 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
         my_title(f'{prepare_icon}', "#FF9F00", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
        
     # show user which descriptive variables are removed, that just had the purpose to inform user what dummy was from e.g. holiday days such as Martin Luther King Day
-    with st.expander('ℹ️ I removed the following descriptive columns automatically from analysis'):
+
+    
+    with st.expander('', expanded=True):
+        show_lottie_animation(url="./images/21197-astrolottie.json", key="astrolottie", width=200, height=200, col_sizes=[4,4,4], speed = 0.5)
+        my_text_paragraph('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "Go ahead, Houston." <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; with removing redundant variables...', my_font_size='16px')
         local_df = remove_object_columns(local_df, message_columns_removed=True)
-        # show local_df to user in streamlit
-        st.write(local_df)
-        
+        vertical_spacer(4)
+        # how local_df to user in streamlit
+        #st.write(local_df)
+                        
     # Check if 'date' column exists in local_df
     if 'date' in local_df.columns:
         # set the date as the index of the pandas dataframe
@@ -5654,9 +5894,6 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
     with st.expander("Train/Test Split", expanded=True):
         my_text_header('Train/Test Split')
         st.caption(f'<h6> <center> ℹ️ A commonly used ratio is 80:20 split between train and test set </center> <h6>', unsafe_allow_html=True)
-        
-        #show_lottie_animation(url="./images/55011-edit-cut-icon.json", key="edit-cut-icon", width=200, height=200, col_sizes[2,4,2])
-        
         
         # create sliders for user insample test-size (/train-size automatically as well)
         my_insample_forecast_steps, my_insample_forecast_perc = train_test_split_slider(df = st.session_state['df'])
@@ -5678,7 +5915,8 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
         # show user the train test split currently set by user or default e.g. 80:20 train/test split
         st.warning(f"ℹ️ train/test split currently equals :green[**{perc_train_set}**] and :green[**{perc_test_set}**] ")
 
-        
+        show_lottie_animation(url="./images/10287-spindot-loader.json", key="spindot_loader", width=100, height=100, col_sizes=[6,2, 6], speed = 0.5)
+                
     ##############################
     # 5.2 Normalization
     ##############################
@@ -5723,8 +5961,9 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
         # on page create expander
         with st.expander('Normalization ',expanded=True):
             my_text_header('Normalization') 
+            show_lottie_animation(url="./images/monster-2.json", key="rocket_night_day", width=200, height=200, col_sizes=[6,6,6])
             my_text_paragraph(f'Method: {normalization_choice}')
-            st.info('👈 Please choose in the sidebar your normalization method for numerical columns. Note: columns with booleans will be excluded')
+            st.info('👈 Please choose in the sidebar your normalization method for numerical columns. Note: columns with booleans will be excluded.')
 
     # else show user the dataframe with the features that were normalized
     else:
@@ -5776,6 +6015,7 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
         # on page create expander
         with st.expander('Standardization ',expanded=True):
             my_text_header('Standardization') 
+            show_lottie_animation(url="./images/2833-green-monster.json", key="green-monster", width=200, height=200, col_sizes=[6,6,6], speed=0.8)
             my_text_paragraph(f'Method: {standardization_choice}')
             st.info('👈 Please choose in the sidebar your Standardization method for numerical columns. Note: columns with booleans will be excluded.')
             
@@ -5799,6 +6039,7 @@ st.session_state['df'] = remove_object_columns(st.session_state['df'], message_c
 # apply function for normalizing the dataframe if user choice
 # IF user selected a normalization_choice other then "None" the X_train and X_test will be scaled
 #st.write('session state used for train test split',st.session_state['df']) # TEST
+
 if 'date' in st.session_state['df']:
     X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'].set_index('date'), st.session_state['insample_forecast_steps'], st.session_state['normalization_choice'], numerical_features=numerical_features)
 else:
@@ -6146,13 +6387,10 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
     y_train = y[:(len(df)-st.session_state['insample_forecast_steps'])]
     y_test = y[(len(df)-st.session_state['insample_forecast_steps']):]           
 
-
-
-        
     with st.expander('🥇 Top Features Selected', expanded=True):
         my_subheader('')
         my_text_paragraph('Your Feature Selection', my_font_size='26px')
-        show_lottie_animation(url = "./images/89033-star-in-hand-baby-astronaut.json", key = 'austronaut-star', margin_before=1, margin_after=2)
+        show_lottie_animation(url = "./images/astronaut_star_in_hand.json", key = 'austronaut-star', width=200, height=200, col_sizes=[5,4,5],margin_before=1, margin_after=2)
         # create dataframe from list of features and specify column header
         df_total_features = pd.DataFrame(total_features, columns = ['Top Features'])
         st.dataframe(df_total_features, use_container_width=True)
@@ -6267,11 +6505,6 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
             #st.info("👈 Select your models to train in the sidebar!🏋️‍♂️") 
             col1, col2, col3 = st.columns([1,3,1])
             with col2:
-
-                    
-
-                 
-                    
                     # define the font family to display the text of paragraph
                     train_models_carousel(my_title= 'Select your models to train in the sidebar!')
     # the code block to train the selected models will only be executed if both the button has been clicked and the list of selected models is not empty.
