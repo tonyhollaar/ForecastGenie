@@ -225,8 +225,9 @@ def vertical_spacer(n):
         st.write("")
 
 def eda_quick_insights(df, my_string_column):
-    my_text_header('Quick Insights')
-    vertical_spacer(2)
+    col1, col2, col3 = st.columns([24,40,20])
+    with col2:
+        my_text_header('Quick Insights')
     col1, col2, col3 = st.columns([2, 8, 2])
     with col2:
         # Filter out NaN and '-' values from 'Label' column
@@ -714,113 +715,6 @@ def create_carousel_cards_v2(num_cards, header_list, paragraph_list_front, parag
 ################################################
 # SUMMARY STATISTICS DESCRIPTIVE LABEL FUNCTIONS
 ################################################
-# =============================================================================
-# def eda_quick_summary():
-#     """
-#     Displays a quick summary of the exploratory data analysis (EDA) metrics.
-#     
-#     This function calculates and displays various metrics based on the provided DataFrame `df_raw`. The metrics include:
-#     - Number of rows
-#     - Minimum date
-#     - Percentage of missing data
-#     - Mean of the second column
-#     - Number of columns
-#     - Maximum date
-#     - Frequency of time-series data
-#     - Median of the first column
-#     
-#     The metrics are displayed in a visually appealing format using Streamlit columns and CSS styling.
-#     
-#     Parameters:
-#     None
-#     
-#     Returns:
-#     None
-#     """
-#     try:
-#         # Display the header for the quick summary
-#         my_text_header('Quick Summary')
-#         show_lottie_animation(url = "./images/58666-sputnik-mission-launch.json", key='test', width=150, height=150, speed = 0.1, col_sizes=[4,2,4])
-#         
-#         # Create columns for organizing the metrics
-#         col1, col2, col3, col4, col5 = st.columns([15, 25, 5, 25, 15])
-#         with col2:
-#             # Define CSS style for the metrics container
-#             font_family = 'Arial'
-#             font_size = '16px'
-#             header_color = '#217CD0'
-#             metric_color = '#555555'
-#             container_style = f'''
-#                 position: relative;
-#                 border: 0px solid {metric_color};
-#                 border-radius: 10px;
-#                 background-color: #ffffff;
-#                 box-shadow: 0px 0px 15px -5px rgba(0,0,0,0.8);
-#                 padding: 20px;
-#                 margin: 10px;
-#                 height: 100px; /* add this line to set the height of the container */
-#                 font-family: {font_family};
-#                 font-size: {font_size};
-#                 color: {metric_color};
-#             '''
-#             
-#             # Compute and display the number of rows as a metric
-#             rows = st.session_state.df_raw.shape[0]
-#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color};">Rows</div><div style="color:{metric_color};">{rows}</div></div></div>', unsafe_allow_html=True)
-#     
-#             # Compute and display the min date as a metric
-#             min_date = str(st.session_state.df_raw.iloc[:, 0].min().date())
-#             # Position the metrics on top of the gradient
-#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Start Date</div><div>{min_date}</div></div></div>', unsafe_allow_html=True)
-#             
-#             # percentage missing data
-#             percent_missing = "{:.2%}".format(round((st.session_state.df_raw.iloc[:, 1].isna().mean()),2))
-#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Missing</div><div>{percent_missing}</div></div></div>', unsafe_allow_html=True)
-#             
-#             # Compute and display the mean of the second column as a metric
-#             mean_val = np.round(st.session_state.df_raw.iloc[:, 1].mean(), 2)
-#             # Position the metrics on top of the gradient
-#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Mean</div><div>{mean_val}</div></div></div>', unsafe_allow_html=True)
-#         
-#             min_val = np.round(st.session_state.df_raw.iloc[:, 1].min(skipna=True), 2)
-#             # Position the metrics on top of the gradient
-#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Minimum</div><div>{min_val}</div></div></div>', unsafe_allow_html=True)
-#             
-#             std_val = np.round(np.nanstd(st.session_state.df_raw.iloc[:, 1], ddof=0), 2)
-#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">StDev</div><div>{std_val}</div></div></div>', unsafe_allow_html=True)
-#             
-#         with col4:
-#             # Compute and display the number of columns as a metric
-#             cols = st.session_state.df_raw.shape[1]
-#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color};">Columns</div><div style="color:{metric_color};">{cols}</div></div></div>', unsafe_allow_html=True)
-#             
-#             # Compute and display the max date as a metric
-#             max_date = str(st.session_state.df_raw.iloc[:, 0].max().date())
-#             # Position the metrics on top of the gradient
-#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">End Date</div><div>{max_date}</div></div></div>', unsafe_allow_html=True)
-#             
-#             # frequency timeseries data
-#             dataframe_freq, dataframe_freq_name = determine_df_frequency(st.session_state.df_raw, column_name='date')
-#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Frequency</div><div>{dataframe_freq_name}</div></div></div>', unsafe_allow_html=True)
-#            
-#             # Compute and display the median of the first column as a metric
-#             median_val = np.round(st.session_state.df_raw.iloc[:, 1].median(skipna=True), 2)
-#             # Position the metrics on top of the gradient
-#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Median</div><div>{median_val}</div></div></div>', unsafe_allow_html=True)
-#             
-#             max_val = np.round(st.session_state.df_raw.iloc[:, 1].max(skipna=True), 2)
-#             # Position the metrics on top of the gradient
-#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Maximum</div><div>{max_val}</div></div></div>', unsafe_allow_html=True)
-#         
-#             mode_val = st.session_state.df_raw.iloc[:, 1].dropna().mode().round(2).iloc[0]
-#             st.write(f'<div style="{container_style}"><div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><div style="text-align:center;font-weight:bold;color:{header_color}">Mode</div><div>{mode_val}</div></div></div>', unsafe_allow_html=True)
-# 
-#             # vertical spacer
-#             vertical_spacer(2)
-#     except:
-#         st.write('Error: could not show the quick summary stats...please contact admin')
-# =============================================================================
-
 def eda_quick_summary():
     """
     Displays a quick summary of the exploratory data analysis (EDA) metrics.
@@ -852,7 +746,7 @@ def eda_quick_summary():
         padding: 25px;
         margin: 10px;
         width: 100%;
-        max-width: 800px;
+        max-width: 700px;
         display: flex; /* add this line to enable flexbox */
         justify-content: center; /* add this line to horizontally center-align the metrics */
         align-items: center; /* add this line to vertically center-align the metrics */
@@ -863,11 +757,11 @@ def eda_quick_summary():
     '''
     try:
         # Display the header for the quick summary
-        my_text_header('Quick Summary')
-        show_lottie_animation(url="./images/58666-sputnik-mission-launch.json", key='test', width=150, height=150,
-                              speed=1, col_sizes=[45, 40, 40], margin_before=1)
-
-        col1, col2, col3 = st.columns([21,60,21])
+        col1, col2, col3 = st.columns([24,40,20])
+        with col2:
+            my_text_header('Quick Summary')
+       
+        col1, col2, col3 = st.columns([22,59,22])
         with col2:
             # Compute and display the metrics for the first column
             rows = st.session_state.df_raw.shape[0]
@@ -886,7 +780,7 @@ def eda_quick_summary():
             mode_val = st.session_state.df_raw.iloc[:, 1].dropna().mode().round(2).iloc[0]
             st.write(
                     f'<div style="{container_style}">'
-                    f'<div style="display: flex; justify-content: space-between; margin-bottom: 0px;margin-left: 60px; margin-right: 0px; margin-top: 0px;">'
+                    f'<div style="display: flex; justify-content: space-between; margin-bottom: -20px;margin-left: 60px; margin-right: 0px; margin-top: -10px;">'
                     f'<div style="text-align: center; margin-right: 50px;">'
                     f'<div><b style="color: #217cd0;">Rows</b></div><div>{rows}</div><br/>'
                     f'<div><b style="color: #217cd0;">Start Date</b></div><div>{min_date}</div><br/>'
@@ -912,11 +806,6 @@ def eda_quick_summary():
     except:
         st.write('Error: could not show the quick summary stats...please contact admin')
 
-
-
-
-
-    
 def create_summary_df(data):
     """
     Create a DataFrame with summary statistics for the input data.
@@ -1256,7 +1145,7 @@ def adf_test(df, variable_loc, max_diffs=3):
     
     # Drop missing values
     variable = variable.dropna()
-    col1, col2, col3 = st.columns([1,3,1])
+    col1, col2, col3 = st.columns([18,40,10])
     # Check if the time series is stationary
     p_value = adfuller(variable, autolag='AIC')[1]
     # Check if the p-value is less than or equal to 0.05
@@ -1295,9 +1184,9 @@ def adf_test(df, variable_loc, max_diffs=3):
                 # If the differenced time series is stationary, return the result
                 with col2:
                     vertical_spacer(1)
-                    h0 = st.markdown(r'$H_0$: The time series has a unit root, meaning it is :red[**non-stationary**]. It has some time dependent structure.')
+                    h0 = st.markdown(f'$H_0$: The time series has a unit root, meaning it is :red[**non-stationary**]. It has some time dependent structure.')
                     vertical_spacer(1)
-                    h1 = st.markdown(r'$H_1$: The time series does **not** have a unit root, meaning it is :green[**stationary**]. It does not have time-dependent structure.')
+                    h1 = st.markdown(f'$H_1$: The time series does **not** have a unit root, meaning it is :green[**stationary**]. It does not have time-dependent structure.')
                     vertical_spacer(1)
                     result = f'**Conclusion:**\
                               The null hypothesis can be :red[**rejected**] with a p-value of **`{p_value_str}`**, which is smaller than `0.05` after differencing the time series **`{i}`** time(s).'
@@ -1310,6 +1199,69 @@ def adf_test(df, variable_loc, max_diffs=3):
                     max_diffs = st.slider(':red[[Optional]] *Adjust maximum number of differencing:*', min_value=0, max_value=10, value=3, step=1, help='Adjust maximum number of differencing if Augmented Dickey-Fuller Test did not become stationary after differencing the data e.g. 3 times (default value)')
     return result
 
+# statistical test ljung box
+def ljung_box_test(df, variable_loc, lag_range, model_type = "AutoReg"):
+    """
+    Perform the Ljung-Box test for white noise on a time series using the AutoReg model.
+
+    Parameters
+    ----------
+    df : pandas DataFrame
+        The time series data.
+    variable_loc : int or tuple or list or pandas.Series
+        The location of the variable to test for white noise, which can be a single integer (if the variable
+        is located in a single-column DataFrame), a tuple or list of integers (if the variable is located
+        in a multi-column DataFrame), or a pandas Series.
+    lag_range : tuple or list
+        The range of lag values to consider for the Ljung-Box test.
+
+    Returns
+    -------
+    result : str
+        A string containing the results of the Ljung-Box test.
+    """
+    # Select the variable to test for white noise
+    if isinstance(variable_loc, int):
+        variable = df.iloc[:, variable_loc]
+    elif isinstance(variable_loc, (tuple, list)):
+        variable = df.iloc[:, variable_loc]
+    elif isinstance(variable_loc, pd.Series):
+        variable = variable_loc
+    else:
+        raise ValueError("The 'variable_loc' argument must be an integer, tuple, list, or pandas Series.")
+
+    # Drop missing values
+    variable = variable.dropna()
+
+    # Fit AutoReg model to the data
+    model = sm.tsa.AutoReg(variable, lags=[1], trend='c', old_names=False)
+    res = model.fit()
+
+    # Perform Ljung-Box test on residuals with the specified lag range
+    for lag in lag_range:
+        if model_type == "AutoReg":
+            result_ljungbox = sm.stats.acorr_ljungbox(res.resid, lags=lag, return_df=True)
+        elif model_type == "ARMA":
+            result_ljungbox = sm.stats.acorr_ljungbox(res.resid, lags=lag, model_df=1, return_df=True)
+        else:
+            raise ValueError("Invalid model type selected.")
+        test_statistic = result_ljungbox.iloc[0]['lb_stat']
+        p_value = result_ljungbox.iloc[0]['lb_pvalue']
+        white_noise = "True" if p_value > 0.05 else "False"
+
+        h0 = st.markdown(f'$H_0$: The residuals have **:red[no autocorrelation]** up to lag **{lag}**.')
+        h1 = st.markdown(f'$H_1$: The residuals have autocorrelation up to lag **{lag}**.')
+
+        if p_value > 0.05:
+            conclusion = st.markdown("**Conclusion:**\
+                                     The null hypothesis cannot be rejected for lag **{lag}**. The residuals show no significant autocorrelation.")
+            vertical_spacer(2)
+        else:
+            conclusion = st.markdown(f"**Conclusion:**\
+                                     The null hypothesis can be rejected for lag **{lag}**. The residuals are autocorrelated.")
+            vertical_spacer(2)
+
+    
 #******************************************************************************
 # GRAPH FUNCTIONS | PLOT FUNCTIONS
 #******************************************************************************
@@ -3483,7 +3435,7 @@ def plot_histogram(df, y_colname, fig, row, col, my_chart_color):
     # Check for NaN values in the column
     if df[y_colname].isnull().any():
         vertical_spacer(2)
-        st.info('**ForecastGenie**: replaced your missing values with zero in a copy of original dataframe, in order to plot the Histogram. No worries I kept the original dataframe in one piece.')
+        st.info('**ForecastGenie message**: replaced your missing values with zero in a copy of original dataframe, in order to plot the Histogram. No worries I kept the original dataframe in one piece.')
         # Handle missing values in copy of dataframe -> do not want to change original df
         df = df.copy(deep=True)
         df[y_colname].fillna(0, inplace=True)  # Replace NaN values with zero
@@ -3529,7 +3481,10 @@ def plot_overview(df, y):
         									 value = get_state("COLORS", "chart_patterns"), 
         									 label_visibility = 'collapsed',
                                          )
+    # set session state for user chosen chart color
     set_state("COLORS", ("chart_patterns", my_chart_color))
+    
+    # Determine what pattern graphs should be shown e.g. if weekly do not show daily but rest, if monthly do not show daily/weekly etc.
     # DAILY
     if freq == 'D':
         num_graph_start = 1
@@ -4304,6 +4259,18 @@ if 'freq' not in st.session_state:
 #     st.session_state['wavelet_window_size_slider'] = 7
 # =============================================================================
 
+###########################EXPLORE #######################################
+# Set default values for parameters
+key1_explore, key2_explore, key3_explore, key4_explore, key5_explore = create_store("EXPLORE_PAGE", [
+    ("lags_acf", min(30, int((len(st.session_state.df_raw)-1)))), #key1_explore
+    ("lags_pacf", min(30, int((len(st.session_state.df_raw)-2)/2))), #key2_explore
+    ("default_pacf_method", "yw"), #key3_explore
+    ("order_of_differencing_series", "Original Series"), #key4_explore
+    ("run", 0) #key5_explore
+])
+
+key_hist = create_store("HIST", [("histogram_freq_type", "Absolute"),  ("run", 0)])
+
 ###################################################################################################
 # create a slot called "ENGINEER_PAGE" and assign keys with values within slot to persist in memory
 # note: this is because when switching streamlit pages normally the session_state would reset the in-memory saved variables 
@@ -4869,17 +4836,30 @@ if sidebar_menu_item == 'Doc':
         st.markdown('---')    
         # DOC: LOAD
         my_text_header('<b> Step 1: </b> <br> Load Dataset')
-
-        col1, col2, col3 = st.columns([2,6,2])    
+        show_lottie_animation(url="./images/116206-rocket-fly-out-the-laptop.json", key="rocket_fly_out_of_laptop", height=200, width=200, speed = 1, loop=True, quality='high', col_sizes = [4,4,4])
+        col1, col2, col3 = st.columns([2,8,2])    
         with col2:
-            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.')
+           my_text_paragraph('''<b> The </b> <i> ForecastGenie </i> application provides users with a convenient way to upload data files from the sidebar menu. The application supports common file formats such as .csv and .xls. \
+                                <br> <b> To </b> load a file, users can navigate to the sidebar menu and locate the <b> "Upload Data" </b> option. Upon clicking on this option, a file upload dialog box will appear, allowing users to select a file from their local system. \
+                                <br> <b> When </b> uploading a file, it is important to ensure that the file meets specific requirements for proper data processing and forecasting. The file should follow a specific structure:                                  
+                                <br>
+                                <br> 1. <i>Format</i>: The file should be in either CSV (.csv) or Excel (.xls) format.
+                                <br> 2. <i>Column Structure</i>: The first column should be named <b> 'date' </b> and be in the mm/dd/yyyy e.g. 01/31/2023 format, representing the time series data. The dates should be sorted in chronological order, as this is crucial for accurate forecasting. The second column should contain the target variable that the user wishes to forecast.
+                                <br> 3. <i>Date Format</i>: Dates should be formatted consistently in the mm/dd/yyyy format. This ensures that the forecasting engine can interpret the dates correctly and perform accurate predictions.
+                                <br>
+                                <br><b> Once </b> the user selects and uploads the file, the ForecastGenie application will process the data and make it available for analysis and forecasting. Users can explore various forecasting techniques and models using the uploaded data.
+                                <br><b> It </b> is important to note that the application assumes the data file adheres to the specified structure. Any deviations may lead to inaccurate results or errors during the forecasting process. Therefore, users should double-check their data files and ensure they follow the required format before uploading them to the application.
+                                <br> <b> By </b>providing the functionality to load data files from the sidebar menu, ForecastGenie simplifies the data input process and empowers users to make informed predictions and forecasts based on their own datasets.
+                                ''', my_text_align='justify')
         vertical_spacer(2)
         st.markdown('---') 
         
         # DOC: EDA
         ################################                
         my_text_header('<b> Step 2: </b> <br> Explore Dataset')
-        col1, col2, col3 = st.columns([2,6,2])    
+        show_lottie_animation(url="./images/58666-sputnik-mission-launch.json", key='test', width=150, height=150,
+                              speed=1, col_sizes=[45, 40, 40], margin_before=1)
+        col1, col2, col3 = st.columns([2,8,2])    
         with col2:
             # text
             my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.')
@@ -4889,13 +4869,28 @@ if sidebar_menu_item == 'Doc':
         # DOC: Clean
         ################################                
         my_text_header('<b> Step 3: </b> <br> Clean Dataset')
-        col1, col2, col3 = st.columns([2,6,2])    
+        show_lottie_animation(url="./images/88404-loading-bubbles.json", key="loading_bubbles", width=200, height=200, col_sizes=[2,2,2])
+        col1, col2, col3 = st.columns([2,8,2])   
         with col2:
-            # text
             my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.')
-
-
-    
+        st.markdown('---') 
+        # DOC: Engineer
+        ################################      
+        my_text_header('<b> Step 4: </b> <br> Engineer Features')
+        show_lottie_animation(url="./images/141844-shapes-changing-preloader.json", key='shapes_changing_preloader', width=200, height=200, col_sizes=[2,2,2])
+        col1, col2, col3 = st.columns([2,8,2])   
+        with col2:
+            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.')
+        st.markdown('---') 
+        # DOC: Prepare
+        ################################      
+        my_text_header('<b> Step 5: </b> <br> Prepare Dataset')
+        show_lottie_animation(url="./images/141560-loader-v25.json", key='prepare', width=200, height=200, col_sizes=[20,20,20])
+        col1, col2, col3 = st.columns([2,8,2])   
+        with col2:
+            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.')
+        st.markdown('---') 
+        
 # =============================================================================
 #   _      ____          _____  
 #  | |    / __ \   /\   |  __ \ 
@@ -4906,7 +4901,9 @@ if sidebar_menu_item == 'Doc':
 #                               
 # =============================================================================   
 with st.sidebar:
+   
     my_title(f"{load_icon}", "#45B8AC")
+    
     with st.expander('', expanded=True):
         # let user choose if they want to have app run with demo data or upload their own dataset
         col1, col2, col3 = st.columns(3)
@@ -4915,11 +4912,12 @@ with st.sidebar:
             data_option = st.radio("*Choose an option:*", ["Demo Data", "Upload Data"], 
                                    on_change=handle_click_wo_button, 
                                    key='data_choice')
-            # add vertical spacer
-            st.write()
+           
+            vertical_spacer(1)
+    
         if st.session_state.my_data_choice == "Upload Data":
             uploaded_file = st.file_uploader("Upload your file", type=["csv", "xls", "xlsx", "xlsm", "xlsb"], accept_multiple_files=False, label_visibility='collapsed')
-        
+            
 if menu_item == 'Load' and sidebar_menu_item=='Home':
     my_title(f"{load_icon} Load Dataset ", "#45B8AC")
     if st.session_state.my_data_choice == "Demo Data":
@@ -4929,13 +4927,13 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
         df_total = df_raw.copy(deep=True)
         df_min = df_raw.iloc[:,0].min().date()
         df_max = df_raw.iloc[:,0].max().date()
+        
         with st.expander('', expanded=True):
             my_text_header('Demo Data')     
             show_lottie_animation("./images/107590-rocket-launch.json", key='rocket_launch', speed=1, height=160, width=399)
                  
             # create 3 columns for spacing
             col1, col2, col3 = st.columns([1,3,1])
-            
             # short message about dataframe that has been loaded with shape (# rows, # columns)
             col2.markdown(f"<center>Your <b>dataframe</b> has <b><font color='#555555'>{st.session_state.df_raw.shape[0]}</b></font> \
                            rows and <b><font color='#555555'>{st.session_state.df_raw.shape[1]}</b></font> columns <br> with date range: \
@@ -4943,6 +4941,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
                            unsafe_allow_html=True)
             # create deepcopy of dataframe which will be manipulated for graphs
             df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
+            
             # set caption
             vertical_spacer(2)
             col1, col2, col3 = st.columns([8,1,8])           
@@ -4951,11 +4950,12 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
                                                  value = get_state("COLORS", "chart_color"), 
                                                  #on_change = on_click_event,
                                                  label_visibility = 'collapsed')    
-                
+                # save the chartcolor chosen by user to session state
                 set_state("COLORS", ("chart_color", my_chart_color))
+            
             # Display Plotly Express figure in Streamlit
             display_dataframe_graph(df=df_graph, key=1, my_chart_color = my_chart_color)
-            # show dataframe below graph   
+
             # try to use add-on package of streamlit dataframe_explorer
             try:
                 df_explore = dataframe_explorer(st.session_state['df_raw'])
@@ -4963,6 +4963,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             # if add-on package does not work use the regular dataframe without index
             except:
                 st.dataframe(df_graph, use_container_width=True)
+            
             # download csv button
             download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
             vertical_spacer(1)
@@ -4988,6 +4989,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             # Display the image in Streamlit
             st.image(image, caption="", use_column_width=True)
             my_text_paragraph('Doodle: Beep...Beep...Beep...uploading calendar values!', my_font_size='12px') 
+    
     # check if data is uploaded
     elif st.session_state.my_data_choice == "Upload Data" and uploaded_file is not None:
         # define dataframe from custom function to read from uploaded read_csv file
@@ -4998,6 +5000,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
         df_min = st.session_state.df_raw.iloc[:,0].min().date()
         # set maximum date
         df_max = st.session_state.df_raw.iloc[:,0].max().date()
+       
         with st.expander('', expanded=True):
             my_text_header('Uploaded Data')
             show_lottie_animation("./images/107590-rocket-launch.json", key='rocket_launch', speed=1, height=160, width=399)
@@ -5023,7 +5026,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
                                                  label_visibility = 'collapsed')    
                 
                 set_state("COLORS", ("chart_color", my_chart_color))
-            #############################################################################
+            
             ## display/plot graph of dataframe
             display_dataframe_graph(df=df_graph, key=2, my_chart_color = my_chart_color)
             # show dataframe below graph        
@@ -5035,8 +5038,6 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             # download csv button
             download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
 
-key_hist = create_store("HIST", [("histogram_freq_type", "Absolute"),  ("run", 0)])
-
 # =============================================================================
 #   ________   _______  _      ____  _____  ______ 
 #  |  ____\ \ / /  __ \| |    / __ \|  __ \|  ____|
@@ -5047,12 +5048,11 @@ key_hist = create_store("HIST", [("histogram_freq_type", "Absolute"),  ("run", 0
 #                                                  
 # =============================================================================         
 if menu_item == 'Explore' and sidebar_menu_item == 'Home':  
-    ####################################################
-    # load required variables for menu item
-    ####################################################
-    # apply function to get summary statistics and statistical test results of dependent variable (y)
-    summary_statistics_df = create_summary_df(st.session_state.df_raw.iloc[:,1])
-    
+    # if dataset is very small, then update the key1_explore and key2_explore
+    if len(st.session_state.df_raw) < 31:
+        set_state("EXPLORE_PAGE", ("lags_acf", int((len(st.session_state.df_raw)-1))))
+        set_state("EXPLORE_PAGE", ("lags_pacf", int((len(st.session_state.df_raw)-1)/2)))
+
     ####################################################            
     # Sidebar EDA parameters / buttons
     ####################################################
@@ -5066,15 +5066,6 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
             my_text_header('Autocorrelation ')
             my_text_paragraph('Plot Parameters')
             col1, col2, col3 = st.columns([4,1,4])
-            
-            # Set default values for parameters
-            key1_explore, key2_explore, key3_explore, key4_explore, key5_explore = create_store("EXPLORE_PAGE", [
-                ("lags_acf", min(30, int((len(st.session_state.df_raw)-2)/2))), #key1_explore
-                ("lags_pacf", min(30, int((len(st.session_state.df_raw)-2)/2))), #key2_explore
-                ("default_pacf_method", "yw"), #key3_explore
-                ("order_of_differencing_series", "Original Series"), #key4_explore
-                ("run", 0) #key5_explore
-            ])
             
             # create slider for number of lags for ACF Plot
             nlags_acf = st.slider(label = "*Lags ACF*", 
@@ -5104,12 +5095,39 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
             original_fig, df_select_diff = df_differencing(st.session_state.df_raw, selection)
             st.plotly_chart(original_fig, use_container_width=True)
 
-            col1, col2, col3 = st.columns([4,4,4])
+            col1, col2, col3 = st.columns([5,4,4])
             with col2:
                 # create button in sidebar for the ACF and PACF Plot Parameters
                 st.write("")
                 acf_pacf_btn = st.form_submit_button("Submit", type="secondary",  on_click=form_update, args=('EXPLORE_PAGE',))   
+         
+        with st.form('ljung-box'):
+             col1, col2, col3 = st.columns([4,4,4])
+             # Streamlit input for lag values
+             
+             with col2:
+                 my_text_header('Ljung-Box')
+                 my_text_paragraph('Test Parameters')
+                 lag1_ljung_box =  st.number_input('Enter 1st lag value', 
+                                         min_value=1, 
+                                         value = 24, 
+                                         max_value=len(st.session_state.df_raw)-1,
+                                         key='lag1_ljung_box')
+                 
+                 lag2_ljung_box =  st.number_input('Enter 2nd lag value', 
+                                         min_value=1, 
+                                         value = 48, 
+                                         max_value=len(st.session_state.df_raw)-1,
+                                         key='lag2_ljung_box')
+                 
+                 # create button in sidebar for the ACF and PACF Plot Parameters
+                 vertical_spacer(1)
             
+             col1, col2, col3 = st.columns([5,4,4])
+             with col2:
+                #acf_pacf_btn = st.form_submit_button("Submit", type="secondary",  on_click=form_update, args=('ljung-box',))
+                ljung_box_btn = st.form_submit_button("Submit", type="secondary")   
+        
     ####################################################            
     # Explore MAIN PAGE (EDA)
     ####################################################
@@ -5120,26 +5138,25 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         #############################################################################
         # Summary Statistics
         #############################################################################
-
         # show in streamlit in sidebar Quick Summary tiles with e.g. rows/columns/start date/end date/mean/median
         eda_quick_summary()
-        st.markdown('---')
-        # display in streamlit subheader
-# =============================================================================
-#         my_text_header('Summary')
-#         # create linespace
-#         st.write("")
-#         # Display summary statistics table
-#         st.dataframe(display_summary_statistics(st.session_state.df_raw), use_container_width=True)
-# =============================================================================
-        
+        # =============================================================================
+        #         my_text_header('Summary')
+        #         # create linespace
+        #         st.write("")
+        #         # Display summary statistics table
+        #         st.dataframe(display_summary_statistics(st.session_state.df_raw), use_container_width=True)
+        # =============================================================================
+                
         #######################################
         # Statistical tests
         #####################################
+        # Show Summary Statistics and statistical test results of dependent variable (y)
+        summary_statistics_df = create_summary_df(data = st.session_state.df_raw.iloc[:,1])
+    with st.expander('', expanded=True):   
         # create in sidebar quick insights with custom function
         eda_quick_insights(df=summary_statistics_df, my_string_column='Label')
-        st.markdown('---')
-        my_text_header('Insights')
+    
         # show dataframe for statistical test results
         st.dataframe(summary_statistics_df, use_container_width=True)
         download_csv_button(summary_statistics_df, my_file="summary_statistics.csv", help_message='Download your Summary Statistics Dataframe to .CSV')      
@@ -5149,7 +5166,8 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
     #############################################################################
     with st.expander('', expanded=True):
         # show all graphs with patterns in streamlit
-        plot_overview(df = st.session_state.df_raw, y=st.session_state.df_raw.columns[1])
+        plot_overview(df = st.session_state.df_raw, 
+                      y = st.session_state.df_raw.columns[1])
         
         def hist_change_freq():
             try:
@@ -5169,27 +5187,40 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                                       on_change = hist_change_freq,
                                       horizontal = True)
         vertical_spacer(3)   
+    
+    ###################################################################
+    # ljung_box_test
+    ###################################################################
+    # Perform the Ljung-Box test on the residuals
+    with st.expander('Ljung-Box', expanded=True):
+        my_text_header('White Noise')
+        my_text_paragraph('Ljung-Box')
+        show_lottie_animation(url="./images/80567-sound-voice-waves.json", key="sound_waves", speed=0.2, width=250, height=250, col_sizes = [19,40,1], margin_before=1)
+        col1, col2, col3 = st.columns([18,40,10])
+        with col2:
+            ljung_box_test(st.session_state.df_raw,
+                       variable_loc=1, 
+                       lag_range=(lag1_ljung_box,lag2_ljung_box))
 
     ###################################################################  
     # AUGMENTED DICKEY-FULLER TEST
     ###################################################################
     # Show Augmented Dickey-Fuller Statistical Test Result with hypotheses
     with st.expander('ADF', expanded=True):
-        my_text_header('Augmented Dickey-Fuller')
-        show_lottie_animation(url="./images/22776-visitor-brings-news-from-mars.json", key="visitor_from_mars", speed=0.8, width=250, height=250, col_sizes = [2,3,2], margin_before=1)
+        my_text_header('Stationarity')
+        my_text_paragraph('Augmented Dickey Fuller')
+        #show_lottie_animation(url="./images/newton.json", key="visitor_from_mars", speed=0.8, width=250, height=250, col_sizes = [19,40,1], margin_before=1)
         # Augmented Dickey-Fuller (ADF) test results
         adf_result = adf_test(st.session_state.df_raw, 1)
-        col1, col2, col3 = st.columns([1,3,1])
-        with col2:
-            st.write(adf_result)
+        
+        col1, col2, col3 = st.columns([18,40,10])
+        col2.write(adf_result)
         vertical_spacer(2)
-# =============================================================================
-#         # Doodle Dickey-Fuller Test
-#         image = Image.open("./images/adf_test.png")
-#         # Display the image in Streamlit
-#         st.image(image, caption="", use_column_width=True)
-#         my_text_paragraph('Doodle: Dickey-Fuller Test', my_font_size='12px')
-# =============================================================================
+        # Doodle Dickey-Fuller Test
+        image = Image.open("./images/adf_test.png")
+        # Display the image in Streamlit
+        st.image(image, caption="", use_column_width=True)
+        my_text_paragraph('Doodle: Dickey-Fuller Test', my_font_size='12px')
         
     ###################################################################
     # AUTOCORRELATION PLOTS - Autocorrelation Plots (ACF & PACF) with optional Differencing applied
@@ -6028,7 +6059,7 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
             X_unscaled_train = df.iloc[:, 1:].iloc[:-st.session_state['insample_forecast_steps'], :]
             # with custom function create the normalization plot with numerical features i.e. before/after scaling
             plot_scaling_before_after(X_unscaled_train, X_train, numerical_features)
-            st.success(f'⚖️ numerical features standardized with {standardization_choice}: {len(numerical_features)}')
+            st.success(f'⚖️ Great, you balanced the scales! **{len(numerical_features)}** numerical feature(s) standardized with **{standardization_choice}**')
             st.dataframe(X[numerical_features], use_container_width=True)
             # create download button for user, to download the standardized features dataframe with dates as index i.e. first column
             download_csv_button(X[numerical_features], my_file='standardized_features.csv', help_message='Download standardized features to .CSV', set_index=True)
