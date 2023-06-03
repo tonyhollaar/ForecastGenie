@@ -4951,7 +4951,16 @@ if sidebar_menu_item == 'Doc':
         # DOC: Select
         ################################    
         my_text_header('<b> Step 6: </b> <br> Select Features')
-        show_lottie_animation(url="./images/spacemug.json", key='spacemug', width=200, height=200, col_sizes = [4,4,4])
+        show_lottie_animation(url="./images/102149-square-loader.json", key='square_loader', width=200, height=200, col_sizes = [4,4,4])
+        col1, col2, col3 = st.columns([2,8,2])   
+        with col2:
+            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
+        st.markdown('---') 
+        
+        # DOC: Train
+        ################################    
+        my_text_header('<b> Step 7: </b> <br> Train Model(s)')
+        show_lottie_animation(url="./images/100037-rubiks-cube.json", key='rubiks_cube', width=200, height=200, col_sizes = [4,4,4])
         col1, col2, col3 = st.columns([2,8,2])   
         with col2:
             my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
