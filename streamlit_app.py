@@ -12,18 +12,18 @@ _____ _____ _____ _____ _____ _____ _____ _____ _____ _____
 Streamlit App: ForecastGenie
 Forecast y based on X timeseries data
 @author: Tony Hollaar
-Date: 05/24/2023
+Date: 06/03/2023
 Version 1.3
 source ASCII ART: https://patorjk.com/software/taag/#p=display&v=0&f=Big&t=FORECASTGENIE
 """
 # =============================================================================
-#   _ _ _                    _           
-#  | (_) |                  (_)          
-#  | |_| |__  _ __ __ _ _ __ _  ___  ___ 
-#  | | | '_ \| '__/ _` | '__| |/ _ \/ __|
-#  | | | |_) | | | (_| | |  | |  __/\__ \
-#  |_|_|_.__/|_|  \__,_|_|  |_|\___||___/
-#                                        
+#   _      _____ ____  _____            _____  _____ ______  _____ 
+#  | |    |_   _|  _ \|  __ \     /\   |  __ \|_   _|  ____|/ ____|
+#  | |      | | | |_) | |__) |   /  \  | |__) | | | | |__  | (___  
+#  | |      | | |  _ <|  _  /   / /\ \ |  _  /  | | |  __|  \___ \ 
+#  | |____ _| |_| |_) | | \ \  / ____ \| | \ \ _| |_| |____ ____) |
+#  |______|_____|____/|_|  \_\/_/    \_\_|  \_\_____|______|_____/ 
+#                                                                  
 # =============================================================================
 #**************************
 # Import basic packages
@@ -127,7 +127,6 @@ from pandas.tseries.holiday import(
                                     next_monday, nearest_workday, sunday_to_monday,
                                     EasterMonday, GoodFriday, Easter
                                   )
- 
 # =============================================================================
 #   _____        _____ ______    _____ ______ _______ _    _ _____  
 #  |  __ \ /\   / ____|  ____|  / ____|  ____|__   __| |  | |  __ \ 
@@ -137,14 +136,83 @@ from pandas.tseries.holiday import(
 #  |_| /_/    \_\_____|______| |_____/|______|  |_|   \____/|_|     
 #                                                                                                                                    
 # =============================================================================
-#**********************************
 # SET PAGE CONFIGURATIONS STREAMLIT
-#**********************************
 st.set_page_config(page_title="ForecastGenie™️", 
                    layout="centered", # "centered" or "wide"
                    page_icon="🌀", 
                    initial_sidebar_state="expanded") # "auto" or "expanded" or "collapsed"
+# =============================================================================
+#   _____   ____   ____  _____  _      ______  _____ 
+#  |  __ \ / __ \ / __ \|  __ \| |    |  ____|/ ____|
+#  | |  | | |  | | |  | | |  | | |    | |__  | (___  
+#  | |  | | |  | | |  | | |  | | |    |  __|  \___ \ 
+#  | |__| | |__| | |__| | |__| | |____| |____ ____) |
+#  |_____/ \____/ \____/|_____/|______|______|_____/ 
+#                                                    
+# =============================================================================
+# =============================================================================
+#             # image outliers
+#             st.markdown('---')
+#             vertical_spacer(2)
+#             col1, col2, col3 = st.columns([1,3,1])
+#             with col2:
+#                 image_path = './images/outliers.png'
+#                 caption = 'Doodle: A Slippery Slope'
+#                 st.image(image_path, caption=caption)
+# =============================================================================
 
+# =============================================================================
+#         # Doodle Dickey-Fuller Test
+#         image = Image.open("./images/adf_test.png")
+#         # Display the image in Streamlit
+#         st.image(image, caption="", use_column_width=True)
+#         #my_text_paragraph('Doodle: Dickey-Fuller Test', my_font_size='12px')
+# =============================================================================
+        
+# =============================================================================
+#    _____  _____ _____            _____  ____   ____   ____  _  __
+#   / ____|/ ____|  __ \     /\   |  __ \|  _ \ / __ \ / __ \| |/ /
+#  | (___ | |    | |__) |   /  \  | |__) | |_) | |  | | |  | | ' / 
+#   \___ \| |    |  _  /   / /\ \ |  ___/|  _ <| |  | | |  | |  <  
+#   ____) | |____| | \ \  / ____ \| |    | |_) | |__| | |__| | . \ 
+#  |_____/ \_____|_|  \_\/_/    \_\_|    |____/ \____/ \____/|_|\_\
+#                                                                  
+# =============================================================================
+# design/code that did not make it into the application
+
+# =============================================================================
+#             title = '\"Hi 👋 Welcome to the ForecastGenie app!\"'
+#             # set gradient color of letters of title
+#             gradient = '-webkit-linear-gradient(left, #F08A5D, #FABA63, #2E9CCA, #4FB99F)'
+#             # show in streamlit the title with gradient
+#             st.markdown(f'<h1 style="text-align:center; background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient};"> {title} </h1>', unsafe_allow_html=True)
+#             # vertical spacer
+#             st.write('')
+# =============================================================================
+
+# =============================================================================
+#                 # Create Carousel Cards
+#                 # define for each card the header in the header list
+#                 header_list = ["📈", 
+#                                "🔍",  
+#                                "🧹",  
+#                                "🧰",  
+#                                "🔢"]
+#                 # define for each card the corresponding paragraph in the list
+#                 paragraph_list = ["Forecasting made easy", 
+#                                   "Professional data analysis", 
+#                                   "Automated data cleaning", 
+#                                   "Intelligent feature engineering", 
+#                                   "User-friendly interface", 
+#                                   "Versatile model training"]
+#                 # define the font family to display the text of paragraph
+#                 font_family = "Trebuchet MS"
+#                 # define the paragraph text size
+#                 font_size = '18px'
+#                 # in streamlit create and show the user defined number of carousel cards with header+text
+#                 create_carousel_cards(4, header_list, paragraph_list, font_family, font_size)
+# =============================================================================
+                
 # =============================================================================
 #   ______ _    _ _   _  _____ _______ _____ ____  _   _  _____ 
 #  |  ____| |  | | \ | |/ ____|__   __|_   _/ __ \| \ | |/ ____|
@@ -162,7 +230,6 @@ def hist_change_freq():
     except:
         set_state("HIST", ("histogram_freq_type", "Absolute"))
         
-
 def stock_ticker(text, speed=15):
     st.markdown(
         f"""
@@ -290,6 +357,7 @@ def eda_quick_insights(df, my_string_column, my_chart_color):
         )
         # vertical spacer
         vertical_spacer(1)
+        
 #################################
 # FORMATTING DATAFRAMES FUNCTIONS
 #################################
@@ -4206,7 +4274,7 @@ print('ForecastGenie Print: Loaded Functions')
 #      \/_/    \_\_|  \_\_____/_/    \_\____/|______|______|_____/ 
 #                                                                  
 # =============================================================================
-
+# ================================ GLOBAL =====================================
 # store color scheme for app
 create_store("COLORS", [
     ("chart_color", "#45B8AC"),
@@ -4214,6 +4282,7 @@ create_store("COLORS", [
     ("run", 0)
 ])
 
+# ================================ LOAD =======================================
 # SET VARIABLE DEFAULTS: demo data or uploaded data
 # check if df_raw not in current session state else add it
 if "df_raw" not in st.session_state:
@@ -4233,88 +4302,7 @@ if "df_graph" not in st.session_state:
 if "my_data_choice" not in st.session_state:
     st.session_state.my_data_choice = "Demo Data"
 
-# create an empty dictionary to store the results of the models
-# that I call after I train the models to display on sidebar under hedaer "Evaluate Models"
-metrics_dict = {}
-
-# define calendar
-cal = calendar()
-
-# set the random state
-random_state = 10
-
-# Initialize results_df in global scope that has model test evaluation results 
-results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
-
-if 'results_df' not in st.session_state:
-    st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
-
-#///////////////////////////////////////////////////
-# SET VARIABLE DEFAULTS: Required for Data Cleaning
-#///////////////////////////////////////////////////
-fill_method = None
-custom_fill_value = None
-freq_dict = None
-freq = None
-
-if 'freq_dict' not in st.session_state:
-    st.session_state['freq_dict'] = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
-if 'freq' not in st.session_state:
-    # assume frequency is daily data for now -> expand to automated frequency detection later 
-    st.session_state['freq'] = 'Daily'
-    
-#///////////////////////////////////////////////////
-# SET VARIABLE DEFAULTS: Feature Engineering
-#///////////////////////////////////////////////////
-# initialize the checkbox values in the session state e.g. in-memory user session 
-# =============================================================================
-# lst_special_calendar_days = ['jan_sales',
-#                             'val_day_lod',
-#                             'val_day',
-#                             'mother_day_lod',
-#                             'mother_day',
-#                             'father_day_lod',
-#                             'pay_days',
-#                             'father_day',
-#                             'black_friday_lod',
-#                             'black_friday',
-#                             'cyber_monday',
-#                             'christmas_day',
-#                             'boxing_day']
-# 
-# # set special calendar days to True - boolean variables
-# for special_calendar_day in lst_special_calendar_days:
-#     if special_calendar_day not in st.session_state:
-#         st.session_state[special_calendar_day] = True
-# 
-# # define list of dummy variables - boolean variables        
-# lst_dummy_vars = ['year_dummies',
-#                   'month_dummies',
-#                   'day_dummies']
-# # set dummy variables to True - boolean variables      
-# for dummy in lst_dummy_vars:
-#     if dummy not in st.session_state:
-#         st.session_state[dummy] = True
-# 
-# # initialize checkbox sidebar values for feature engineering
-# if 'calendar_dummies_checkbox' not in st.session_state:
-#     st.session_state['calendar_dummies_checkbox'] = True
-# if 'calendar_holidays_checkbox' not in st.session_state:
-#     st.session_state['calendar_holidays_checkbox'] = True   
-# if 'special_calendar_days_checkbox' not in st.session_state:
-#     st.session_state['special_calendar_days_checkbox'] = True
-# if 'dwt_features_checkbox' not in st.session_state:
-#     st.session_state['dwt_features_checkbox'] = False
-# # wavelet feature engineering options for user save in session state
-# if 'wavelet_family_selectbox' not in st.session_state:
-#     st.session_state['wavelet_family_selectbox'] = 'db4'    
-# if 'wavelet_level_decomposition_selectbox' not in st.session_state:
-#     st.session_state['wavelet_level_decomposition_selectbox'] = 3
-# if 'wavelet_window_size_slider' not in st.session_state:
-#     st.session_state['wavelet_window_size_slider'] = 7
-# =============================================================================
-
-###########################EXPLORE #######################################
+# ================================ EXPLORE ====================================
 # Set default values for parameters
 key1_explore, key2_explore, key3_explore, key4_explore, key5_explore = create_store("EXPLORE_PAGE", [
     ("lags_acf", min(30, int((len(st.session_state.df_raw)-1)))), #key1_explore
@@ -4326,7 +4314,25 @@ key1_explore, key2_explore, key3_explore, key4_explore, key5_explore = create_st
 
 key_hist = create_store("HIST", [("histogram_freq_type", "Absolute"),  ("run", 0)])
 
-###################################################################################################
+# ================================ CLEAN ======================================
+fill_method = None
+custom_fill_value = None
+freq_dict = None
+freq = None
+
+# set the random state
+random_state = 10
+
+if 'freq_dict' not in st.session_state:
+    st.session_state['freq_dict'] = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
+if 'freq' not in st.session_state:
+    # assume frequency is daily data for now -> expand to automated frequency detection later 
+    st.session_state['freq'] = 'Daily'
+    
+# ================================ ENGINEER ===================================
+# define calendar
+cal = calendar()
+
 # create a slot called "ENGINEER_PAGE" and assign keys with values within slot to persist in memory
 # note: this is because when switching streamlit pages normally the session_state would reset the in-memory saved variables 
 # such as user choices in sliders and checkboxes
@@ -4364,9 +4370,18 @@ key11_engineer_var, key12_engineer_var, key13_engineer_var, key14_engineer_var, 
                                                                                                           ("run", 0)                                    #key17_engineer
                                                                                                         ]
                                                                                                       )
-#///////////////////////////////////////////////////
-# SET VARIABLE DEFAULTS: PREP
-#///////////////////////////////////////////////////
+# ================================ EVALUATE ===================================
+# create an empty dictionary to store the results of the models
+# that I call after I train the models to display on sidebar under hedaer "Evaluate Models"
+metrics_dict = {}
+
+# Initialize results_df in global scope that has model test evaluation results 
+results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
+
+if 'results_df' not in st.session_state:
+    st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
+    
+# ================================ PREPARE ====================================
 # define my_insample_forecast_steps usesd for train/test split
 # for evaluation of test-set
 # set preprocessing method: "Normalization" to str: "None
@@ -4392,7 +4407,7 @@ if 'train_models_btn' not in st.session_state:
     st.session_state['train_models_btn'] = False
 
 #///////////////////////////////////////////////////////////////////
-# ?????????????????? TEST - FOR DEBUGGING ??????????????????????????
+# SHOW IN STREAMLIT DICTIONARY OF VARIABLES IN SESSION STATE
 #///////////////////////////////////////////////////////////////////
 # show in streamlit the session state variables that are stored cache for the user session
 st.write(st.session_state)
@@ -4498,9 +4513,7 @@ print('ForecastGenie Print: Loaded SVG ICONS')
 #     |_|  |_____|  |_|  |______|______|
 #                                       
 # =============================================================================
-#******************************************
 # Create title with bubbles floating around
-#******************************************
 my_forecastgenie_title('ForecastGenie')
 
 # =============================================================================
@@ -4618,41 +4631,9 @@ if sidebar_menu_item == 'About':
             my_text_paragraph('About', my_font_size='36px')
             show_lottie_animation(url="./images/89601-solar-system.json", key='solar_system', speed = 1, width=400, reverse=False, height=400, margin_before = 2, margin_after=10)
             st.markdown('---')
-            
-# =============================================================================
-#             title = '\"Hi 👋 Welcome to the ForecastGenie app!\"'
-#             # set gradient color of letters of title
-#             gradient = '-webkit-linear-gradient(left, #F08A5D, #FABA63, #2E9CCA, #4FB99F)'
-#             # show in streamlit the title with gradient
-#             st.markdown(f'<h1 style="text-align:center; background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient};"> {title} </h1>', unsafe_allow_html=True)
-#             # vertical spacer
-#             st.write('')
-# =============================================================================
+
             col1, col2, col3 = st.columns([2,8,2])
             with col2:
-# =============================================================================
-#                 # Create Carousel Cards
-#                 # define for each card the header in the header list
-#                 header_list = ["	📈", 
-#                                "🔍",  
-#                                "🧹",  
-#                                "🧰",  
-#                                "🔢"]
-#                 # define for each card the corresponding paragraph in the list
-#                 paragraph_list = ["Forecasting made easy", 
-#                                   "Professional data analysis", 
-#                                   "Automated data cleaning", 
-#                                   "Intelligent feature engineering", 
-#                                   "User-friendly interface", 
-#                                   "Versatile model training"]
-#                 # define the font family to display the text of paragraph
-#                 font_family = "Trebuchet MS"
-#                 # define the paragraph text size
-#                 font_size = '18px'
-#                 # in streamlit create and show the user defined number of carousel cards with header+text
-#                 create_carousel_cards(4, header_list, paragraph_list, font_family, font_size)
-# =============================================================================
-                
                 #################################
                 # ABOUT MENU - HEADERS+PARAGRAPHS
                 #################################
@@ -4778,9 +4759,7 @@ if sidebar_menu_item == 'FAQ':
                              quality='high',
                              key='astronaut'
                          )
-        
-        
-        
+
         vertical_spacer(17)
         st.markdown('---')
         col1, col2, col3 = st.columns([2,8,2])
@@ -4882,11 +4861,20 @@ if sidebar_menu_item == 'FAQ':
 # LOGGING
 print('ForecastGenie Print: Loaded FAQ Page')
 
+# =============================================================================
+#   _____   ____   _____ 
+#  |  __ \ / __ \ / ____|
+#  | |  | | |  | | |     
+#  | |  | | |  | | |     
+#  | |__| | |__| | |____ 
+#  |_____/ \____/ \_____|
+#                        
+# =============================================================================                    
+# Documentation                                                                                       
 if sidebar_menu_item == 'Doc':
     with st.expander('', expanded=True):
         # Display the static image
         my_text_header('Documentation')
-        # show lottie animation - astronaut reading while sitting on planet
         show_lottie_animation(url = "./images/reading.json", key = 'astronaut_reading', height=200, width=200, speed = 1, loop=True, quality='high', col_sizes = [4,4,4], margin_before=10, margin_after=16)
         st.markdown('---')    
         # DOC: LOAD
@@ -4894,17 +4882,12 @@ if sidebar_menu_item == 'Doc':
         show_lottie_animation(url="./images/116206-rocket-fly-out-the-laptop.json", key="rocket_fly_out_of_laptop", height=200, width=200, speed = 1, loop=True, quality='high', col_sizes = [4,4,4])
         col1, col2, col3 = st.columns([2,8,2])    
         with col2:
-           my_text_paragraph('''<b> The </b> <i> ForecastGenie </i> application provides users with a convenient way to upload data files from the sidebar menu. The application supports common file formats such as .csv and .xls. \
-                                <br> <b> To </b> load a file, users can navigate to the sidebar menu and locate the <b> "Upload Data" </b> option. Upon clicking on this option, a file upload dialog box will appear, allowing users to select a file from their local system. \
-                                <br> <b> When </b> uploading a file, it is important to ensure that the file meets specific requirements for proper data processing and forecasting. The file should follow a specific structure:                                  
-                                <br>
-                                <br> 1. <i>Format</i>: The file should be in either CSV (.csv) or Excel (.xls) format.
-                                <br> 2. <i>Column Structure</i>: The first column should be named <b> 'date' </b> and be in the mm/dd/yyyy e.g. 01/31/2023 format, representing the time series data. The dates should be sorted in chronological order, as this is crucial for accurate forecasting. The second column should contain the target variable that the user wishes to forecast.
-                                <br> 3. <i>Date Format</i>: Dates should be formatted consistently in the mm/dd/yyyy format. This ensures that the forecasting engine can interpret the dates correctly and perform accurate predictions.
-                                <br>
-                                <br><b> Once </b> the user selects and uploads the file, the ForecastGenie application will process the data and make it available for analysis and forecasting. Users can explore various forecasting techniques and models using the uploaded data.
-                                <br><b> It </b> is important to note that the application assumes the data file adheres to the specified structure. Any deviations may lead to inaccurate results or errors during the forecasting process. Therefore, users should double-check their data files and ensure they follow the required format before uploading them to the application.
-                                <br> <b> By </b>providing the functionality to load data files from the sidebar menu, ForecastGenie simplifies the data input process and empowers users to make informed predictions and forecasts based on their own datasets.
+           my_text_paragraph('''The <i> ForecastGenie </i> application provides users with a convenient way to upload data files from the sidebar menu. The application supports common file formats such as .csv and .xls. \
+                                To load a file, users can navigate to the sidebar menu and locate the <i> "Upload Data" </i> option. Upon clicking on this option, a file upload dialog box will appear, allowing users to select a file from their local system. \
+                                When uploading a file, it is important to ensure that the file meets specific requirements for proper data processing and forecasting. 
+                                <br> - The first column should have a header named <i> 'date' </i> and dates should be in the mm/dd/yyyy format (12/31/2023), representing the time series data. The dates should be sorted in chronological order, as this is crucial for accurate forecasting. 
+                                <br> - The second column should contain a headWho is this for?r that includes the name of the variable of interest and below it's historical data, for which the user wishes to forecast.
+                                <br> Fasten your seatbelt, lean back, and savor the journey as your data blasts off into the realm of forecasting possibilities! Embrace the adventure and enjoy the ride.
                                 ''', my_text_align='justify')
         vertical_spacer(2)
         st.markdown('---') 
@@ -4916,8 +4899,14 @@ if sidebar_menu_item == 'Doc':
                               speed=1, col_sizes=[45, 40, 40], margin_before=1)
         col1, col2, col3 = st.columns([2,8,2])    
         with col2:
-            # text
-            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
+            my_text_paragraph('''
+                              The <i> Explore </i> tab in the app is designed to provide users with comprehensive tools for data exploration and analysis. It offers valuable insights into the dataset.
+                              <br> The <i> Quick Summary </i> section provides an overview of the dataset including the number of rows, start date, missing values, mean, minimum, standard deviation, maximum date, frequency, median, maximum, and mode.
+                              <br> The <i> Quick Insights </i>  section is designed to get the summarized observations that highlight important characteristics of the data. This includes indications of dataset size, presence or absence of missing values, balance between mean and median values, variability, symmetry, and the number of distinct values.
+                              <br> The <i> Patterns </i> section allows users to visually explore underlying patterns and relationships within the data. Users can select different histogram frequency types to visualize data distribution. The Ljung-Box test is available to assess the presence of white noise. The Augmented Dickey-Fuller (ADF) test can be used to determine stationarity, indicating whether the data exhibits time-dependent patterns. 
+                              Additionally, users can analyze autocorrelation using the ACF/PACF to understand how data point relates to previous data points.
+                              <br> Do not skip exploratory data analysis, because you don't want to end up finding yourself lost in a black hole!
+                              ''', my_text_align='justify')
         vertical_spacer(2)
         st.markdown('---') 
             
@@ -4959,12 +4948,25 @@ if sidebar_menu_item == 'Doc':
         
         # DOC: Train
         ################################    
-        my_text_header('<b> Step 7: </b> <br> Train Model(s)')
+        my_text_header('<b> Step 7: </b> <br> Train Models')
         show_lottie_animation(url="./images/100037-rubiks-cube.json", key='rubiks_cube', width=200, height=200, col_sizes = [4,4,4])
         col1, col2, col3 = st.columns([2,8,2])   
         with col2:
             my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
         st.markdown('---') 
+        
+        # DOC: Evaluate
+        ################################    
+        my_text_header('<b> Step 8: </b> <br> Evaluate Models')
+        show_lottie_animation(url="./images/70114-blue-stars.json", key='blue-stars', width=200, height=200, col_sizes = [4,4,4], speed = 1)
+        col1, col2, col3 = st.columns([2,8,2])   
+        with col2:
+            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
+        st.markdown('---') 
+
+# LOGGING
+print('Forecastgenie Print: Loaded Documentation Page')
+
 # =============================================================================
 #   _      ____          _____  
 #  | |    / __ \   /\   |  __ \ 
@@ -4975,9 +4977,7 @@ if sidebar_menu_item == 'Doc':
 #                               
 # =============================================================================   
 with st.sidebar:
-   
     my_title(f"{load_icon}", "#45B8AC")
-    
     with st.expander('', expanded=True):
         # let user choose if they want to have app run with demo data or upload their own dataset
         col1, col2, col3 = st.columns(3)
@@ -4986,14 +4986,14 @@ with st.sidebar:
             data_option = st.radio("*Choose an option:*", ["Demo Data", "Upload Data"], 
                                    on_change=handle_click_wo_button, 
                                    key='data_choice')
-           
             vertical_spacer(1)
-    
+        
         if st.session_state.my_data_choice == "Upload Data":
             uploaded_file = st.file_uploader("Upload your file", type=["csv", "xls", "xlsx", "xlsm", "xlsb"], accept_multiple_files=False, label_visibility='collapsed')
             
 if menu_item == 'Load' and sidebar_menu_item=='Home':
     my_title(f"{load_icon} Load Dataset ", "#45B8AC")
+    
     if st.session_state.my_data_choice == "Demo Data":
         st.session_state.df_raw = generate_demo_data()
         df_raw = generate_demo_data()
@@ -5011,6 +5011,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
                                                  label_visibility = 'collapsed')    
                 
                 set_state("COLORS", ("chart_color", my_chart_color))
+            
             with col1:
                my_text_header('Demo Data')     
             show_lottie_animation("./images/107590-rocket-launch.json", key='rocket_launch', speed=1, height=160, width=399)
@@ -5054,7 +5055,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
                          - supported frequencies: Daily/Weekly/Monthly/Quarterly/Yearly <br>
                          - supported file extensions: .CSV, .XLS, .XLSX, .XLSM, .XLSB
                          ''', my_font_weight=300, my_text_align='left')
-            vertical_spacer(2)
+                vertical_spacer(2)
             # Upload Doodle        
             # Load the canva image from subfolder images
             image = Image.open("./images/load2.png")
@@ -5095,24 +5096,10 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
                           rows and <b><font color='#555555'>{st.session_state.df_raw.shape[1]}</b></font> columns <br> with date range: \
                           <b><font color='#555555'>{df_min}</b></font> to <b><font color='#555555'>{df_max}</font></b>.</center>", 
                           unsafe_allow_html=True)
-            # add a vertical linespace
-            st.write("")
+            vertical_spacer(1)
             df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
             # set caption
-            st.caption('')
-
-            
-# =============================================================================
-#             col0, col1, col2, col3 = st.columns([20, 90, 8, 1])   
-#             with col2:
-#                	my_chart_color = st.color_picker(label = 'Color', 
-#                									 value = get_state("COLORS", "chart_patterns"), 
-#                									 label_visibility = 'collapsed',
-#                                                  help = 'Set the **`color`** of the charts and styling elements. It will revert back to the **default** color when switching pages.'
-#                                                  )
-# =============================================================================
-            
-            
+            vertical_spacer(1)
             ## display/plot graph of dataframe
             display_dataframe_graph(df=df_graph, key=2, my_chart_color = my_chart_color)
             # show dataframe below graph        
@@ -5252,7 +5239,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         eda_quick_insights(df=summary_statistics_df, my_string_column='Label', my_chart_color = my_chart_color)
         
         # have button available for user and if clicked it expands with the dataframe
-        col1, col2, col3 = st.columns([95,50,95])
+        col1, col2, col3 = st.columns([100,50,95])
         with col2:        
             placeholder = st.empty()
             # create button (enabled to click e.g. disabled=false with unique key)
@@ -5262,12 +5249,9 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         if btn == True:
             # display button with text "click me again", with unique key
             placeholder.button('Hide Details', disabled=False)
-            
-        
             st.dataframe(summary_statistics_df, use_container_width=True)
             download_csv_button(summary_statistics_df, my_file="summary_statistics.csv", help_message='Download your Summary Statistics Dataframe to .CSV')      
 
-        
     #############################################################################
     # Call function for plotting Graphs of Seasonal Patterns D/W/M/Q/Y in Plotly Charts
     #############################################################################
@@ -5307,8 +5291,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                                                    lag = lag1_ljung_box,
                                                    model_type = model_type
                                                    )
-            
-        vertical_spacer(1)        
+            vertical_spacer(1)        
         col1, col2, col3 = st.columns([89,40,80])
         with col2:        
             placeholder = st.empty()
@@ -5326,11 +5309,9 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                             res = res,
                             result_ljungbox = result_ljungbox,
                             my_chart_color = my_chart_color)
-
         else:
             pass
-                    
-            
+
     ###################################################################  
     # AUGMENTED DICKEY-FULLER TEST
     ###################################################################
@@ -5340,19 +5321,11 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         my_text_paragraph('Augmented Dickey Fuller')
         #show_lottie_animation(url="./images/newton.json", key="visitor_from_mars", speed=0.8, width=250, height=250, col_sizes = [19,40,1], margin_before=1)
         # Augmented Dickey-Fuller (ADF) test results
-        adf_result = adf_test(st.session_state.df_raw, 1)
-        
+        adf_result = adf_test(st.session_state.df_raw, 1)        
         col1, col2, col3 = st.columns([18,40,10])
         col2.write(adf_result)
         vertical_spacer(2)
-# =============================================================================
-#         # Doodle Dickey-Fuller Test
-#         image = Image.open("./images/adf_test.png")
-#         # Display the image in Streamlit
-#         st.image(image, caption="", use_column_width=True)
-#         #my_text_paragraph('Doodle: Dickey-Fuller Test', my_font_size='12px')
-# =============================================================================
-        
+
     ###################################################################
     # AUTOCORRELATION PLOTS - Autocorrelation Plots (ACF & PACF) with optional Differencing applied
     ###################################################################
@@ -5403,28 +5376,31 @@ print('ForecastGenie Print: Ran Explore')
 # =============================================================================
 # Register state with initiate values in a slot (fire-state package utilized)
 # define keys and store them in memory with their associated values
-key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, key8_outlier = create_store("CLEAN_PAGE", [
-("outlier_detection_method", "None"), # key1
-("outlier_isolationforest_contamination", 0.01), #key2
-("outlier_zscore_threshold", 3.0), #key3
-("outlier_iqr_q1", 25.0), #key4
-("outlier_iqr_q3", 75.0), #key5
-("outlier_iqr_multiplier", 1.5), #key6
-("outlier_replacement_method", "Interpolation"), #key7
-("run", 0)]) #key8
-
-key1_missing, key2_missing, key3_missing, key4_missing = create_store("CLEAN_PAGE_MISSING", [
-("missing_fill_method", "Backfill"), #key1
-("missing_custom_fill_value", "1"), #key2
-("data_frequency", 'Daily'), #key3
-("run", 0)]) #key4
-
+key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, key8_outlier = create_store("CLEAN_PAGE", 
+                                                                                                                              [
+                                                                                                                                ("outlier_detection_method", "None"), # key1
+                                                                                                                                ("outlier_isolationforest_contamination", 0.01), #key2
+                                                                                                                                ("outlier_zscore_threshold", 3.0), #key3
+                                                                                                                                ("outlier_iqr_q1", 25.0), #key4
+                                                                                                                                ("outlier_iqr_q3", 75.0), #key5
+                                                                                                                                ("outlier_iqr_multiplier", 1.5), #key6
+                                                                                                                                ("outlier_replacement_method", "Interpolation"), #key7
+                                                                                                                                ("run", 0)  #key8
+                                                                                                                              ]
+                                                                                                                             )
+key1_missing, key2_missing, key3_missing, key4_missing = create_store("CLEAN_PAGE_MISSING", 
+                                                                      [
+                                                                        ("missing_fill_method", "Backfill"), #key1
+                                                                        ("missing_custom_fill_value", "1"), #key2
+                                                                        ("data_frequency", 'Daily'), #key3
+                                                                        ("run", 0) #key4
+                                                                      ]
+                                                                     ) 
 # Data Cleaning
 if menu_item == 'Clean' and sidebar_menu_item=='Home':    
     my_title(f"{clean_icon} Data Cleaning", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
     with st.sidebar:
         my_title(f"{clean_icon}", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
-        
         # with your form have a button to click and values are updated in streamlit
         with st.form('data_cleaning'):
             my_text_paragraph('Handling Missing Data')      
@@ -5432,7 +5408,6 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             fill_method = st.selectbox(label = '*Select filling method for missing values:*', 
                                        options = ['Backfill', 'Forwardfill', 'Mean', 'Median', 'Mode', 'Custom'],
                                        key = key1_missing)
-            #custom_fill_value = None ## commented out replaced with st.session_state['custom_fill_value'] 
             if fill_method == 'Custom':
                 #custom_fill_value = int(st.text_input('Enter custom value', value='0'))
                 custom_fill_value = st.text_input(label = '*Insert custom value to replace missing value(s) with:*', 
@@ -5449,30 +5424,13 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             # set the frequency that is inferred from the data itself with custom function to pre-selected e.g. index = ...
             freq = st.selectbox('*Select the frequency of the data:*', 
                                 list(freq_dict.keys()), 
-                                #index=position,
                                 key = key3_missing)
             
             col1, col2, col3 = st.columns([4,4,4])
             with col2:       
                 data_cleaning_btn = st.form_submit_button("Submit", type="secondary", on_click = form_update, args=("CLEAN_PAGE_MISSING",))
-# =============================================================================
-#                 
-#                 # save the user selections/submits in the app to be used when user switches menu items
-#                 # in other words, save the session state of the user for variables freq, fill_method
-#                 # freq set on top of script
-#                 st.session_state['freq'] = freq
-# =============================================================================
-# =============================================================================
-#                 # set the fill method in session state
-#                 if fill_method != 'Custom':
-#                     st.session_state['fill_method'] = fill_method
-#                 else:
-#                     # set the fill method in session state
-#                     st.session_state['fill_method'] = (fill_method, custom_fill_value)           
-# =============================================================================
 
     with st.expander('', expanded=True):
-        
         #*************************************************
         my_text_header('Handling missing data')
         show_lottie_animation(url = "./images/ufo.json", key='jumping_dots', width=300, height=300, speed = 1, col_sizes=[2,4,2])
@@ -5517,10 +5475,13 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             df_graph = copy_df_date_index(my_df=df_graph, 
                                           datetime_to_date=True, 
                                           date_to_index=True)
+            
             highlighted_df = df_graph.style.highlight_null(color='yellow').format(precision = 2)
+            
             my_subheader('Original DataFrame', my_style="#333333", my_size=6)
             # show original dataframe unchanged but with highlighted missing NaN values
             st.dataframe(highlighted_df, use_container_width=True)
+            
         with col2:
             # show arrow which is a bootstrap icon from source: https://icons.getbootstrap.com/icons/arrow-right/
             st.markdown('<svg xmlns="http://www.w3.org/2000/svg" width="25" height="20" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">'
@@ -5529,23 +5490,30 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
         with col3:
             my_subheader('Skipped Dates', my_style="#333333", my_size=6)
             st.write(df_missing_dates)
+            
             # Display the dates and the number of missing values associated with them
             my_subheader('Missing Values', my_style="#333333", my_size=6)
+            
             # Filter the DataFrame to include only rows with missing values
             missing_df = copy_df_date_index(st.session_state.df_raw.loc[st.session_state.df_raw.iloc[:,1].isna(), st.session_state.df_raw.columns], datetime_to_date=True, date_to_index=True)
             st.write(missing_df)
+            
         with col4:
             # show arrow which is a bootstrap icon from source: https://icons.getbootstrap.com/icons/arrow-right/
             st.markdown('<svg xmlns="http://www.w3.org/2000/svg" width="25" height="20" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">'
                         '<path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>'
                         '</svg>', unsafe_allow_html=True)
+            
         # Display cleaned Dataframe in Streamlit
         with col5:
             my_subheader('Cleaned Dataframe', my_style="#333333", my_size=6)
             # Convert datetime column to date AND set date column as index column
+            
             df_clean_show = copy_df_date_index(df_clean, datetime_to_date=True, date_to_index=True)
+           
             # Show the cleaned dataframe with if needed dates inserted if skipped to NaN and then the values inserted with impute method user selected backfill/forward fill/mean/median
             st.write(df_clean_show)
+       
         # create and show download button in streamlit to user to download the dataframe with imputations performed to missing values
         download_csv_button(df_clean_show, my_file="df_imputed_missing_values.csv", set_index=True, help_message='Download cleaned dataframe to .CSV')
     
@@ -5645,16 +5613,7 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             st.plotly_chart(fig_no_outliers, use_container_width=True)
             my_text_paragraph(f'No <b> outlier detection </b> or <b> outlier replacement </b> method selected.', my_font_size='14px')
             
-# =============================================================================
-#             # image outliers
-#             st.markdown('---')
-#             vertical_spacer(2)
-#             col1, col2, col3 = st.columns([1,3,1])
-#             with col2:
-#                 image_path = './images/outliers.png'
-#                 caption = 'Doodle: A Slippery Slope'
-#                 st.image(image_path, caption=caption)
-# =============================================================================
+
 else:
     ##########################################################
     # ELSE user did not set the variables in 'clean' menu
@@ -5669,8 +5628,11 @@ else:
     # retrieve the date frequency of the timeseries    
     freq_dict = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
     # infer and return the original data frequency e.g. 'M' and name e.g. 'Monthly'
-    original_freq, original_freq_name = determine_df_frequency( st.session_state.df_raw , column_name='date')
-    df_cleaned_dates = resample_missing_dates(st.session_state['df_raw'], freq_dict=st.session_state['freq_dict'], freq=st.session_state['freq'], original_freq=original_freq)
+    original_freq, original_freq_name = determine_df_frequency(st.session_state.df_raw , column_name='date')
+    df_cleaned_dates = resample_missing_dates(df = st.session_state['df_raw'], 
+                                              freq_dict = st.session_state['freq_dict'], 
+                                              freq = st.session_state['freq'], 
+                                              original_freq = original_freq)
     df_clean = my_fill_method(df = df_cleaned_dates, 
                               fill_method = fill_method, 
                               custom_fill_value = custom_fill_value)
@@ -5700,14 +5662,13 @@ st.session_state['df_cleaned_outliers_with_index'] = df_cleaned_outliers_with_in
 # =============================================================================
 # FEATURE ENGINEERING
 if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
-    
+    st.write(st.session_state['df_cleaned_outliers_with_index'])
     # set title of engineer page
     my_title(f"{engineer_icon} Feature Engineering", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
 
     with st.sidebar:
         # set title in sidebar for engineer page
         my_title(f"{engineer_icon}", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
-    
     #create a user form in streamlit with options for feature engineering
     with st.sidebar.form('feature engineering sidebar'):
         # create empty newline
@@ -6221,11 +6182,12 @@ if 'date' in st.session_state['df']:
     X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'].set_index('date'), st.session_state['insample_forecast_steps'], st.session_state['normalization_choice'], numerical_features=numerical_features)
 else:
     X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'], st.session_state['insample_forecast_steps'], st.session_state['normalization_choice'], numerical_features=numerical_features)
+
 # =============================================================================
 # st.write('X_train', X_train)
 # st.write('y_train', y_train)
-# 
 # =============================================================================
+
 # Update Session States of Dataframes
 st.session_state['X'] = X
 st.session_state['y'] = y
@@ -6459,6 +6421,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
     except: 
         selected_cols_mifs = []
         st.warning(':red[**ERROR**: Mutual Information Feature Selection could not execute...please adjust your selection criteria]')
+    
     # =============================================================================
     # Correlation Analysis
     # Remove Highly Correlated Features
