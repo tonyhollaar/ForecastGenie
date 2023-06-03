@@ -154,6 +154,15 @@ st.set_page_config(page_title="ForecastGenie™️",
 #  |_|     \____/|_| \_|\_____|  |_|  |_____\____/|_| \_|_____/ 
 #                                                               
 # =============================================================================
+def hist_change_freq():
+    try:
+        # update in memory value for radio button / save user choice of histogram freq
+        index_freq_type = ("Relative" if frequency_type == "Absolute" else "Absolute")
+        set_state("HIST", ("histogram_freq_type", index_freq_type))
+    except:
+        set_state("HIST", ("histogram_freq_type", "Absolute"))
+        
+
 def stock_ticker(text, speed=15):
     st.markdown(
         f"""
@@ -224,11 +233,12 @@ def vertical_spacer(n):
     for i in range(n):
         st.write("")
 
-def eda_quick_insights(df, my_string_column):
-    col1, col2, col3 = st.columns([24,40,20])
+def eda_quick_insights(df, my_string_column, my_chart_color):
+    col1, col2, col3 = st.columns([20,40,20])
     with col2:
         my_text_header('Quick Insights')
-    col1, col2, col3 = st.columns([2, 8, 2])
+        vertical_spacer(1)
+    col1, col2, col3 = st.columns([20, 80, 20])
     with col2:
         # Filter out NaN and '-' values from 'Label' column
         label_values = df[my_string_column].dropna().apply(lambda x: x.strip()).replace('-', '').tolist()
@@ -247,10 +257,11 @@ def eda_quick_insights(df, my_string_column):
                     font-size: 16px;
                     line-height: 1.4;
                     margin-bottom: 10px;
-                    margin-left: 50px;
+                    margin-left: 0px;
+                    margin-right: 0px;
                     background-color: white;
                     border-radius: 10px;
-                    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+                    box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.3);
                     padding: 20px;
                 }}
                 .my-list li {{
@@ -261,7 +272,7 @@ def eda_quick_insights(df, my_string_column):
                 .my-number {{
                     font-weight: bold;
                     color: white;
-                    background-color: #217CD0;
+                    background-color: {my_chart_color};
                     border-radius: 50%;
                     text-align: center;
                     width: 20px;
@@ -715,7 +726,7 @@ def create_carousel_cards_v2(num_cards, header_list, paragraph_list_front, parag
 ################################################
 # SUMMARY STATISTICS DESCRIPTIVE LABEL FUNCTIONS
 ################################################
-def eda_quick_summary():
+def eda_quick_summary(my_chart_color):
     """
     Displays a quick summary of the exploratory data analysis (EDA) metrics.
     
@@ -742,7 +753,7 @@ def eda_quick_summary():
     container_style = '''
         border-radius: 10px;
         background-color: #ffffff;
-        box-shadow: 0px 0px 15px -5px rgba(0,0,0,0.8);
+        box-shadow: 0px 0px 15px -5px rgba(0,0,0,0.3);
         padding: 25px;
         margin: 10px;
         width: 100%;
@@ -755,13 +766,8 @@ def eda_quick_summary():
         font-size: 16px;
         color: #555555;
     '''
-    try:
-        # Display the header for the quick summary
-        col1, col2, col3 = st.columns([24,40,20])
-        with col2:
-            my_text_header('Quick Summary')
-       
-        col1, col2, col3 = st.columns([22,59,22])
+    try:        
+        col1, col2, col3 = st.columns([19, 80, 20])
         with col2:
             # Compute and display the metrics for the first column
             rows = st.session_state.df_raw.shape[0]
@@ -780,22 +786,22 @@ def eda_quick_summary():
             mode_val = st.session_state.df_raw.iloc[:, 1].dropna().mode().round(2).iloc[0]
             st.write(
                     f'<div style="{container_style}">'
-                    f'<div style="display: flex; justify-content: space-between; margin-bottom: -20px;margin-left: 60px; margin-right: 0px; margin-top: -10px;">'
+                    f'<div style="display: flex; justify-content: space-between; margin-bottom: -20px;margin-left: 90px; margin-right: 0px; margin-top: -10px;">'
                     f'<div style="text-align: center; margin-right: 50px;">'
-                    f'<div><b style="color: #217cd0;">Rows</b></div><div>{rows}</div><br/>'
-                    f'<div><b style="color: #217cd0;">Start Date</b></div><div>{min_date}</div><br/>'
-                    f'<div><b style="color: #217cd0;">Missing</b></div><div>{percent_missing}</div><br/>'
-                    f'<div><b style="color: #217cd0;">Mean</b></div><div>{mean_val}</div><br/>'
-                    f'<div><b style="color: #217cd0;">Minimum</b></div><div>{min_val}</div><br/>'
-                    f'<div><b style="color: #217cd0;">StDev</b></div><div>{std_val}</div><br/>'
+                    f'<div><b style="color: {my_chart_color};">Rows</b></div><div>{rows}</div><br/>'
+                    f'<div><b style="color: {my_chart_color};">Start Date</b></div><div>{min_date}</div><br/>'
+                    f'<div><b style="color: {my_chart_color};">Missing</b></div><div>{percent_missing}</div><br/>'
+                    f'<div><b style="color: {my_chart_color};">Mean</b></div><div>{mean_val}</div><br/>'
+                    f'<div><b style="color: {my_chart_color};">Minimum</b></div><div>{min_val}</div><br/>'
+                    f'<div><b style="color: {my_chart_color};">StDev</b></div><div>{std_val}</div><br/>'
                     f'</div>'
                     f'<div style="text-align: center;">'
-                    f'<div><b style="color: #217cd0;">Columns</b></div><div>{cols}</div><br/>'
-                    f'<div><b style="color: #217cd0;">Max Date</b></div><div>{max_date}</div><br/>'
-                    f'<div><b style="color: #217cd0;">Frequency</b></div><div>{dataframe_freq_name}</div><br/>'
-                    f'<div><b style="color: #217cd0;">Median</b></div><div>{median_val}</div><br/>'
-                    f'<div><b style="color: #217cd0;">Maximum</b></div><div>{max_val}</div><br/>'
-                    f'<div><b style="color: #217cd0;">Mode</b></div><div>{mode_val}</div><br/>'
+                    f'<div><b style="color: {my_chart_color};">Columns</b></div><div>{cols}</div><br/>'
+                    f'<div><b style="color: {my_chart_color};">Max Date</b></div><div>{max_date}</div><br/>'
+                    f'<div><b style="color: {my_chart_color};">Frequency</b></div><div>{dataframe_freq_name}</div><br/>'
+                    f'<div><b style="color: {my_chart_color};">Median</b></div><div>{median_val}</div><br/>'
+                    f'<div><b style="color: {my_chart_color};">Maximum</b></div><div>{max_val}</div><br/>'
+                    f'<div><b style="color: {my_chart_color};">Mode</b></div><div>{mode_val}</div><br/>'
                     f'</div>'
                     f'</div>'
                     f'</div>'
@@ -876,16 +882,6 @@ def create_summary_df(data):
     else:
         skewness_type = "Highly positively skewed"                    
     
-    #******************************                    
-    # ? TEST ? Ljung-Box Test   
-    #******************************                
-    # Fit ARMA model to dataset
-    
-    # =============================================================================
-    #                     # Fit ARMA model to dataset
-    #                     model = sm.tsa.ARMA(data, order=(1, 1))
-    #                     res = model.fit(disp=-1)
-    # =============================================================================        
     # define the model
     model = sm.tsa.AutoReg(data, lags=[1], trend='c', old_names=False)
     # train model on the residuals
@@ -1199,8 +1195,7 @@ def adf_test(df, variable_loc, max_diffs=3):
                     max_diffs = st.slider(':red[[Optional]] *Adjust maximum number of differencing:*', min_value=0, max_value=10, value=3, step=1, help='Adjust maximum number of differencing if Augmented Dickey-Fuller Test did not become stationary after differencing the data e.g. 3 times (default value)')
     return result
 
-# statistical test ljung box
-def ljung_box_test(df, variable_loc, lag_range, model_type = "AutoReg"):
+def ljung_box_test(df, variable_loc, lag, model_type="AutoReg"):
     """
     Perform the Ljung-Box test for white noise on a time series using the AutoReg model.
 
@@ -1212,8 +1207,10 @@ def ljung_box_test(df, variable_loc, lag_range, model_type = "AutoReg"):
         The location of the variable to test for white noise, which can be a single integer (if the variable
         is located in a single-column DataFrame), a tuple or list of integers (if the variable is located
         in a multi-column DataFrame), or a pandas Series.
-    lag_range : tuple or list
-        The range of lag values to consider for the Ljung-Box test.
+    lag : int
+        The lag value to consider for the Ljung-Box test.
+    model_type : str, optional
+        The type of model to use for the Ljung-Box test (default: "AutoReg").
 
     Returns
     -------
@@ -1237,30 +1234,101 @@ def ljung_box_test(df, variable_loc, lag_range, model_type = "AutoReg"):
     model = sm.tsa.AutoReg(variable, lags=[1], trend='c', old_names=False)
     res = model.fit()
 
-    # Perform Ljung-Box test on residuals with the specified lag range
-    for lag in lag_range:
-        if model_type == "AutoReg":
-            result_ljungbox = sm.stats.acorr_ljungbox(res.resid, lags=lag, return_df=True)
-        elif model_type == "ARMA":
-            result_ljungbox = sm.stats.acorr_ljungbox(res.resid, lags=lag, model_df=1, return_df=True)
-        else:
-            raise ValueError("Invalid model type selected.")
-        test_statistic = result_ljungbox.iloc[0]['lb_stat']
-        p_value = result_ljungbox.iloc[0]['lb_pvalue']
-        white_noise = "True" if p_value > 0.05 else "False"
+    # Perform Ljung-Box test on residuals with the specified lag
+    if model_type == "AutoReg":
+        result_ljungbox = sm.stats.acorr_ljungbox(res.resid, lags=lag, return_df=True)
+    elif model_type == "ARMA":
+        result_ljungbox = sm.stats.acorr_ljungbox(res.resid, lags=lag, model_df=1, return_df=True)
+    else:
+        raise ValueError("Invalid model type selected.")
+        
+    test_statistic = result_ljungbox.iloc[0]['lb_stat']
+    p_value = result_ljungbox.iloc[0]['lb_pvalue']
+    white_noise = "True" if p_value > 0.05 else "False"
+    alpha = 0.05 #significance level
+    
+    # if p value is less than or equal to significance level reject zero hypothesis
+    if p_value <= alpha: 
+        st.markdown(f'❌ $H_0$: The residuals have **:green[no autocorrelation]** for all lags up to a maximum lag of **{lag}**.') # h0
+        st.markdown(f'✅ $H_1$: The residuals **:red[have autocorrelation]** for all lags up to a maximum lag of **{lag}**.') #h1
+    else: 
+        st.markdown(f'✅ $H_0$: The residuals have **:green[no autocorrelation]** for all lags up to a maximum lag of **{lag}**.') # h0
+        st.markdown(f'❌ $H_1$: The residuals **:red[have autocorrelation]** for all lags up to a maximum lag of **{lag}**.') #h1
+    alpha = 0.05  # Significance level
+    
+    if p_value > 0.05:
+        st.markdown(f"**Conclusion:** The null hypothesis **cannot** be rejected for lag **{lag}**. The residuals show **no significant autocorrelation.**")
+        vertical_spacer(2)
+    else:
+        st.markdown(f"**Conclusion:** The null hypothesis can be **rejected** for lag **{lag}** with a p-value of **`{p_value:.2e}`**, which is smaller than the significance level of **`{alpha:}`**. This provides strong evidence of significant autocorrelation in the residuals, suggesting the presence of serial dependence in the time series.")
+    
+    return res, result_ljungbox
 
-        h0 = st.markdown(f'$H_0$: The residuals have **:red[no autocorrelation]** up to lag **{lag}**.')
-        h1 = st.markdown(f'$H_1$: The residuals have autocorrelation up to lag **{lag}**.')
-
-        if p_value > 0.05:
-            conclusion = st.markdown("**Conclusion:**\
-                                     The null hypothesis cannot be rejected for lag **{lag}**. The residuals show no significant autocorrelation.")
-            vertical_spacer(2)
-        else:
-            conclusion = st.markdown(f"**Conclusion:**\
-                                     The null hypothesis can be rejected for lag **{lag}**. The residuals are autocorrelated.")
-            vertical_spacer(2)
-
+def ljung_box_plots(df, variable_loc, res, lag, result_ljungbox, my_chart_color):
+    adjusted_color = adjust_brightness(my_chart_color, 2)
+    st.markdown('---')
+    # 1st GRAPH - Residual Plot
+    ###################################
+    # Plot the residuals
+    column_name = df.iloc[:, variable_loc].name
+    my_text_paragraph(f'Residuals of {column_name}')
+    
+    # Create the line plot with specified x, y, and labels
+    fig = px.line(x=df['date'][1:],
+                  y=res.resid, 
+                  labels={"x": "Date", "y": "Residuals"})
+    
+    # Update the line color and name
+    fig.update_traces(line_color = my_chart_color, 
+                      name="Residuals")
+    
+    # Add a dummy trace to create the legend for the first graph
+    fig.add_trace(go.Scatter(x=[None], y=[None], name="Residuals", line=dict(color="#4185c4")))
+    
+    # Position the legend at the top right inside the graph
+    fig.update_layout(legend=dict(x=1, y=1, xanchor='right', yanchor='top'),
+                      margin=dict(t=10), yaxis=dict(automargin=True))
+    
+    # Display the plot
+    st.plotly_chart(fig, use_container_width=True)
+    st.markdown('---')
+    # 2nd GRAPH -  p-values of the lags
+    ###################################
+    # Compute the p-values of the lags
+    p_values = result_ljungbox['lb_pvalue']
+    # Plot the p-values
+    my_text_paragraph('P-values for Ljung-Box Statistic')
+    fig_pvalues = go.Figure(data=go.Scatter( 
+                                            x = df.index[0:lag], 
+                                            y = p_values.iloc[0:lag], 
+                                            mode = "markers", 
+                                            name = 'p-value',
+                                            marker = dict(
+                                                          symbol="circle-open", 
+                                                          color = my_chart_color, 
+                                                         
+                                                         )
+                                           )
+                            )
+    
+    # Update y-axis range and tick settings
+    fig_pvalues.update_layout(yaxis=dict(range=[-0.1, 1], dtick=0.1), margin=dict(t=10))
+    
+    # Add a blue dotted line for the significance level
+    fig_pvalues.add_trace(go.Scatter(
+        x=[df.index[0], df.index[lag-1]],
+        y=[0.05, 0.05],
+        mode="lines",
+        line=dict(color = adjusted_color, 
+                  dash="dot"),
+        name="α = 0.05"
+    ))
+    
+    # Position the legend at the top right inside the graph
+    fig_pvalues.update_layout(legend=dict(x=1, y=1, xanchor='right', yanchor='top'))
+    
+    fig_pvalues.update_layout(xaxis_title="Lag", yaxis_title="P-value", showlegend=True)
+    st.plotly_chart(fig_pvalues, use_container_width=True)
     
 #******************************************************************************
 # GRAPH FUNCTIONS | PLOT FUNCTIONS
@@ -1294,7 +1362,7 @@ def acf_pacf_info():
     with col1:
         show_acf_info_btn = st.button(f'About ACF plot', use_container_width=True, type='secondary')
     if show_acf_info_btn == True:
-        st.write('')
+        vertical_spacer(1)
         my_subheader('Autocorrelation Function (ACF)')
         st.markdown('''
                     The **Autocorrelation Function (ACF)** plot is a statistical tool used to identify patterns of correlation between observations in a time series dataset. 
@@ -1313,7 +1381,7 @@ def acf_pacf_info():
                     Some key takeaways when looking at an **ACF** plot include:  
                     - If there are no significant peaks, then there is no significant correlation between the observations and their lagged values.
                     - A significant peak at lag $k$ means that the observation at time $t$ is significantly correlated with the observation at time $t_{-k}$.
-                    - A gradual decay of the peaks towards zero suggests a stationary time series, while a slowly decaying **ACF** suggests a non-stationary time series.
+                    - A rapid decay of autocorrelation towards zero suggests a stationary time series, while a slowly decaying or persistent non-zero autocorrelations, suggests a non-stationary time series.
                     ''')
     with col2:
         show_pacf_info_btn = st.button(f'About PACF plot', use_container_width=True, type='secondary')
@@ -1371,7 +1439,7 @@ def acf_pacf_info():
     with col3:
         diff_acf_pacf_info_btn = st.button(f'Difference ACF/PACF', use_container_width=True, type='secondary')
     if diff_acf_pacf_info_btn == True: 
-        st.write('')
+        vertical_spacer(1)
         my_subheader('Differences explained between ACF and PACF')
         st.markdown('''
                     - The **ACF** plot measures the correlation between an observation and its lagged values.
@@ -1952,6 +2020,7 @@ def generate_demo_data(seed=42):
     # generate time series data
     values = weekly + monthly + quarterly + yearly + noise + 10
     demo_data = pd.DataFrame({'date': date_range, 'demo_data': values})
+
     return demo_data
 
 # add wavelet features if applicable e.g. user selected it to be included
@@ -3013,7 +3082,7 @@ def convert_df(my_dataframe):
 def convert_df_with_index(my_dataframe):
     return my_dataframe.to_csv(index=True).encode('utf-8')
 
-def download_csv_button(my_df, my_file="forecast_model.csv", help_message = 'Download dataframe to .CSV', set_index=False):
+def download_csv_button(my_df, my_file="forecast_model.csv", help_message = 'Download dataframe to .CSV', set_index=False, my_key='define_unique_key'):
     """
     Create a download button for a pandas DataFrame in CSV format.
     
@@ -3037,14 +3106,15 @@ def download_csv_button(my_df, my_file="forecast_model.csv", help_message = 'Dow
         csv = convert_df_with_index(my_df)
     else:
         csv = convert_df(my_df)
-    col1, col2, col3 = st.columns([5,3,5])
+    col1, col2, col3 = st.columns([60,30,50])
     with col2: 
         st.download_button(":arrow_down: Download", 
                            csv,
                            my_file,
                            "text/csv",
                            #key='', -> streamlit automatically assigns key if not defined
-                           help = help_message)
+                           help = help_message,
+                           key=my_key)
 
 def plot_actual_vs_predicted(df_preds, my_conf_interval):
     """
@@ -3403,8 +3473,6 @@ def adjust_brightness(hex_color, brightness_factor):
     adjusted_hex_color = '#' + ''.join(format(c, '02x') for c in adjusted_rgb_color)
     return adjusted_hex_color
 
-
-
 def plot_histogram(df, y_colname, fig, row, col, my_chart_color):
     """
     Plot a histogram with normal distribution curve for a given dataframe and column.
@@ -3468,21 +3536,6 @@ def plot_overview(df, y):
     ####################
     num_graph_start = 1
     freq, my_freq_name = determine_df_frequency(df, column_name='date')
-
-    # Update layout
-    my_text_header('Patterns')
-    
-    show_lottie_animation(url="./images/spacemug.json", key='spacemug', width=200, height=200, col_sizes = [4,4,4])
-    
-    # set color picker for user centered on page
-    col1, col2, col3 = st.columns([16,2,16])   
-    with col2:
-        	my_chart_color = st.color_picker(label = 'Color', 
-        									 value = get_state("COLORS", "chart_patterns"), 
-        									 label_visibility = 'collapsed',
-                                         )
-    # set session state for user chosen chart color
-    set_state("COLORS", ("chart_patterns", my_chart_color))
     
     # Determine what pattern graphs should be shown e.g. if weekly do not show daily but rest, if monthly do not show daily/weekly etc.
     # DAILY
@@ -3620,7 +3673,7 @@ def plot_overview(df, y):
 #################### PACF GRAPH ###########################################
 # Define functions to calculate PACF
 #################### PACF GRAPH ###########################################
-def df_differencing(df, selection):
+def df_differencing(df, selection, my_chart_color):
     """
     Perform differencing on a time series DataFrame up to third order.
 
@@ -3651,7 +3704,7 @@ def df_differencing(df, selection):
     df_diff3.fillna(0, inplace=True)
 
     if selection == 'Original Series':
-        fig = px.line(df, x='date', y=df.columns[1], title='Original Series')
+        fig = px.line(df, x='date', y=df.columns[1], title='Original Series',    color_discrete_sequence=[my_chart_color])
         df_select_diff = df.iloc[:, 1]
         fig.update_layout(
             title_x=0.5, 
@@ -3687,7 +3740,7 @@ def calc_pacf(data, nlags, method):
     return pacf(data, nlags=nlags, method=method)
 
 # Define function to plot PACF
-def plot_pacf(data, nlags, method):
+def plot_pacf(data, nlags, method, my_chart_color):
     '''
     Plots the partial autocorrelation function (PACF) for a given time series data.
 
@@ -3709,11 +3762,12 @@ def plot_pacf(data, nlags, method):
     This function drops any rows from the input data that contain NaN values before calculating the PACF.
     The PACF plot includes shaded regions representing the 95% and 99% confidence intervals.
     '''
-# =============================================================================
-#     if data.isna().sum().sum() > 0:
-#         st.warning('''**Warning** ⚠️:              
-#                  Data contains **NaN** values. **NaN** values were dropped in copy of dataframe to be able to plot below PACF. ''')
-# =============================================================================
+    # Define adjusted brightness color of normal distribution trace
+    adjusted_color = adjust_brightness(my_chart_color, 2)
+    
+    if data.isna().sum().sum() > 0:
+        st.warning('''**Warning** ⚠️:              
+                 Data contains **NaN** values. **NaN** values were dropped in copy of dataframe to be able to plot below PACF. ''')
     st.markdown('<p style="text-align:center; color: #707070">Partial Autocorrelation (PACF)</p>', unsafe_allow_html=True)
     # Drop NaN values if any
     data = data.dropna(axis=0)
@@ -3757,11 +3811,11 @@ def plot_pacf(data, nlags, method):
                                     )
         # if absolute value of lag is larger than confidence band 99% then color 'darkred'
         if abs(pacf_vals[i]) > conf99:
-            trace.line.color = 'darkred'
+            trace.line.color = my_chart_color # 'darkred'
             trace.name += ' (>|99%|)'
         # else if absolute value of lag is larger than confidence band 95% then color 'lightcoral'
         elif abs(pacf_vals[i]) > conf95:
-            trace.line.color = 'lightcoral'
+            trace.line.color = adjusted_color # 'lightcoral' 
             trace.name += ' (>|95%|)'
         traces.append(trace)
     # Set layout of PACF plot
@@ -3827,7 +3881,7 @@ def calc_acf(data, nlags):
         acf_vals[k] = acovf[k] / var
     return acf_vals
 
-def plot_acf(data, nlags):
+def plot_acf(data, nlags, my_chart_color):
     '''
     Plots the autocorrelation function (ACF) for a given time series data.
 
@@ -3847,11 +3901,12 @@ def plot_acf(data, nlags):
     This function drops any rows from the input data that contain NaN values before calculating the ACF.
     The ACF plot includes shaded regions representing the 95% and 99% confidence intervals.
     '''
-# =============================================================================
-#     if data.isna().sum().sum() > 0:
-#         st.warning('''**Warning** ⚠️:              
-#                  Data contains **NaN** values. **NaN** values were dropped in copy of dataframe to be able to plot below ACF. ''')
-# =============================================================================
+    # Define adjusted brightness color of normal distribution trace
+    adjusted_color = adjust_brightness(my_chart_color, 2)
+    
+    if data.isna().sum().sum() > 0:
+        st.warning('''**Warning** ⚠️:              
+                 Data contains **NaN** values. **NaN** values were dropped in copy of dataframe to be able to plot below ACF. ''')
     st.markdown('<p style="text-align:center; color: #707070">Autocorrelation (ACF)</p>', unsafe_allow_html=True)
     # Drop NaN values if any
     data = data.dropna(axis=0)
@@ -3868,10 +3923,10 @@ def plot_acf(data, nlags):
         conf95 = 1.96 / np.sqrt(len(data))
         conf99 = 2.58 / np.sqrt(len(data))
         if abs(acf_vals[i]) > conf99:
-            trace.line.color = 'darkred'
+            trace.line.color = my_chart_color #'darkred'
             trace.name += ' (>|99%|)'
         elif abs(acf_vals[i]) > conf95:
-            trace.line.color = 'lightcoral'
+            trace.line.color = adjusted_color # 'lightcoral'
             trace.name += ' (>|95%|)'
         traces.append(trace)
     # define the background shape and color for the 95% confidence band
@@ -4862,7 +4917,7 @@ if sidebar_menu_item == 'Doc':
         col1, col2, col3 = st.columns([2,8,2])    
         with col2:
             # text
-            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.')
+            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
         vertical_spacer(2)
         st.markdown('---') 
             
@@ -4872,25 +4927,35 @@ if sidebar_menu_item == 'Doc':
         show_lottie_animation(url="./images/88404-loading-bubbles.json", key="loading_bubbles", width=200, height=200, col_sizes=[2,2,2])
         col1, col2, col3 = st.columns([2,8,2])   
         with col2:
-            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.')
+            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
         st.markdown('---') 
+        
         # DOC: Engineer
         ################################      
         my_text_header('<b> Step 4: </b> <br> Engineer Features')
         show_lottie_animation(url="./images/141844-shapes-changing-preloader.json", key='shapes_changing_preloader', width=200, height=200, col_sizes=[2,2,2])
         col1, col2, col3 = st.columns([2,8,2])   
         with col2:
-            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.')
+            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
         st.markdown('---') 
+        
         # DOC: Prepare
         ################################      
         my_text_header('<b> Step 5: </b> <br> Prepare Dataset')
         show_lottie_animation(url="./images/141560-loader-v25.json", key='prepare', width=200, height=200, col_sizes=[20,20,20])
         col1, col2, col3 = st.columns([2,8,2])   
         with col2:
-            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.')
+            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
         st.markdown('---') 
         
+        # DOC: Select
+        ################################    
+        my_text_header('<b> Step 6: </b> <br> Select Features')
+        show_lottie_animation(url="./images/spacemug.json", key='spacemug', width=200, height=200, col_sizes = [4,4,4])
+        col1, col2, col3 = st.columns([2,8,2])   
+        with col2:
+            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
+        st.markdown('---') 
 # =============================================================================
 #   _      ____          _____  
 #  | |    / __ \   /\   |  __ \ 
@@ -4929,7 +4994,16 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
         df_max = df_raw.iloc[:,0].max().date()
         
         with st.expander('', expanded=True):
-            my_text_header('Demo Data')     
+            col0, col1, col2, col3 = st.columns([20, 90, 8, 1])        
+            with col2:
+                my_chart_color = st.color_picker(label = 'Color', 
+                                                 value = get_state("COLORS", "chart_color"), 
+                                                 #on_change = on_click_event,
+                                                 label_visibility = 'collapsed')    
+                
+                set_state("COLORS", ("chart_color", my_chart_color))
+            with col1:
+               my_text_header('Demo Data')     
             show_lottie_animation("./images/107590-rocket-launch.json", key='rocket_launch', speed=1, height=160, width=399)
                  
             # create 3 columns for spacing
@@ -4941,18 +5015,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
                            unsafe_allow_html=True)
             # create deepcopy of dataframe which will be manipulated for graphs
             df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
-            
-            # set caption
-            vertical_spacer(2)
-            col1, col2, col3 = st.columns([8,1,8])           
-            with col2:
-                my_chart_color = st.color_picker(label = 'Color', 
-                                                 value = get_state("COLORS", "chart_color"), 
-                                                 #on_change = on_click_event,
-                                                 label_visibility = 'collapsed')    
-                # save the chartcolor chosen by user to session state
-                set_state("COLORS", ("chart_color", my_chart_color))
-            
+                        
             # Display Plotly Express figure in Streamlit
             display_dataframe_graph(df=df_graph, key=1, my_chart_color = my_chart_color)
 
@@ -5002,7 +5065,17 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
         df_max = st.session_state.df_raw.iloc[:,0].max().date()
        
         with st.expander('', expanded=True):
-            my_text_header('Uploaded Data')
+            col0, col1, col2, col3 = st.columns([20, 90, 8, 1])        
+            with col2:
+                my_chart_color = st.color_picker(label = 'Color', 
+                                                 value = get_state("COLORS", "chart_color"), 
+                                                 #on_change = on_click_event,
+                                                 label_visibility = 'collapsed')    
+                
+                set_state("COLORS", ("chart_color", my_chart_color))
+            with col1:    
+                my_text_header('Uploaded Data')
+            
             show_lottie_animation("./images/107590-rocket-launch.json", key='rocket_launch', speed=1, height=160, width=399)
                  
             # create 3 columns for spacing
@@ -5018,14 +5091,18 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
             # set caption
             st.caption('')
-            col1, col2, col3 = st.columns([8,1,8])           
-            with col2:
-                my_chart_color = st.color_picker(label = 'Color', 
-                                                 value = get_state("COLORS", "chart_color"), 
-                                                 #on_change = on_click_event,
-                                                 label_visibility = 'collapsed')    
-                
-                set_state("COLORS", ("chart_color", my_chart_color))
+
+            
+# =============================================================================
+#             col0, col1, col2, col3 = st.columns([20, 90, 8, 1])   
+#             with col2:
+#                	my_chart_color = st.color_picker(label = 'Color', 
+#                									 value = get_state("COLORS", "chart_patterns"), 
+#                									 label_visibility = 'collapsed',
+#                                                  help = 'Set the **`color`** of the charts and styling elements. It will revert back to the **default** color when switching pages.'
+#                                                  )
+# =============================================================================
+            
             
             ## display/plot graph of dataframe
             display_dataframe_graph(df=df_graph, key=2, my_chart_color = my_chart_color)
@@ -5048,6 +5125,8 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
 #                                                  
 # =============================================================================         
 if menu_item == 'Explore' and sidebar_menu_item == 'Home':  
+    set_state("COLORS", ("chart_patterns", "#217cd0"))
+    
     # if dataset is very small, then update the key1_explore and key2_explore
     if len(st.session_state.df_raw) < 31:
         set_state("EXPLORE_PAGE", ("lags_acf", int((len(st.session_state.df_raw)-1))))
@@ -5059,6 +5138,12 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
     with st.sidebar:
         my_title(f'{explore_icon}', my_background_color="#217CD0", gradient_colors="#217CD0,#555555")
         
+        # set color picker for user centered on page
+        def update_color():
+            # set session state for user chosen chart color
+            set_state("COLORS", ("chart_patterns", my_chart_color))
+        
+
         # Autocorrelation parameters form     
         with st.form('autocorrelation'):
             # Create sliders in sidebar for the parameters of PACF Plot
@@ -5091,9 +5176,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                                      options = ['Original Series', 'First Order Difference', 'Second Order Difference', 'Third Order Difference'],
                                      key = key4_explore)
             
-            # Display the original or data differenced Plot based on the user's selection
-            original_fig, df_select_diff = df_differencing(st.session_state.df_raw, selection)
-            st.plotly_chart(original_fig, use_container_width=True)
+         
 
             col1, col2, col3 = st.columns([5,4,4])
             with col2:
@@ -5102,30 +5185,19 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                 acf_pacf_btn = st.form_submit_button("Submit", type="secondary",  on_click=form_update, args=('EXPLORE_PAGE',))   
          
         with st.form('ljung-box'):
-             col1, col2, col3 = st.columns([4,4,4])
-             # Streamlit input for lag values
-             
-             with col2:
-                 my_text_header('Ljung-Box')
-                 my_text_paragraph('Test Parameters')
-                 lag1_ljung_box =  st.number_input('Enter 1st lag value', 
-                                         min_value=1, 
-                                         value = 24, 
-                                         max_value=len(st.session_state.df_raw)-1,
-                                         key='lag1_ljung_box')
-                 
-                 lag2_ljung_box =  st.number_input('Enter 2nd lag value', 
-                                         min_value=1, 
-                                         value = 48, 
-                                         max_value=len(st.session_state.df_raw)-1,
-                                         key='lag2_ljung_box')
-                 
-                 # create button in sidebar for the ACF and PACF Plot Parameters
-                 vertical_spacer(1)
-            
+             my_text_header('White Noise')
+             my_text_paragraph('Ljung-Box')
+             model_type = st.selectbox("Select Model Type", ["AutoReg", "ARMA"], index=0)             
+             lag1_ljung_box = st.number_input('*Enter maximum lag:*', 
+                                   min_value=1, 
+                                   value = min(24, len(st.session_state.df_raw)-2), 
+                                   max_value=len(st.session_state.df_raw)-2,
+                                   key='lag1_ljung_box',
+                                   help = ' the lag parameter in the Ljung-Box test determines the number of time periods over which the autocorrelation of residuals is evaluated to assess the presence of significant autocorrelation in the time series.')
              col1, col2, col3 = st.columns([5,4,4])
              with col2:
-                #acf_pacf_btn = st.form_submit_button("Submit", type="secondary",  on_click=form_update, args=('ljung-box',))
+                # create button in sidebar for the ACF and PACF Plot Parameters
+                vertical_spacer(1)
                 ljung_box_btn = st.form_submit_button("Submit", type="secondary")   
         
     ####################################################            
@@ -5135,11 +5207,23 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
     my_title(f'{explore_icon} Exploratory Data Analysis ', my_background_color="#217CD0", gradient_colors="#217CD0,#555555")
     # create expandable card with data exploration information
     with st.expander('', expanded=True):
+        col0, col1, col2, col3 = st.columns([18, 90, 8, 1])   
+        with col2:
+           	my_chart_color = st.color_picker(label = 'Color', 
+           									 value = get_state("COLORS", "chart_patterns"), 
+           									 label_visibility = 'collapsed',
+                                             help = 'Set the **`color`** of the charts and styling elements. It will revert back to the **default** color when switching pages.'
+                                             )
         #############################################################################
         # Summary Statistics
         #############################################################################
         # show in streamlit in sidebar Quick Summary tiles with e.g. rows/columns/start date/end date/mean/median
-        eda_quick_summary()
+        # Display the header for the quick summary
+        #col1, col2, col3 = st.columns([24,40,20])
+        with col1:
+            my_text_header('Quick Summary')
+        eda_quick_summary(my_chart_color)
+        
         # =============================================================================
         #         my_text_header('Summary')
         #         # create linespace
@@ -5153,30 +5237,40 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         #####################################
         # Show Summary Statistics and statistical test results of dependent variable (y)
         summary_statistics_df = create_summary_df(data = st.session_state.df_raw.iloc[:,1])
+    
     with st.expander('', expanded=True):   
         # create in sidebar quick insights with custom function
-        eda_quick_insights(df=summary_statistics_df, my_string_column='Label')
-    
-        # show dataframe for statistical test results
-        st.dataframe(summary_statistics_df, use_container_width=True)
-        download_csv_button(summary_statistics_df, my_file="summary_statistics.csv", help_message='Download your Summary Statistics Dataframe to .CSV')      
+        eda_quick_insights(df=summary_statistics_df, my_string_column='Label', my_chart_color = my_chart_color)
+        
+        # have button available for user and if clicked it expands with the dataframe
+        col1, col2, col3 = st.columns([95,50,95])
+        with col2:        
+            placeholder = st.empty()
+            # create button (enabled to click e.g. disabled=false with unique key)
+            btn = placeholder.button('Show Details', disabled=False)
+            vertical_spacer(1)
+        # if button is clicked run below code
+        if btn == True:
+            # display button with text "click me again", with unique key
+            placeholder.button('Hide Details', disabled=False)
+            
+        
+            st.dataframe(summary_statistics_df, use_container_width=True)
+            download_csv_button(summary_statistics_df, my_file="summary_statistics.csv", help_message='Download your Summary Statistics Dataframe to .CSV')      
+
         
     #############################################################################
     # Call function for plotting Graphs of Seasonal Patterns D/W/M/Q/Y in Plotly Charts
     #############################################################################
     with st.expander('', expanded=True):
+        
+        # Update layout
+        my_text_header('Patterns')
+        
         # show all graphs with patterns in streamlit
         plot_overview(df = st.session_state.df_raw, 
                       y = st.session_state.df_raw.columns[1])
-        
-        def hist_change_freq():
-            try:
-                # update in memory value for radio button / save user choice of histogram freq
-                index_freq_type = ("Relative" if frequency_type == "Absolute" else "Absolute")
-                set_state("HIST", ("histogram_freq_type", index_freq_type))
-            except:
-                set_state("HIST", ("histogram_freq_type", "Absolute"))
-                
+  
         # radio button for user to select frequency of hist: absolute values or relative
         col1, col2, col3 = st.columns([10,9,9])
         with col2:
@@ -5186,22 +5280,48 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                                       index = 1 if get_state("HIST", "histogram_freq_type") == "Relative" else 0,
                                       on_change = hist_change_freq,
                                       horizontal = True)
-        vertical_spacer(3)   
+            vertical_spacer(3)   
     
     ###################################################################
-    # ljung_box_test
+    # LJUNG-BOX STATISTICAL TEST FOR WHITE NOISE e.g. random residuals
     ###################################################################
     # Perform the Ljung-Box test on the residuals
     with st.expander('Ljung-Box', expanded=True):
         my_text_header('White Noise')
         my_text_paragraph('Ljung-Box')
-        show_lottie_animation(url="./images/80567-sound-voice-waves.json", key="sound_waves", speed=0.2, width=250, height=250, col_sizes = [19,40,1], margin_before=1)
-        col1, col2, col3 = st.columns([18,40,10])
+        col1, col2, col3 = st.columns([18,44,10])
         with col2:
-            ljung_box_test(st.session_state.df_raw,
-                       variable_loc=1, 
-                       lag_range=(lag1_ljung_box,lag2_ljung_box))
+            vertical_spacer(2)
+            res, result_ljungbox = ljung_box_test(
+                                                   df = st.session_state.df_raw,
+                                                   variable_loc = 1, 
+                                                   lag = lag1_ljung_box,
+                                                   model_type = model_type
+                                                   )
+            
+        vertical_spacer(1)        
+        col1, col2, col3 = st.columns([89,40,80])
+        with col2:        
+            placeholder = st.empty()
+            # create button (enabled to click e.g. disabled=false with unique key)
+            btn = placeholder.button('Show Plots', disabled=False)
+            vertical_spacer(1)
+        # if button is clicked run below code
+        if btn == True:
+            # display button with text "click me again", with unique key
+            placeholder.button('Hide Plots', disabled=False)
 
+            ljung_box_plots(df = st.session_state.df_raw, 
+                            variable_loc = 1,
+                            lag = lag1_ljung_box,
+                            res = res,
+                            result_ljungbox = result_ljungbox,
+                            my_chart_color = my_chart_color)
+
+        else:
+            pass
+                    
+            
     ###################################################################  
     # AUGMENTED DICKEY-FULLER TEST
     ###################################################################
@@ -5216,27 +5336,36 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         col1, col2, col3 = st.columns([18,40,10])
         col2.write(adf_result)
         vertical_spacer(2)
-        # Doodle Dickey-Fuller Test
-        image = Image.open("./images/adf_test.png")
-        # Display the image in Streamlit
-        st.image(image, caption="", use_column_width=True)
-        my_text_paragraph('Doodle: Dickey-Fuller Test', my_font_size='12px')
+# =============================================================================
+#         # Doodle Dickey-Fuller Test
+#         image = Image.open("./images/adf_test.png")
+#         # Display the image in Streamlit
+#         st.image(image, caption="", use_column_width=True)
+#         #my_text_paragraph('Doodle: Dickey-Fuller Test', my_font_size='12px')
+# =============================================================================
         
     ###################################################################
     # AUTOCORRELATION PLOTS - Autocorrelation Plots (ACF & PACF) with optional Differencing applied
     ###################################################################
-    with st.expander('', expanded=True):     
+    with st.expander('ACF/PACF', expanded=True):     
         my_text_header('Autocorrelation')
         ############################## ACF & PACF ################################
+        # Display the original or data differenced Plot based on the user's selection
+        #my_text_paragraph(f'{selection}')
+        st.markdown(f'<p style="text-align:center; color: #707070"> {selection} </p>', unsafe_allow_html=True)
+        
+        # get the differenced dataframe and original figure
+        original_fig, df_select_diff = df_differencing(st.session_state.df_raw, selection, my_chart_color)
+        st.plotly_chart(original_fig, use_container_width=True)
+        
         # set data equal to the second column e.g. expecting first column 'date' 
         data = df_select_diff
         # Plot ACF        
-        plot_acf(data, nlags=nlags_acf)
+        plot_acf(data, nlags=nlags_acf, my_chart_color=my_chart_color)
         # Plot PACF
-        plot_pacf(data, nlags=nlags_pacf, method=method_pacf)              
+        plot_pacf(data, my_chart_color = my_chart_color, nlags=nlags_pacf, method=method_pacf)              
         # create 3 buttons, about ACF/PACF/Difference for more explanation on the ACF and PACF plots
         acf_pacf_info()
-        
 # =============================================================================
 #         # AUTOCORRELATION DOODLE #
 #         # canva drawing autocorrelation
@@ -5489,7 +5618,7 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             # Apply the color scheme to the dataframe, round values by 2 decimals and display it in streamlit using full size of expander window
             st.dataframe(outliers_df.style.format("{:.2f}").apply(highlight_cols, axis=0), use_container_width=True)
             # add download button for user to be able to download outliers
-            download_csv_button(outliers_df, my_file="df_outliers.csv", set_index=True, help_message='Download outlier dataframe to .CSV')
+            download_csv_button(outliers_df, my_file="df_outliers.csv", set_index=True, help_message='Download outlier dataframe to .CSV', my_key='df_outliers')
        
         # if outliers are NOT found or None is selected as outlier detection method
         # ... run code... 
@@ -6008,7 +6137,11 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
             st.success(f'🎉 Good job! **{len(numerical_features)}** numerical feature(s) are normalized with **{normalization_choice}**!')
             st.dataframe(X[numerical_features].assign(date=X.index.date).reset_index(drop=True).set_index('date'), use_container_width=True) # TEST
             # create download button for user, to download the standardized features dataframe with dates as index i.e. first column
-            download_csv_button(X[numerical_features], my_file='standardized_features.csv', help_message='Download standardized features to .CSV', set_index=True)
+            download_csv_button(X[numerical_features], 
+                                my_file='standardized_features.csv', 
+                                help_message='Download standardized features to .CSV', 
+                                set_index=True, 
+                                my_key='normalization_download_btn')
             
     ##############################
     # 5.3 Standardization
@@ -6062,7 +6195,11 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
             st.success(f'⚖️ Great, you balanced the scales! **{len(numerical_features)}** numerical feature(s) standardized with **{standardization_choice}**')
             st.dataframe(X[numerical_features], use_container_width=True)
             # create download button for user, to download the standardized features dataframe with dates as index i.e. first column
-            download_csv_button(X[numerical_features], my_file='standardized_features.csv', help_message='Download standardized features to .CSV', set_index=True)
+            download_csv_button(X[numerical_features], 
+                                my_file='standardized_features.csv', 
+                                help_message='Download standardized features to .CSV', 
+                                set_index=True, 
+                                my_key='standardization_download_btn')
  
 st.session_state['df'] = remove_object_columns(st.session_state['df'], message_columns_removed=False)
 
@@ -6428,7 +6565,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         # display the dataframe in streamlit
         st.dataframe(X, use_container_width=True)
         # create download button for forecast results to .csv
-        download_csv_button(X, my_file="features_dataframe.csv", help_message="Download your **features** to .CSV")
+        download_csv_button(X, my_file="features_dataframe.csv", help_message="Download your **features** to .CSV", my_key='features_df_download_btn')
         
 # =============================================================================
 #   _______ _____            _____ _   _ 
