@@ -3106,7 +3106,7 @@ def download_csv_button(my_df, my_file="forecast_model.csv", help_message = 'Dow
         csv = convert_df_with_index(my_df)
     else:
         csv = convert_df(my_df)
-    col1, col2, col3 = st.columns([60,30,50])
+    col1, col2, col3 = st.columns([54,30,50])
     with col2: 
         st.download_button(":arrow_down: Download", 
                            csv,
