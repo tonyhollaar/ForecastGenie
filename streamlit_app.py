@@ -168,7 +168,21 @@ st.set_page_config(page_title="ForecastGenie™️",
 #         st.image(image, caption="", use_column_width=True)
 #         #my_text_paragraph('Doodle: Dickey-Fuller Test', my_font_size='12px')
 # =============================================================================
-        
+   
+# =============================================================================
+#         # AUTOCORRELATION DOODLE #
+#         # canva drawing autocorrelation
+#         vertical_spacer(2)
+#         st.markdown('---')
+#         col1, col2, col3 = st.columns([1,3,1])
+#         with col2:
+#             # Load the canva demo_data image from subfolder images
+#             image = Image.open("./images/autocorrelation.png")
+#             # Display the image in Streamlit
+#             st.image(image, caption="", use_column_width='auto')
+#             my_text_paragraph('Doodle: Autocorrelation', my_font_size='12px')
+# =============================================================================
+
 # =============================================================================
 #    _____  _____ _____            _____  ____   ____   ____  _  __
 #   / ____|/ ____|  __ \     /\   |  __ \|  _ \ / __ \ / __ \| |/ /
@@ -876,7 +890,7 @@ def eda_quick_summary(my_chart_color):
                     ,
                 unsafe_allow_html=True)
                     # vertical spacer
-            vertical_spacer(2)
+            vertical_spacer(1)
     except:
         st.write('Error: could not show the quick summary stats...please contact admin')
 
@@ -3441,6 +3455,8 @@ def my_fill_method(df, fill_method, custom_fill_value=None):
     Returns:
         pandas.DataFrame: A copy of the input DataFrame with missing values filled according to the specified fill method.
     """
+    # create a copy of df
+    df = df.copy(deep=True)
     # handle missing values based on user input
     if fill_method == 'Backfill':
         df.iloc[:,1] = df.iloc[:, 1].bfill()
@@ -5220,14 +5236,22 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
             my_text_header('Quick Summary')
         eda_quick_summary(my_chart_color)
         
-        # =============================================================================
-        #         my_text_header('Summary')
-        #         # create linespace
-        #         st.write("")
-        #         # Display summary statistics table
-        #         st.dataframe(display_summary_statistics(st.session_state.df_raw), use_container_width=True)
-        # =============================================================================
-                
+        # have button available for user and if clicked it expands with the dataframe
+        col1, col2, col3 = st.columns([100,50,95])
+        with col2:        
+            placeholder = st.empty()
+            # create button (enabled to click e.g. disabled=false with unique key)
+            btn = placeholder.button('Show Details', disabled=False,  key = "summary_statistics_show_btn")
+
+        # if button is clicked run below code
+        if btn == True:
+            # display button with text "click me again", with unique key
+            placeholder.button('Hide Details', disabled=False, key = "summary_statistics_hide_btn")
+            # Display summary statistics table
+            summary_stats_df = display_summary_statistics(st.session_state.df_raw)
+            st.dataframe(summary_stats_df, use_container_width=True)
+            download_csv_button(summary_stats_df, my_file="summary_statistics.csv", help_message='Download your Summary Statistics Dataframe to .CSV', my_key = "summary_statistics_download_btn")      
+        vertical_spacer(1)
         #######################################
         # Statistical tests
         #####################################
@@ -5243,14 +5267,14 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         with col2:        
             placeholder = st.empty()
             # create button (enabled to click e.g. disabled=false with unique key)
-            btn = placeholder.button('Show Details', disabled=False)
+            btn = placeholder.button('Show Details', disabled=False, key = "insights_statistics_show_btn")
             vertical_spacer(1)
         # if button is clicked run below code
         if btn == True:
             # display button with text "click me again", with unique key
-            placeholder.button('Hide Details', disabled=False)
+            placeholder.button('Hide Details', disabled=False,  key = "insights_statistics_hide_btn")
             st.dataframe(summary_statistics_df, use_container_width=True)
-            download_csv_button(summary_statistics_df, my_file="summary_statistics.csv", help_message='Download your Summary Statistics Dataframe to .CSV')      
+            download_csv_button(summary_statistics_df, my_file="insights.csv", help_message='Download your Insights Dataframe to .CSV', my_key = "insights_download_btn")      
 
     #############################################################################
     # Call function for plotting Graphs of Seasonal Patterns D/W/M/Q/Y in Plotly Charts
@@ -5348,19 +5372,6 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         plot_pacf(data, my_chart_color = my_chart_color, nlags=nlags_pacf, method=method_pacf)              
         # create 3 buttons, about ACF/PACF/Difference for more explanation on the ACF and PACF plots
         acf_pacf_info()
-# =============================================================================
-#         # AUTOCORRELATION DOODLE #
-#         # canva drawing autocorrelation
-#         vertical_spacer(2)
-#         st.markdown('---')
-#         col1, col2, col3 = st.columns([1,3,1])
-#         with col2:
-#             # Load the canva demo_data image from subfolder images
-#             image = Image.open("./images/autocorrelation.png")
-#             # Display the image in Streamlit
-#             st.image(image, caption="", use_column_width='auto')
-#             my_text_paragraph('Doodle: Autocorrelation', my_font_size='12px')
-# =============================================================================
 
 # logging
 print('ForecastGenie Print: Ran Explore')
@@ -5376,6 +5387,14 @@ print('ForecastGenie Print: Ran Explore')
 # =============================================================================
 # Register state with initiate values in a slot (fire-state package utilized)
 # define keys and store them in memory with their associated values
+key1_missing, key2_missing, key3_missing, key4_missing = create_store("CLEAN_PAGE_MISSING", 
+                                                                      [
+                                                                        ("missing_fill_method", "Backfill"), #key1
+                                                                        ("missing_custom_fill_value", "1"), #key2
+                                                                        ("data_frequency", 'Daily'), #key3
+                                                                        ("run", 0) #key4
+                                                                      ]
+                                                                     ) 
 key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, key8_outlier = create_store("CLEAN_PAGE", 
                                                                                                                               [
                                                                                                                                 ("outlier_detection_method", "None"), # key1
@@ -5386,16 +5405,7 @@ key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outli
                                                                                                                                 ("outlier_iqr_multiplier", 1.5), #key6
                                                                                                                                 ("outlier_replacement_method", "Interpolation"), #key7
                                                                                                                                 ("run", 0)  #key8
-                                                                                                                              ]
-                                                                                                                             )
-key1_missing, key2_missing, key3_missing, key4_missing = create_store("CLEAN_PAGE_MISSING", 
-                                                                      [
-                                                                        ("missing_fill_method", "Backfill"), #key1
-                                                                        ("missing_custom_fill_value", "1"), #key2
-                                                                        ("data_frequency", 'Daily'), #key3
-                                                                        ("run", 0) #key4
-                                                                      ]
-                                                                     ) 
+                                                                                                                              ])
 # Data Cleaning
 if menu_item == 'Clean' and sidebar_menu_item=='Home':    
     my_title(f"{clean_icon} Data Cleaning", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
@@ -5409,7 +5419,6 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
                                        options = ['Backfill', 'Forwardfill', 'Mean', 'Median', 'Mode', 'Custom'],
                                        key = key1_missing)
             if fill_method == 'Custom':
-                #custom_fill_value = int(st.text_input('Enter custom value', value='0'))
                 custom_fill_value = st.text_input(label = '*Insert custom value to replace missing value(s) with:*', 
                                                   key = key2_missing, 
                                                   help = 'Please enter your **`custom value`** to impute missing values with, you can use a whole number or decimal point number')
@@ -5430,27 +5439,39 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             with col2:       
                 data_cleaning_btn = st.form_submit_button("Submit", type="secondary", on_click = form_update, args=("CLEAN_PAGE_MISSING",))
 
+    # =========================================================================
+    # TRANSFORMATIONS TO DATAFRAME (IMPUTE DATES/MISSING)
+    # =========================================================================
+    # 1. IMPUTE MISSING DATES WITH RESAMPLE METHOD
+    #******************************************************************
+    # Apply function to resample missing dates based on user set frequency
+    df_cleaned_dates = resample_missing_dates(df = st.session_state.df_raw, 
+                                              freq_dict = freq_dict, 
+                                              original_freq = original_freq, 
+                                              freq = freq)
+      
+    # =========================================================================
+    # 2. IMPUTE MISSING VALUES WITH FILL METHOD
+    # =========================================================================
+    df_clean = my_fill_method(df_cleaned_dates, fill_method, custom_fill_value)
+    # Convert datetime column to date AND set date column as index column
+    df_clean_show = copy_df_date_index(df_clean, datetime_to_date=True, date_to_index=True)
+    #=========================================================================
+    
     with st.expander('', expanded=True):
-        #*************************************************
         my_text_header('Handling missing data')
         show_lottie_animation(url = "./images/ufo.json", key='jumping_dots', width=300, height=300, speed = 1, col_sizes=[2,4,2])
-        #*************************************************    
-        # Apply function to resample missing dates based on user set frequency
-        df_cleaned_dates = resample_missing_dates(df = st.session_state.df_raw, 
-                                                  freq_dict = freq_dict, 
-                                                  original_freq = original_freq, 
-                                                  freq = freq)
         
         # check if there are no dates skipped for frequency e.g. daily data missing days in between dates
         missing_dates = pd.date_range(start = st.session_state.df_raw['date'].min(), 
                                       end = st.session_state.df_raw['date'].max()).difference(st.session_state.df_raw['date'])
+        
+        # check if there are no missing values (NaN) in dataframe
         missing_values = st.session_state.df_raw.iloc[:,1].isna().sum()
-        # Convert the DatetimeIndex to a dataframe with a single column named 'Date'
-        df_missing_dates = pd.DataFrame({'Skipped Dates': missing_dates})
-        # change datetime to date
-        df_missing_dates['Skipped Dates'] = df_missing_dates['Skipped Dates'].dt.date
-        # plot missing values matrix with custom function
+  
+        # Plot missing values matrix with custom function
         plot_missing_values_matrix(df=df_cleaned_dates)
+        
         # check if in continous time-series dataset no dates are missing in between
         if missing_dates.shape[0] == 0:
             st.success('Pweh 😅, no dates were skipped in your dataframe!')
@@ -5462,26 +5483,14 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             st.warning(f'💡 **{missing_values}** missing values are replaced by the **{fill_method}**, optionally you can change the *filling method* and press **\"Submit\"** from the sidebar menu.')
         elif missing_values != 0 and fill_method == 'Custom':
             st.warning(f'💡 **{missing_values}** missing values are replaced by custom value **{custom_fill_value}**, optionally you can change the *filling method* and press **\"Submit\"** from the sidebar menu.')
-        
-        #******************************************************************
-        # IMPUTE MISSING VALUES WITH FILL METHOD
-        #******************************************************************
-        df_clean = my_fill_method(df_cleaned_dates, fill_method, custom_fill_value)
 
         col1, col2, col3, col4, col5 = st.columns([2, 0.5, 2, 0.5, 2])
         with col1:
-            # highlight NaN values in yellow in dataframe
-            # got warning: for part of code with `null_color='yellow'`:  `null_color` is deprecated: use `color` instead
-            df_graph = copy_df_date_index(my_df=df_graph, 
-                                          datetime_to_date=True, 
-                                          date_to_index=True)
-            
+            # show original dataframe unchanged but with highlighted yellow missing NaN values
+            df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
             highlighted_df = df_graph.style.highlight_null(color='yellow').format(precision = 2)
-            
             my_subheader('Original DataFrame', my_style="#333333", my_size=6)
-            # show original dataframe unchanged but with highlighted missing NaN values
             st.dataframe(highlighted_df, use_container_width=True)
-            
         with col2:
             # show arrow which is a bootstrap icon from source: https://icons.getbootstrap.com/icons/arrow-right/
             st.markdown('<svg xmlns="http://www.w3.org/2000/svg" width="25" height="20" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">'
@@ -5489,31 +5498,28 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
                         '</svg>', unsafe_allow_html=True)
         with col3:
             my_subheader('Skipped Dates', my_style="#333333", my_size=6)
+            # Convert the DatetimeIndex to a dataframe with a single column named 'Date'
+            df_missing_dates = pd.DataFrame({'Skipped Dates': missing_dates})
+            # change datetime to date
+            df_missing_dates['Skipped Dates'] = df_missing_dates['Skipped Dates'].dt.date
+            # show missing dates
             st.write(df_missing_dates)
-            
+
             # Display the dates and the number of missing values associated with them
-            my_subheader('Missing Values', my_style="#333333", my_size=6)
-            
+            my_subheader('Missing Values', my_style="#333333", my_size=6)            
             # Filter the DataFrame to include only rows with missing values
             missing_df = copy_df_date_index(st.session_state.df_raw.loc[st.session_state.df_raw.iloc[:,1].isna(), st.session_state.df_raw.columns], datetime_to_date=True, date_to_index=True)
             st.write(missing_df)
-            
         with col4:
             # show arrow which is a bootstrap icon from source: https://icons.getbootstrap.com/icons/arrow-right/
             st.markdown('<svg xmlns="http://www.w3.org/2000/svg" width="25" height="20" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">'
                         '<path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>'
                         '</svg>', unsafe_allow_html=True)
-            
         # Display cleaned Dataframe in Streamlit
         with col5:
             my_subheader('Cleaned Dataframe', my_style="#333333", my_size=6)
-            # Convert datetime column to date AND set date column as index column
-            
-            df_clean_show = copy_df_date_index(df_clean, datetime_to_date=True, date_to_index=True)
-           
             # Show the cleaned dataframe with if needed dates inserted if skipped to NaN and then the values inserted with impute method user selected backfill/forward fill/mean/median
             st.write(df_clean_show)
-       
         # create and show download button in streamlit to user to download the dataframe with imputations performed to missing values
         download_csv_button(df_clean_show, my_file="df_imputed_missing_values.csv", set_index=True, help_message='Download cleaned dataframe to .CSV')
     
@@ -5613,44 +5619,56 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             st.plotly_chart(fig_no_outliers, use_container_width=True)
             my_text_paragraph(f'No <b> outlier detection </b> or <b> outlier replacement </b> method selected.', my_font_size='14px')
             
-
 else:
-    ##########################################################
-    # ELSE user did not set the variables in 'clean' menu
-    # THEN set some variables needed to continue, if user did not set them in sidebar submenu's
-    # make choices for the user to be able to use forecasting app
-    # namely modeling without NAN values not possible for some models (SARIMAX) so impute missing with backfill method
-    ##########################################################
-    
-    ##########################################################
-    # Apply the needed variables to use the cleaned dataframe
-    ##########################################################
-    # retrieve the date frequency of the timeseries    
+    ##################################################################################################################################
+    #************************* PREPROCESSING DATA - CLEANING MISSING AND IF USER SELECTED ALSO OUTLIERS ******************************
+    ##################################################################################################################################
+    # Retrieve the date frequency of the timeseries    
     freq_dict = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
-    # infer and return the original data frequency e.g. 'M' and name e.g. 'Monthly'
+    # Infer and return the original data frequency e.g. 'M' and name e.g. 'Monthly'
     original_freq, original_freq_name = determine_df_frequency(st.session_state.df_raw , column_name='date')
-    df_cleaned_dates = resample_missing_dates(df = st.session_state['df_raw'], 
-                                              freq_dict = st.session_state['freq_dict'], 
-                                              freq = st.session_state['freq'], 
-                                              original_freq = original_freq)
-    df_clean = my_fill_method(df = df_cleaned_dates, 
-                              fill_method = fill_method, 
-                              custom_fill_value = custom_fill_value)
-    df_clean_show = copy_df_date_index(df_clean, datetime_to_date=True, date_to_index=True)
-    # define the dataframe cleaned as regular df if no cleaning was performed
-    df_cleaned_outliers = df_clean_show   
-    
-##################################################################################################################################
-#************************* PREPROCESSING DATA - CLEANING MISSING AND IF USER SELECTED ALSO OUTLIERS ******************************
-##################################################################################################################################
-# reset the index again to have index instead of date column as index for further processing
-df_cleaned_outliers_with_index = df_cleaned_outliers.copy(deep=True)
-df_cleaned_outliers_with_index.reset_index(inplace=True)
-# convert 'date' column to datetime in DataFrame
-df_cleaned_outliers_with_index['date'] = pd.to_datetime(df_cleaned_outliers_with_index['date'])
-# TEST replaced if statement with always updating the dataframe in session state e.g. if user changed from demo data to uploading data
-st.session_state['df_cleaned_outliers_with_index'] = df_cleaned_outliers_with_index
 
+    # =========================================================================
+    # 1. IMPUTE MISSING DATES WITH RESAMPLE METHOD
+    #******************************************************************
+    # Apply function to resample missing dates based on user set frequency
+    df_cleaned_dates = resample_missing_dates(df = st.session_state['df_raw'], 
+                                              freq_dict = freq_dict, 
+                                              original_freq = original_freq, 
+                                              freq = st.session_state['freq'])
+
+    # =========================================================================
+    # 2. IMPUTE MISSING VALUES WITH FILL METHOD
+    # =========================================================================
+    df_clean = my_fill_method(df = df_cleaned_dates, 
+                              fill_method = get_state('CLEAN_PAGE_MISSING', 'missing_fill_method'), 
+                              custom_fill_value = get_state('CLEAN_PAGE_MISSING', 'missing_custom_fill_value'))
+    df_clean_show = copy_df_date_index(df_clean, datetime_to_date=True, date_to_index=True)
+    
+    # =========================================================================
+    # 3. IMPUTE OUTLIERS DETECTED WITH OUTLIER REPLACEMENT METHOD
+    # =========================================================================
+    df_cleaned_outliers, outliers = handle_outliers(data = df_clean_show, 
+                                                    method = get_state('CLEAN_PAGE', 'outlier_detection_method'),
+                                                    outlier_threshold = get_state('CLEAN_PAGE', 'outlier_zscore_threshold'),
+                                                    q1 = get_state('CLEAN_PAGE', 'outlier_iqr_q1'),
+                                                    q3 = get_state('CLEAN_PAGE', 'outlier_iqr_q3'),
+                                                    outlier_replacement_method =  get_state('CLEAN_PAGE', 'outlier_replacement_method'),
+                                                    contamination = get_state('CLEAN_PAGE', 'outlier_isolationforest_contamination'), 
+                                                    random_state = random_state,  # defined variable random_state top of script e.g. 10
+                                                    iqr_multiplier = get_state('CLEAN_PAGE', 'outlier_iqr_multiplier'),)
+    df_cleaned_outliers_with_index = df_cleaned_outliers.copy(deep=True)
+    # reset the index again to have index instead of date column as index for further processing
+    df_cleaned_outliers_with_index.reset_index(inplace=True)
+    # convert 'date' column to datetime in DataFrame
+    df_cleaned_outliers_with_index['date'] = pd.to_datetime(df_cleaned_outliers_with_index['date'])
+    
+    # =========================================================================
+    # 4. SAVE TRANSFORMED (CLEANED) DATAFRAME TO SESSION STATE (IN-MEMORY)
+    # =========================================================================
+    # TEST replaced if statement with always updating the dataframe in session state e.g. if user changed from demo data to uploading data
+    st.session_state['df_cleaned_outliers_with_index'] = df_cleaned_outliers_with_index
+    
 # =============================================================================
 #   ______ _   _  _____ _____ _   _ ______ ______ _____  
 #  |  ____| \ | |/ ____|_   _| \ | |  ____|  ____|  __ \ 
@@ -5662,14 +5680,15 @@ st.session_state['df_cleaned_outliers_with_index'] = df_cleaned_outliers_with_in
 # =============================================================================
 # FEATURE ENGINEERING
 if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
-    st.write(st.session_state['df_cleaned_outliers_with_index'])
+    # st.write('session state df_cleaned_outliers_with_index', st.session_state['df_cleaned_outliers_with_index']) # TEST IF IMPUTATIONS FROM CLEAN PAGE AREA PROPEGATED CORRECTLY
+    
     # set title of engineer page
     my_title(f"{engineer_icon} Feature Engineering", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
 
     with st.sidebar:
         # set title in sidebar for engineer page
         my_title(f"{engineer_icon}", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
-    #create a user form in streamlit with options for feature engineering
+    
     with st.sidebar.form('feature engineering sidebar'):
         # create empty newline
         vertical_spacer(1)
@@ -5939,10 +5958,6 @@ else:
 # TEST - ADD THIS
 #####
 # create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'])
-
-
-
-
 df = create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'], slider = False)
 #df = create_calendar_special_days(st.session_state['df_cleaned_outliers_with_index'])
 df = create_calendar_special_days(df)
@@ -5987,9 +6002,6 @@ local_df = st.session_state['df'].copy(deep=True)
 # =============================================================================
 # Prepare Data
 
-
-
-
 # SET VARIABLES
 length_df = len(st.session_state['df'])
 
@@ -5999,8 +6011,6 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
         my_title(f'{prepare_icon}', "#FF9F00", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
        
     # show user which descriptive variables are removed, that just had the purpose to inform user what dummy was from e.g. holiday days such as Martin Luther King Day
-
-    
     with st.expander('', expanded=True):
         show_lottie_animation(url="./images/21197-astrolottie.json", key="astrolottie", width=200, height=200, col_sizes=[4,4,4], speed = 0.5)
         my_text_paragraph('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "Go ahead, Houston." <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; with removing redundant variables...', my_font_size='16px')
