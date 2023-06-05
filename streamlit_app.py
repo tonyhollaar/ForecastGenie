@@ -2269,7 +2269,6 @@ def perform_train_test_split(df, my_insample_forecast_steps, scaler_choice=None,
 #     if my_insample_forecast_steps >= len(df):
 #         raise ValueError("Test-set size must be less than the total number of rows in the dataset.")
 # =============================================================================
-        
     # Initialize X_train_numeric_scaled with a default value
     X_train_numeric_scaled = pd.DataFrame() # TEST
     X_test_numeric_scaled = pd.DataFrame() # TEST
@@ -2710,6 +2709,7 @@ def create_calendar_holidays(df, slider=True):
                                                      options = [country[0] for country in country_data], 
                                                      index = st.session_state['country_index'], 
                                                      label_visibility='collapsed')
+                # update session state to user's choice of country from drop-down list
                 st.session_state['country_index'] = next((i for i, (country, code) in enumerate(country_data) if country == selected_country_name), None)
         
         # else do not add slider
@@ -2818,6 +2818,7 @@ def create_calendar_special_days(df, start_date_calendar=None,  end_date_calenda
     events = events.reset_index(name = 'calendar_event_desc').rename(columns = {'index': 'date'})
     df_exogenous_vars = df_exogenous_vars.merge(events, on = 'date', how = 'left').fillna('')
     # source: https://splunktool.com/holiday-calendar-in-pandas-dataframe
+    
     ###############################################
     # Create Pay Days 
     ###############################################
@@ -3051,14 +3052,17 @@ def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, mo
     # Evaluate the insample test-set performance linear regression model
     df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test)
     mape, rmse, r2 = my_metrics(df_preds, model_name)
-    with st.expander('ℹ️ '+ model_name, expanded=True):
+    with st.expander('📈'+ model_name, expanded=True):
         display_my_metrics(my_df=df_preds, model_name=model_name)
         # plot graph with actual versus insample predictions
         plot_actual_vs_predicted(df_preds, my_conf_interval)
         # show the dataframe
         st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
         # create download button for forecast results to .csv
-        download_csv_button(df_preds, my_file="insample_forecast_linear_regression_results.csv", help_message=f'Download your **{model_name}** model results to .CSV')
+        download_csv_button(df_preds, 
+                            my_file="insample_forecast_linear_regression_results.csv", 
+                            help_message=f'Download your **{model_name}** model results to .CSV',
+                            my_key='download_btn_linreg_df_preds')
 
 def preprocess_data_prophet(y_data):
     """
@@ -3312,7 +3316,7 @@ def remove_object_columns(df, message_columns_removed = False):
             html_list += f"<li><span class='my-number'>{i + 1}</span>{value}</li>"
         html_list += "</div>"
         # Display the HTML list using Streamlit
-        col1, col2, col3 = st.columns([4,8,4])
+        col1, col2, col3 = st.columns([295,800,400])
         with col2: 
             st.markdown(
                 f"""
@@ -3336,7 +3340,7 @@ def remove_object_columns(df, message_columns_removed = False):
                     .my-number {{
                         font-weight: bold;
                         color: white;
-                        background-color: #14c8d3;
+                        background-color: #fea60e;
                         border-radius: 50%;
                         text-align: center;
                         width: 20px;
@@ -4385,18 +4389,7 @@ key11_engineer_var, key12_engineer_var, key13_engineer_var, key14_engineer_var, 
                                                                                                           ("boxing_day", True),                         #key16_engineer 
                                                                                                           ("run", 0)                                    #key17_engineer
                                                                                                         ]
-                                                                                                      )
-# ================================ EVALUATE ===================================
-# create an empty dictionary to store the results of the models
-# that I call after I train the models to display on sidebar under hedaer "Evaluate Models"
-metrics_dict = {}
-
-# Initialize results_df in global scope that has model test evaluation results 
-results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
-
-if 'results_df' not in st.session_state:
-    st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
-    
+                                                                                                      )   
 # ================================ PREPARE ====================================
 # define my_insample_forecast_steps usesd for train/test split
 # for evaluation of test-set
@@ -4421,7 +4414,18 @@ if 'normalization_choice' not in st.session_state:
 # TRAIN MENU TEST
 if 'train_models_btn' not in st.session_state:
     st.session_state['train_models_btn'] = False
+    
+# ================================ EVALUATE ===================================
+# create an empty dictionary to store the results of the models
+# that I call after I train the models to display on sidebar under hedaer "Evaluate Models"
+metrics_dict = {}
 
+# Initialize results_df in global scope that has model test evaluation results 
+results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
+
+if 'results_df' not in st.session_state:
+    st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
+    
 #///////////////////////////////////////////////////////////////////
 # SHOW IN STREAMLIT DICTIONARY OF VARIABLES IN SESSION STATE
 #///////////////////////////////////////////////////////////////////
@@ -4902,7 +4906,7 @@ if sidebar_menu_item == 'Doc':
                                 To load a file, users can navigate to the sidebar menu and locate the <i> "Upload Data" </i> option. Upon clicking on this option, a file upload dialog box will appear, allowing users to select a file from their local system. \
                                 When uploading a file, it is important to ensure that the file meets specific requirements for proper data processing and forecasting. 
                                 <br> - The first column should have a header named <i> 'date' </i> and dates should be in the mm/dd/yyyy format (12/31/2023), representing the time series data. The dates should be sorted in chronological order, as this is crucial for accurate forecasting. 
-                                <br> - The second column should contain a headWho is this for?r that includes the name of the variable of interest and below it's historical data, for which the user wishes to forecast.
+                                <br> - The second column should contain a header that includes the name of the variable of interest and below it's historical data, for which the user wishes to forecast.
                                 <br> Fasten your seatbelt, lean back, and savor the journey as your data blasts off into the realm of forecasting possibilities! Embrace the adventure and enjoy the ride.
                                 ''', my_text_align='justify')
         vertical_spacer(2)
@@ -5252,6 +5256,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
             st.dataframe(summary_stats_df, use_container_width=True)
             download_csv_button(summary_stats_df, my_file="summary_statistics.csv", help_message='Download your Summary Statistics Dataframe to .CSV', my_key = "summary_statistics_download_btn")      
         vertical_spacer(1)
+        
         #######################################
         # Statistical tests
         #####################################
@@ -5618,7 +5623,6 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
                           marker=dict(color='#440154'),  opacity = 0.5))
             st.plotly_chart(fig_no_outliers, use_container_width=True)
             my_text_paragraph(f'No <b> outlier detection </b> or <b> outlier replacement </b> method selected.', my_font_size='14px')
-            
 else:
     ##################################################################################################################################
     #************************* PREPROCESSING DATA - CLEANING MISSING AND IF USER SELECTED ALSO OUTLIERS ******************************
@@ -5680,7 +5684,7 @@ else:
 # =============================================================================
 # FEATURE ENGINEERING
 if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
-    # st.write('session state df_cleaned_outliers_with_index', st.session_state['df_cleaned_outliers_with_index']) # TEST IF IMPUTATIONS FROM CLEAN PAGE AREA PROPEGATED CORRECTLY
+    #st.write('session state df_cleaned_outliers_with_index', st.session_state['df_cleaned_outliers_with_index']) # TEST IF IMPUTATIONS FROM CLEAN PAGE AREA PROPEGATED CORRECTLY
     
     # set title of engineer page
     my_title(f"{engineer_icon} Feature Engineering", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
@@ -5688,7 +5692,6 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
     with st.sidebar:
         # set title in sidebar for engineer page
         my_title(f"{engineer_icon}", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
-    
     with st.sidebar.form('feature engineering sidebar'):
         # create empty newline
         vertical_spacer(1)
@@ -5714,7 +5717,6 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
                                                          key = key3_engineer,
                                                          help = 'Include independent features including: **`pay-days`** and significant **`sales`** dates.'
                                                          )
-
             # create checkbox for Discrete Wavelet Transform features which automatically is checked
             dwt_features_checkbox = st.checkbox(label = ' ', 
                                                 label_visibility = 'visible', 
@@ -5775,19 +5777,63 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
         ##############################
         my_text_header('Dummy Variables')
         my_text_paragraph('🌓 Pick your time-based features to include: ')
-        # vertical space / newline between header and checkboxes
         vertical_spacer(1)
+        
+        # select all or none of the individual dummy variable checkboxes based on sidebar checkbox
+        if calendar_dummies_checkbox == False:
+            # update the individual variables checkboxes if not true
+            set_state("ENGINEER_PAGE_VARS", ('year_dummies_checkbox', False))
+            set_state("ENGINEER_PAGE_VARS", ('month_dummies_checkbox', False))
+            set_state("ENGINEER_PAGE_VARS", ('day_dummies_checkbox', False))
+        else:
+            # update the individual variables checkboxes if calendar_dummies_checkbox is True
+            set_state("ENGINEER_PAGE_VARS", ('year_dummies_checkbox', True))
+            set_state("ENGINEER_PAGE_VARS", ('month_dummies_checkbox', True))
+            set_state("ENGINEER_PAGE_VARS", ('day_dummies_checkbox', True))
+            
+        if special_calendar_days_checkbox == False:
+          set_state("ENGINEER_PAGE_VARS", ('jan_sales', False))
+          set_state("ENGINEER_PAGE_VARS", ('val_day_lod', False))
+          set_state("ENGINEER_PAGE_VARS", ('val_day', False))
+          set_state("ENGINEER_PAGE_VARS", ('mother_day_lod', False))
+          set_state("ENGINEER_PAGE_VARS", ('mother_day', False))
+          set_state("ENGINEER_PAGE_VARS", ('father_day_lod', False))
+          set_state("ENGINEER_PAGE_VARS", ('pay_days', False))
+          set_state("ENGINEER_PAGE_VARS", ('father_day', False))
+          set_state("ENGINEER_PAGE_VARS", ('black_friday_lod', False))
+          set_state("ENGINEER_PAGE_VARS", ('black_friday', False))
+          set_state("ENGINEER_PAGE_VARS", ('cyber_monday', False))
+          set_state("ENGINEER_PAGE_VARS", ('christmas_day', False))
+          set_state("ENGINEER_PAGE_VARS", ('boxing_day', False))
+        else:
+            # update the individual variables checkboxes if special_calendar_days_checkbox is True
+          set_state("ENGINEER_PAGE_VARS", ('jan_sales', True))
+          set_state("ENGINEER_PAGE_VARS", ('val_day_lod', True))
+          set_state("ENGINEER_PAGE_VARS", ('val_day', True))
+          set_state("ENGINEER_PAGE_VARS", ('mother_day_lod', True))
+          set_state("ENGINEER_PAGE_VARS", ('mother_day', True))
+          set_state("ENGINEER_PAGE_VARS", ('father_day_lod', True))
+          set_state("ENGINEER_PAGE_VARS", ('pay_days', True))
+          set_state("ENGINEER_PAGE_VARS", ('father_day', True))
+          set_state("ENGINEER_PAGE_VARS", ('black_friday_lod', True))
+          set_state("ENGINEER_PAGE_VARS", ('black_friday', True))
+          set_state("ENGINEER_PAGE_VARS", ('cyber_monday', True))
+          set_state("ENGINEER_PAGE_VARS", ('christmas_day', True))
+          set_state("ENGINEER_PAGE_VARS", ('boxing_day', True))
+                 
         # create columns for aligning in middle the checkboxes
         col0, col1, col2, col3, col4 = st.columns([2, 2, 2, 2, 1])
         with col1:
-            year_dummies_checkbox = st.checkbox(label = 'Year', 
-                                                key = key1_engineer_var)
+            year_dummies_checkbox = st.checkbox(label = 'Year', value = get_state("ENGINEER_PAGE_VARS", "year_dummies_checkbox"))
+            set_state("ENGINEER_PAGE_VARS", ("year_dummies_checkbox", year_dummies_checkbox))
         with col2:
             month_dummies_checkbox = st.checkbox('Month', 
-                                        key = key2_engineer_var)
+                                        value = get_state("ENGINEER_PAGE_VARS", "month_dummies_checkbox"))
+            set_state("ENGINEER_PAGE_VARS", ("year_dummies_checkbox", month_dummies_checkbox))
         with col3:
             day_dummies_checkbox = st.checkbox('Day', 
-                                      key = key3_engineer_var)
+                                      value = get_state("ENGINEER_PAGE_VARS", "day_dummies_checkbox"))
+            set_state("ENGINEER_PAGE_VARS", ("year_dummies_checkbox", day_dummies_checkbox))
 
         ###############################################
         # create selectbox for country holidays
@@ -5795,49 +5841,81 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
         vertical_spacer(1)
         my_text_header('Holidays')
         my_text_paragraph('⛱️ Select country-specific holidays to include:')
-        # apply function to create country specific holidays in columns is_holiday (boolean 1 if holiday otherwise 0) and holiday_desc for holiday_name
-        df = create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'])
-        # update the session_state
-        st.session_state['df_cleaned_outliers_with_index'] = df
         
+        if calendar_holidays_checkbox == True:
+            # apply function to create country specific holidays in columns is_holiday (boolean 1 if holiday otherwise 0) and holiday_desc for holiday_name
+            df = create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'])
+        
+            # update the session_state
+            st.session_state['df_cleaned_outliers_with_index'] = df
+            
         ###############################################
         # create checkboxes for special days on page
         ###############################################
         my_text_header('Special Calendar Days')
         my_text_paragraph("🎁 Pick your special days to include: ")
         vertical_spacer(1)
+        
         col0, col1, col2, col3 = st.columns([6,12,12,1])
-        with col1:
-            # create unique function for each checkbox without form to be responsive
-            def jan_sales_change():                
-                if get_state("ENGINEER_PAGE_VARS", "jan_sales") == True:
-                    set_state("ENGINEER_PAGE_VARS", ("jan_sales", False))
-                else:
-                    set_state("ENGINEER_PAGE_VARS", ("jan_sales", True))
-                
-            jan_sales = st.checkbox(label = 'January Sale', value = get_state("ENGINEER_PAGE_VARS", "jan_sales"), on_change = jan_sales_change)
-            # update the state after user selection
-            #
+        with col1:               
+            jan_sales = st.checkbox(label = 'January Sale', 
+                                    value = get_state("ENGINEER_PAGE_VARS", "jan_sales"))
+            set_state("ENGINEER_PAGE_VARS", ("jan_sales", jan_sales))
+                                   
+            val_day_lod = st.checkbox(label = "Valentine's Day [last order date]", 
+                                      value = get_state("ENGINEER_PAGE_VARS", "val_day_lod"))
+            set_state("ENGINEER_PAGE_VARS", ("val_day_lod", val_day_lod))
             
-            val_day_lod = st.checkbox(label = "Valentine's Day [last order date]", key = key5_engineer_var)
-            val_day = st.checkbox(label = "Valentine's Day", key = key6_engineer_var)
-            mother_day_lod = st.checkbox(label = "Mother's Day [last order date]", key = key7_engineer_var)
-            mother_day = st.checkbox(label = "Mother's Day", key = key8_engineer_var)
-            father_day_lod = st.checkbox(label = "Father's Day [last order date]", key = key9_engineer_var)
-            pay_days = st.checkbox(label = 'Monthly Pay Days (4th Friday of month)', key = key10_engineer_var)
+            val_day = st.checkbox(label = "Valentine's Day", 
+                                  value = get_state("ENGINEER_PAGE_VARS", "val_day"))
+            set_state("ENGINEER_PAGE_VARS", ("val_day", val_day))
+            
+            mother_day_lod = st.checkbox(label = "Mother's Day [last order date]", 
+                                         value = get_state("ENGINEER_PAGE_VARS", "mother_day_lod"))
+            set_state("ENGINEER_PAGE_VARS", ("mother_day_lod", mother_day_lod))
+            
+            mother_day = st.checkbox(label = "Mother's Day",
+                                     value = get_state("ENGINEER_PAGE_VARS", "mother_day"))
+            set_state("ENGINEER_PAGE_VARS", ("mother_day", mother_day))
+            
+            father_day_lod = st.checkbox(label = "Father's Day [last order date]", 
+                                         value = get_state("ENGINEER_PAGE_VARS", "father_day_lod"))
+            set_state("ENGINEER_PAGE_VARS", ("father_day_lod", father_day_lod))
+                
+            pay_days = st.checkbox(label = 'Monthly Pay Days (4th Friday of month)', 
+                                   value = get_state("ENGINEER_PAGE_VARS", "pay_days"))
+            set_state("ENGINEER_PAGE_VARS", ("pay_days", pay_days))
+       
         with col2:
-            father_day = st.checkbox(label = "Father's Day", key = key11_engineer_var)
-            black_friday_lod = st.checkbox(label = 'Black Friday [sale starts]', key = key12_engineer_var)
-            black_friday = st.checkbox(label = 'Black Friday', key = key13_engineer_var)
-            cyber_monday = st.checkbox('Cyber Monday', key = key14_engineer_var)
-            christmas_day = st.checkbox(label = 'Christmas Day [last order date]', key = key15_engineer_var)
-            boxing_day = st.checkbox(label = 'Boxing Day sale', key = key16_engineer_var)
+            father_day = st.checkbox(label = "Father's Day", 
+                                     value = get_state("ENGINEER_PAGE_VARS", "father_day"))
+            set_state("ENGINEER_PAGE_VARS", ("father_day", father_day))
+            
+            black_friday_lod = st.checkbox(label = 'Black Friday [sale starts]', 
+                                           value = get_state("ENGINEER_PAGE_VARS", "black_friday_lod"))
+            set_state("ENGINEER_PAGE_VARS", ("black_friday_lod", black_friday_lod))
+            
+            black_friday = st.checkbox(label = 'Black Friday', 
+                                      value = get_state("ENGINEER_PAGE_VARS", "black_friday"))
+            set_state("ENGINEER_PAGE_VARS", ("black_friday", black_friday))
+            
+            cyber_monday = st.checkbox('Cyber Monday', 
+                                       value = get_state("ENGINEER_PAGE_VARS", "cyber_monday"))
+            set_state("ENGINEER_PAGE_VARS", ("cyber_monday", cyber_monday))
+            
+            christmas_day = st.checkbox(label = 'Christmas Day [last order date]', 
+                                        value = get_state("ENGINEER_PAGE_VARS", "christmas_day"))
+            set_state("ENGINEER_PAGE_VARS", ("christmas_day", christmas_day))
+            
+            boxing_day = st.checkbox(label = 'Boxing Day sale', 
+                                     value = get_state("ENGINEER_PAGE_VARS", "boxing_day"))
+            set_state("ENGINEER_PAGE_VARS", ("boxing_day", boxing_day))
+            
         vertical_spacer(3)
         
     # user checkmarked the box for all seasonal periods
-    if  special_calendar_days_checkbox:
+    if special_calendar_days_checkbox:
         # call very extensive function to create all days selected by users as features
-        #df = create_calendar_special_days(df_cleaned_outliers_with_index) ## replaced with session state in memory dataframe
         df = create_calendar_special_days(st.session_state['df_cleaned_outliers_with_index'])
         # update the session_state
         st.session_state['df_cleaned_outliers_with_index'] = df
@@ -5925,56 +6003,23 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
 # else e.g. if user is not within menu_item == 'Engineer' and sidebar_menu_item is not 'Home':
 # execute code below...
 else:
-    pass
-
-# =============================================================================
-#     # TEST TEST TEST 05-18-2023
-#     # else if user did not click on menu_item engineer and menu_button equals 'Home'
-#     # Check if dataframe exists in session state
-#     if 'df' not in st.session_state:
-#         # call very extensive function to create all days selected by users as features
-#         #df = create_calendar_special_days(df_cleaned_outliers_with_index) ## replaced with session state in memory dataframe
-#         df = create_calendar_special_days(st.session_state['df_cleaned_outliers_with_index'])
-# 
-#         # apply function to add year/month and day dummy variables
-#         df = create_date_features(df, year_dummies=st.session_state['year_dummies'], month_dummies=st.session_state['month_dummies'], day_dummies=st.session_state['day_dummies'])
-#         vertical_spacer(3)
-#                 
-#         # Add Wavelet Features
-#         # TODO
-#         #df = pd.merge(df, features_df_wavelet, left_index=True, right_index=True)
-# 
-#         # save updated/transformed df to session state
-#         st.session_state['df'] = df     
-# =============================================================================
-# test write normal calendars and create option for user to select country holidays
-
-#create_calendar_holidays(st.session_state['df_cleaned_outliers_with_index'], start_date_calendar=None, end_date_calendar=None)
-# TEST HOLIDAY PACKAGE PYTHON TO CREATE DATAFRAME WITH HOLIDAYS FOR USER SELECTED COUNTRY
-#selected_country = st.selectbox("Select a country", [country[0] for country in country_data])
-# APPLY FUNCTION -> TEST
-
-########
-# TEST - ADD THIS
-#####
-# create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'])
-df = create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'], slider = False)
-#df = create_calendar_special_days(st.session_state['df_cleaned_outliers_with_index'])
-df = create_calendar_special_days(df)
-df = create_date_features(df, 
-                          year_dummies = get_state("ENGINEER_PAGE_VARS", "year_dummies_checkbox"), 
-                          month_dummies = get_state("ENGINEER_PAGE_VARS", "month_dummies_checkbox"), 
-                          day_dummies = get_state("ENGINEER_PAGE_VARS", "day_dummies_checkbox"))
-
-# update datatypes for engineered features
-columns_to_convert = {'holiday': 'uint8', 'calendar_event': 'uint8', 'pay_day': 'uint8', 'year': 'int32', 'is_holiday': 'uint8'}
-# TEST HAVING NO NUMERICAL FEATURES:
-#columns_to_convert = {'holiday': 'uint8', 'calendar_event': 'uint8', 'pay_day': 'uint8', 'year': 'uint8', 'is_holiday': 'uint8'}
-
-for column, data_type in columns_to_convert.items():
-    if column in df:
-        df[column] = df[column].astype(data_type)
-        
+    # create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'])
+    df = create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'], slider = False)
+    df = create_calendar_special_days(df)
+    df = create_date_features(df, 
+                              year_dummies = get_state("ENGINEER_PAGE_VARS", "year_dummies_checkbox"), 
+                              month_dummies = get_state("ENGINEER_PAGE_VARS", "month_dummies_checkbox"), 
+                              day_dummies = get_state("ENGINEER_PAGE_VARS", "day_dummies_checkbox"))
+    
+    # update datatypes for engineered features
+    columns_to_convert = {'holiday': 'uint8', 'calendar_event': 'uint8', 'pay_day': 'uint8', 'year': 'int32', 'is_holiday': 'uint8'}
+    
+    # TEST HAVING NO NUMERICAL FEATURES:
+    #columns_to_convert = {'holiday': 'uint8', 'calendar_event': 'uint8', 'pay_day': 'uint8', 'year': 'uint8', 'is_holiday': 'uint8'}
+    for column, data_type in columns_to_convert.items():
+        if column in df:
+            df[column] = df[column].astype(data_type)
+            
 ###############################################
 # update session state df with transformations: 
 # - added calendar days
@@ -6000,7 +6045,7 @@ local_df = st.session_state['df'].copy(deep=True)
 #  |_|    |_|  \_\______|_| /_/    \_\_|  \_\______|
 #                                                   
 # =============================================================================
-# Prepare Data
+# PREPARE DATASET (REMOVE OBJECT DTYPE FEATURES, TRAIN/TEST SPLIT, NORMALIZE, STANDARDIZE)
 
 # SET VARIABLES
 length_df = len(st.session_state['df'])
@@ -6012,13 +6057,23 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
        
     # show user which descriptive variables are removed, that just had the purpose to inform user what dummy was from e.g. holiday days such as Martin Luther King Day
     with st.expander('', expanded=True):
-        show_lottie_animation(url="./images/21197-astrolottie.json", key="astrolottie", width=200, height=200, col_sizes=[4,4,4], speed = 0.5)
-        my_text_paragraph('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "Go ahead, Houston." <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; with removing redundant variables...', my_font_size='16px')
+        my_text_header('Preprocess')
+        my_text_paragraph('*removing redundant features (dtype = object)', my_font_size='12px')
         local_df = remove_object_columns(local_df, message_columns_removed=True)
-        vertical_spacer(4)
-        # how local_df to user in streamlit
-        #st.write(local_df)
-                        
+
+        # have button available for user and if clicked it expands with the dataframe
+        col1, col2, col3 = st.columns([130,60,120])
+        with col2:        
+            placeholder = st.empty()
+            # create button (enabled to click e.g. disabled=false with unique key)
+            btn = placeholder.button('Show Data', disabled=False,  key = "preprocess_df_show_btn")
+        # if button is clicked run below code
+        if btn == True:
+            # display button with text "click me again", with unique key
+            placeholder.button('Hide Data', disabled=False, key = "preprocess_df_hide_btn")
+            # how local_df to user in streamlit
+            st.dataframe(local_df, use_container_width=True)
+        vertical_spacer(1)            
     # Check if 'date' column exists in local_df
     if 'date' in local_df.columns:
         # set the date as the index of the pandas dataframe
@@ -6031,10 +6086,9 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
     ######################
     # 5.1 TRAIN/TEST SPLIT
     ######################
-    with st.expander("Train/Test Split", expanded=True):
+    with st.expander("", expanded=True):
         my_text_header('Train/Test Split')
-        st.caption(f'<h6> <center> ℹ️ A commonly used ratio is 80:20 split between train and test set </center> <h6>', unsafe_allow_html=True)
-        
+       
         # create sliders for user insample test-size (/train-size automatically as well)
         my_insample_forecast_steps, my_insample_forecast_perc = train_test_split_slider(df = st.session_state['df'])
         # update to session_state
@@ -6044,19 +6098,20 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
         # format as new variables insample_forecast steps in days/as percentage e.g. the test set to predict for\
         perc_test_set = "{:.2f}%".format((st.session_state['insample_forecast_steps']/length_df)*100)
         perc_train_set = "{:.2f}%".format(((length_df-st.session_state['insample_forecast_steps'])/length_df)*100)
+        
+        my_text_paragraph(f"{perc_train_set} / {perc_test_set}", my_font_size='16px')
        
-        # Create a figure with a scatter plot of the train/test split
-        # create figure with custom function for train/test split with plotly
+        
         # Set train/test split index
         split_index = min(length_df - st.session_state['insample_forecast_steps'], length_df - 1)
+        # Create a figure with a scatter plot of the train/test split
         train_test_fig = plot_train_test_split(st.session_state['df'], split_index)
         # show the plot inside streamlit app on page
         st.plotly_chart(train_test_fig, use_container_width=True)
         # show user the train test split currently set by user or default e.g. 80:20 train/test split
-        st.warning(f"ℹ️ train/test split currently equals :green[**{perc_train_set}**] and :green[**{perc_test_set}**] ")
+        #st.warning(f"ℹ️ train/test split currently equals :green[**{perc_train_set}**] and :green[**{perc_test_set}**] ")
+        my_text_paragraph('NOTE: a commonly used ratio is <b> 80:20 </b> split between the train- and test set.', my_font_size='12px', my_font_family='Arial') 
 
-        show_lottie_animation(url="./images/10287-spindot-loader.json", key="spindot_loader", width=100, height=100, col_sizes=[6,2, 6], speed = 0.5)
-                
     ##############################
     # 5.2 Normalization
     ##############################
@@ -6181,24 +6236,19 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
                                 set_index=True, 
                                 my_key='standardization_download_btn')
  
+    
+# =============================================================================
+# if user not in prepare screen then update the dataframe with preselected choices e.g. 80/20 split
+# do not normalize and do not standardize
+# =============================================================================
+# Update Session States of Dataframes
 st.session_state['df'] = remove_object_columns(st.session_state['df'], message_columns_removed=False)
-
-# TEST 05-20-2023 - need X for feature selection screen
-# apply function for normalizing the dataframe if user choice
-# IF user selected a normalization_choice other then "None" the X_train and X_test will be scaled
-#st.write('session state used for train test split',st.session_state['df']) # TEST
 
 if 'date' in st.session_state['df']:
     X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'].set_index('date'), st.session_state['insample_forecast_steps'], st.session_state['normalization_choice'], numerical_features=numerical_features)
 else:
     X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'], st.session_state['insample_forecast_steps'], st.session_state['normalization_choice'], numerical_features=numerical_features)
 
-# =============================================================================
-# st.write('X_train', X_train)
-# st.write('y_train', y_train)
-# =============================================================================
-
-# Update Session States of Dataframes
 st.session_state['X'] = X
 st.session_state['y'] = y
 st.session_state['X_train'] = X_train
@@ -6218,19 +6268,26 @@ st.session_state['y_test'] = y_test
 # =============================================================================
 # Feature Selection
 if menu_item == 'Select' and sidebar_menu_item == 'Home':    
+    
     my_title(f'{select_icon} Feature Selection', "#7B52AB", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
+    
     with st.expander('', expanded=True):
-        #my_text_header('Selection Methods')
+        
         vertical_spacer(2)
+        
         col1, col2, col3 = st.columns([3,8,2])
         with col2:
             title = 'Select your top features with 3 methods!'
+            
             # set gradient color of letters of title
             gradient = '-webkit-linear-gradient(left, #9c27b0, #673ab7, #3f51b5, #2196f3, #03a9f4)'
+            
             # show in streamlit the title with gradient
             st.markdown(f'<h1 style="text-align:center; background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient};"> {title} </h1>', unsafe_allow_html=True)
+           
             vertical_spacer(2)
-            #### TEST CAROUSEL ####
+            
+            #### CAROUSEL ####
             header_list = ['🎨', '🧮', '🎏']
             paragraph_list_front = ["<b> Recursive Feature Elimination </b>", 
                                     "<b>Principal Component Analysis</b>", 
@@ -6239,9 +6296,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
             paragraph_list_back = ["<b>RFE</b> is a <b>feature selection technique</b> that repeatedly removes feature(s) and each turn evaluates remaining features by ranking the features based on their importance scores and eliminates the least important feature. This process continues until a desired number of features is reached.", 
                                    "<b>PCA</b> is a <b>feature selection technique</b> that repeatedly transforms and evaluates features based on their variance, reducing the dataset to a smaller set of uncorrelated variables called principal components. This process continues until a desired number of components is achieved.", 
                                    "<b>MIFS</b> aka <nobr>`Mutual Information Feature Selection`</nobr> is a <b>feature selection technique</b> that calculates the mutual information between each feature and the target to determine how much information each feature provides about the target."]
-            # define the font family to display the text of paragraph
             font_family = "Helvetica"
-            # define the paragraph text size
             font_size_front = '14px'
             font_size_back = '15px'        
             # in streamlit create and show the user defined number of carousel cards with header+text
@@ -6250,9 +6305,11 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
 
         # Display a note to the user about using the training set for feature selection
         my_text_paragraph('NOTE: per common practice <b>only</b> the training dataset is used for feature selection to prevent <b>data leakage</b>.',my_font_size='12px', my_font_family='Arial')   
+   
     with st.sidebar:
         # show Title in sidebar 'Feature Selection' with purple background
         my_title(f'{select_icon}', "#7B52AB", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
+        
         # =============================================================================
         # RFE Feature Selection - SIDEBAR FORM
         # =============================================================================
@@ -6299,17 +6356,13 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
     # =============================================================================
     # RFE Feature Selection - PAGE RESULTS
     # =============================================================================
-# =============================================================================
-#     try:
-# =============================================================================
-    with st.expander('🎨 RFECV', expanded=True):
-        # run function to perform recursive feature elimination with cross-validation and display results using plot
-        selected_cols_rfe = rfe_cv(st.session_state['X_train'], st.session_state['y_train'], est_rfe, num_steps_rfe, num_features, timeseriessplit_value_rfe)
-# =============================================================================
-#     except:
-#         selected_cols_rfe= []
-#         st.warning(':red[**ERROR**: Recursive Feature Elimination with Cross-Validation could not execute...please adjust your selection criteria]')
-# =============================================================================
+    try:
+        with st.expander('🎨 RFECV', expanded=True):
+            # run function to perform recursive feature elimination with cross-validation and display results using plot
+            selected_cols_rfe = rfe_cv(st.session_state['X_train'], st.session_state['y_train'], est_rfe, num_steps_rfe, num_features, timeseriessplit_value_rfe)
+    except:
+        selected_cols_rfe= []
+        st.warning(':red[**ERROR**: Recursive Feature Elimination with Cross-Validation could not execute...please adjust your selection criteria]')
              
     # =============================================================================        
     # PCA Feature Selection
@@ -6485,7 +6538,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
             df_pairwise['correlation'] = (df_pairwise['correlation']*100).apply('{:.2f}%'.format)
             # Display message with pairs in total_features
             if df_pairwise.empty:
-                st.info(f'There are no **pairwise combinations** in the selected features with **correlation** larger than or equal to the user defined threshold of **{corr_threshold*100:.0f}%**')
+                st.info(f'There are no **pairwise combinations** in the selected features with a **correlation** larger than or equal to the user defined threshold of **{corr_threshold*100:.0f}%**')
                 st.write("")
             else:
                 st.markdown(f' <center> The following pairwise combinations of features have a correlation >= threshold: </center>', unsafe_allow_html=True)      
@@ -6575,14 +6628,17 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                      help='A confidence interval is a range of values around a sample statistic, such as a mean or proportion, which is likely to contain the true population parameter with a certain degree of confidence.\
                                            The level of confidence is typically expressed as a percentage, such as 95%, and represents the probability that the true parameter lies within the interval.\
                                            A wider interval will generally have a higher level of confidence, while a narrower interval will have a lower level of confidence.')
+        
         # define all models you want user to choose from
         models = [('Naive Model', None),
                   ('Linear Regression', LinearRegression(fit_intercept=True)), 
                   ('SARIMAX', SARIMAX(y_train)),
                   ('Prophet', Prophet())]
+      
         # create a checkbox for each model
         selected_models = []
-
+        
+        # iterate over each model in list
         for model_name, model in models:
             if st.checkbox(model_name):
                 selected_models.append((model_name, model))
@@ -6602,6 +6658,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                     else:
                         # lag is lowercase string of selection from user in selectbox
                         lag = lag.lower()
+                        
             if model_name == "SARIMAX":
                 with st.expander('SARIMAX Hyperparameters', expanded=False):
                     col1, col2, col3 = st.columns([5,1,5])
@@ -6622,6 +6679,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                                                                                      \n- **Monthly data** with **yearly** seasonality: **$s=12$**\
                                                                                                      \n- **Quarterly data** with **yearly** seasonality: **$s=4$**')
                     st.caption('SARIMAX Hyperparameters')
+                   
                     col1, col2, col3 = st.columns([5,1,5])
                     with col1:
                         # Add a selectbox for selecting enforce_stationarity
@@ -6629,6 +6687,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                     with col3:
                         # Add a selectbox for selecting enforce_invertibility
                         enforce_invertibility = st.selectbox('Enforce Invertibility', [True, False], index=0)
+                        
             if model_name == "Prophet":
                 with st.expander('Prophet Hyperparameters', expanded=False):
                     horizon_option = int(st.slider('Set Forecast Horizon (default = 30 Days):', min_value=1, max_value=365, step=1, value=30, help='The horizon for a Prophet model is typically set to the number of time periods that you want to forecast into the future. This is also known as the forecasting horizon or prediction horizon.'))
@@ -6645,84 +6704,120 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
         
         col1, col2, col3 = st.columns([4,4,4])
         with col2: 
+            # submit button of user form for training models
             train_models_btn = st.form_submit_button("Submit", type="secondary")
             # update session_state 
             st.session_state['train_models_btn'] = train_models_btn
+     
+    # =============================================================================
+    # IF USER HASNT SELECTED ANY MODELS AND HASNT STARTED TRAINING SHOW INFO MESSAGE            
+    # =============================================================================
     my_title(f"{train_icon} Train Models", "#0072B2", gradient_colors="#1A2980, #0072B2, #FEBD2E")
     # if nothing is selected by user display message to user to select models to train
-    if not train_models_btn and not selected_models:
+    if not train_models_btn: #and not selected_models:
         with st.expander('', expanded=True):
             #st.info("👈 Select your models to train in the sidebar!🏋️‍♂️") 
             col1, col2, col3 = st.columns([1,3,1])
             with col2:
                     # define the font family to display the text of paragraph
                     train_models_carousel(my_title= 'Select your models to train in the sidebar!')
-    # the code block to train the selected models will only be executed if both the button has been clicked and the list of selected models is not empty.
-    elif not selected_models:
-        # show carousel of models
-        train_models_carousel(my_title= 'Please select at least 1 model to train from the sidebar!')
 # =============================================================================
-#   ________      __     _     _    _      _______ ______ 
-#  |  ____\ \    / /\   | |   | |  | |  /\|__   __|  ____|
-#  | |__   \ \  / /  \  | |   | |  | | /  \  | |  | |__   
-#  |  __|   \ \/ / /\ \ | |   | |  | |/ /\ \ | |  |  __|  
-#  | |____   \  / ____ \| |___| |__| / ____ \| |  | |____ 
-#  |______|   \/_/    \_\______\____/_/    \_\_|  |______|
-#                                                         
+#     # the code block to train the selected models will only be executed if both the button has been clicked and the list of selected models is not empty.
+#     elif selected_models:
+#         # show carousel of models
+#         train_models_carousel(my_title= 'Please select at least 1 model to train from the sidebar!')
 # =============================================================================
-if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
+
+     
     # define variables needed
     # create a list of independent variables selected by user prior used 
     # for results dataframe when evaluating models which variables were included.
     features_str = get_feature_list(X)
     with st.sidebar:
         my_title(f"{evaluate_icon}", "#2CB8A1")
-        # if nothing is selected by user display message to user to select models to train
-        if not st.session_state['train_models_btn'] and selected_models:
-            st.info("ℹ️ Train your models first, before results show here!")
-    if not train_models_btn and selected_models:
-        st.info("ℹ️ Train your models first from the sidebar menu by pressing the **'Submit'** button, before results show here!")
+# =============================================================================
+#     # if nothing is selected by user display message to user to select models to train
+#     if not st.session_state['train_models_btn'] and selected_models:
+#         st.info("ℹ️ Train your models first, before results show here!")
+#     if not train_models_btn and selected_models:
+#         st.info("ℹ️ Train your models first from the sidebar menu by pressing the **'Submit'** button, before results show here!")
+# =============================================================================
     if train_models_btn and selected_models:
-        st.info("You can always retrain your models and adjust hyperparameters!")
+        #st.info("You can always retrain your models and adjust hyperparameters!")
         # iterate over all models and if user selected checkbox for model the model(s) is/are trained
         for model_name, model in selected_models:
-            try:
-                if model_name == "Naive Model":
-                    with st.expander('📈' + model_name, expanded=True):
-                        df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test, lag=lag, custom_lag_value=custom_lag_value)
-                        display_my_metrics(df_preds, "Naive Model")
-                        # plot graph with actual versus insample predictions
-                        plot_actual_vs_predicted(df_preds, my_conf_interval)
+# =============================================================================
+#             try:
+# =============================================================================
+            if model_name == "Naive Model":
+                with st.expander('📈' + model_name, expanded=True):
+                    df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test, lag=lag, custom_lag_value=custom_lag_value)
+                    display_my_metrics(df_preds, "Naive Model")
+                    # plot graph with actual versus insample predictions
+                    plot_actual_vs_predicted(df_preds, my_conf_interval)
+                   
+                    # =============================================================================
+                    #  Show/Hidee Button to download dataframe                   
+                    # =============================================================================
+                    # have button available for user and if clicked it expands with the dataframe
+                    col1, col2, col3 = st.columns([100,50,95])
+                    with col2:        
+                        placeholder = st.empty()
+                        # create button (enabled to click e.g. disabled=false with unique key)
+                        btn = placeholder.button('Show Details', disabled=False,  key = "show_naive_trained_model_btn")
+                    
+                    # if button is clicked run below code
+                    if btn == True:
+                        # display button with text "click me again", with unique key
+                        placeholder.button('Hide Details', disabled=False, key = "hide_naive_trained_model_btn")
                         # show the dataframe
                         st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
                         # create download button for forecast results to .csv
-                        download_csv_button(df_preds, my_file="insample_forecast_naivemodel_results.csv", help_message="Download your **Naive** model results to .CSV")
-                        mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
-                        # add test-results to sidebar Model Test Results dataframe
-                        new_row = {'model_name': 'Naive Model',
-                                   'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
-                                   'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']),
-                                   'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
-                                   'features':features_str}
-                        results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-            except:
-                st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
-            try:
-                if model_name == "Linear Regression":
-                     # train the model
-                     create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, model=model, model_name=model_name)
-                     # append to sidebar table the results of the model train/test
-                     new_row = {'model_name': 'Linear Regression',
-                                'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
-                                'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
-                                'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
-                                'features':features_str}
-                     results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-            except:
-                st.warning(f'Linear Regression failed to train, please contact administrator!')
+                        download_csv_button(df_preds, my_file="insample_forecast_naivemodel_results.csv", 
+                                             help_message="Download your **Naive** model results to .CSV",
+                                             my_key = 'naive_trained_model_download_btn')
+                    vertical_spacer(1)
+                                        
+                   
+                    
+                   
+                  
+                    
+                    
+                    
+                    
+                    mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
+                    # add test-results to sidebar Model Test Results dataframe
+                    new_row = {'model_name': 'Naive Model',
+                               'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
+                               'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']),
+                               'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
+                               'features':features_str}
+                    results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+# =============================================================================
+#             except:
+#                 st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
+# =============================================================================
+# =============================================================================
+#             try:
+# =============================================================================
+            if model_name == "Linear Regression":
+                 # train the model
+                 create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, model=model, model_name=model_name)
+                 # append to sidebar table the results of the model train/test
+                 new_row = {'model_name': 'Linear Regression',
+                            'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
+                            'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
+                            'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
+                            'features':features_str}
+                 results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+# =============================================================================
+#             except:
+#                 st.warning(f'Linear Regression failed to train, please contact administrator!')
+# =============================================================================
             try:
                 if model_name == "SARIMAX":
-                    with st.expander('ℹ️ ' + model_name, expanded=True):
+                    with st.expander('📈' + model_name, expanded=True):
                         with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):   
                             # Assume df is your DataFrame with boolean columns - needed for SARIMAX model that does not handle boolean, but int instead
                             bool_cols = X_train.select_dtypes(include=bool).columns
@@ -6754,7 +6849,7 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
             except:
                 st.warning(f'SARIMAX failed to train, please contact administrator!')       
             if model_name == "Prophet": 
-                with st.expander('ℹ️ ' + model_name, expanded=True):
+                with st.expander('📈' + model_name, expanded=True):
                     # use custom fucntion that creates in-sample prediction and return a dataframe with 'Actual', 'Predicted', 'Percentage_Diff', 'MAPE' 
                     preds_df_prophet = predict_prophet(y_train,
                                                        y_test, 
@@ -6771,9 +6866,14 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
                     # plot graph with actual versus insample predictions
                     plot_actual_vs_predicted(preds_df_prophet, my_conf_interval)
                     # show the dataframe
-                    st.dataframe(preds_df_prophet.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                    st.dataframe(preds_df_prophet.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), 
+                                 use_container_width=True)
+                    
                     # create download button for forecast results to .csv
-                    download_csv_button(preds_df_prophet, my_file="insample_forecast_prophet_results.csv", help_message="Download your **Prophet** model results to .CSV")
+                    download_csv_button(preds_df_prophet, 
+                                        my_file="insample_forecast_prophet_results.csv", 
+                                        help_message="Download your **Prophet** model results to .CSV",
+                                        my_key = 'download_btn_prophet_df_preds')
                     # define metrics for sarimax model
                     mape, rmse, r2 = my_metrics(preds_df_prophet, model_name=model_name)
                     # display evaluation results on sidebar of streamlit_model_card
@@ -6788,7 +6888,38 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
 
     # SHOW MODEL DOCUMENTATION AFTER MODELS RUN
     model_documentation(show=True)
-    
+     
+# =============================================================================
+#   ________      __     _     _    _      _______ ______ 
+#  |  ____\ \    / /\   | |   | |  | |  /\|__   __|  ____|
+#  | |__   \ \  / /  \  | |   | |  | | /  \  | |  | |__   
+#  |  __|   \ \/ / /\ \ | |   | |  | |/ /\ \ | |  |  __|  
+#  | |____   \  / ____ \| |___| |__| / ____ \| |  | |____ 
+#  |______|   \/_/    \_\______\____/_/    \_\_|  |______|
+#                                                         
+# =============================================================================
+
+
+# =============================================================================
+# ############## TEST ADD BASIC VARIABLES TO GET PAGE TO WORK BEFORE ADDING SESSION STATES
+# train_models_btn = st.session_state['train_models_btn'] # TEST
+# 
+# selected_models = [('Naive Model', None),
+#                   ('Linear Regression', LinearRegression(fit_intercept=True)), 
+#                   ('SARIMAX', SARIMAX(y_train)),
+#                   ('Prophet', Prophet())]
+# 
+# #lag = st.selectbox('*Select seasonal **lag** for the Naive Model:*', ['None', 'Day', 'Week', 'Month', 'Year', 'Custom'])
+# lag = 'Week'
+# custom_lag_value = None
+# lag = lag.lower()
+# my_conf_interval = 80
+# 
+# ############## TEST 
+# =============================================================================
+
+if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
+   
     ###################################################################################################################
     # Add results_df to session state
     ###################################################################################################################
