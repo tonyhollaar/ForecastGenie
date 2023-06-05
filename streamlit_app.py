@@ -407,8 +407,9 @@ def my_title(my_string, my_background_color="#45B8AC", gradient_colors=None):
 def my_header(my_string, my_style="#217CD0"):
     st.markdown(f'<h2 style="color:{my_style};"> <center> {my_string} </center> </h2>', unsafe_allow_html=True)
 
-def my_subheader(my_string, my_background_color="#45B8AC", my_style="#FFFFFF", my_size=3):
-    gradient = f"-webkit-linear-gradient(45deg, {my_background_color}, #2CB8A1, #0072B2)"
+
+def my_subheader(my_string, my_background_colors=["#45B8AC", "#2CB8A1", "#0072B2"], my_style="#FFFFFF", my_size=3):
+    gradient = f"-webkit-linear-gradient(45deg, {', '.join(my_background_colors)})"
     st.markdown(f'<h{my_size} style="background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient}; font-family: sans-serif; font-weight: bold; text-align: center; color: {my_style};"> {my_string} </h{my_size}>', unsafe_allow_html=True)
 
 def my_text_header(my_string,
@@ -1938,109 +1939,160 @@ def correlation_heatmap(X, correlation_threshold=0.8):
 #******************************************************************************
 # DOCUMENTATION FUNCTIONS
 #******************************************************************************
-def model_documentation(show=True):
+def model_documentation(selected_model_info):
     ''' SHOW MODEL DOCUMENTATION
         - Naive Model
         - Linear Regression
         - SARIMAX
         - Prophet
     '''
-    if show == True:
-        st.write('')
-        my_title('Model Documentation💡')
-        with st.expander('🗒️ Naive Model', expanded=False):
-            st.markdown('''
-                        The `Naive Model` is one of the simplest forecasting models in time series analysis. 
-                        It assumes that the value of a variable at any given time is equal to the value of the variable at the previous time period. 
-                        This means that this model is a special case of an **A**uto**R**egressive model of order 1, also known as $AR(1)$.  
-                        
-                        The Naive Model is useful as a baseline model to compare more complex forecasting models, such as ARIMA, exponential smoothing, or machine learning algorithms. 
-                        It is also useful when the underlying data generating process is highly unstable or unpredictable, and when there is no trend, seasonality, or other patterns to capture.
-                        The Naive Model can be expressed as a simple equation:
-                        
-                        $\hat{y}_{t} = y_{t-1}$
-                        
-                        where:
-                        - $y_t$ is the value of the variable at time $t$
-                        - $y_{t-1}$ is the value of the variable at time $_{t-1}$.  
-                        
-                        The Naive Model can be extended to incorporate seasonal effects, by introducing a lag period corresponding to the length of the seasonal cycle. 
-                        For example, if the time series has a weekly seasonality, the Naive Model with a lag of one week is equivalent to the model with a lag of seven days, and is given by:
-                        
-                        $\hat{y}_{t} = y_{t-7}$
-                        
-                        where:
-                        - $y_t$ is the value of the variable at time $t$
-                        - $y_{t-7}$is the value of the variable at time $_{t-7}$ (i.e., one week ago).
-                        
-                        In general, the lag value for the seasonal Naive Model should be determined based on the length of the seasonal cycle in the data, and can be estimated using visual inspection, autocorrelation analysis, or domain knowledge.
-                        ''')
-        with st.expander('🗒️ Linear Regression', expanded=False):
-            st.markdown('''
-                        `Linear regression` is a statistical method used to analyze the relationship between a dependent variable and one or more independent variables. 
-                        It involves finding a line or curve that best fits the data and can be used to make predictions. 
-                        The method assumes that the relationship between the variables is linear and that errors are uncorrelated.
-                        
-                        To find this line, we use a technique called least squares regression, which involves finding the line that minimizes the sum of the squared differences between the predicted values and the actual values. 
-                        The line is described by the equation:
-                        
-                        $$\\large Y = \\beta_0 + \\beta_1 X$$
+    if selected_model_info != '-':
+        with st.expander('', expanded=True):
+            col1, col2, col3 = st.columns([2, 8, 2])
+            if selected_model_info == 'Naive Model':
+                with col2:
+                    my_text_header('Naive Model')
+                    vertical_spacer(1)
+                    st.markdown('''
+                    <p style="text-align: justify;">
+                    The <strong>Naive Model</strong> is one of the simplest forecasting models in time series analysis. 
+                    It assumes that the value of a variable at any given time is equal to the value of the variable at the previous time period. 
+                    This means that this model is a special case of an <strong>A</strong>uto<strong>R</strong>egressive model of order 1, also known as <b> AR(1)</b>.
+                    </p>
                     
-                        where:
-                        - $Y$ is the dependent variable
-                        - $X$ is the independent variable
-                        - $\\beta_0$ is the intercept (the value of $Y$ when $X = 0$)
-                        - $\\beta_1$ is the slope (the change in $Y$ for a unit change in $X$)
-                        ''')
-        with st.expander('🗒️ SARIMAX', expanded=False):
-            st.markdown('''
-                        `SARIMAX`, or **S**easonal **A**utoregressive **I**ntegrated **M**oving **A**verage with e**X**ogenous variables, is a popular time series forecasting model.
-                        The ARIMA model is a time series forecasting model that uses past values of a variable to predict future values. 
-                        SARIMAX extends ARIMA by incorporating seasonal patterns and adding exogenous variables that can impact the variable being forecasted.
-                        
-                        - **p:** The order of the autoregressive (AR) term, which refers to the number of lagged observations of the dependent variable in the model. A higher value of p means the model is considering more past values of the dependent variable.
-                        - **d:** The order of the differencing (I) term, which refers to the number of times the data needs to be differenced to make it stationary. Stationarity is a property of time series data where the statistical properties, such as the mean and variance, are constant over time.
-                        - **q:** The order of the moving average (MA) term, which refers to the number of lagged forecast errors in the model. A higher value of q means the model is considering more past forecast errors.
-                        - **P:** The seasonal order of the autoregressive term, which refers to the number of seasonal lags in the model.
-                        - **D:** The seasonal order of differencing, which refers to the number of times the data needs to be differenced at the seasonal lag to make it stationary.
-                        - **Q:** The seasonal order of the moving average term, which refers to the number of seasonal lags of the forecast errors in the model.
-                        - **s:** The length of the seasonal cycle, which is the number of time steps in each season. For example, if the data is monthly and the seasonality is yearly, s would be 12. The parameter s is used to determine the number of seasonal lags in the model.
-                        - ***Exogenous Variables***: These are external factors that can impact the variable being forecasted. They are included in the model as additional inputs.  
-                        ''')
-        with st.expander('🗒️ Prophet', expanded=False):
-            st.markdown('''
-                        The Facebook `Prophet` model is a popular open-source library for time series forecasting developed by Facebook's Core Data Science team.
-                        It is designed to handle time series data with strong seasonal effects and other external factors.
-                        It uses a combination of historical data and user-defined inputs to generate forecasts for future time periods.  
-                        
-                        ## Variables in the Prophet Model
-                        The main variables in the Prophet model are:
-                        - **Trend**: This is the underlying pattern in the data that represents the long-term direction of the series. It can be linear or non-linear and is modeled using a piecewise linear function.
-                        - **Seasonality**: This is the periodic pattern in the data that repeats over fixed time intervals. It can be daily, weekly, monthly, or yearly, and is modeled using Fourier series.
-                        - **Holidays**: These are user-defined events or time periods that are known to affect the time series. The model includes them as additional regressors in the forecasting equation.
-                        - **Regressors**: These are additional time-varying features that can affect the time series, such as weather, economic indicators, or other external factors.
-                        
-                        ## Math Behind the Prophet Model
-                        The math behind the Prophet model involves fitting a Bayesian additive regression model to the time series data. The model is formulated as follows:
-                        
-                        $$y_t = g_t + s_t + h_t + e_t$$
-                        
-                        where:
-                        - $y_t$ is the observed value at time $t$
-                        - $g_t$ is the trend component
-                        - $s_t$ is the seasonality component
-                        - $h_t$ is the holiday component
-                        - $e_t$ is the error term. 
-                        
-                        The **trend** component is modeled using a piecewise linear function, while the **seasonality component** is modeled using a Fourier series. The **holiday component** and any additional regressors are included as additional terms in the regression equation.
-                        
-                        The model is estimated using a Bayesian approach that incorporates prior information about the parameters and allows for uncertainty in the forecasts. The parameters are estimated using Markov Chain Monte Carlo (MCMC) sampling, which generates a large number of possible parameter values and uses them to estimate the posterior distribution of the parameters. The posterior distribution is then used to generate forecasts for future time periods.
-                        
-                        Overall, the Prophet model is a powerful tool for time series forecasting that can handle complex data patterns and external factors. Its flexible modeling approach and Bayesian framework make it a popular choice for many data scientists and analysts.
+                    <p style="text-align: justify;">
+                    The Naive Model is useful as a baseline model to compare more complex forecasting models, such as ARIMA, exponential smoothing, or machine learning algorithms. 
+                    It is also useful when the underlying data generating process is highly unstable or unpredictable, and when there is no trend, seasonality, or other patterns to capture.
+                    The Naive Model can be expressed as a simple equation: 
+                    </p>
+                             
+                    &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; $\hat{y}_{t} = y_{t-1}$
         
-                        ''')
-    else:
-        pass
+                    <p style="text-align: justify;">
+                    where:
+                    </p>
+        
+                    - $y_t$ is the value of the variable at time $t$
+                    <br> 
+                    - $y_{t-1}$ is the value of the variable at time $_{t-1}$
+                    
+                    <br>
+                    
+                    <p style="text-align: justify;">
+                    The Naive Model can be extended to incorporate seasonal effects, by introducing a lag period corresponding to the length of the seasonal cycle. 
+                    For example, if the time series has a weekly seasonality, the Naive Model with a lag of one week is equivalent to the model with a lag of seven days, and is given by:
+                    </p>
+                    
+                    &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;$\hat{y}_{t} = y_{t-7}$
+                    
+                    <p style="text-align: justify;">
+                    where:
+                    </p>
+                    
+                    - $y_t$ is the value of the variable at time $t$
+                    <br>
+                    - $y_{t-7}$ is the value of the variable at time $_{t-7}$
+        
+                    <br>
+                    <p style="text-align: justify;">
+                    In general, the lag value for the seasonal Naive Model should be determined based on the length of the seasonal cycle in the data, and can be estimated using visual inspection, autocorrelation analysis, or domain knowledge.
+                    </p>
+                    ''', unsafe_allow_html=True)
+                
+            if selected_model_info == 'Linear Regression':
+                with col2:
+                    my_text_header('Linear Regression')
+                    vertical_spacer(1)
+                    st.markdown('''
+                                <p style="text-align: justify;"> 
+                                <strong> The Linear Regression Model </strong> is used to analyze the relationship between a dependent variable and one or more independent variables. 
+                                It involves finding a line or curve that best fits the data and can be used to make predictions. 
+                                The method assumes that the relationship between the variables is linear and that errors are uncorrelated.
+                     
+                                
+                                To find this line, we use a technique called least squares regression, which involves finding the line that minimizes the sum of the squared differences between the predicted values and the actual values. 
+                                The line is described by the equation:
+                                </p>                           
+                                
+                                &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; $$Y = β₀ + β₁ X$$
+                            
+                                where:
+                                - $Y$ is the dependent variable</li>
+                                - $X$ is the independent variable</li>
+                                - $β₀$ is the intercept &rarr; the value of $Y$ when $X = 0$
+                                - $β₁$ is the slope &rarr; the change in $Y$ for a unit change in $X$
+                                <br>
+                                ''', unsafe_allow_html=True)
+            if selected_model_info == 'SARIMAX':
+                with col2:
+                    my_text_header('SARIMAX')
+                    vertical_spacer(1)
+                    st.markdown('''
+                                <p style="text-align: justify;">
+                                <strong>SARIMAX</strong>, or <b>S</b>easonal <b>A</b>utoregressive <b>I</b>ntegrated <b>M</b>oving <b>A</b>verage with e<b>X</b>ogenous variables, is a popular time series forecasting model.
+                                The ARIMA model is a time series forecasting model that uses past values of a variable to predict future values. 
+                                SARIMAX extends ARIMA by incorporating seasonal patterns and adding exogenous variables <b>X</b> that can impact the variable being forecasted. The model can be represented as follows:
+                                <br>
+                                <br>
+                                &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <strong> SARIMA(p, d, q)(P, D, Q)s </strong>
+                                
+                                Non-Seasonal Terms    
+                                - <b>p </b> &emsp;The order of the autoregressive (AR) term, which refers to the number of lagged observations of the dependent variable in the model. A higher value of p means the model is considering more past values of the dependent variable.
+                                <br>
+                                - <b>d</b> &emsp;The order of the differencing (I) term, which refers to the number of times the data needs to be differenced to make it stationary. Stationarity is a property of time series data where the statistical properties, such as the mean and variance, are constant over time.
+                                <br>
+                                - <b>q</b> &emsp;The order of the moving average (MA) term, which refers to the number of lagged forecast errors in the model. A higher value of q means the model is considering more past forecast errors.
+                                <br>
+                                
+                                <br>Seasonal Terms:
+                                - <b>P</b> &emsp;The seasonal order of the autoregressive term, which refers to the number of seasonal lags in the model.
+                                <br>
+                                - <b>D</b> &emsp;The seasonal order of differencing, which refers to the number of times the data needs to be differenced at the seasonal lag to make it stationary.
+                                <br>
+                                - <b>Q</b> &emsp;The seasonal order of the moving average term, which refers to the number of seasonal lags of the forecast errors in the model.
+                                <br>
+                                - <b>s:</b> &emsp;The length of the seasonal cycle, which is the number of time steps in each season. For example, if the data is monthly and the seasonality is yearly, s would be 12. The parameter s is used to determine the number of seasonal lags in the model.
+                                <br>
+                                <br>Exogenous Variables:
+                                <br>
+                                - <b>X</b>  &emsp; These are external factors that can impact the variable being forecasted. They are included in the model as additional inputs.  
+                                </p>
+                                ''', unsafe_allow_html=True)
+            if selected_model_info == 'Prophet':
+                st.markdown('''
+                            The Facebook `Prophet` model is a popular open-source library for time series forecasting developed by Facebook's Core Data Science team.
+                            It is designed to handle time series data with strong seasonal effects and other external factors.
+                            It uses a combination of historical data and user-defined inputs to generate forecasts for future time periods.  
+                            
+                            ## Variables in the Prophet Model
+                            The main variables in the Prophet model are:
+                            - **Trend**: This is the underlying pattern in the data that represents the long-term direction of the series. It can be linear or non-linear and is modeled using a piecewise linear function.
+                            - **Seasonality**: This is the periodic pattern in the data that repeats over fixed time intervals. It can be daily, weekly, monthly, or yearly, and is modeled using Fourier series.
+                            - **Holidays**: These are user-defined events or time periods that are known to affect the time series. The model includes them as additional regressors in the forecasting equation.
+                            - **Regressors**: These are additional time-varying features that can affect the time series, such as weather, economic indicators, or other external factors.
+                            
+                            ## Math Behind the Prophet Model
+                            The math behind the Prophet model involves fitting a Bayesian additive regression model to the time series data. The model is formulated as follows:
+                            
+                            $$y_t = g_t + s_t + h_t + e_t$$
+                            
+                            where:
+                            - $y_t$ is the observed value at time $t$
+                            - $g_t$ is the trend component
+                            - $s_t$ is the seasonality component
+                            - $h_t$ is the holiday component
+                            - $e_t$ is the error term. 
+                            
+                            The **trend** component is modeled using a piecewise linear function, while the **seasonality component** is modeled using a Fourier series. The **holiday component** and any additional regressors are included as additional terms in the regression equation.
+                            
+                            The model is estimated using a Bayesian approach that incorporates prior information about the parameters and allows for uncertainty in the forecasts. The parameters are estimated using Markov Chain Monte Carlo (MCMC) sampling, which generates a large number of possible parameter values and uses them to estimate the posterior distribution of the parameters. The posterior distribution is then used to generate forecasts for future time periods.
+                            
+                            Overall, the Prophet model is a powerful tool for time series forecasting that can handle complex data patterns and external factors. Its flexible modeling approach and Bayesian framework make it a popular choice for many data scientists and analysts.
+            
+                            ''')
+                return selected_model_info
+            else:
+                pass        
     
 #******************************************************************************
 # OTHER FUNCTIONS
@@ -4415,6 +4467,11 @@ if 'normalization_choice' not in st.session_state:
 if 'train_models_btn' not in st.session_state:
     st.session_state['train_models_btn'] = False
     
+# ================================ TRAIN ===================================    
+if 'selected_model_info' not in st.session_state:
+    st.session_state['selected_model_info'] = '-'
+        
+    
 # ================================ EVALUATE ===================================
 # create an empty dictionary to store the results of the models
 # that I call after I train the models to display on sidebar under hedaer "Evaluate Models"
@@ -5163,9 +5220,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         # Autocorrelation parameters form     
         with st.form('autocorrelation'):
             # Create sliders in sidebar for the parameters of PACF Plot
-            st.write("")
-            my_text_header('Autocorrelation ')
-            my_text_paragraph('Plot Parameters')
+            my_text_paragraph('Autocorrelation ')
             col1, col2, col3 = st.columns([4,1,4])
             
             # create slider for number of lags for ACF Plot
@@ -5201,8 +5256,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                 acf_pacf_btn = st.form_submit_button("Submit", type="secondary",  on_click=form_update, args=('EXPLORE_PAGE',))   
          
         with st.form('ljung-box'):
-             my_text_header('White Noise')
-             my_text_paragraph('Ljung-Box')
+             my_text_paragraph('White Noise')
              model_type = st.selectbox("Select Model Type", ["AutoReg", "ARMA"], index=0)             
              lag1_ljung_box = st.number_input('*Enter maximum lag:*', 
                                    min_value=1, 
@@ -5693,6 +5747,7 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
         # set title in sidebar for engineer page
         my_title(f"{engineer_icon}", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
     with st.sidebar.form('feature engineering sidebar'):
+        my_text_paragraph('Features')
         # create empty newline
         vertical_spacer(1)
         # show checkboxes in middle of sidebar to select all features or none
@@ -5848,7 +5903,8 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
         
             # update the session_state
             st.session_state['df_cleaned_outliers_with_index'] = df
-            
+        else:
+            my_text_paragraph('<i> no country-specific holiday selected </i>')
         ###############################################
         # create checkboxes for special days on page
         ###############################################
@@ -6618,7 +6674,21 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
     ################################################
     with st.sidebar:
         my_title(f"{train_icon}", "#0072B2")
+        with st.expander('', expanded=True):
+            my_text_paragraph('Model Information')
+            vertical_spacer(1)
+            col1, col2, col3 = st.columns([1,1,1])
+            selected_model_info = col2.selectbox(label = "*Select model*:", 
+                                          options = ['-', 'Naive Model', 'Linear Regression', 'SARIMAX', 'Prophet'], 
+                                          label_visibility='collapsed')
+            vertical_spacer(2)
+        # update session state
+        st.session_state['selected_model_info'] = selected_model_info
+            
+     
     with st.sidebar.form('model_train_form'):
+        vertical_spacer(1)
+        my_text_paragraph('Model Selection')
         # generic graph settings
         my_conf_interval = st.slider("*Set Confidence Interval (%)*", 
                                      min_value=1, 
@@ -6677,9 +6747,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                                                                                      \n- **Daily data** with **weekly** seasonality: **$s=7$** \
                                                                                                      \n- **Monthly data** with **quarterly** seasonality: **$s=3$**\
                                                                                                      \n- **Monthly data** with **yearly** seasonality: **$s=12$**\
-                                                                                                     \n- **Quarterly data** with **yearly** seasonality: **$s=4$**')
-                    st.caption('SARIMAX Hyperparameters')
-                   
+                                                                                                     \n- **Quarterly data** with **yearly** seasonality: **$s=4$**')                   
                     col1, col2, col3 = st.columns([5,1,5])
                     with col1:
                         # Add a selectbox for selecting enforce_stationarity
@@ -6714,13 +6782,18 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
     # =============================================================================
     my_title(f"{train_icon} Train Models", "#0072B2", gradient_colors="#1A2980, #0072B2, #FEBD2E")
     # if nothing is selected by user display message to user to select models to train
-    if not train_models_btn: #and not selected_models:
+   
+    # SHOW MODEL DOCUMENTATION AFTER MODELS RUN
+    selected_model_info = model_documentation(st.session_state['selected_model_info'])
+  
+    if st.session_state['selected_model_info'] == '-': #and not selected_models:
         with st.expander('', expanded=True):
             #st.info("👈 Select your models to train in the sidebar!🏋️‍♂️") 
             col1, col2, col3 = st.columns([1,3,1])
             with col2:
                     # define the font family to display the text of paragraph
                     train_models_carousel(my_title= 'Select your models to train in the sidebar!')
+
 # =============================================================================
 #     # the code block to train the selected models will only be executed if both the button has been clicked and the list of selected models is not empty.
 #     elif selected_models:
@@ -6733,8 +6806,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
     # create a list of independent variables selected by user prior used 
     # for results dataframe when evaluating models which variables were included.
     features_str = get_feature_list(X)
-    with st.sidebar:
-        my_title(f"{evaluate_icon}", "#2CB8A1")
+
 # =============================================================================
 #     # if nothing is selected by user display message to user to select models to train
 #     if not st.session_state['train_models_btn'] and selected_models:
@@ -6777,15 +6849,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                              help_message="Download your **Naive** model results to .CSV",
                                              my_key = 'naive_trained_model_download_btn')
                     vertical_spacer(1)
-                                        
-                   
-                    
-                   
-                  
-                    
-                    
-                    
-                    
+
                     mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
                     # add test-results to sidebar Model Test Results dataframe
                     new_row = {'model_name': 'Naive Model',
@@ -6886,8 +6950,6 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                     
                     results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
 
-    # SHOW MODEL DOCUMENTATION AFTER MODELS RUN
-    model_documentation(show=True)
      
 # =============================================================================
 #   ________      __     _     _    _      _______ ______ 
@@ -6919,11 +6981,11 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
 # =============================================================================
 
 if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
-   
     ###################################################################################################################
     # Add results_df to session state
     ###################################################################################################################
     with st.sidebar:
+        my_title(f"{evaluate_icon}", "#2CB8A1")
         with st.expander('', expanded=True):
             # table 1: latest run results of model performance
             my_subheader('Latest Model Test Results', my_size=4, my_style='#2CB8A1')
