@@ -5058,7 +5058,7 @@ if sidebar_menu_item == 'Doc':
         # DOC: Tune
         ################################    
         my_text_header('<b> Step 9: </b> <br> Tune Models')
-        show_lottie_animation(url="./images/95733-loading-20.json", key='tune_sliders', width=200, height=200, col_sizes = [4,4,4], speed = 1)
+        show_lottie_animation(url="./images/95733-loading-20.json", key='tune_sliders', width=150, height=150, col_sizes = [5,4,4], speed = 1)
         col1, col2, col3 = st.columns([2,8,2])   
         with col2:
             my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
