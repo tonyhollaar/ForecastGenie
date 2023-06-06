@@ -496,7 +496,7 @@ def my_forecastgenie_title(my_string, my_background_color="#2CB8A1"):
                 </div>
                 ''', unsafe_allow_html=True)
                 
-def train_models_carousel(my_title= 'Select your models to train in the sidebar!', ):
+def train_models_carousel(my_title= ''):
     # gradient title
     vertical_spacer(2)
     title = my_title
@@ -517,7 +517,8 @@ def train_models_carousel(my_title= 'Select your models to train in the sidebar!
     font_family = "Helvetica"
     # define the paragraph text size
     font_size_front = '14px'
-    font_size_back = '15px'        
+    font_size_back = '15px'       
+    # apply carousel function to show 'flashcards'
     create_carousel_cards_v2(4, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back)
     vertical_spacer(2)
                         
@@ -2059,37 +2060,51 @@ def model_documentation(selected_model_info):
                                 </p>
                                 ''', unsafe_allow_html=True)
             if selected_model_info == 'Prophet':
-                st.markdown('''
-                            The Facebook `Prophet` model is a popular open-source library for time series forecasting developed by Facebook's Core Data Science team.
-                            It is designed to handle time series data with strong seasonal effects and other external factors.
-                            It uses a combination of historical data and user-defined inputs to generate forecasts for future time periods.  
-                            
-                            ## Variables in the Prophet Model
-                            The main variables in the Prophet model are:
-                            - **Trend**: This is the underlying pattern in the data that represents the long-term direction of the series. It can be linear or non-linear and is modeled using a piecewise linear function.
-                            - **Seasonality**: This is the periodic pattern in the data that repeats over fixed time intervals. It can be daily, weekly, monthly, or yearly, and is modeled using Fourier series.
-                            - **Holidays**: These are user-defined events or time periods that are known to affect the time series. The model includes them as additional regressors in the forecasting equation.
-                            - **Regressors**: These are additional time-varying features that can affect the time series, such as weather, economic indicators, or other external factors.
-                            
-                            ## Math Behind the Prophet Model
-                            The math behind the Prophet model involves fitting a Bayesian additive regression model to the time series data. The model is formulated as follows:
-                            
-                            $$y_t = g_t + s_t + h_t + e_t$$
-                            
-                            where:
-                            - $y_t$ is the observed value at time $t$
-                            - $g_t$ is the trend component
-                            - $s_t$ is the seasonality component
-                            - $h_t$ is the holiday component
-                            - $e_t$ is the error term. 
-                            
-                            The **trend** component is modeled using a piecewise linear function, while the **seasonality component** is modeled using a Fourier series. The **holiday component** and any additional regressors are included as additional terms in the regression equation.
-                            
-                            The model is estimated using a Bayesian approach that incorporates prior information about the parameters and allows for uncertainty in the forecasts. The parameters are estimated using Markov Chain Monte Carlo (MCMC) sampling, which generates a large number of possible parameter values and uses them to estimate the posterior distribution of the parameters. The posterior distribution is then used to generate forecasts for future time periods.
-                            
-                            Overall, the Prophet model is a powerful tool for time series forecasting that can handle complex data patterns and external factors. Its flexible modeling approach and Bayesian framework make it a popular choice for many data scientists and analysts.
-            
-                            ''')
+                with col2:
+                    my_text_header('Prophet')
+                    vertical_spacer(1)
+                    st.markdown('''
+                                The Facebook <strong> Prophet </strong> model is a popular open-source library for time series forecasting developed by Facebook's Core Data Science team.
+                                It is designed to handle time series data with strong seasonal effects and other external factors.
+                                It uses a combination of historical data and user-defined inputs to generate forecasts for future time periods.  
+                                <br>
+                                <center><h6>Variables in the Prophet Model</h6></center>
+                                The main variables in the Prophet model are:
+                                <br> 
+                                - <b>Trend</b>: This is the underlying pattern in the data that represents the long-term direction of the series. It can be linear or non-linear and is modeled using a piecewise linear function.
+                                <br> 
+                                - <b>Seasonality</b>: This is the periodic pattern in the data that repeats over fixed time intervals. It can be daily, weekly, monthly, or yearly, and is modeled using Fourier series.
+                                <br> 
+                                - <b>Holidays</b>: These are user-defined events or time periods that are known to affect the time series. The model includes them as additional regressors in the forecasting equation.
+                                <br> 
+                                - <b>Regressors</b>: These are additional time-varying features that can affect the time series, such as weather, economic indicators, or other external factors.
+                                <br>                               
+                                <br>
+                                <center><h6>Math Behind the Prophet Model</h6></center>
+                                The math behind the Prophet model involves fitting a Bayesian additive regression model to the time series data. The model is formulated as follows:
+                                <br>
+                                <br>
+                                
+                                &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; $$y_t = g_t + s_t + h_t + e_t$$
+                                
+                                where:
+                                - $y_t$ is the observed value at time $t$
+                                - $g_t$ is the trend component
+                                - $s_t$ is the seasonality component
+                                - $h_t$ is the holiday component
+                                - $e_t$ is the error term. 
+                                
+                                <br>
+                                The <b>trend</b> component is modeled using a piecewise linear function, while the <b>seasonality component</b> is modeled using a Fourier series. The <b>holiday component</b> and any additional regressors are included as additional terms in the regression equation.
+                                <br>
+                                <br>
+                                The model is estimated using a Bayesian approach that incorporates prior information about the parameters and allows for uncertainty in the forecasts. The parameters are estimated using Markov Chain Monte Carlo (MCMC) sampling, which generates a large number of possible parameter values and uses them to estimate the posterior distribution of the parameters. The posterior distribution is then used to generate forecasts for future time periods.
+                                <br>
+                                <br>
+                                Overall, the Prophet model is a powerful tool for time series forecasting that can handle complex data patterns and external factors. Its flexible modeling approach and Bayesian framework make it a popular choice for many data scientists and analysts.
+                                <br>
+                                <br>
+                                ''', unsafe_allow_html=True)
                 return selected_model_info
             else:
                 pass        
@@ -4463,15 +4478,14 @@ if 'insample_forecast_steps' not in st.session_state:
 if 'normalization_choice' not in st.session_state:
     st.session_state['normalization_choice'] = 'None'
 
+# ================================ TRAIN ===================================  
 # TRAIN MENU TEST
 if 'train_models_btn' not in st.session_state:
     st.session_state['train_models_btn'] = False
-    
-# ================================ TRAIN ===================================    
+ 
 if 'selected_model_info' not in st.session_state:
     st.session_state['selected_model_info'] = '-'
         
-    
 # ================================ EVALUATE ===================================
 # create an empty dictionary to store the results of the models
 # that I call after I train the models to display on sidebar under hedaer "Evaluate Models"
@@ -5036,6 +5050,15 @@ if sidebar_menu_item == 'Doc':
         ################################    
         my_text_header('<b> Step 8: </b> <br> Evaluate Models')
         show_lottie_animation(url="./images/70114-blue-stars.json", key='blue-stars', width=200, height=200, col_sizes = [4,4,4], speed = 1)
+        col1, col2, col3 = st.columns([2,8,2])   
+        with col2:
+            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
+        st.markdown('---') 
+        
+        # DOC: Tune
+        ################################    
+        my_text_header('<b> Step 9: </b> <br> Tune Models')
+        show_lottie_animation(url="./images/95733-loading-20.json", key='tune_sliders', width=200, height=200, col_sizes = [4,4,4], speed = 1)
         col1, col2, col3 = st.columns([2,8,2])   
         with col2:
             my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
@@ -6657,7 +6680,17 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         st.dataframe(X, use_container_width=True)
         # create download button for forecast results to .csv
         download_csv_button(X, my_file="features_dataframe.csv", help_message="Download your **features** to .CSV", my_key='features_df_download_btn')
-        
+
+# set session states for the TRAIN Page buttons when models are trained, 
+# to expand dataframe below graph
+create_store("TRAIN", [
+                        ("naive_model_btn_show", False),
+                        ("naive_model_btn_hide", False),
+                        ("linreg_model_btn_show", False),
+                        ("sarimax_model_btn_show", False),
+                        ("prophet_model_btn_show", False)
+                      ]
+             )        
 # =============================================================================
 #   _______ _____            _____ _   _ 
 #  |__   __|  __ \     /\   |_   _| \ | |
@@ -6785,100 +6818,94 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
    
     # SHOW MODEL DOCUMENTATION AFTER MODELS RUN
     selected_model_info = model_documentation(st.session_state['selected_model_info'])
-  
-    if st.session_state['selected_model_info'] == '-': #and not selected_models:
+    
+    # show page with models listed on flashcards if:
+    # user did not select any model information from drop-down
+    # user did not train any models
+# =============================================================================
+#     st.write(get_state("TRAIN", "naive_model_btn_show"))
+#     st.write(get_state("TRAIN", "naive_model_btn_hide"))
+# =============================================================================
+    # if user did train models before and page has to reload to show related dataframe below graph with button click also do not show
+    if st.session_state['selected_model_info'] == '-' and not train_models_btn and not selected_models:
         with st.expander('', expanded=True):
-            #st.info("👈 Select your models to train in the sidebar!🏋️‍♂️") 
             col1, col2, col3 = st.columns([1,3,1])
             with col2:
                     # define the font family to display the text of paragraph
                     train_models_carousel(my_title= 'Select your models to train in the sidebar!')
+  
+    elif st.session_state['selected_model_info'] == '-' and not selected_models:
+        with st.expander('', expanded=True):
+            col1, col2, col3 = st.columns([1,3,1])
+            with col2:
+                # define the font family to display the text of paragraph
+                train_models_carousel(my_title= 'Select your models to train in the sidebar!')
 
-# =============================================================================
-#     # the code block to train the selected models will only be executed if both the button has been clicked and the list of selected models is not empty.
-#     elif selected_models:
-#         # show carousel of models
-#         train_models_carousel(my_title= 'Please select at least 1 model to train from the sidebar!')
-# =============================================================================
-
-     
-    # define variables needed
     # create a list of independent variables selected by user prior used 
     # for results dataframe when evaluating models which variables were included.
     features_str = get_feature_list(X)
-
-# =============================================================================
-#     # if nothing is selected by user display message to user to select models to train
-#     if not st.session_state['train_models_btn'] and selected_models:
-#         st.info("ℹ️ Train your models first, before results show here!")
-#     if not train_models_btn and selected_models:
-#         st.info("ℹ️ Train your models first from the sidebar menu by pressing the **'Submit'** button, before results show here!")
-# =============================================================================
-    if train_models_btn and selected_models:
+    
+    if selected_models:
         #st.info("You can always retrain your models and adjust hyperparameters!")
         # iterate over all models and if user selected checkbox for model the model(s) is/are trained
         for model_name, model in selected_models:
-# =============================================================================
-#             try:
-# =============================================================================
-            if model_name == "Naive Model":
-                with st.expander('📈' + model_name, expanded=True):
-                    df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test, lag=lag, custom_lag_value=custom_lag_value)
-                    display_my_metrics(df_preds, "Naive Model")
-                    # plot graph with actual versus insample predictions
-                    plot_actual_vs_predicted(df_preds, my_conf_interval)
-                   
-                    # =============================================================================
-                    #  Show/Hidee Button to download dataframe                   
-                    # =============================================================================
-                    # have button available for user and if clicked it expands with the dataframe
-                    col1, col2, col3 = st.columns([100,50,95])
-                    with col2:        
-                        placeholder = st.empty()
-                        # create button (enabled to click e.g. disabled=false with unique key)
-                        btn = placeholder.button('Show Details', disabled=False,  key = "show_naive_trained_model_btn")
-                    
-                    # if button is clicked run below code
-                    if btn == True:
-                        # display button with text "click me again", with unique key
-                        placeholder.button('Hide Details', disabled=False, key = "hide_naive_trained_model_btn")
-                        # show the dataframe
-                        st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
-                        # create download button for forecast results to .csv
-                        download_csv_button(df_preds, my_file="insample_forecast_naivemodel_results.csv", 
-                                             help_message="Download your **Naive** model results to .CSV",
-                                             my_key = 'naive_trained_model_download_btn')
-                    vertical_spacer(1)
-
-                    mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
-                    # add test-results to sidebar Model Test Results dataframe
-                    new_row = {'model_name': 'Naive Model',
-                               'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
-                               'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']),
-                               'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
-                               'features':features_str}
-                    results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-# =============================================================================
-#             except:
-#                 st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
-# =============================================================================
-# =============================================================================
-#             try:
-# =============================================================================
-            if model_name == "Linear Regression":
-                 # train the model
-                 create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, model=model, model_name=model_name)
-                 # append to sidebar table the results of the model train/test
-                 new_row = {'model_name': 'Linear Regression',
-                            'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
-                            'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
-                            'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
-                            'features':features_str}
-                 results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-# =============================================================================
-#             except:
-#                 st.warning(f'Linear Regression failed to train, please contact administrator!')
-# =============================================================================
+            try:
+                if model_name == "Naive Model":
+                    with st.expander('📈' + model_name, expanded=True):
+                        df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test, lag=lag, custom_lag_value=custom_lag_value)
+                        display_my_metrics(df_preds, "Naive Model")
+                        # plot graph with actual versus insample predictions
+                        plot_actual_vs_predicted(df_preds, my_conf_interval)
+                       
+                        # =============================================================================
+                        #  Show/Hide Button to download dataframe                   
+                        # =============================================================================
+                        # have button available for user and if clicked it expands with the dataframe
+                        col1, col2, col3 = st.columns([100,50,95])
+                        with col2:    
+                            # create empty placeholder for button show/hide
+                            placeholder = st.empty()
+                            
+                            # create button (enabled to click e.g. disabled=false with unique key)
+                            btn = placeholder.button('Show Details', disabled=False,  key = "show_naive_trained_model_btn")
+                       
+                        # if button is clicked run below code
+                        if btn == True:                       
+                            # display button with text "click me again", with unique key
+                            placeholder.button('Hide Details', disabled=False, key = "hide_naive_trained_model_btn")
+                            
+                            # show the dataframe
+                            st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                            
+                            # create download button for forecast results to .csv
+                            download_csv_button(df_preds, my_file="insample_forecast_naivemodel_results.csv", 
+                                                 help_message="Download your **Naive** model results to .CSV",
+                                                 my_key = 'naive_trained_model_download_btn')
+                        vertical_spacer(1)
+    
+                        mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
+                        # add test-results to sidebar Model Test Results dataframe
+                        new_row = {'model_name': 'Naive Model',
+                                   'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
+                                   'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']),
+                                   'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
+                                   'features':features_str}
+                        results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+            except:
+                st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
+            try:
+                if model_name == "Linear Regression":
+                     # train the model
+                     create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, model=model, model_name=model_name)
+                     # append to sidebar table the results of the model train/test
+                     new_row = {'model_name': 'Linear Regression',
+                                'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
+                                'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
+                                'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
+                                'features':features_str}
+                     results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+            except:
+                st.warning(f'Linear Regression failed to train, please contact administrator!')
             try:
                 if model_name == "SARIMAX":
                     with st.expander('📈' + model_name, expanded=True):
