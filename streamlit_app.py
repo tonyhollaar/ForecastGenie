@@ -2996,6 +2996,7 @@ def display_my_metrics(my_df, model_name=""):
     """
     # put all metrics and graph in expander for linear regression e.g. benchmark model
     st.markdown(f'<h2 style="text-align:center">{model_name}</h2></p>', unsafe_allow_html=True)
+    
     # define vertical spacings
     col0, col1, col2, col3, col4 = st.columns([2, 3, 3, 3, 1])
     # Display the evaluation metrics
@@ -3026,18 +3027,16 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
     # this is for the baseline Naive Model to get a sense of how the model will perform for y_t-1 just having lag of itself 
     # e.g. a day, a week or a month
     # if user did not select an option e.g. None then do nothing/stop function
-    if 'lag' in kwargs and kwargs['lag'] is None:
-        pass
-    elif 'lag' in kwargs and kwargs['lag'] is not None:
+    if 'lag' in kwargs and kwargs['lag'] is not None:
         lag = kwargs['lag']
         if lag == 'day':
-            y_pred = y_test.shift(1) # .fillna(method='bfill') # method{‘backfill’,‘ffill’, None}, default None
+            y_pred = y_test.shift(1) 
         elif lag == 'week':
-            y_pred = y_test.shift(7) #.fillna(method='bfill')
+            y_pred = y_test.shift(7) 
         elif lag == 'month':
-            y_pred = y_test.shift(30) #.fillna(method='bfill')
+            y_pred = y_test.shift(30) 
         elif lag == 'year':
-            y_pred = y_test.shift(365) #.fillna(method='bfill')
+            y_pred = y_test.shift(365)
         elif lag == 'custom':
             y_pred = y_test.shift(custom_lag_value)
         else:
@@ -4478,6 +4477,7 @@ if 'insample_forecast_steps' not in st.session_state:
 if 'normalization_choice' not in st.session_state:
     st.session_state['normalization_choice'] = 'None'
 
+
 # ================================ TRAIN ===================================  
 # TRAIN MENU TEST
 if 'train_models_btn' not in st.session_state:
@@ -4485,7 +4485,15 @@ if 'train_models_btn' not in st.session_state:
  
 if 'selected_model_info' not in st.session_state:
     st.session_state['selected_model_info'] = '-'
-        
+    
+# save user choice in session state
+# of naive model lag for sidebar 'Select Seasonal lag for the Naive Model'
+# standard value = 'week'
+create_store("TRAIN_PARAMS", [
+    ("naive_model_seasonal_lag_index", 1)])
+
+
+    
 # ================================ EVALUATE ===================================
 # create an empty dictionary to store the results of the models
 # that I call after I train the models to display on sidebar under hedaer "Evaluate Models"
@@ -6748,12 +6756,14 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
             if model_name == "Naive Model":
                 custom_lag_value = None
                 with st.expander('Naive Model Hyperparameters'):
-                    lag = st.selectbox('*Select seasonal **lag** for the Naive Model:*', ['None', 'Day', 'Week', 'Month', 'Year', 'Custom'])
-                    if lag == 'None':
-                        lag = None
-                    elif lag == 'Custom':
+                    lag = st.selectbox(label = '*Select seasonal **lag** for the Naive Model:*', 
+                                       options = ['Day', 'Week', 'Month', 'Year', 'Custom'],
+                                       index = get_state("TRAIN_PARAMS", "naive_model_seasonal_lag_index")
+                                       )
+                    if lag == 'Custom':
                         lag = lag.lower()
-                        custom_lag_value = st.number_input("*If seasonal **lag** set to Custom, please set lag value (in days):*", value=5)
+                        custom_lag_value = st.number_input(label = "*If seasonal **lag** set to Custom, please set lag value (in days):*", 
+                                                           value=5)
                         if custom_lag_value != "":
                             custom_lag_value = int(custom_lag_value)
                         else:
@@ -6761,7 +6771,9 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                     else:
                         # lag is lowercase string of selection from user in selectbox
                         lag = lag.lower()
-                        
+                    # update the lag index to user set option of lag e.g. Day/Week/Month/Year/Custom
+                    set_state("TRAIN_PARAMS", ("naive_model_seasonal_lag_index", ['day', 'week', 'month', 'year', 'custom'].index(lag.lower())))
+            
             if model_name == "SARIMAX":
                 with st.expander('SARIMAX Hyperparameters', expanded=False):
                     col1, col2, col3 = st.columns([5,1,5])
@@ -6849,50 +6861,54 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
         #st.info("You can always retrain your models and adjust hyperparameters!")
         # iterate over all models and if user selected checkbox for model the model(s) is/are trained
         for model_name, model in selected_models:
-            try:
-                if model_name == "Naive Model":
-                    with st.expander('📈' + model_name, expanded=True):
-                        df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test, lag=lag, custom_lag_value=custom_lag_value)
-                        display_my_metrics(df_preds, "Naive Model")
-                        # plot graph with actual versus insample predictions
-                        plot_actual_vs_predicted(df_preds, my_conf_interval)
+# =============================================================================
+#             try:
+# =============================================================================
+            if model_name == "Naive Model":
+                with st.expander('📈' + model_name, expanded=True):
+                    df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test, lag=lag, custom_lag_value=custom_lag_value)
+                    display_my_metrics(df_preds, "Naive Model")
+                    # plot graph with actual versus insample predictions
+                    plot_actual_vs_predicted(df_preds, my_conf_interval)
                        
-                        # =============================================================================
-                        #  Show/Hide Button to download dataframe                   
-                        # =============================================================================
-                        # have button available for user and if clicked it expands with the dataframe
-                        col1, col2, col3 = st.columns([100,50,95])
-                        with col2:    
-                            # create empty placeholder for button show/hide
-                            placeholder = st.empty()
-                            
-                            # create button (enabled to click e.g. disabled=false with unique key)
-                            btn = placeholder.button('Show Details', disabled=False,  key = "show_naive_trained_model_btn")
-                       
-                        # if button is clicked run below code
-                        if btn == True:                       
-                            # display button with text "click me again", with unique key
-                            placeholder.button('Hide Details', disabled=False, key = "hide_naive_trained_model_btn")
-                            
-                            # show the dataframe
-                            st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
-                            
-                            # create download button for forecast results to .csv
-                            download_csv_button(df_preds, my_file="insample_forecast_naivemodel_results.csv", 
-                                                 help_message="Download your **Naive** model results to .CSV",
-                                                 my_key = 'naive_trained_model_download_btn')
-                        vertical_spacer(1)
-    
-                        mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
-                        # add test-results to sidebar Model Test Results dataframe
-                        new_row = {'model_name': 'Naive Model',
-                                   'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
-                                   'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']),
-                                   'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
-                                   'features':features_str}
-                        results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-            except:
-                st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
+                    # =============================================================================
+                    #  Show/Hide Button to download dataframe                   
+                    # =============================================================================
+                    # have button available for user and if clicked it expands with the dataframe
+                    col1, col2, col3 = st.columns([100,50,95])
+                    with col2:    
+                        # create empty placeholder for button show/hide
+                        placeholder = st.empty()
+                        
+                        # create button (enabled to click e.g. disabled=false with unique key)
+                        btn = placeholder.button('Show Details', disabled=False,  key = "show_naive_trained_model_btn")
+                   
+                    # if button is clicked run below code
+                    if btn == True:                       
+                        # display button with text "click me again", with unique key
+                        placeholder.button('Hide Details', disabled=False, key = "hide_naive_trained_model_btn")
+                        
+                        # show the dataframe
+                        st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                        
+                        # create download button for forecast results to .csv
+                        download_csv_button(df_preds, my_file="insample_forecast_naivemodel_results.csv", 
+                                             help_message="Download your **Naive** model results to .CSV",
+                                             my_key = 'naive_trained_model_download_btn')
+                    vertical_spacer(1)
+
+                    mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
+                    # add test-results to sidebar Model Test Results dataframe
+                    new_row = {'model_name': 'Naive Model',
+                               'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
+                               'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']),
+                               'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
+                               'features':features_str}
+                    results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+# =============================================================================
+#             except:
+#                 st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
+# =============================================================================
             try:
                 if model_name == "Linear Regression":
                      # train the model
