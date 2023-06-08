@@ -245,6 +245,19 @@ def hist_change_freq():
         set_state("HIST", ("histogram_freq_type", "Absolute"))
         
 def stock_ticker(text, speed=15):
+    """
+    Displays a right-to-left scrolling text e.g. ticker animation in a Markdown format using the `st.markdown` function from the Streamlit library.
+
+    Parameters:
+        text (str): The text to be displayed in the ticker.
+        speed (int, optional): The speed of the ticker animation in seconds. Default is 15.
+
+    Returns:
+        None
+
+    Example:
+        stock_ticker("Stock ABC", speed=10)
+    """
     st.markdown(
         f"""
         <style>
@@ -303,13 +316,6 @@ def show_lottie_animation(url, key, reverse=False, height=400, width=400, speed=
                   )
         vertical_spacer(margin_after)
 
-def handle_click_fill_method_button():
-    # if key of radio button exists
-    if st.session_state['fill_method']:
-        # this new variable my_data_choice set it equal to information collected from the user
-        # via the radio button called "data_option"
-       st.session_state['fill_method'] = fill_method              
- 
 def vertical_spacer(n):
     for i in range(n):
         st.write("")
@@ -2348,14 +2354,13 @@ def perform_train_test_split(df, my_insample_forecast_steps, scaler_choice=None,
     X_test = X.iloc[-my_insample_forecast_steps:, :]
     y_train = y.iloc[:-my_insample_forecast_steps, :]
     y_test = y.iloc[-my_insample_forecast_steps:, :]
+    
     # initialize variable
     scaler = ""
     
     # Scale the data if user selected a scaler choice in the normalization / standardization in streamlit sidebar
     if scaler_choice != "None":
-        # Check if there are numerical features in the dataframe
-        #st.write('numerical features in function perform_train_test_split', numerical_features)
-        #st.write('X_train', X_train)
+        # check if there are numerical features in dataframe, if so run code
         if numerical_features:
             # Select only the numerical features to be scaled
             X_train_numeric = X_train[numerical_features]
@@ -2381,6 +2386,7 @@ def perform_train_test_split(df, my_insample_forecast_steps, scaler_choice=None,
             X_train_numeric_scaled = scaler.fit_transform(X_train_numeric)
             X_train_numeric_scaled = pd.DataFrame(X_train_numeric_scaled, columns=X_train_numeric.columns, index=X_train_numeric.index)
             
+            # note: you do not want to fit_transform on the test set else the distribution of the entire dataset is used and is data leakage
             X_test_numeric_scaled = scaler.transform(X_test_numeric)
             X_test_numeric_scaled = pd.DataFrame(X_test_numeric_scaled, columns=X_test_numeric.columns, index=X_test_numeric.index)
             
@@ -2389,11 +2395,13 @@ def perform_train_test_split(df, my_insample_forecast_steps, scaler_choice=None,
             
             # Convert the scaled array back to a DataFrame and set the column names
             X_numeric_scaled = pd.DataFrame(X_numeric_scaled, columns=X_numeric.columns, index=X_numeric.index)        
+   
     # Replace the original
     if scaler_choice != "None":
         X_train[numerical_features] = X_train_numeric_scaled[numerical_features]
         X_test[numerical_features] = X_test_numeric_scaled[numerical_features]
         X[numerical_features] = X_numeric_scaled[numerical_features]     
+    
     # Return the training and testing sets as well as the scaler used (if any)
     return X, y, X_train, X_test, y_train, y_test, scaler
 
@@ -2467,15 +2475,20 @@ def train_test_split_slider(df):
             my_text_paragraph('Train/Test Split')
             col1, col2 = st.columns(2)
             with col1:
-                split_type = st.radio("*Select split type:*", ("Steps", "Percentage"), index=1,
-                                      help = "Set your preference for how you want to **split** the training data and test data:  \
-                                      \n- as a `percentage` (between 1% and 99%)  \
-                                      \n- in `steps` (for example number of days with daily data, number of weeks with weekly data, etc.)  \
-                                      ")
+                split_type = st.radio(
+                                      label = "*Select split type:*", 
+                                      options = ("Steps", "Percentage"), 
+                                      index = 1,
+                                      help = """
+                                             Set your preference for how you want to **split** the training data and test data:
+                                             \n- as a `percentage` (between 1% and 99%)  \
+                                             \n- in `steps` (for example number of days with daily data, number of weeks with weekly data, etc.)
+                                             """
+                                      )
                
                 if split_type == "Steps":
                     with col2:
-                        insample_forecast_steps = st.slider('*Size of the test-set in steps:*', 
+                        insample_forecast_steps = st.slider(label = '*Size of the test-set in steps:*', 
                                                             min_value=1, 
                                                             max_value=len(df)-1, 
                                                             step=1, 
@@ -2776,6 +2789,7 @@ def create_calendar_holidays(df, slider=True):
                                                      options = [country[0] for country in country_data], 
                                                      index = st.session_state['country_index'], 
                                                      label_visibility='collapsed')
+                
                 # update session state to user's choice of country from drop-down list
                 st.session_state['country_index'] = next((i for i, (country, code) in enumerate(country_data) if country == selected_country_name), None)
         
@@ -4462,6 +4476,7 @@ key11_engineer_var, key12_engineer_var, key13_engineer_var, key14_engineer_var, 
 # set preprocessing method: "Normalization" to str: "None
 if 'percentage' not in st.session_state:
     st.session_state['percentage'] = 20
+    
 if 'steps' not in st.session_state:
     #st.session_state.days = int(max(len(df)*0.2, 1))
     st.session_state['steps'] = 1
@@ -4476,6 +4491,13 @@ if 'insample_forecast_steps' not in st.session_state:
     
 if 'normalization_choice' not in st.session_state:
     st.session_state['normalization_choice'] = 'None'
+
+# set the normalization and standardization to default None which has index 0 
+key1_prepare_normalization, key2_prepare_standardization, key3_prepare = create_store("PREPARE", [
+    ("normalization_choice", "None"),    #key1_prepare_normalization
+    ("standardization_choice", "None"), #key2_prepare_standardization
+    ("run", 0)])                     #key3_prepare
+
 
 
 # ================================ TRAIN ===================================  
@@ -5071,6 +5093,14 @@ if sidebar_menu_item == 'Doc':
         with col2:
             my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
         st.markdown('---') 
+
+        # DOC: Forecast
+        ################################    
+        my_text_header('<b> Step 10: </b> <br> Forecast')
+        show_lottie_animation(url="./images/55298-data-forecast-loading.json", key='forecast', width=200, height=200, col_sizes = [4,4,4], speed = 1)
+        col1, col2, col3 = st.columns([2,8,2])   
+        with col2:
+            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
 
 # LOGGING
 print('Forecastgenie Print: Loaded Documentation Page')
@@ -6133,10 +6163,6 @@ local_df = st.session_state['df'].copy(deep=True)
 #                                                   
 # =============================================================================
 # PREPARE DATASET (REMOVE OBJECT DTYPE FEATURES, TRAIN/TEST SPLIT, NORMALIZE, STANDARDIZE)
-
-# SET VARIABLES
-length_df = len(st.session_state['df'])
-
 if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
     my_title(f'{prepare_icon} Prepare Data', "#FF9F00", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
     with st.sidebar:
@@ -6161,6 +6187,7 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
             # how local_df to user in streamlit
             st.dataframe(local_df, use_container_width=True)
         vertical_spacer(1)            
+    
     # Check if 'date' column exists in local_df
     if 'date' in local_df.columns:
         # set the date as the index of the pandas dataframe
@@ -6178,17 +6205,23 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
        
         # create sliders for user insample test-size (/train-size automatically as well)
         my_insample_forecast_steps, my_insample_forecast_perc = train_test_split_slider(df = st.session_state['df'])
-        # update to session_state
+        
+        # update the session_state with train/test split chosen by user from sidebar slider
+        # note: insample_forecast_steps is used in train/test split as variable
         st.session_state['insample_forecast_steps'] = my_insample_forecast_steps
         st.session_state['insample_forecast_perc'] = my_insample_forecast_perc
         
-        # format as new variables insample_forecast steps in days/as percentage e.g. the test set to predict for\
+        # SHOW USER MESSAGE OF TRAIN/TEST SPLIT
+        #######################################
+        # SET VARIABLES
+        length_df = len(st.session_state['df'])
+        # format as new variables insample_forecast steps in days/as percentage e.g. the test set to predict for
         perc_test_set = "{:.2f}%".format((st.session_state['insample_forecast_steps']/length_df)*100)
         perc_train_set = "{:.2f}%".format(((length_df-st.session_state['insample_forecast_steps'])/length_df)*100)
-        
         my_text_paragraph(f"{perc_train_set} / {perc_test_set}", my_font_size='16px')
        
-        
+        # PLOT TRAIN/TEST SPLIT
+        ############################
         # Set train/test split index
         split_index = min(length_df - st.session_state['insample_forecast_steps'], length_df - 1)
         # Create a figure with a scatter plot of the train/test split
@@ -6204,9 +6237,12 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
     ##############################
     with st.sidebar:
         with st.form('normalization'):
+            
             my_text_paragraph('Normalization')
+            
             # Add selectbox for normalization choices
             if numerical_features:
+                # define dictionary of normalization choices as keys and values are descriptions of each choice
                 normalization_choices = {
                                         "None": "Do not normalize the data",
                                         "MinMaxScaler": "Scale features to a given range (default range is [0, 1]).",
@@ -6215,11 +6251,12 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
                                         "PowerTransformer": "Apply a power transformation to make the data more Gaussian-like.",
                                         "QuantileTransformer": "Transform features to have a uniform or Gaussian distribution."
                                         }
+                
                 # create a dropdown menu for user in sidebar to choose from a list of normalization methods
                 normalization_choice = st.selectbox(label = "*Select normalization method:*", 
-                                                    options = list(normalization_choices.keys()), 
-                                                    
+                                                    options = list(normalization_choices.keys()),
                                                     format_func = lambda x: f"{x} - {normalization_choices[x]}", 
+                                                    key = key1_prepare_normalization,
                                                     help = '**`Normalization`** is a data pre-processing technique to transform the numerical data in a dataset to a standard scale or range.\
                                                             This process involves transforming the features of the dataset so that they have a common scale, which makes it easier for data scientists to analyze, compare, and draw meaningful insights from the data.')
                 # save user normalization choice in memory
@@ -6229,14 +6266,18 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
                st.warning("No numerical features to normalize, you can try adding features!")
                # set normalization_choice to None
                normalization_choice = "None"
+            
             # create form button centered on sidebar to submit user choice for normalization method
             col1, col2, col3 = st.columns([4,4,4])
             with col2:       
-                normalization_btn = st.form_submit_button("Submit", type="secondary")
+                normalization_btn = st.form_submit_button("Submit", type="secondary", on_click = form_update, args=("PREPARE",))
         
         # apply function for normalizing the dataframe if user choice
         # IF user selected a normalization_choice other then "None" the X_train and X_test will be scaled
-        X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'], st.session_state['insample_forecast_steps'], st.session_state['normalization_choice'], numerical_features=numerical_features)
+        X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(df = st.session_state['df'], 
+                                                                                  my_insample_forecast_steps = st.session_state['insample_forecast_steps'], 
+                                                                                  scaler_choice = st.session_state['normalization_choice'], 
+                                                                                  numerical_features = numerical_features)
         
     # if user did not select normalization (yet) then show user message to select normalization method in sidebar
     if normalization_choice == "None":
@@ -6250,14 +6291,19 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
     # else show user the dataframe with the features that were normalized
     else:
         with st.expander('Normalization',expanded=True):
+           
             my_text_header('Normalized Features') 
             my_text_paragraph(f'Method: {normalization_choice}')
+            
             # need original (unnormalized) X_train as well for figure in order to show before/after normalization
             X_unscaled_train = df.iloc[:, 1:].iloc[:-st.session_state['insample_forecast_steps'] , :]
+            
             # with custom function create the normalization plot with numerical features i.e. before/after scaling
             plot_scaling_before_after(X_unscaled_train, X_train, numerical_features)
+            
             st.success(f'🎉 Good job! **{len(numerical_features)}** numerical feature(s) are normalized with **{normalization_choice}**!')
             st.dataframe(X[numerical_features].assign(date=X.index.date).reset_index(drop=True).set_index('date'), use_container_width=True) # TEST
+           
             # create download button for user, to download the standardized features dataframe with dates as index i.e. first column
             download_csv_button(X[numerical_features], 
                                 my_file='standardized_features.csv', 
@@ -6276,8 +6322,11 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
                                             "None": "Do not standardize the data",
                                             "StandardScaler": "Standardize features by removing the mean and scaling to unit variance.",
                                                                                    }
-                standardization_choice = st.selectbox("*Select standardization method:*", list(standardization_choices.keys()), format_func=lambda x: f"{x} - {standardization_choices[x]}"
-                                                      , help='**`Standardization`** is a preprocessing technique used to transform the numerical data to have zero mean and unit variance.\
+                standardization_choice = st.selectbox(label = "*Select standardization method:*", 
+                                                      options = list(standardization_choices.keys()), 
+                                                      format_func = lambda x: f"{x} - {standardization_choices[x]}",
+                                                      key = key2_prepare_standardization,
+                                                      help = '**`Standardization`** is a preprocessing technique used to transform the numerical data to have zero mean and unit variance.\
                                                               This is achieved by subtracting the mean from each value and then dividing by the standard deviation.\
                                                               The resulting data will have a mean of zero and a standard deviation of one.\
                                                               The distribution of the data is changed by centering and scaling the values, which can make the data more interpretable and easier to compare across different features' )
@@ -6290,13 +6339,16 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
             # create form button centered on sidebar to submit user choice for standardization method   
             col1, col2, col3 = st.columns([4,4,4])
             with col2:       
-                standardization_btn = st.form_submit_button("Submit", type="secondary")
+                standardization_btn = st.form_submit_button("Submit", type="secondary", on_click = form_update, args=("PREPARE",))
 
         # apply function for normalizing the dataframe if user choice
         # IF user selected a normalization_choice other then "None" the X_train and X_test will be scaled
-        X, y, X_train, X_test, y_train, y_test = perform_train_test_split_standardization(X, y, X_train, X_test, y_train, y_test, st.session_state['insample_forecast_steps'], scaler_choice=standardization_choice, numerical_features=numerical_features)
+        X, y, X_train, X_test, y_train, y_test = perform_train_test_split_standardization(X, y, X_train, X_test, y_train, y_test, 
+                                                                                          st.session_state['insample_forecast_steps'], 
+                                                                                          scaler_choice = standardization_choice, 
+                                                                                          numerical_features = numerical_features)
         
-    # if user did not select normalization (yet) then show user message to select normalization method in sidebar
+    # if user did not select standardization (yet) then show user message to select normalization method in sidebar
     if standardization_choice == "None":
         # on page create expander
         with st.expander('Standardization ',expanded=True):
@@ -6310,9 +6362,12 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
         with st.expander('Standardization',expanded=True):
             my_text_header('Standardization') 
             my_text_paragraph(f'Method: {standardization_choice}')
-            # need original (unnormalized) X_train as well for figure in order to show before/after normalization
-            X_unscaled_train = df.iloc[:, 1:].iloc[:-st.session_state['insample_forecast_steps'], :]
-            # with custom function create the normalization plot with numerical features i.e. before/after scaling
+            
+            # need original (unnormalized) X_train as well for figure in order to show before/after Standardization
+            # TEST or do i need st.session_state['df'] instead of df? -> replaced df with st.session_state['df']
+            X_unscaled_train = st.session_state['df'].iloc[:, 1:].iloc[:-st.session_state['insample_forecast_steps'], :]
+            
+            # with custom function create the Standardization plot with numerical features i.e. before/after scaling
             plot_scaling_before_after(X_unscaled_train, X_train, numerical_features)
             st.success(f'⚖️ Great, you balanced the scales! **{len(numerical_features)}** numerical feature(s) standardized with **{standardization_choice}**')
             st.dataframe(X[numerical_features], use_container_width=True)
@@ -6322,21 +6377,40 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
                                 help_message='Download standardized features to .CSV', 
                                 set_index=True, 
                                 my_key='standardization_download_btn')
- 
-    
-# =============================================================================
-# if user not in prepare screen then update the dataframe with preselected choices e.g. 80/20 split
-# do not normalize and do not standardize
-# =============================================================================
-# Update Session States of Dataframes
-st.session_state['df'] = remove_object_columns(st.session_state['df'], message_columns_removed=False)
 
-if 'date' in st.session_state['df']:
-    X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'].set_index('date'), st.session_state['insample_forecast_steps'], st.session_state['normalization_choice'], numerical_features=numerical_features)
 else:
-    X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'], st.session_state['insample_forecast_steps'], st.session_state['normalization_choice'], numerical_features=numerical_features)
+    # =============================================================================
+    # if user not in prepare screen then update the dataframe with preselected choices e.g. 80/20 split
+    # do not normalize and do not standardize
+    # =============================================================================
+    
+    #################################
+    # 1. REMOVE OBJECT DTYPE FEATURES
+    #################################
+    # remove dtype = object features from dataframe
+    # these are/should be the descriptive columns like holiday description, day of week -> for which default dummy variables are created etc.
+    st.session_state['df'] = remove_object_columns(st.session_state['df'], message_columns_removed = False)
 
+    ##########################
+    # 2. SET DATE AS INDEX COLUMN
+    # 3. TRAIN/TEST SPLIT
+    ##########################
+    st.session_state['insample_forecast_steps'] = round((st.session_state['insample_forecast_perc'] / 100) * len(df))
+    st.write(st.session_state['insample_forecast_steps'], 'equals insample forecast ')
+    if 'date' in st.session_state['df']:
+        X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'].set_index('date'), 
+                                                                                  st.session_state['insample_forecast_steps'], 
+                                                                                  st.session_state['normalization_choice'], 
+                                                                                  numerical_features=numerical_features)
+    else:
+        X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'], 
+                                                                                  st.session_state['insample_forecast_steps'], 
+                                                                                  st.session_state['normalization_choice'], 
+                                                                                  numerical_features=numerical_features)
+
+# Update Session States
 st.session_state['X'] = X
+st.write(st.session_state['X'])
 st.session_state['y'] = y
 st.session_state['X_train'] = X_train
 st.session_state['X_test'] = X_test
@@ -6413,11 +6487,13 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                                               \nIn such cases, the algorithm may not be able to distinguish between them and assign the same rank to multiple features.')
              # set the options for the rfe (recursive feature elimination)
              with st.expander('🔽 RFE Settings:', expanded=False):
+                 
                  # Add a selectbox for the user to choose the estimator
                  estimator_rfe = st.selectbox('*Set estimator:*', ['Linear Regression', 'Random Forest Regression'], 
                                               index=0, 
                                               help = 'The **`estimator`** parameter is used to specify the machine learning model that will be used to evaluate the importance of each feature. \
                                                       The estimator is essentially the algorithm used to fit the data and make predictions.')
+                                                      
                  # Set up the estimator based on the user's selection
                  if estimator_rfe == 'Linear Regression':
                      est_rfe = LinearRegression()
@@ -6589,7 +6665,8 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                                            step=0.05, 
                                            help='Set `Correlation Threshold` to determine which pair(s) of variables in the dataset are strongly correlated e.g. no correlation = 0, perfect correlation = 1')
                 models = {'Linear Regression': LinearRegression(), 'Random Forest Regressor': RandomForestRegressor(n_estimators=100)}
-                selected_corr_model = st.selectbox('*Select **model** for computing **importance scores** for highly correlated feature pairs, to drop the **least important** feature of each pair which is highly correlated*:', list(models.keys()))
+                selected_corr_model = st.selectbox(label = '*Select **model** for computing **importance scores** for highly correlated feature pairs, to drop the **least important** feature of each pair which is highly correlated*:', 
+                                                   options = list(models.keys()))
                 col1, col2, col3 = st.columns([4,4,4])
                 with col2:       
                     corr_btn = st.form_submit_button("Submit", type="secondary")
@@ -7096,7 +7173,8 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
              # SELECT MODEL(S): let the user select the trained model(s) in a multi-selectbox for hyper-parameter tuning
              selected_model_names = st.multiselect('*Select Models*', model_lst, help='Selected Models are tuned utilizing **`Grid Search`**, which is a specific technique for hyperparameter tuning where a set of hyperparameters is defined and the model is trained and evaluated on all possible combinations')
              # SELECT EVALUATION METRIC: let user set evaluation metric for the hyper-parameter tuning
-             metric = st.selectbox('*Select Evaluation Metric*', ['AIC', 'BIC', 'RMSE'], label_visibility='visible', 
+             metric = st.selectbox('*Select Evaluation Metric*', ['AIC', 'BIC', 'RMSE'], 
+                                   label_visibility='visible', 
                                    help='**`AIC`** (**Akaike Information Criterion**): A measure of the quality of a statistical model, taking into account the goodness of fit and the complexity of the model. A lower AIC indicates a better model fit. \
                                    \n**`BIC`** (**Bayesian Information Criterion**): Similar to AIC, but places a stronger penalty on models with many parameters. A lower BIC indicates a better model fit.  \
                                    \n**`RMSE`** (**Root Mean Squared Error**): A measure of the differences between predicted and observed values in a regression model. It is the square root of the mean of the squared differences between predicted and observed values. A lower RMSE indicates a better model fit.')
@@ -7335,16 +7413,18 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
 #                                                            
 # =============================================================================
 if menu_item == 'Forecast':
-#if uploaded_file is not None:
+    
     # DEFINE VARIABLES NEEDED FOR FORECAST
     min_date = df['date'].min()
     max_date = df['date'].max()
     max_value_calendar=None
+    
     # define maximum value in dataset for year, month day
     year = max_date.year
     month = max_date.month
     day = max_date.day
     end_date_calendar = df['date'].max()
+    
     # end date dataframe + 1 day into future is start date of forecast
     start_date_forecast = end_date_calendar + timedelta(days=1)
 
@@ -7389,13 +7469,13 @@ if menu_item == 'Forecast':
                 # get the value of the key e.g. D, W, M, Q or Y
                 forecast_freq_letter = forecast_freq_dict[forecast_freq]
           
-            # create additional linespace
-            st.write("")
+            vertical_spacer(1)
             # create vertical spacing columns
             col1, col2, col3 = st.columns([4,4,4])
             with col2:
                 # create submit button for the forecast
                 forecast_btn = st.form_submit_button("Submit", type="secondary")    
+    
     # when user clicks the forecast button then run below
     if forecast_btn:
         #############################################
@@ -7421,6 +7501,7 @@ if menu_item == 'Forecast':
         X_future = copy_df_date_index(X_future, datetime_to_date=False, date_to_index=True)
         # iterate over each model name and model in list of lists
         for model_name in selected_model_names:
+
 # =============================================================================
 #             def add_prediction_interval(model, X_future, alpha, df):
 #                 # calculate the prediction interval for the forecast data
@@ -7437,6 +7518,7 @@ if menu_item == 'Forecast':
 #                 df['upper_pi'] = upper_pi
 #                 return df
 # =============================================================================
+
             if model_name == "Linear Regression":                
                 model = LinearRegression()
                 # train the model on all data (X) for which we have data in forecast that user feature selected
@@ -7465,6 +7547,7 @@ if menu_item == 'Forecast':
                     # show dataframe / output of forecast in streamlit linear regression
                     st.dataframe(df_forecast_lr, use_container_width=True)
                     download_csv_button(df_forecast_lr, my_file="forecast_linear_regression_results.csv") 
+            
             if model_name == "SARIMAX":
                 # define model parameters
                 order = (p,d,q)
@@ -7508,6 +7591,7 @@ if menu_item == 'Forecast':
                     #st.caption('Note: Linear Regression Model maximum end date depends on length of input data')
                     # show dataframe / output of forecast in streamlit linear regression
                     st.dataframe(df_forecast_sarimax, use_container_width=True)
+            
             if model_name == "Prophet": # NOTE: Currently no X features included in this Prophet model
                 forecast_prophet = pd.DataFrame()
                 # prep data for specificalmodelly prophet model requirements, data should have ds column and y column
