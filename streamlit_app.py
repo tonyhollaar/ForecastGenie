@@ -5745,7 +5745,7 @@ else:
     # Retrieve the date frequency of the timeseries    
     freq_dict = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
     # Infer and return the original data frequency e.g. 'M' and name e.g. 'Monthly'
-    original_freq, original_freq_name = determine_df_frequency(st.session_state.df_raw , column_name='date')
+    original_freq, original_freq_name = determine_df_frequency(st.session_state['df_raw'], column_name='date')
 
     # =========================================================================
     # 1. IMPUTE MISSING DATES WITH RESAMPLE METHOD
@@ -5762,6 +5762,7 @@ else:
     df_clean = my_fill_method(df = df_cleaned_dates, 
                               fill_method = get_state('CLEAN_PAGE_MISSING', 'missing_fill_method'), 
                               custom_fill_value = get_state('CLEAN_PAGE_MISSING', 'missing_custom_fill_value'))
+    
     df_clean_show = copy_df_date_index(df_clean, datetime_to_date=True, date_to_index=True)
     
     # =========================================================================
@@ -5775,10 +5776,14 @@ else:
                                                     outlier_replacement_method =  get_state('CLEAN_PAGE', 'outlier_replacement_method'),
                                                     contamination = get_state('CLEAN_PAGE', 'outlier_isolationforest_contamination'), 
                                                     random_state = random_state,  # defined variable random_state top of script e.g. 10
-                                                    iqr_multiplier = get_state('CLEAN_PAGE', 'outlier_iqr_multiplier'),)
+                                                    iqr_multiplier = get_state('CLEAN_PAGE', 'outlier_iqr_multiplier')
+                                                    )
+    
     df_cleaned_outliers_with_index = df_cleaned_outliers.copy(deep=True)
+    
     # reset the index again to have index instead of date column as index for further processing
     df_cleaned_outliers_with_index.reset_index(inplace=True)
+    
     # convert 'date' column to datetime in DataFrame
     df_cleaned_outliers_with_index['date'] = pd.to_datetime(df_cleaned_outliers_with_index['date'])
     
@@ -5887,6 +5892,7 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
     
     with st.expander("", expanded=True):
         show_lottie_animation(url="./images/aJ7Ra5vpQB.json", key="robot_engineering", width=350, height=350, speed=1, col_sizes= [1,3,1])
+        
         ##############################
         # Add Day/Month/Year Features
         # create checkboxes for user to checkmark if to include features
@@ -5908,35 +5914,35 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
             set_state("ENGINEER_PAGE_VARS", ('day_dummies_checkbox', True))
             
         if special_calendar_days_checkbox == False:
-          set_state("ENGINEER_PAGE_VARS", ('jan_sales', False))
-          set_state("ENGINEER_PAGE_VARS", ('val_day_lod', False))
-          set_state("ENGINEER_PAGE_VARS", ('val_day', False))
-          set_state("ENGINEER_PAGE_VARS", ('mother_day_lod', False))
-          set_state("ENGINEER_PAGE_VARS", ('mother_day', False))
-          set_state("ENGINEER_PAGE_VARS", ('father_day_lod', False))
-          set_state("ENGINEER_PAGE_VARS", ('pay_days', False))
-          set_state("ENGINEER_PAGE_VARS", ('father_day', False))
-          set_state("ENGINEER_PAGE_VARS", ('black_friday_lod', False))
-          set_state("ENGINEER_PAGE_VARS", ('black_friday', False))
-          set_state("ENGINEER_PAGE_VARS", ('cyber_monday', False))
-          set_state("ENGINEER_PAGE_VARS", ('christmas_day', False))
-          set_state("ENGINEER_PAGE_VARS", ('boxing_day', False))
+            set_state("ENGINEER_PAGE_VARS", ('jan_sales', False))
+            set_state("ENGINEER_PAGE_VARS", ('val_day_lod', False))
+            set_state("ENGINEER_PAGE_VARS", ('val_day', False))
+            set_state("ENGINEER_PAGE_VARS", ('mother_day_lod', False))
+            set_state("ENGINEER_PAGE_VARS", ('mother_day', False))
+            set_state("ENGINEER_PAGE_VARS", ('father_day_lod', False))
+            set_state("ENGINEER_PAGE_VARS", ('pay_days', False))
+            set_state("ENGINEER_PAGE_VARS", ('father_day', False))
+            set_state("ENGINEER_PAGE_VARS", ('black_friday_lod', False))
+            set_state("ENGINEER_PAGE_VARS", ('black_friday', False))
+            set_state("ENGINEER_PAGE_VARS", ('cyber_monday', False))
+            set_state("ENGINEER_PAGE_VARS", ('christmas_day', False))
+            set_state("ENGINEER_PAGE_VARS", ('boxing_day', False))
         else:
             # update the individual variables checkboxes if special_calendar_days_checkbox is True
-          set_state("ENGINEER_PAGE_VARS", ('jan_sales', True))
-          set_state("ENGINEER_PAGE_VARS", ('val_day_lod', True))
-          set_state("ENGINEER_PAGE_VARS", ('val_day', True))
-          set_state("ENGINEER_PAGE_VARS", ('mother_day_lod', True))
-          set_state("ENGINEER_PAGE_VARS", ('mother_day', True))
-          set_state("ENGINEER_PAGE_VARS", ('father_day_lod', True))
-          set_state("ENGINEER_PAGE_VARS", ('pay_days', True))
-          set_state("ENGINEER_PAGE_VARS", ('father_day', True))
-          set_state("ENGINEER_PAGE_VARS", ('black_friday_lod', True))
-          set_state("ENGINEER_PAGE_VARS", ('black_friday', True))
-          set_state("ENGINEER_PAGE_VARS", ('cyber_monday', True))
-          set_state("ENGINEER_PAGE_VARS", ('christmas_day', True))
-          set_state("ENGINEER_PAGE_VARS", ('boxing_day', True))
-                 
+            set_state("ENGINEER_PAGE_VARS", ('jan_sales', True))
+            set_state("ENGINEER_PAGE_VARS", ('val_day_lod', True))
+            set_state("ENGINEER_PAGE_VARS", ('val_day', True))
+            set_state("ENGINEER_PAGE_VARS", ('mother_day_lod', True))
+            set_state("ENGINEER_PAGE_VARS", ('mother_day', True))
+            set_state("ENGINEER_PAGE_VARS", ('father_day_lod', True))
+            set_state("ENGINEER_PAGE_VARS", ('pay_days', True))
+            set_state("ENGINEER_PAGE_VARS", ('father_day', True))
+            set_state("ENGINEER_PAGE_VARS", ('black_friday_lod', True))
+            set_state("ENGINEER_PAGE_VARS", ('black_friday', True))
+            set_state("ENGINEER_PAGE_VARS", ('cyber_monday', True))
+            set_state("ENGINEER_PAGE_VARS", ('christmas_day', True))
+            set_state("ENGINEER_PAGE_VARS", ('boxing_day', True))
+                   
         # create columns for aligning in middle the checkboxes
         col0, col1, col2, col3, col4 = st.columns([2, 2, 2, 2, 1])
         with col1:
@@ -5958,7 +5964,7 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
         my_text_header('Holidays')
         my_text_paragraph('⛱️ Select country-specific holidays to include:')
         
-        if calendar_holidays_checkbox == True:
+        if calendar_holidays_checkbox:
             # apply function to create country specific holidays in columns is_holiday (boolean 1 if holiday otherwise 0) and holiday_desc for holiday_name
             df = create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'])
         
@@ -5966,6 +5972,7 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
             st.session_state['df_cleaned_outliers_with_index'] = df
         else:
             my_text_paragraph('<i> no country-specific holiday selected </i>')
+        
         ###############################################
         # create checkboxes for special days on page
         ###############################################
@@ -6056,36 +6063,58 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
         with st.expander('🌊 Wavelet Features', expanded=True):
             my_text_header('Discrete Wavelet Transform')
             my_text_paragraph('Feature Extraction')
+            
+            ########## CREATE WAVELET FEATURES ##################
             # define wavelet and level of decomposition
-            wavelet = wavelet_family_selectbox
-            level = wavelet_level_decomposition_selectbox
-            # define window size (in days)
-            window_size = wavelet_window_size_slider
+            
+            # TEST REPLACE WITH SESSION STATES THE USER CHOICES
+# =============================================================================
+#             wavelet = wavelet_family_selectbox
+#             level = wavelet_level_decomposition_selectbox
+#             window_size = wavelet_window_size_slider
+# =============================================================================
+            wavelet = get_state("ENGINEER_PAGE", "wavelet_family_selectbox")
+            level = get_state("ENGINEER_PAGE", "wavelet_level_decomposition_selectbox")
+            window_size = get_state("ENGINEER_PAGE", "wavelet_window_size_slider")
+            st.write('wavelet', wavelet, 'wavelet_level_decomposition_selectbox', level, 'window_size', window_size)
+            
             # create empty list to store feature vectors
             feature_vectors = []
+           
             # loop over each window in the data
             for i in range(window_size, len(df)):
                 # extract data for current window
                 data_in_window = df.iloc[i-window_size:i, 1].values
-                # perform DWT on sales data
+                
+                # perform DWT on data
                 coeffs = pywt.wavedec(data_in_window, wavelet, level=level)
+                
                 # extract features from subbands
                 features = []
+                
                 for j in range(len(coeffs)):
                     subband_features = [coeffs[j].mean(), coeffs[j].std(), coeffs[j].max(), coeffs[j].min()]
                     features.extend(subband_features)
+               
                 # add features to list
                 feature_vectors.append(features)
+           
             # create new dataframe with features and original date index
             feature_cols = ['approx_mean', 'approx_std', 'approx_max', 'approx_min'] + \
                            [f'detail{i+1}_mean' for i in range(level)] + \
                            [f'detail{i+1}_std' for i in range(level)] + \
                            [f'detail{i+1}_max' for i in range(level)] + \
                            [f'detail{i+1}_min' for i in range(level)]
+            
             # create a dataframe with the created features with discrete wavelet transform on target variable with timewindow set by user
             features_df_wavelet = pd.DataFrame(feature_vectors, columns=feature_cols, index=df.iloc[:,0].index[window_size:])
+            
             # merge features dataframe with original data
             df = pd.merge(df, features_df_wavelet, left_index=True, right_index=True)
+            #################################################################
+            
+            # PLOT WAVELET FEATURES
+            #######################
             # create a dataframe again with the index set as the first column
             # assumption used: the 'date' column is the first column of the dataframe
             features_df_plot = pd.DataFrame(feature_vectors, columns=feature_cols, index=df.iloc[:,0])
@@ -6096,9 +6125,15 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
                           labels={'value': 'Coefficient Mean', 'variable': 'Subband'})
             fig.update_layout(xaxis_title='Date')
             st.plotly_chart(fig, use_container_width=True)
+            
+            # SHOW WAVELETE FEATURES
+            ########################
             # Show Dataframe with features
             my_text_paragraph('Wavelet Features Dataframe')
             st.dataframe(features_df_wavelet, use_container_width=True)
+            
+            # update the session state
+            st.session_state['df_cleaned_outliers_with_index'] = df
     else:
         pass
    
@@ -6117,17 +6152,40 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
         st.dataframe(df, use_container_width=True)
         download_csv_button(df, my_file="dataframe_incl_features.csv", help_message="Download your dataset incl. features to .CSV")
         
-# else e.g. if user is not within menu_item == 'Engineer' and sidebar_menu_item is not 'Home':
-# execute code below...
 else:
-    # create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'])
-    df = create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'], slider = False)
-    df = create_calendar_special_days(df)
-    df = create_date_features(df, 
-                              year_dummies = get_state("ENGINEER_PAGE_VARS", "year_dummies_checkbox"), 
-                              month_dummies = get_state("ENGINEER_PAGE_VARS", "month_dummies_checkbox"), 
-                              day_dummies = get_state("ENGINEER_PAGE_VARS", "day_dummies_checkbox"))
+    # else e.g. if user is not within menu_item == 'Engineer' and sidebar_menu_item is not 'Home':
+    # execute code below...
+    df = st.session_state['df_cleaned_outliers_with_index']
+    calendar_holidays_checkbox = get_state("ENGINEER_PAGE", "calendar_holidays_checkbox")
+    special_calendar_days_checkbox = get_state("ENGINEER_PAGE", "special_calendar_days_checkbox")
+    calendar_dummies_checkbox = get_state("ENGINEER_PAGE", "calendar_dummies_checkbox")
+    dwt_features_checkbox = get_state("ENGINEER_PAGE", "dwt_features_checkbox")
     
+    # TEST - ADD SESSION STATES FOR THE STATE OF THE CHECKBOX
+    st.write('calendar_holidays_checkbox, special_calendar_days_checkbox, calendar_dummies_checkbox:')
+    st.write(calendar_holidays_checkbox, special_calendar_days_checkbox, calendar_dummies_checkbox)
+    if calendar_holidays_checkbox:
+        st.write('calendar_holidays_checkbox code in else block runs so evaluates to TRUE!')
+        df = create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'], slider = False)
+    if special_calendar_days_checkbox:
+        df = create_calendar_special_days(df)
+    if calendar_dummies_checkbox:
+        st.write('calendar_dummies_checkbox code in else block runs so evaluates to TRUE!')
+        df = create_date_features(df, 
+                                  year_dummies = get_state("ENGINEER_PAGE_VARS", "year_dummies_checkbox"), 
+                                  month_dummies = get_state("ENGINEER_PAGE_VARS", "month_dummies_checkbox"), 
+                                  day_dummies = get_state("ENGINEER_PAGE_VARS", "day_dummies_checkbox"))
+# =============================================================================
+#     # TEST
+#     # df = <insert wavelet function code>
+#     if dwt_features_checkbox:
+#         df = 
+# =============================================================================
+    else:
+        # cleaned df is unchanged e.g. no features added with feature engineering page
+        pass
+    
+
     # update datatypes for engineered features
     columns_to_convert = {'holiday': 'uint8', 'calendar_event': 'uint8', 'pay_day': 'uint8', 'year': 'int32', 'is_holiday': 'uint8'}
     
@@ -6168,26 +6226,36 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
     with st.sidebar:
         my_title(f'{prepare_icon}', "#FF9F00", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
        
-    # show user which descriptive variables are removed, that just had the purpose to inform user what dummy was from e.g. holiday days such as Martin Luther King Day
-    with st.expander('', expanded=True):
-        my_text_header('Preprocess')
-        my_text_paragraph('*removing redundant features (dtype = object)', my_font_size='12px')
-        local_df = remove_object_columns(local_df, message_columns_removed=True)
-
-        # have button available for user and if clicked it expands with the dataframe
-        col1, col2, col3 = st.columns([130,60,120])
-        with col2:        
-            placeholder = st.empty()
-            # create button (enabled to click e.g. disabled=false with unique key)
-            btn = placeholder.button('Show Data', disabled=False,  key = "preprocess_df_show_btn")
-        # if button is clicked run below code
-        if btn == True:
-            # display button with text "click me again", with unique key
-            placeholder.button('Hide Data', disabled=False, key = "preprocess_df_hide_btn")
-            # how local_df to user in streamlit
-            st.dataframe(local_df, use_container_width=True)
-        vertical_spacer(1)            
+    ############################################
+    # 5.0.1 PREPROCESS (remove redundant features)
+    ############################################
+    obj_cols = local_df.select_dtypes(include='object').columns.tolist()
+    # if not an empty list e.g. only show if there are variables removed with dtype = object
+    if obj_cols:
+        # show user which descriptive variables are removed, that just had the purpose to inform user what dummy was from e.g. holiday days such as Martin Luther King Day
+        
+        with st.expander('', expanded=True):
+            my_text_header('Preprocess')
+            my_text_paragraph('*removing redundant features (dtype = object)', my_font_size='12px')
+            local_df = remove_object_columns(local_df, message_columns_removed=True)
     
+            # have button available for user and if clicked it expands with the dataframe
+            col1, col2, col3 = st.columns([130,60,120])
+            with col2:        
+                placeholder = st.empty()
+                # create button (enabled to click e.g. disabled=false with unique key)
+                btn = placeholder.button('Show Data', disabled=False,  key = "preprocess_df_show_btn")
+            # if button is clicked run below code
+            if btn == True:
+                # display button with text "click me again", with unique key
+                placeholder.button('Hide Data', disabled=False, key = "preprocess_df_hide_btn")
+                # how local_df to user in streamlit
+                st.dataframe(local_df, use_container_width=True)
+            vertical_spacer(1)            
+    
+    ############################################
+    # 5.0.2 PREPROCESS (set date feature as index column)
+    ############################################    
     # Check if 'date' column exists in local_df
     if 'date' in local_df.columns:
         # set the date as the index of the pandas dataframe
@@ -6196,7 +6264,7 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
     
     # update df in session state without descriptive columns
     st.session_state['df'] = local_df
-    
+
     ######################
     # 5.1 TRAIN/TEST SPLIT
     ######################
@@ -6998,7 +7066,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                 'features':features_str}
                      results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
             except:
-                st.warning(f'Linear Regression failed to train, please contact administrator!')
+                st.warning(f'Linear Regression failed to train, please contact your administrator!')
             try:
                 if model_name == "SARIMAX":
                     with st.expander('📈' + model_name, expanded=True):
