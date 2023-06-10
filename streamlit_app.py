@@ -1829,7 +1829,7 @@ def plot_train_test_split(df, split_index):
     
     Parameters:
     -----------
-    local_df: pandas.DataFrame
+    df: pandas.DataFrame
         A pandas dataframe containing the time series data.
     split_index: int
         The index position that represents the split between the training and test set.
@@ -2346,10 +2346,19 @@ def perform_train_test_split(df, my_insample_forecast_steps, scaler_choice=None,
     X_train_numeric_scaled = pd.DataFrame() # TEST
     X_test_numeric_scaled = pd.DataFrame() # TEST
     X_numeric_scaled = pd.DataFrame() # TEST
-   
+    
     # Split the data into training and testing sets
     X = df.iloc[:, 1:]
     y = df.iloc[:, 0:1]
+# =============================================================================
+#     # Find the index of the 'date' column
+#     date_column_index = df.columns.get_loc('date')
+#     # Get the date column + all columns 
+#     # except the target feature which is assumed to be column after 'date' column
+#     X = df.iloc[:, :date_column_index+1].join(df.iloc[:, date_column_index+2:])
+#     y = df.iloc[:, date_column_index+1: date_column_index+2]
+# =============================================================================
+
     X_train = X.iloc[:-my_insample_forecast_steps, :]
     X_test = X.iloc[-my_insample_forecast_steps:, :]
     y_train = y.iloc[:-my_insample_forecast_steps, :]
@@ -2937,7 +2946,7 @@ def create_calendar_special_days(df, start_date_calendar=None,  end_date_calenda
     df_exogenous_vars = df_exogenous_vars[['date', 'calendar_event', 'calendar_event_desc', 'pay_day','pay_day_desc']]
     
     ###############################################################################
-    # combine exogenous vars with df_total | df_clean?
+    # combine exogenous vars with df
     ###############################################################################
     df_total_incl_exogenous = pd.merge(df, df_exogenous_vars, on='date', how='left' )
     df = df_total_incl_exogenous.copy(deep=True)
@@ -3060,6 +3069,63 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
         
+        
+        # Extract the coefficient values and feature names
+        coefficients = model.coef_
+        #st.write(coefficients) # TEST
+        intercept = model.intercept_
+        #st.write(intercept) # TEST
+        feature_names = X_train.columns.tolist()
+        #st.write(feature_names) # TEST
+        
+        # Create a table to display the coefficients and intercept
+        coefficients_table = pd.DataFrame({'Feature': ['Intercept'] + feature_names, 'Coefficient': np.insert(coefficients, 0, intercept)})
+        # show coefficients table
+        st.write(coefficients_table)
+        
+        ## LINEAR REGRESSION EQUATION
+        import sympy as sp
+        # Get the intercept and coefficients from the table
+        intercept = coefficients_table.loc[0, 'Coefficient'].round(2)
+        weights = coefficients_table.loc[1:, 'Coefficient'].round(2)
+        feature_names = coefficients_table.loc[1:, 'Feature']
+        
+        # Reverse the weights and feature_names lists
+        weights = weights[::-1]
+        feature_names = feature_names[::-1]
+        
+        # Create the symbols for the features and coefficients
+        x_symbols = sp.symbols(feature_names)
+        coefficients_symbols = sp.symbols(['b0'] + [f'b{i}' for i in range(1, len(x_symbols) + 1)])
+        
+        # Create the custom equation string
+        equation_parts = [f"{coeff} * {feat}" for coeff, feat in zip(weights, feature_names)]
+        equation_str = f"y_hat = {intercept} + " + " + ".join(equation_parts)
+        
+        # Create a dictionary to substitute the coefficient symbols with their values
+        subs_dict = {coefficients_symbols[i]: coeff for i, coeff in enumerate(weights)}
+        subs_dict[coefficients_symbols[0]] = intercept
+        
+        # Substitute the coefficient symbols in the equation expression
+        for symbol, value in subs_dict.items():
+            equation_str = equation_str.replace(str(symbol), str(value))
+        
+        # Display the equation expression in Streamlit
+        st.write("Linear Regression Equation:")
+        st.write(equation_str)
+
+# =============================================================================
+#         # Create the equation string
+#         equation_parts = [f"({coeff:.2f} * {feature})" for coeff, feature in zip(coefficients, feature_names)]
+#         equation = " + ".join(equation_parts)
+#         equation = f"y = {equation} + {intercept:.2f}"
+#         
+#         # Display the equation in Streamlit
+#         st.write("Linear Regression Equation:")
+#         st.write(equation)
+# =============================================================================
+
+
     # Create dataframe for insample predictions versus actual
     df_preds = pd.DataFrame({'Actual': y_test.squeeze(), 'Predicted': y_pred.squeeze()})
     # set the index to just the date portion of the datetime index
@@ -3329,14 +3395,18 @@ def plot_actual_vs_predicted(df_preds, my_conf_interval):
     # level of significance (1 minus confidence interval)
     alpha = 1 - confidence
     n = len(df_preds)
+    
     # Calculates the t-value based on the desired confidence level (alpha) and the sample size (n).
     t_value = stats.t.ppf(1 - alpha / 2, n - 2)
+    
     # Calculates the standard error of the estimate, which measures the amount of variability in the data that is not explained by the model.
     std_error = np.sqrt(np.sum((df_preds['Actual'] - df_preds['Predicted']) ** 2) / (n - 2))
+    
     # Calculates the margin of error for the confidence interval based on the t-value and the standard error.
     margin_error = t_value * std_error
     upper = df_preds['Predicted'] + margin_error
     lower = df_preds['Predicted'] - margin_error
+    
     # Add shaded confidence interval to the plot
     fig.add_trace(go.Scatter(
         x=df_preds.index,
@@ -3359,6 +3429,7 @@ def plot_actual_vs_predicted(df_preds, my_conf_interval):
         name=f'{int(my_conf_interval)}% Confidence Interval',
         legendgroup='confidence intervals'
     ))
+    
     # Render the chart in Streamlit
     st.plotly_chart(fig, use_container_width=True)
     
@@ -4357,10 +4428,10 @@ def handle_click_wo_button():
     If the key of the radio button, 'data_choice', exists in the session state, the function assigns the value of 'data_choice' to a new variable, 'my_data_choice'.
     """
     # if key of radio button exists
-    if st.session_state.data_choice:
+    if st.session_state['data_choice']:
         # this new variable my_data_choice set it equal to information collected from the user
         # via the radio button called "data_option"
-        st.session_state.my_data_choice = st.session_state.data_choice
+        st.session_state['my_data_choice'] = st.session_state['data_choice']
 
 # Log
 print('ForecastGenie Print: Loaded Functions')
@@ -4390,7 +4461,6 @@ if "df_raw" not in st.session_state:
     st.session_state["df_raw"] = pd.DataFrame()
     st.session_state.df_raw = generate_demo_data()
     df_graph = st.session_state.df_raw.copy(deep=True)
-    df_total = st.session_state.df_raw.copy(deep=True)
     # set minimum date
     df_min = st.session_state.df_raw .iloc[:,0].min().date()
     # set maximum date
@@ -4415,10 +4485,32 @@ key1_explore, key2_explore, key3_explore, key4_explore, key5_explore = create_st
 key_hist = create_store("HIST", [("histogram_freq_type", "Absolute"),  ("run", 0)])
 
 # ================================ CLEAN ======================================
-fill_method = None
+
+#fill_method = None
 custom_fill_value = None
-freq_dict = None
-freq = None
+#freq_dict = None
+#freq = None
+
+# define keys and store them in memory with their associated values
+key1_missing, key2_missing, key3_missing, key4_missing = create_store("CLEAN_PAGE_MISSING", 
+                                                                      [
+                                                                        ("missing_fill_method", "Backfill"), #key1
+                                                                        ("missing_custom_fill_value", "1"), #key2
+                                                                        ("data_frequency", 'Daily'), #key3
+                                                                        ("run", 0) #key4
+                                                                      ]
+                                                                     ) 
+key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, key8_outlier = create_store("CLEAN_PAGE", 
+                                                                                                                              [
+                                                                                                                                ("outlier_detection_method", "None"), # key1
+                                                                                                                                ("outlier_isolationforest_contamination", 0.01), #key2
+                                                                                                                                ("outlier_zscore_threshold", 3.0), #key3
+                                                                                                                                ("outlier_iqr_q1", 25.0), #key4
+                                                                                                                                ("outlier_iqr_q3", 75.0), #key5
+                                                                                                                                ("outlier_iqr_multiplier", 1.5), #key6
+                                                                                                                                ("outlier_replacement_method", "Interpolation"), #key7
+                                                                                                                                ("run", 0)  #key8
+                                                                                                                              ])
 
 # set the random state
 random_state = 10
@@ -4471,9 +4563,7 @@ key11_engineer_var, key12_engineer_var, key13_engineer_var, key14_engineer_var, 
                                                                                                         ]
                                                                                                       )   
 # ================================ PREPARE ====================================
-# define my_insample_forecast_steps usesd for train/test split
-# for evaluation of test-set
-# set preprocessing method: "Normalization" to str: "None
+# define my_insample_forecast_steps used for train/test split
 if 'percentage' not in st.session_state:
     st.session_state['percentage'] = 20
     
@@ -4498,8 +4588,6 @@ key1_prepare_normalization, key2_prepare_standardization, key3_prepare = create_
     ("standardization_choice", "None"), #key2_prepare_standardization
     ("run", 0)])                     #key3_prepare
 
-
-
 # ================================ TRAIN ===================================  
 # TRAIN MENU TEST
 if 'train_models_btn' not in st.session_state:
@@ -4514,8 +4602,16 @@ if 'selected_model_info' not in st.session_state:
 create_store("TRAIN_PARAMS", [
     ("naive_model_seasonal_lag_index", 1)])
 
-
-    
+# set session states for the TRAIN Page buttons when models are trained, 
+# to expand dataframe below graph
+create_store("TRAIN", [
+                        ("naive_model_btn_show", False),
+                        ("naive_model_btn_hide", False),
+                        ("linreg_model_btn_show", False),
+                        ("sarimax_model_btn_show", False),
+                        ("prophet_model_btn_show", False)
+                      ]
+             )       
 # ================================ EVALUATE ===================================
 # create an empty dictionary to store the results of the models
 # that I call after I train the models to display on sidebar under hedaer "Evaluate Models"
@@ -5122,21 +5218,23 @@ with st.sidebar:
         with col2:
             # radio button option for user to pick between demo data and load their own dataset
             data_option = st.radio("*Choose an option:*", ["Demo Data", "Upload Data"], 
-                                   on_change=handle_click_wo_button, 
-                                   key='data_choice')
+                                   on_change = handle_click_wo_button, 
+                                   key= 'data_choice' )
             vertical_spacer(1)
         
-        if st.session_state.my_data_choice == "Upload Data":
-            uploaded_file = st.file_uploader("Upload your file", type=["csv", "xls", "xlsx", "xlsm", "xlsb"], accept_multiple_files=False, label_visibility='collapsed')
+        if st.session_state['my_data_choice'] == "Upload Data":
+            uploaded_file = st.file_uploader("Upload your file", 
+                                             type=["csv", "xls", "xlsx", "xlsm", "xlsb"], 
+                                             accept_multiple_files=False, 
+                                             label_visibility='collapsed')
             
 if menu_item == 'Load' and sidebar_menu_item=='Home':
     my_title(f"{load_icon} Load Dataset ", "#45B8AC")
     
-    if st.session_state.my_data_choice == "Demo Data":
-        st.session_state.df_raw = generate_demo_data()
+    if st.session_state['my_data_choice'] == "Demo Data":
+        st.session_state['df_raw'] = generate_demo_data()
         df_raw = generate_demo_data()
         df_graph = df_raw.copy(deep=True)
-        df_total = df_raw.copy(deep=True)
         df_min = df_raw.iloc[:,0].min().date()
         df_max = df_raw.iloc[:,0].max().date()
         
@@ -5180,7 +5278,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             vertical_spacer(1)
             
     if st.session_state.my_data_choice == "Upload Data" and uploaded_file is None:
-        # let user upload a file
+
         # inform user what template to upload
         with st.expander("", expanded=True):
             my_text_header("Instructions")
@@ -5204,14 +5302,14 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
     # check if data is uploaded
     elif st.session_state.my_data_choice == "Upload Data" and uploaded_file is not None:
         # define dataframe from custom function to read from uploaded read_csv file
-        st.session_state.df_raw = load_data()
-        df_graph = st.session_state.df_raw.copy(deep=True)
-        df_total = st.session_state.df_raw.copy(deep=True)
+        st.session_state['df_raw'] = load_data()
+        df_graph = st.session_state['df_raw'].copy(deep=True)
         # set minimum date
         df_min = st.session_state.df_raw.iloc[:,0].min().date()
         # set maximum date
         df_max = st.session_state.df_raw.iloc[:,0].max().date()
        
+        # let user select color for graph
         with st.expander('', expanded=True):
             col0, col1, col2, col3 = st.columns([20, 90, 8, 1])        
             with col2:
@@ -5229,17 +5327,18 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             # create 3 columns for spacing
             col1, col2, col3 = st.columns([1,3,1])
             # display df shape and date range min/max for user
-           
             col2.markdown(f"<center>Your <b>dataframe</b> has <b><font color='#555555'>{st.session_state.df_raw.shape[0]}</b></font> \
                           rows and <b><font color='#555555'>{st.session_state.df_raw.shape[1]}</b></font> columns <br> with date range: \
                           <b><font color='#555555'>{df_min}</b></font> to <b><font color='#555555'>{df_max}</font></b>.</center>", 
                           unsafe_allow_html=True)
+                
             vertical_spacer(1)
-            df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
-            # set caption
+            df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)            
             vertical_spacer(1)
+            
             ## display/plot graph of dataframe
             display_dataframe_graph(df=df_graph, key=2, my_chart_color = my_chart_color)
+            
             # show dataframe below graph        
             try:
                 df_explore = dataframe_explorer(st.session_state['df_raw'])
@@ -5259,12 +5358,13 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
 #                                                  
 # =============================================================================         
 if menu_item == 'Explore' and sidebar_menu_item == 'Home':  
+    # set default color for charts / style in Explore page
     set_state("COLORS", ("chart_patterns", "#217cd0"))
     
-    # if dataset is very small, then update the key1_explore and key2_explore
-    if len(st.session_state.df_raw) < 31:
-        set_state("EXPLORE_PAGE", ("lags_acf", int((len(st.session_state.df_raw)-1))))
-        set_state("EXPLORE_PAGE", ("lags_pacf", int((len(st.session_state.df_raw)-1)/2)))
+    # If dataset is very small (less then 31 rows), then update the key1_explore and key2_explore
+    if len(st.session_state['df_raw']) < 31:
+        set_state("EXPLORE_PAGE", ("lags_acf", int((len(st.session_state['df_raw'])-1))))
+        set_state("EXPLORE_PAGE", ("lags_pacf", int((len(st.session_state['df_raw'])-1)/2)))
 
     ####################################################            
     # Sidebar EDA parameters / buttons
@@ -5276,7 +5376,6 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         def update_color():
             # set session state for user chosen chart color
             set_state("COLORS", ("chart_patterns", my_chart_color))
-        
 
         # Autocorrelation parameters form     
         with st.form('autocorrelation'):
@@ -5287,7 +5386,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
             # create slider for number of lags for ACF Plot
             nlags_acf = st.slider(label = "*Lags ACF*", 
                                   min_value = 1, 
-                                  max_value = (len(st.session_state.df_raw)-1), 
+                                  max_value = (len(st.session_state['df_raw'])-1), 
                                   key = key1_explore)
             
             col1, col2, col3 = st.columns([4,1,4])
@@ -5295,36 +5394,36 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                 # create slider for number of lags for PACF Plot
                 nlags_pacf = st.slider(label = "*Lags PACF*", 
                                        min_value = 1, 
-                                       max_value = int((len(st.session_state.df_raw)-2)/2), 
+                                       max_value = int((len(st.session_state['df_raw'])-2)/2), 
                                        key = key2_explore)
             with col3:
                 # create dropdown menu for method to calculate the PACF Plot
                 method_pacf = st.selectbox(label = "*Method PACF*", 
                                            options = [ 'ols', 'ols-inefficient', 'ols-adjusted', 'yw', 'ywa', 'ld', 'ywadjusted', 'yw_adjusted', 'ywm', 'ywmle', 'yw_mle', 'lda', 'ldadjusted', 'ld_adjusted', 'ldb', 'ldbiased', 'ld_biased'], 
                                            key = key3_explore)
+                
             # create dropdown menu to select if you want the original series or differenced series that will also impact the ACF & PACF Plots
             # next to having a preview in sidebar with the differenced series plotted if user selects 1st ,2nd or 3rd order difference
             selection = st.selectbox('*Apply Differencing [Optional]:*', 
                                      options = ['Original Series', 'First Order Difference', 'Second Order Difference', 'Third Order Difference'],
                                      key = key4_explore)
             
-         
-
             col1, col2, col3 = st.columns([5,4,4])
             with col2:
                 # create button in sidebar for the ACF and PACF Plot Parameters
-                st.write("")
+                vertical_spacer(1)
                 acf_pacf_btn = st.form_submit_button("Submit", type="secondary",  on_click=form_update, args=('EXPLORE_PAGE',))   
          
         with st.form('ljung-box'):
              my_text_paragraph('White Noise')
              model_type = st.selectbox("Select Model Type", ["AutoReg", "ARMA"], index=0)             
-             lag1_ljung_box = st.number_input('*Enter maximum lag:*', 
-                                   min_value=1, 
-                                   value = min(24, len(st.session_state.df_raw)-2), 
-                                   max_value=len(st.session_state.df_raw)-2,
-                                   key='lag1_ljung_box',
-                                   help = ' the lag parameter in the Ljung-Box test determines the number of time periods over which the autocorrelation of residuals is evaluated to assess the presence of significant autocorrelation in the time series.')
+             lag1_ljung_box = st.number_input(label = '*Enter maximum lag:*', 
+                                              min_value=1, 
+                                              value = min(24, len(st.session_state.df_raw)-2), 
+                                              max_value=len(st.session_state.df_raw)-2,
+                                              key='lag1_ljung_box',
+                                              help = ' the lag parameter in the Ljung-Box test determines the number of time periods over which the autocorrelation of residuals is evaluated to assess the presence of significant autocorrelation in the time series.')
+             
              col1, col2, col3 = st.columns([5,4,4])
              with col2:
                 # create button in sidebar for the ACF and PACF Plot Parameters
@@ -5340,22 +5439,24 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
     with st.expander('', expanded=True):
         col0, col1, col2, col3 = st.columns([18, 90, 8, 1])   
         with col2:
-           	my_chart_color = st.color_picker(label = 'Color', 
-           									 value = get_state("COLORS", "chart_patterns"), 
-           									 label_visibility = 'collapsed',
+           	my_chart_color = st.color_picker(
+                                             label = 'Color', 
+           									value = get_state("COLORS", "chart_patterns"), 
+           									label_visibility = 'collapsed',
                                              help = 'Set the **`color`** of the charts and styling elements. It will revert back to the **default** color when switching pages.'
                                              )
         #############################################################################
-        # Summary Statistics
+        # Quick Summary Results
         #############################################################################
         # show in streamlit in sidebar Quick Summary tiles with e.g. rows/columns/start date/end date/mean/median
         # Display the header for the quick summary
         #col1, col2, col3 = st.columns([24,40,20])
         with col1:
             my_text_header('Quick Summary')
+        # show tile with the quick summary results on page    
         eda_quick_summary(my_chart_color)
         
-        # have button available for user and if clicked it expands with the dataframe
+        # show button and if clicked, show dataframe
         col1, col2, col3 = st.columns([100,50,95])
         with col2:        
             placeholder = st.empty()
@@ -5373,7 +5474,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         vertical_spacer(1)
         
         #######################################
-        # Statistical tests
+        # Quick Insights Results
         #####################################
         # Show Summary Statistics and statistical test results of dependent variable (y)
         summary_statistics_df = create_summary_df(data = st.session_state.df_raw.iloc[:,1])
@@ -5429,21 +5530,26 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         col1, col2, col3 = st.columns([18,44,10])
         with col2:
             vertical_spacer(2)
+            
             res, result_ljungbox = ljung_box_test(
                                                    df = st.session_state.df_raw,
                                                    variable_loc = 1, 
                                                    lag = lag1_ljung_box,
                                                    model_type = model_type
-                                                   )
-            vertical_spacer(1)        
+                                                 )
+            vertical_spacer(1) 
+            
         col1, col2, col3 = st.columns([89,40,80])
         with col2:        
             placeholder = st.empty()
+            
             # create button (enabled to click e.g. disabled=false with unique key)
             btn = placeholder.button('Show Plots', disabled=False)
+            
             vertical_spacer(1)
         # if button is clicked run below code
         if btn == True:
+            
             # display button with text "click me again", with unique key
             placeholder.button('Hide Plots', disabled=False)
 
@@ -5463,7 +5569,6 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
     with st.expander('ADF', expanded=True):
         my_text_header('Stationarity')
         my_text_paragraph('Augmented Dickey Fuller')
-        #show_lottie_animation(url="./images/newton.json", key="visitor_from_mars", speed=0.8, width=250, height=250, col_sizes = [19,40,1], margin_before=1)
         # Augmented Dickey-Fuller (ADF) test results
         adf_result = adf_test(st.session_state.df_raw, 1)        
         col1, col2, col3 = st.columns([18,40,10])
@@ -5481,9 +5586,9 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         st.markdown(f'<p style="text-align:center; color: #707070"> {selection} </p>', unsafe_allow_html=True)
         
         # get the differenced dataframe and original figure
-        original_fig, df_select_diff = df_differencing(st.session_state.df_raw, selection, my_chart_color)
+        original_fig, df_select_diff = df_differencing(st.session_state.df_raw, selection, my_chart_color) 
         st.plotly_chart(original_fig, use_container_width=True)
-        
+    
         # set data equal to the second column e.g. expecting first column 'date' 
         data = df_select_diff
         # Plot ACF        
@@ -5505,35 +5610,16 @@ print('ForecastGenie Print: Ran Explore')
 #   \_____|______|______/_/    \_\_| \_|
 #                                       
 # =============================================================================
-# Register state with initiate values in a slot (fire-state package utilized)
-# define keys and store them in memory with their associated values
-key1_missing, key2_missing, key3_missing, key4_missing = create_store("CLEAN_PAGE_MISSING", 
-                                                                      [
-                                                                        ("missing_fill_method", "Backfill"), #key1
-                                                                        ("missing_custom_fill_value", "1"), #key2
-                                                                        ("data_frequency", 'Daily'), #key3
-                                                                        ("run", 0) #key4
-                                                                      ]
-                                                                     ) 
-key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, key8_outlier = create_store("CLEAN_PAGE", 
-                                                                                                                              [
-                                                                                                                                ("outlier_detection_method", "None"), # key1
-                                                                                                                                ("outlier_isolationforest_contamination", 0.01), #key2
-                                                                                                                                ("outlier_zscore_threshold", 3.0), #key3
-                                                                                                                                ("outlier_iqr_q1", 25.0), #key4
-                                                                                                                                ("outlier_iqr_q3", 75.0), #key5
-                                                                                                                                ("outlier_iqr_multiplier", 1.5), #key6
-                                                                                                                                ("outlier_replacement_method", "Interpolation"), #key7
-                                                                                                                                ("run", 0)  #key8
-                                                                                                                              ])
 # Data Cleaning
 if menu_item == 'Clean' and sidebar_menu_item=='Home':    
     my_title(f"{clean_icon} Data Cleaning", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
     with st.sidebar:
         my_title(f"{clean_icon}", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
-        # with your form have a button to click and values are updated in streamlit
+
         with st.form('data_cleaning'):
+
             my_text_paragraph('Handling Missing Data')      
+
             # get user input for filling method
             fill_method = st.selectbox(label = '*Select filling method for missing values:*', 
                                        options = ['Backfill', 'Forwardfill', 'Mean', 'Median', 'Mode', 'Custom'],
@@ -5545,10 +5631,13 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             
             # Define a dictionary of possible frequencies and their corresponding offsets
             freq_dict = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
+
             # infer and return the original data frequency e.g. 'M' and name e.g. 'Monthly'
             original_freq, original_freq_name = determine_df_frequency(st.session_state.df_raw, column_name='date')
+
             # determine the position of original frequency in the freq_dict to use as the index as chosen frequency in drop-down selectbox for user when loading page
             position = list(freq_dict.values()).index(original_freq)
+
             # Ask the user to select the frequency of the data
             # set the frequency that is inferred from the data itself with custom function to pre-selected e.g. index = ...
             freq = st.selectbox('*Select the frequency of the data:*', 
@@ -5562,8 +5651,10 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
     # =========================================================================
     # TRANSFORMATIONS TO DATAFRAME (IMPUTE DATES/MISSING)
     # =========================================================================
+    
+    # =========================================================================
     # 1. IMPUTE MISSING DATES WITH RESAMPLE METHOD
-    #******************************************************************
+    # =========================================================================
     # Apply function to resample missing dates based on user set frequency
     df_cleaned_dates = resample_missing_dates(df = st.session_state.df_raw, 
                                               freq_dict = freq_dict, 
@@ -6144,18 +6235,23 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
     with st.expander('', expanded=True):
         my_text_header('Engineered Features')
 
-        # show number of features
-        features_df = len(df.columns)-1
-        my_text_paragraph(f'{features_df}')
+        # retrieve number of features to show on page
+        num_features_df = len(df.columns)-1
+        my_text_paragraph(f'{num_features_df}')
         
+        # show animation
         show_lottie_animation(url="./images/features_round.json", key="features_round", width=400, height=400)
-        st.dataframe(df, use_container_width=True)
-        download_csv_button(df, my_file="dataframe_incl_features.csv", help_message="Download your dataset incl. features to .CSV")
         
+        # show dataframe in streamlit
+        st.dataframe(df, use_container_width=True)
+        # add download button
+        download_csv_button(df, my_file="dataframe_incl_features.csv", help_message="Download your dataset incl. features to .CSV")
 else:
     # else e.g. if user is not within menu_item == 'Engineer' and sidebar_menu_item is not 'Home':
     # execute code below...
     df = st.session_state['df_cleaned_outliers_with_index']
+    
+    # Check if checkboxes are True or False for feature engineering options
     calendar_holidays_checkbox = get_state("ENGINEER_PAGE", "calendar_holidays_checkbox")
     special_calendar_days_checkbox = get_state("ENGINEER_PAGE", "special_calendar_days_checkbox")
     calendar_dummies_checkbox = get_state("ENGINEER_PAGE", "calendar_dummies_checkbox")
@@ -6164,39 +6260,49 @@ else:
     # TEST - ADD SESSION STATES FOR THE STATE OF THE CHECKBOX
     st.write('calendar_holidays_checkbox, special_calendar_days_checkbox, calendar_dummies_checkbox:')
     st.write(calendar_holidays_checkbox, special_calendar_days_checkbox, calendar_dummies_checkbox)
+    ####
+    
+    # if feature engineering option is checked for holidays, add features:
     if calendar_holidays_checkbox:
         st.write('calendar_holidays_checkbox code in else block runs so evaluates to TRUE!')
         df = create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'], slider = False)
+    # if feature engineering option is checked for special calendar days (e.g. black friday etc.), add features
     if special_calendar_days_checkbox:
         df = create_calendar_special_days(df)
+    # if featue engineering option is checked for the year/month/day dummy variables, add features
     if calendar_dummies_checkbox:
         st.write('calendar_dummies_checkbox code in else block runs so evaluates to TRUE!')
         df = create_date_features(df, 
                                   year_dummies = get_state("ENGINEER_PAGE_VARS", "year_dummies_checkbox"), 
                                   month_dummies = get_state("ENGINEER_PAGE_VARS", "month_dummies_checkbox"), 
                                   day_dummies = get_state("ENGINEER_PAGE_VARS", "day_dummies_checkbox"))
-# =============================================================================
-#     # TEST
-#     # df = <insert wavelet function code>
-#     if dwt_features_checkbox:
-#         df = 
-# =============================================================================
-    else:
-        # cleaned df is unchanged e.g. no features added with feature engineering page
-        pass
+    # =============================================================================
+    #     # TEST
+    #     # df = <insert wavelet function code>
+    #     if dwt_features_checkbox:
+    #         df = 
+    # =============================================================================    
     
+    # add the date column but only as numeric feature
+    df['date_numeric'] = (df['date'] - df['date'].min()).dt.days
+    
+    st.write('df before dtype fixed', df)
 
-    # update datatypes for engineered features
+    # =============================================================================
+    # FIX DATA TYPES FOR ENGINEERED FEATURES
+    # =============================================================================
     columns_to_convert = {'holiday': 'uint8', 'calendar_event': 'uint8', 'pay_day': 'uint8', 'year': 'int32', 'is_holiday': 'uint8'}
-    
-    # TEST HAVING NO NUMERICAL FEATURES:
-    #columns_to_convert = {'holiday': 'uint8', 'calendar_event': 'uint8', 'pay_day': 'uint8', 'year': 'uint8', 'is_holiday': 'uint8'}
     for column, data_type in columns_to_convert.items():
         if column in df:
             df[column] = df[column].astype(data_type)
-            
+
+    else:
+        # cleaned df is unchanged e.g. no features added with feature engineering page
+        #st.write('no features engineered') # TEST
+        pass
+
 ###############################################
-# update session state df with transformations: 
+# update dataframe's session state with transformations: 
 # - added calendar days
 # - date dummy variables
 # - wavelet features 
@@ -6206,6 +6312,7 @@ st.session_state['df'] = df
 
 # assumption date column and y column are at index 0 and index 1 so start from column 3 e.g. index 2 to count potential numerical_features
 # e.g. changed float64 to float to include other floats such as float32 and float16 data types
+st.write('taking from 3rd column forward all columns as numerical features')
 numerical_features = list(st.session_state['df'].iloc[:, 2:].select_dtypes(include=['float', 'int']).columns)
 
 # create copy of dataframe not altering original
@@ -6233,30 +6340,35 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
     # if not an empty list e.g. only show if there are variables removed with dtype = object
     if obj_cols:
         # show user which descriptive variables are removed, that just had the purpose to inform user what dummy was from e.g. holiday days such as Martin Luther King Day
-        
         with st.expander('', expanded=True):
             my_text_header('Preprocess')
             my_text_paragraph('*removing redundant features (dtype = object)', my_font_size='12px')
+            
             local_df = remove_object_columns(local_df, message_columns_removed=True)
     
             # have button available for user and if clicked it expands with the dataframe
             col1, col2, col3 = st.columns([130,60,120])
             with col2:        
+                
                 placeholder = st.empty()
+                
                 # create button (enabled to click e.g. disabled=false with unique key)
                 btn = placeholder.button('Show Data', disabled=False,  key = "preprocess_df_show_btn")
+            
             # if button is clicked run below code
             if btn == True:
+                
                 # display button with text "click me again", with unique key
                 placeholder.button('Hide Data', disabled=False, key = "preprocess_df_hide_btn")
-                # how local_df to user in streamlit
+                
+                # show dataframe to user in streamlit
                 st.dataframe(local_df, use_container_width=True)
             vertical_spacer(1)            
     
     ############################################
     # 5.0.2 PREPROCESS (set date feature as index column)
     ############################################    
-    # Check if 'date' column exists in local_df
+    # Check if 'date' column exists
     if 'date' in local_df.columns:
         # set the date as the index of the pandas dataframe
         local_df.index = pd.to_datetime(local_df['date'])
@@ -6272,6 +6384,7 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
         my_text_header('Train/Test Split')
        
         # create sliders for user insample test-size (/train-size automatically as well)
+        st.write('session state df', st.session_state['df'])
         my_insample_forecast_steps, my_insample_forecast_perc = train_test_split_slider(df = st.session_state['df'])
         
         # update the session_state with train/test split chosen by user from sidebar slider
@@ -6464,8 +6577,10 @@ else:
     # 3. TRAIN/TEST SPLIT
     ##########################
     st.session_state['insample_forecast_steps'] = round((st.session_state['insample_forecast_perc'] / 100) * len(df))
-    st.write(st.session_state['insample_forecast_steps'], 'equals insample forecast ')
+    #st.write(st.session_state['insample_forecast_steps'], 'equals insample forecast ')
+    
     if 'date' in st.session_state['df']:
+        st.write('date is in the session state of dataframe df and will now be set as index')
         X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'].set_index('date'), 
                                                                                   st.session_state['insample_forecast_steps'], 
                                                                                   st.session_state['normalization_choice'], 
@@ -6475,7 +6590,9 @@ else:
                                                                                   st.session_state['insample_forecast_steps'], 
                                                                                   st.session_state['normalization_choice'], 
                                                                                   numerical_features=numerical_features)
+        
 
+        
 # Update Session States
 st.session_state['X'] = X
 st.write(st.session_state['X'])
@@ -6527,7 +6644,8 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                                    "<b>MIFS</b> aka <nobr>`Mutual Information Feature Selection`</nobr> is a <b>feature selection technique</b> that calculates the mutual information between each feature and the target to determine how much information each feature provides about the target."]
             font_family = "Helvetica"
             font_size_front = '14px'
-            font_size_back = '15px'        
+            font_size_back = '15px'    
+            
             # in streamlit create and show the user defined number of carousel cards with header+text
             create_carousel_cards_v2(3, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back)
             vertical_spacer(2)
@@ -6545,10 +6663,10 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         with st.form('rfe'):
              my_text_paragraph('Recursive Feature Elimination')
              # Add a slider to select the number of features to be selected by the RFECV algorithm
-             num_features = st.slider('*Select number of top features to include:*', 
-                                      min_value=1, 
-                                      max_value=len(st.session_state['X'].columns), 
-                                      value=5,
+             num_features = st.slider(label = '*Select number of top features to include:*', 
+                                      min_value = 1, 
+                                      max_value = len(st.session_state['X'].columns), 
+                                      value = 5,
                                       help = '**`Recursive Feature Elimination (RFE)`** is an algorithm that iteratively removes the least important features from the feature set until the desired number of features is reached.\
                                               \nIt assigns a rank to each feature based on their importance scores. It is possible to have multiple features with the same ranking because the importance scores of these features are identical or very close to each other.\
                                               \nThis can happen when the features are highly correlated or provide very similar information to the model.\
@@ -6557,8 +6675,9 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
              with st.expander('🔽 RFE Settings:', expanded=False):
                  
                  # Add a selectbox for the user to choose the estimator
-                 estimator_rfe = st.selectbox('*Set estimator:*', ['Linear Regression', 'Random Forest Regression'], 
-                                              index=0, 
+                 estimator_rfe = st.selectbox(label = '*Set estimator:*', 
+                                              options = ['Linear Regression', 'Random Forest Regression'], 
+                                              index = 0, 
                                               help = 'The **`estimator`** parameter is used to specify the machine learning model that will be used to evaluate the importance of each feature. \
                                                       The estimator is essentially the algorithm used to fit the data and make predictions.')
                                                       
@@ -6568,17 +6687,22 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                  elif estimator_rfe == 'Random Forest Regression':
                      est_rfe = RandomForestRegressor()
                  # Add a slider to select the number of n_splits for the RFE method
-                 timeseriessplit_value_rfe = st.slider('*Set number of splits for Cross-Validation:*', 
-                                                       min_value=2, 
-                                                       max_value=5, 
-                                                       value=5, 
-                                                       help='**`Cross-validation`** is a statistical method used to evaluate the performance of a model by splitting the dataset into multiple "folds," where each fold is used as a holdout set for testing the model trained on the remaining folds. \
-                                                             The cross-validation procedure helps to estimate the performance of the model on unseen data and reduce the risk of overfitting.  \
-                                                             In the context of RFE, the cv parameter specifies the number of folds to use for the cross-validation procedure.\
-                                                             The RFE algorithm fits the estimator on the training set, evaluates the performance of the estimator on the validation set, and selects the best subset of features. \
-                                                             The feature selection process is repeated for each fold of the cross-validation procedure.')
+                 timeseriessplit_value_rfe = st.slider(label = '*Set number of splits for Cross-Validation:*', 
+                                                       min_value = 2, 
+                                                       max_value = 5, 
+                                                       value = 5, 
+                                                       help = '**`Cross-validation`** is a statistical method used to evaluate the performance of a model by splitting the dataset into multiple "folds," where each fold is used as a holdout set for testing the model trained on the remaining folds. \
+                                                              The cross-validation procedure helps to estimate the performance of the model on unseen data and reduce the risk of overfitting.  \
+                                                              In the context of RFE, the cv parameter specifies the number of folds to use for the cross-validation procedure.\
+                                                              The RFE algorithm fits the estimator on the training set, evaluates the performance of the estimator on the validation set, and selects the best subset of features. \
+                                                              The feature selection process is repeated for each fold of the cross-validation procedure.')
+                 
                  # Add a slider in the sidebar for the user to set the number of steps parameter
-                 num_steps_rfe = st.slider('*Set Number of Steps*', 1, 10, 1, help='The `step` parameter controls the **number of features** to remove at each iteration of the RFE process.')
+                 num_steps_rfe = st.slider(label = '*Set Number of Steps*', 
+                                           min_value = 1, 
+                                           max_value = 10, 
+                                           value = 1, 
+                                           help = 'The `step` parameter controls the **number of features** to remove at each iteration of the RFE process.')
              
              col1, col2, col3 = st.columns([4,4,4])
              with col2:       
@@ -6587,14 +6711,26 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
     # =============================================================================
     # RFE Feature Selection - PAGE RESULTS
     # =============================================================================
-    try:
-        with st.expander('🎨 RFECV', expanded=True):
-            # run function to perform recursive feature elimination with cross-validation and display results using plot
-            selected_cols_rfe = rfe_cv(st.session_state['X_train'], st.session_state['y_train'], est_rfe, num_steps_rfe, num_features, timeseriessplit_value_rfe)
-    except:
-        selected_cols_rfe= []
-        st.warning(':red[**ERROR**: Recursive Feature Elimination with Cross-Validation could not execute...please adjust your selection criteria]')
-             
+# =============================================================================
+#     try:
+#         with st.expander('🎨 RFECV', expanded=True):
+#             # run function to perform recursive feature elimination with cross-validation and display results using plot
+#             selected_cols_rfe = rfe_cv(st.session_state['X_train'], st.session_state['y_train'], est_rfe, num_steps_rfe, num_features, timeseriessplit_value_rfe)
+#     except:
+#         selected_cols_rfe= []
+#         st.warning(':red[**ERROR**: Recursive Feature Elimination with Cross-Validation could not execute...please adjust your selection criteria]')
+# =============================================================================
+    with st.expander('🎨 RFECV', expanded=True):
+        # run function to perform recursive feature elimination with cross-validation and display results using plot
+        st.write('X_TRAIN FOR RFE', st.session_state['X_train'])
+        st.write('y_train for RFE', st.session_state['y_train'])
+        selected_cols_rfe = rfe_cv(st.session_state['X_train'], 
+                                   st.session_state['y_train'], 
+                                   est_rfe, 
+                                   num_steps_rfe, 
+                                   num_features, 
+                                   timeseriessplit_value_rfe)   
+          
     # =============================================================================        
     # PCA Feature Selection
     # =============================================================================
@@ -6602,13 +6738,16 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         with st.form('pca'):
             my_text_paragraph('Principal Component Analysis')
             # Add a slider to select the number of features to be selected by the PCA algorithm
-            num_features_pca = st.slider('*Select number of top features to include:*', min_value=1, max_value=len(X.columns), value=5)
+            num_features_pca = st.slider(label = '*Select number of top features to include:*', 
+                                         min_value=1, 
+                                         max_value=len(X.columns), 
+                                         value=5)
+            
             col1, col2, col3 = st.columns([4,4,4])
             with col2:       
                 pca_btn = st.form_submit_button("Submit", type="secondary")
     try:
         with st.expander('🧮 PCA', expanded=True):
-            #my_subheader('Principal Component Analysis', my_size=4, my_style='#7B52AB')
             pca = PCA(n_components=num_features_pca)
             pca.fit(X_train)
             
@@ -6619,6 +6758,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
             # Sort features by explained variance ratio
             sorted_idx = np.argsort(pca.explained_variance_ratio_)[::-1]
             sorted_features = feature_names[sorted_idx]
+            
             vertical_spacer(2)
             my_text_paragraph(f'Principal Component Analysis', my_font_size='26px')
             my_text_paragraph(f'<b>TOP {len(sorted_features)}</b>', my_font_size='16px', my_font_family='Segui UI')
@@ -6627,21 +6767,25 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
             fig = go.Figure()
             fig.add_trace(go.Bar(x=pca.explained_variance_ratio_[sorted_idx], y=sorted_features, 
                                  orientation='h', text=np.round(pca.explained_variance_ratio_[sorted_idx] * 100, 2), textposition='auto'))
-            fig.update_layout(title={
-                                    'text': '',
-                                    'x': 0.5,
-                                    'y': 0.95,
-                                    'xanchor': 'center',
-                                    'yanchor': 'top'
-                                    },
-                              xaxis_title='Explained Variance Ratio', yaxis_title='Feature Name')
+            fig.update_layout(title = {
+                                        'text': '',
+                                        'x': 0.5,
+                                        'y': 0.95,
+                                        'xanchor': 'center',
+                                        'yanchor': 'top'
+                                      },
+                              xaxis_title='Explained Variance Ratio', yaxis_title='Feature Name'
+                              )
             # Display plot in Streamlit
             st.plotly_chart(fig, use_container_width=True)
             
             # show top x features selected
             selected_cols_pca = sorted_features.tolist() 
+            
             st.info(f'Top {len(selected_cols_pca)} features selected with PCA: {selected_cols_pca}')
+           
             show_pca_info_btn = st.button(f'About PCA plot', use_container_width=True, type='secondary')
+           
             if show_pca_info_btn == True:
                 st.write('')
                 # show user info about how to interpret the graph
@@ -6654,7 +6798,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                             For example, a variance ratio of 0.75 means that 75% of the total variance in the data is captured by the corresponding principal component.
                             ''')
     except:
-        # if list is empty
+        # if pca could not execute show user error
         selected_cols_pca = []
         st.warning(':red[**ERROR**: Principal Component Analysis could not execute...please adjust your selection criteria]')
     
@@ -6833,17 +6977,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         st.dataframe(X, use_container_width=True)
         # create download button for forecast results to .csv
         download_csv_button(X, my_file="features_dataframe.csv", help_message="Download your **features** to .CSV", my_key='features_df_download_btn')
-
-# set session states for the TRAIN Page buttons when models are trained, 
-# to expand dataframe below graph
-create_store("TRAIN", [
-                        ("naive_model_btn_show", False),
-                        ("naive_model_btn_hide", False),
-                        ("linreg_model_btn_show", False),
-                        ("sarimax_model_btn_show", False),
-                        ("prophet_model_btn_show", False)
-                      ]
-             )        
+ 
 # =============================================================================
 #   _______ _____            _____ _   _ 
 #  |__   __|  __ \     /\   |_   _| \ | |
@@ -7054,19 +7188,37 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
 #             except:
 #                 st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
 # =============================================================================
-            try:
-                if model_name == "Linear Regression":
-                     # train the model
-                     create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, model=model, model_name=model_name)
-                     # append to sidebar table the results of the model train/test
-                     new_row = {'model_name': 'Linear Regression',
-                                'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
-                                'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
-                                'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
-                                'features':features_str}
-                     results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-            except:
-                st.warning(f'Linear Regression failed to train, please contact your administrator!')
+# =============================================================================
+#             try:
+# =============================================================================
+            if model_name == "Linear Regression":
+                 # train the model
+                 st.write('train linear regression')
+                 st.write('X_train', X_train)
+                 st.write('y_train', y_train)
+                 
+                 # create card with model insample prediction with linear regression model
+                 create_streamlit_model_card(X_train = X_train, 
+                                             y_train = y_train, 
+                                             X_test = X_test, 
+                                             y_test = y_test, 
+                                             results_df = results_df, 
+                                             model = model, 
+                                             model_name = model_name)
+                 
+                 # define new row of train/test results
+                 new_row = {'model_name': 'Linear Regression',
+                            'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
+                            'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
+                            'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
+                            'features':features_str}
+                 
+                 # add the results of the model train/test to dataframe
+                 results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+# =============================================================================
+#             except:
+#                 st.warning(f'Linear Regression failed to train, please contact your administrator!')
+# =============================================================================
             try:
                 if model_name == "SARIMAX":
                     with st.expander('📈' + model_name, expanded=True):
@@ -7673,6 +7825,7 @@ if menu_item == 'Forecast':
                             weekly_seasonality=weekly_seasonality,
                             daily_seasonality=daily_seasonality,
                             interval_width=interval_width)
+                
                 # train the model on the entire dataset with set parameters
                 m.fit(y_prophet)
                 # Predict on the test set
