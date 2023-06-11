@@ -32,7 +32,7 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 
-from streamlit_lottie import st_lottie
+
         
 import json
 import requests
@@ -43,6 +43,8 @@ import requests
 from streamlit_option_menu import option_menu
 from streamlit_extras.buy_me_a_coffee import button
 from streamlit_extras.dataframe_explorer import dataframe_explorer
+from st_click_detector import click_detector
+from streamlit_lottie import st_lottie
 
 # source: https://github.com/inspurer/streamlit-marquee
 # scrolling text
@@ -2113,7 +2115,8 @@ def model_documentation(selected_model_info):
                                 ''', unsafe_allow_html=True)
                 return selected_model_info
             else:
-                pass        
+                pass   
+            
     
 #******************************************************************************
 # OTHER FUNCTIONS
@@ -6285,6 +6288,10 @@ else:
     
     # add the date column but only as numeric feature
     df['date_numeric'] = (df['date'] - df['date'].min()).dt.days
+    # TIMESTAMP NUMERIC Unix gives same result
+    #df['date_numeric'] = (df['date'] - pd.Timestamp("1970-01-01")) // pd.Timedelta('1s')
+
+    
     
     st.write('df before dtype fixed', df)
 
@@ -6595,7 +6602,6 @@ else:
         
 # Update Session States
 st.session_state['X'] = X
-st.write(st.session_state['X'])
 st.session_state['y'] = y
 st.session_state['X_train'] = X_train
 st.session_state['X_test'] = X_test
@@ -6977,7 +6983,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         st.dataframe(X, use_container_width=True)
         # create download button for forecast results to .csv
         download_csv_button(X, my_file="features_dataframe.csv", help_message="Download your **features** to .CSV", my_key='features_df_download_btn')
- 
+                         
 # =============================================================================
 #   _______ _____            _____ _   _ 
 #  |__   __|  __ \     /\   |_   _| \ | |
@@ -7104,19 +7110,14 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
     # =============================================================================
     # IF USER HASNT SELECTED ANY MODELS AND HASNT STARTED TRAINING SHOW INFO MESSAGE            
     # =============================================================================
-    my_title(f"{train_icon} Train Models", "#0072B2", gradient_colors="#1A2980, #0072B2, #FEBD2E")
-    # if nothing is selected by user display message to user to select models to train
-   
+    my_title(f"{train_icon} Train Models", "#0072B2", gradient_colors="#1A2980, #0072B2, #FEBD2E")       
+       
     # SHOW MODEL DOCUMENTATION AFTER MODELS RUN
     selected_model_info = model_documentation(st.session_state['selected_model_info'])
-    
+   
     # show page with models listed on flashcards if:
     # user did not select any model information from drop-down
     # user did not train any models
-# =============================================================================
-#     st.write(get_state("TRAIN", "naive_model_btn_show"))
-#     st.write(get_state("TRAIN", "naive_model_btn_hide"))
-# =============================================================================
     # if user did train models before and page has to reload to show related dataframe below graph with button click also do not show
     if st.session_state['selected_model_info'] == '-' and not train_models_btn and not selected_models:
         with st.expander('', expanded=True):
@@ -7124,6 +7125,104 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
             with col2:
                     # define the font family to display the text of paragraph
                     train_models_carousel(my_title= 'Select your models to train in the sidebar!')
+
+                    def show_df_xy_btns():
+                        my_text_header('Model Input')
+                        show_lottie_animation(url="./images/86093-data-fork.json", key='inputs')
+                    
+                        col1, col2, col3 = st.columns([1, 3, 1])
+                        with col2:
+                            color_train = '#624e9f'  # '#217cd0'
+                            color_test = '#149ef3'  # '#ffa500'
+                            button_container = """
+                                <div style="display: flex; flex-direction: column; align-items: center; padding: 10px; margin-top: -30px;">
+                                    <div style="display: flex; width: 100%; max-width: 400px;">
+                                        <div style="flex: 1; background: {color_train}; border-radius: 20px 0 0 20px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.1);">
+                                            <a href='#' id='train' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: {color_train}; border-radius: 5px; padding: 10px;">
+                                                <span style="color: #FFFFFF; font-size: 14px;">Train</span>
+                                            </a>
+                                        </div>
+                                        <div style="flex: 1; background: {color_train}; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.1);">
+                                            <a href='#' id='X_train' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: {color_train}; padding: 10px;">
+                                                <span style="color: #FFFFFF; font-size: 14px;">Train X</span>
+                                            </a>
+                                        </div>
+                                        <div style="flex: 1; background: {color_train}; border-radius: 0 20px 20px 0; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.1);">
+                                            <a href='#' id='y_train' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: {color_train}; border-radius: 5px; padding: 10px;">
+                                                <span style="color: #FFFFFF; font-size: 14px;">Train y</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; width: 100%; max-width: 400px; margin-top: 10px;">
+                                        <div style="flex: 1; background: {color_test}; border-radius: 20px 0 0 20px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.1);">
+                                            <a href='#' id='test' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: {color_test}; border-radius: 5px; padding: 10px;">
+                                                <span style="color: #FFFFFF; font-size: 14px;">Test</span>
+                                            </a>
+                                        </div>
+                                        <div style="flex: 1; background: {color_test}; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.1);">
+                                            <a href='#' id='X_test' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: {color_test}; border-radius: 5px; padding: 10px;">
+                                                <span style="color: #FFFFFF; font-size: 14px;">Test X</span>
+                                            </a>
+                                        </div>
+                                        <div style="flex: 1; background: {color_test}; border-radius: 0 20px 20px 0; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.1);">
+                                            <a href='#' id='y_test' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: {color_test}; border-radius: 5px;; padding: 10px;">
+                                                <span style="color: #FFFFFF; font-size: 14px;">Test y</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; width: 100%; max-width: 400px; margin-top: 10px;">
+                                        <div style="flex: 1; background: {color_train}; border-radius: 0 0 30px 30px; box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.1), 0px 1px 3px rgba(0, 0, 0, 0.1);">
+                                            <a href='#' id='close_btn' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: ; border-radius: 50%; padding: 10px; margin-bottom: -20px;">
+                                                <span style="color: #FFFFFF; font-size: 14px;">&times;</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            """.format(color_train=color_train, color_test=color_test)
+
+                            # Call the click_detector function with the HTML content
+                            clicked = click_detector(button_container)
+
+
+                            set_state('TRAIN_PAGE_btns', ('btn_close', False))
+                    
+                        if clicked == "train":
+                            my_text_paragraph('Training Dataset', my_font_size='28px')
+                            vertical_spacer(1)
+                            st.dataframe(st.session_state['df'].iloc[:-st.session_state['insample_forecast_steps'], :], use_container_width=True)
+                        elif clicked == "test":
+                            my_text_paragraph('Test Dataset', my_font_size='28px')
+                            vertical_spacer(1)
+                            # get the length of test-set based on insample_forecast_steps
+                            test_range = len(st.session_state['df']) - st.session_state['insample_forecast_steps']
+                            st.dataframe(st.session_state['df'].iloc[test_range:, :], use_container_width=True)
+                        elif clicked == "X_train":
+                            my_text_paragraph('Explanatory Variables (X)', my_font_size='28px')
+                            vertical_spacer(1)
+                            st.dataframe(X_train, use_container_width=True)
+                        elif clicked == "y_train":
+                            my_text_paragraph('Target Variable (y)', my_font_size='28px')
+                            vertical_spacer(1)
+                            st.dataframe(y_train, use_container_width=True)
+                        elif clicked == "X_test":
+                            my_text_paragraph('Explanatory Variables (X)', my_font_size='28px')
+                            vertical_spacer(1)
+                            st.dataframe(X_test, use_container_width=True)
+                        elif clicked == "y_test":
+                            my_text_paragraph('Target Variable (y)', my_font_size='28px')
+                            vertical_spacer(1)
+                            st.dataframe(y_test, use_container_width=True)
+                        elif clicked == "close_btn":
+                            pass
+                        else:
+                            pass
+
+
+        with st.expander('', expanded=True):
+            # Show buttons with Training Data/Test Data 
+            # if clicked user will get corresponding Train/Test dataframe displayed in streamlit
+            show_df_xy_btns()
+                    
   
     elif st.session_state['selected_model_info'] == '-' and not selected_models:
         with st.expander('', expanded=True):
@@ -7191,12 +7290,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
 # =============================================================================
 #             try:
 # =============================================================================
-            if model_name == "Linear Regression":
-                 # train the model
-                 st.write('train linear regression')
-                 st.write('X_train', X_train)
-                 st.write('y_train', y_train)
-                 
+            if model_name == "Linear Regression":                 
                  # create card with model insample prediction with linear regression model
                  create_streamlit_model_card(X_train = X_train, 
                                              y_train = y_train, 
