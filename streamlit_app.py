@@ -238,6 +238,159 @@ st.set_page_config(page_title="ForecastGenie™️",
 #  |_|     \____/|_| \_|\_____|  |_|  |_____\____/|_| \_|_____/ 
 #                                                               
 # =============================================================================
+def show_pca_plot(sorted_features, pca, sorted_idx, selected_cols_pca):
+    """
+    Display a PCA plot and information about the selected features.
+
+    Parameters:
+        - sorted_features (pandas.Series or list): A pandas Series or list containing the sorted feature names.
+        - pca (sklearn.decomposition.PCA): The fitted PCA object.
+        - sorted_idx (list or array-like): The sorted indices of the features.
+
+    Returns:
+        None
+    """            
+    vertical_spacer(2)
+    my_text_paragraph(f'Principal Component Analysis', my_font_size='26px')
+    my_text_paragraph(f'<b>TOP {len(sorted_features)}</b>', my_font_size='16px', my_font_family='Segui UI')
+
+    # Create plot
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=pca.explained_variance_ratio_[sorted_idx],
+        y=sorted_features,
+        orientation='h',
+        text=np.round(pca.explained_variance_ratio_[sorted_idx] * 100, 2),
+        textposition='auto'
+    ))
+    fig.update_layout(
+        title={
+            'text': '',
+            'x': 0.5,
+            'y': 0.95,
+            'xanchor': 'center',
+            'yanchor': 'top'
+        },
+        xaxis_title='Explained Variance Ratio',
+        yaxis_title='Feature Name'
+    )
+    
+    # Display plot in Streamlit
+    st.plotly_chart(fig, use_container_width=True)
+    st.info(f'Top {len(selected_cols_pca)} features selected with PCA: {selected_cols_pca}')
+
+    # Show "About PCA plot" button
+    show_pca_info_btn = st.button(f'About PCA plot', use_container_width=True, type='secondary')
+    
+    if show_pca_info_btn == True:
+        vertical_spacer(1)
+        # show user info about how to interpret the graph
+        st.markdown('''When you fit a **PCA** model, it calculates the amount of variance that is captured by each principal component.
+                    The variance ratio is the fraction of the total variance in the data that is explained by each principal component.
+                    The sum of the variance ratios of all the principal components equals 1.
+                    The variance ratio is expressed as a percentage by multiplying it by 100, so it can be easily interpreted.  
+                    ''')
+        st.markdown('''
+                    For example, a variance ratio of 0.75 means that 75% of the total variance in the data is captured by the corresponding principal component.
+                    ''')
+                    
+def show_model_inputs():
+    """
+    Displays a set of buttons and corresponding dataframes based on user clicks.
+    
+    This function shows a set of buttons for different datasets and features (X, y).
+    When a button is clicked, the corresponding dataframe is displayed below.
+    
+    Returns:
+        None
+    """
+    my_text_header('Model Inputs')
+    show_lottie_animation(url="./images/86093-data-fork.json", key='inputs')
+
+    col1, col2, col3 = st.columns([2, 4, 2])
+    with col2:
+        color_train = '#624e9f'  
+        color_test = '#149ef3'  
+        button_container = """
+            <div style="display: flex; flex-direction: column; align-items: center; padding: 10px; margin-top: -30px;">
+                <div style="display: flex; width: 100%; max-width: 400px;">
+                    <div style="flex: 1; background: {color_train}; border-radius: 20px 0 0 20px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.1);">
+                        <a href='#' id='train' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: {color_train}; border-radius: 5px; padding: 10px;">
+                            <span style="color: #FFFFFF; font-size: 14px;">Train</span>
+                        </a>
+                    </div>
+                    <div style="flex: 1; background: {color_train}; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.1);">
+                        <a href='#' id='X_train' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: {color_train}; padding: 10px;">
+                            <span style="color: #FFFFFF; font-size: 14px;">Train X</span>
+                        </a>
+                    </div>
+                    <div style="flex: 1; background: {color_train}; border-radius: 0 20px 20px 0; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.1);">
+                        <a href='#' id='y_train' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: {color_train}; border-radius: 5px; padding: 10px;">
+                            <span style="color: #FFFFFF; font-size: 14px;">Train y</span>
+                        </a>
+                    </div>
+                </div>
+                <div style="display: flex; width: 100%; max-width: 400px; margin-top: 10px;">
+                    <div style="flex: 1; background: {color_test}; border-radius: 20px 0 0 20px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.1);">
+                        <a href='#' id='test' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: {color_test}; border-radius: 5px; padding: 10px;">
+                            <span style="color: #FFFFFF; font-size: 14px;">Test</span>
+                        </a>
+                    </div>
+                    <div style="flex: 1; background: {color_test}; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.1);">
+                        <a href='#' id='X_test' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: {color_test}; border-radius: 5px; padding: 10px;">
+                            <span style="color: #FFFFFF; font-size: 14px;">Test X</span>
+                        </a>
+                    </div>
+                    <div style="flex: 1; background: {color_test}; border-radius: 0 20px 20px 0; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.1);">
+                        <a href='#' id='y_test' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: {color_test}; border-radius: 5px;; padding: 10px;">
+                            <span style="color: #FFFFFF; font-size: 14px;">Test y</span>
+                        </a>
+                    </div>
+                </div>
+                <div style="display: flex; width: 100%; max-width: 400px; margin-top: 10px;">
+                    <div style="flex: 1; background: {color_train}; border-radius: 0 0 30px 30px; box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.1), 0px 1px 3px rgba(0, 0, 0, 0.1);">
+                        <a href='#' id='close_btn' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: ; border-radius: 50%; padding: 10px; margin-bottom: -20px;">
+                            <span style="color: #FFFFFF; font-size: 14px;">&times;</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        """.format(color_train=color_train, color_test=color_test)
+   
+        # Call the click_detector function with the HTML content
+        clicked = click_detector(button_container)
+
+    if clicked == "train":
+        my_text_paragraph('Training Dataset', my_font_size='28px')
+        vertical_spacer(1)
+        st.dataframe(st.session_state['df'].iloc[:-st.session_state['insample_forecast_steps'], :], use_container_width=True)
+    elif clicked == "test":
+        my_text_paragraph('Test Dataset', my_font_size='28px')
+        vertical_spacer(1)
+        # get the length of test-set based on insample_forecast_steps
+        test_range = len(st.session_state['df']) - st.session_state['insample_forecast_steps']
+        st.dataframe(st.session_state['df'].iloc[test_range:, :], use_container_width=True)
+    elif clicked == "X_train":
+        my_text_paragraph('Explanatory Variables (X)', my_font_size='28px')
+        vertical_spacer(1)
+        st.dataframe(X_train, use_container_width=True)
+    elif clicked == "y_train":
+        my_text_paragraph('Target Variable (y)', my_font_size='28px')
+        vertical_spacer(1)
+        st.dataframe(y_train, use_container_width=True)
+    elif clicked == "X_test":
+        my_text_paragraph('Explanatory Variables (X)', my_font_size='28px')
+        vertical_spacer(1)
+        st.dataframe(X_test, use_container_width=True)
+    elif clicked == "y_test":
+        my_text_paragraph('Target Variable (y)', my_font_size='28px')
+        vertical_spacer(1)
+        st.dataframe(y_test, use_container_width=True)
+    elif clicked == "close_btn":
+        pass
+    else:
+        pass
+    
 def hist_change_freq():
     try:
         # update in memory value for radio button / save user choice of histogram freq
@@ -410,7 +563,7 @@ def my_title(my_string, my_background_color="#45B8AC", gradient_colors=None):
     if gradient_colors is None:
         gradient_colors = f"{my_background_color}, #2CB8A1, #0072B2"
     gradient = f"-webkit-linear-gradient(45deg, {gradient_colors})"
-    st.markdown(f'<h3 style="background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient}; padding:20px; border-radius: 10px; border: 2px solid {my_background_color}; box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);"> <center> {my_string} </center> </h3>', unsafe_allow_html=True)
+    st.markdown(f'<h3 style="background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient}; padding:10px; border-radius: 10px; border: 2px solid {my_background_color}; box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);"> <center> {my_string} </center> </h3>', unsafe_allow_html=True)
 
 def my_header(my_string, my_style="#217CD0"):
     st.markdown(f'<h2 style="color:{my_style};"> <center> {my_string} </center> </h2>', unsafe_allow_html=True)
@@ -2511,6 +2664,7 @@ def train_test_split_slider(df):
                     with col2:
                         insample_forecast_perc = st.slider('*Size of the test-set as percentage*', min_value=1, max_value=99, step=1, key='percentage')
                         insample_forecast_steps = round((insample_forecast_perc / 100) * len(df))
+           
             # show submit button in streamlit centered in sidebar
             col1, col2, col3 = st.columns([4,4,4])
             with col2:       
@@ -6230,6 +6384,9 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
             st.session_state['df_cleaned_outliers_with_index'] = df
     else:
         pass
+    
+    # add the date column but only as numeric feature
+    df['date_numeric'] = (df['date'] - df['date'].min()).dt.days
    
     #################################################################
     # ALL FEATURES COMBINED INTO A DATAFRAME
@@ -6239,14 +6396,15 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
         my_text_header('Engineered Features')
 
         # retrieve number of features to show on page
-        num_features_df = len(df.columns)-1
+        # -2 because of datetime index and target variable
+        num_features_df = len(df.columns)-2
         my_text_paragraph(f'{num_features_df}')
         
         # show animation
         show_lottie_animation(url="./images/features_round.json", key="features_round", width=400, height=400)
         
         # show dataframe in streamlit
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(copy_df_date_index(my_df=df, datetime_to_date=True, date_to_index=True), use_container_width=True)
         # add download button
         download_csv_button(df, my_file="dataframe_incl_features.csv", help_message="Download your dataset incl. features to .CSV")
 else:
@@ -6291,10 +6449,6 @@ else:
     # TIMESTAMP NUMERIC Unix gives same result
     #df['date_numeric'] = (df['date'] - pd.Timestamp("1970-01-01")) // pd.Timedelta('1s')
 
-    
-    
-    st.write('df before dtype fixed', df)
-
     # =============================================================================
     # FIX DATA TYPES FOR ENGINEERED FEATURES
     # =============================================================================
@@ -6319,7 +6473,7 @@ st.session_state['df'] = df
 
 # assumption date column and y column are at index 0 and index 1 so start from column 3 e.g. index 2 to count potential numerical_features
 # e.g. changed float64 to float to include other floats such as float32 and float16 data types
-st.write('taking from 3rd column forward all columns as numerical features')
+
 numerical_features = list(st.session_state['df'].iloc[:, 2:].select_dtypes(include=['float', 'int']).columns)
 
 # create copy of dataframe not altering original
@@ -6391,7 +6545,7 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
         my_text_header('Train/Test Split')
        
         # create sliders for user insample test-size (/train-size automatically as well)
-        st.write('session state df', st.session_state['df'])
+        # st.write('session state df', st.session_state['df']) # TEST
         my_insample_forecast_steps, my_insample_forecast_perc = train_test_split_slider(df = st.session_state['df'])
         
         # update the session_state with train/test split chosen by user from sidebar slider
@@ -6587,7 +6741,7 @@ else:
     #st.write(st.session_state['insample_forecast_steps'], 'equals insample forecast ')
     
     if 'date' in st.session_state['df']:
-        st.write('date is in the session state of dataframe df and will now be set as index')
+        #st.write('date is in the session state of dataframe df and will now be set as index') # TEST
         X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(st.session_state['df'].set_index('date'), 
                                                                                   st.session_state['insample_forecast_steps'], 
                                                                                   st.session_state['normalization_choice'], 
@@ -6609,6 +6763,13 @@ st.session_state['y_train'] = y_train
 st.session_state['y_test'] = y_test
 #st.session_state['scaler'] = scaler
 
+
+# set default values for feature selection
+key1_select_page, key2_select_page = create_store("SELECT_PAGE", [
+                            ("feature_selection_user", st.session_state['X'].columns.tolist()),
+                            ("run", 0)
+                            ])
+
 # =============================================================================
 #    _____ ______ _      ______ _____ _______ 
 #   / ____|  ____| |    |  ____/ ____|__   __|
@@ -6624,11 +6785,12 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
     my_title(f'{select_icon} Feature Selection', "#7B52AB", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
     
     with st.expander('', expanded=True):
-        
+
         vertical_spacer(2)
         
         col1, col2, col3 = st.columns([3,8,2])
         with col2:
+            
             title = 'Select your top features with 3 methods!'
             
             # set gradient color of letters of title
@@ -6656,7 +6818,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
             create_carousel_cards_v2(3, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back)
             vertical_spacer(2)
 
-        # Display a note to the user about using the training set for feature selection
+        # Display a NOTE to the user about using the training set for feature selection
         my_text_paragraph('NOTE: per common practice <b>only</b> the training dataset is used for feature selection to prevent <b>data leakage</b>.',my_font_size='12px', my_font_family='Arial')   
    
     with st.sidebar:
@@ -6717,26 +6879,21 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
     # =============================================================================
     # RFE Feature Selection - PAGE RESULTS
     # =============================================================================
-# =============================================================================
-#     try:
-#         with st.expander('🎨 RFECV', expanded=True):
-#             # run function to perform recursive feature elimination with cross-validation and display results using plot
-#             selected_cols_rfe = rfe_cv(st.session_state['X_train'], st.session_state['y_train'], est_rfe, num_steps_rfe, num_features, timeseriessplit_value_rfe)
-#     except:
-#         selected_cols_rfe= []
-#         st.warning(':red[**ERROR**: Recursive Feature Elimination with Cross-Validation could not execute...please adjust your selection criteria]')
-# =============================================================================
-    with st.expander('🎨 RFECV', expanded=True):
-        # run function to perform recursive feature elimination with cross-validation and display results using plot
-        st.write('X_TRAIN FOR RFE', st.session_state['X_train'])
-        st.write('y_train for RFE', st.session_state['y_train'])
-        selected_cols_rfe = rfe_cv(st.session_state['X_train'], 
-                                   st.session_state['y_train'], 
-                                   est_rfe, 
-                                   num_steps_rfe, 
-                                   num_features, 
-                                   timeseriessplit_value_rfe)   
-          
+    try:
+        with st.expander('🎨 RFECV', expanded=True):
+            # run function to perform recursive feature elimination with cross-validation and display results using plot
+            #st.write('X_TRAIN FOR RFE', st.session_state['X_train']) # TEST
+            #st.write('y_train for RFE', st.session_state['y_train']) # TEST
+            selected_cols_rfe = rfe_cv(st.session_state['X_train'], 
+                                       st.session_state['y_train'], 
+                                       est_rfe, 
+                                       num_steps_rfe, 
+                                       num_features, 
+                                       timeseriessplit_value_rfe)   
+    except:
+        selected_cols_rfe= []
+        st.error('**ForecastGenie Error**: *Recursive Feature Elimination with Cross-Validation* could not execute. Need at least 2 features to be able to apply Feature Elimination. Please adjust your selection criteria.')
+
     # =============================================================================        
     # PCA Feature Selection
     # =============================================================================
@@ -6754,59 +6911,30 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                 pca_btn = st.form_submit_button("Submit", type="secondary")
     try:
         with st.expander('🧮 PCA', expanded=True):
-            pca = PCA(n_components=num_features_pca)
+            # Create a PCA object with the desired number of components
+            pca = PCA(n_components = num_features_pca)
+            # Fit the PCA model to the training data
             pca.fit(X_train)
-            
-            X_pca = pca.transform(X_train)
-            selected_features_pca = ['PC{}'.format(i+1) for i in range(num_features_pca)]
+            # Get the names of the features/columns in the training data
             feature_names = X_train.columns
-            
-            # Sort features by explained variance ratio
+            # Sort the features based on the explained variance ratio in descending order
             sorted_idx = np.argsort(pca.explained_variance_ratio_)[::-1]
+            # Reorder the feature names based on the sorted indices
             sorted_features = feature_names[sorted_idx]
+            # Convert the sorted features to a list
+            selected_cols_pca = sorted_features.tolist()
             
-            vertical_spacer(2)
-            my_text_paragraph(f'Principal Component Analysis', my_font_size='26px')
-            my_text_paragraph(f'<b>TOP {len(sorted_features)}</b>', my_font_size='16px', my_font_family='Segui UI')
-            
-            # Create plot
-            fig = go.Figure()
-            fig.add_trace(go.Bar(x=pca.explained_variance_ratio_[sorted_idx], y=sorted_features, 
-                                 orientation='h', text=np.round(pca.explained_variance_ratio_[sorted_idx] * 100, 2), textposition='auto'))
-            fig.update_layout(title = {
-                                        'text': '',
-                                        'x': 0.5,
-                                        'y': 0.95,
-                                        'xanchor': 'center',
-                                        'yanchor': 'top'
-                                      },
-                              xaxis_title='Explained Variance Ratio', yaxis_title='Feature Name'
-                              )
-            # Display plot in Streamlit
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # show top x features selected
-            selected_cols_pca = sorted_features.tolist() 
-            
-            st.info(f'Top {len(selected_cols_pca)} features selected with PCA: {selected_cols_pca}')
-           
-            show_pca_info_btn = st.button(f'About PCA plot', use_container_width=True, type='secondary')
-           
-            if show_pca_info_btn == True:
-                st.write('')
-                # show user info about how to interpret the graph
-                st.markdown('''When you fit a **PCA** model, it calculates the amount of variance that is captured by each principal component.
-                        The variance ratio is the fraction of the total variance in the data that is explained by each principal component.
-                        The sum of the variance ratios of all the principal components equals 1.
-                        The variance ratio is expressed as a percentage by multiplying it by 100, so it can be easily interpreted.  
-                        ''')
-                st.markdown('''
-                            For example, a variance ratio of 0.75 means that 75% of the total variance in the data is captured by the corresponding principal component.
-                            ''')
+            # Show in Streamlit a title, subtitle and plot of top features with Principal Component Analysis
+            # Additionally show button when clicked shows additional explanation of PCA Plot
+            show_pca_plot(sorted_features = sorted_features, 
+                          pca = pca, 
+                          sorted_idx = sorted_idx, 
+                          selected_cols_pca = selected_cols_pca)
+        
     except:
         # if pca could not execute show user error
         selected_cols_pca = []
-        st.warning(':red[**ERROR**: Principal Component Analysis could not execute...please adjust your selection criteria]')
+        st.error('**ForecastGenie Error**: *Principal Component Analysis* could not execute. Please adjust your selection criteria.')
     
     # =============================================================================
     # Mutual Information Feature Selection
@@ -6954,12 +7082,28 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
             
             # combine list of features selected from feature selection methods and only keep unique features excluding duplicate features
             #total_features = np.unique(selected_cols_rfe + selected_cols_pca + selected_cols_mifs)
+
+# =============================================================================
+#             # combine 3 feature selection methods and show to user in multi-selectbox to adjust as needed
+#             feature_selection_user = st.multiselect(label = "favorite features", 
+#                                                     options = list(total_features), 
+#                                                     default = get_state("SELECT_PAGE", "feature_selection_user"), 
+#                                                     label_visibility="collapsed")
+# =============================================================================
+            lst1 = get_state("SELECT_PAGE", "feature_selection_user")
+            lst2 = list(total_features)
+            common_elements = list(set(lst1).intersection(lst2))
             
             # combine 3 feature selection methods and show to user in multi-selectbox to adjust as needed
-            feature_selection_user = st.multiselect("favorite features", list(total_features), list(total_features), label_visibility="collapsed")
+            feature_selection_user = st.multiselect(label = "favorite features", 
+                                                    options = list(total_features), 
+                                                    default = common_elements, 
+                                                    #key = key1_select_page,
+                                                    label_visibility="collapsed")
+            
             col1, col2, col3 = st.columns([4,4,4])
             with col2:       
-                top_features_btn = st.form_submit_button("Submit", type="secondary")
+                top_features_btn = st.form_submit_button("Submit", type="secondary",  on_click=form_update, args=("SELECT_PAGE",))
                 
     ######################################################################################################
     # redefine dynamic user picked features for X,y, X_train, X_test, y_train, y_test
@@ -6976,14 +7120,35 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         my_subheader('')
         my_text_paragraph('Your Feature Selection', my_font_size='26px')
         show_lottie_animation(url = "./images/astronaut_star_in_hand.json", key = 'austronaut-star', width=200, height=200, col_sizes=[5,4,5],margin_before=1, margin_after=2)
+        
         # create dataframe from list of features and specify column header
-        df_total_features = pd.DataFrame(total_features, columns = ['Top Features'])
+        # NOTE: updated below code from 'total_features' to 'feature_selection_user' to only show features that are in sidebar selected
+        # instead of all that are outputed from feature selection techniques
+        df_total_features = pd.DataFrame(feature_selection_user, columns = ['Top Features'])
         st.dataframe(df_total_features, use_container_width=True)
+        
         # display the dataframe in streamlit
         st.dataframe(X, use_container_width=True)
+       
         # create download button for forecast results to .csv
         download_csv_button(X, my_file="features_dataframe.csv", help_message="Download your **features** to .CSV", my_key='features_df_download_btn')
-                         
+else:
+    # apply 3 selection methods
+    
+    # retrieve features
+    
+    # update session state --> get_state("SELECT_PAGE", "feature_selection_user")
+    
+    
+    # else if user not on select screen then perform either default selection or user selection overwritten default from session state 
+    X = X.loc[:, get_state("SELECT_PAGE", "feature_selection_user")]
+    y = y
+    X_train = X[:(len(df)-st.session_state['insample_forecast_steps'])]
+    X_test = X[(len(df)-st.session_state['insample_forecast_steps']):]
+    # set endogenous variable train/test split
+    y_train = y[:(len(df)-st.session_state['insample_forecast_steps'])]
+    y_test = y[(len(df)-st.session_state['insample_forecast_steps']):]    
+    
 # =============================================================================
 #   _______ _____            _____ _   _ 
 #  |__   __|  __ \     /\   |_   _| \ | |
@@ -7004,32 +7169,38 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
             my_text_paragraph('Model Information')
             vertical_spacer(1)
             col1, col2, col3 = st.columns([1,1,1])
-            selected_model_info = col2.selectbox(label = "*Select model*:", 
-                                          options = ['-', 'Naive Model', 'Linear Regression', 'SARIMAX', 'Prophet'], 
-                                          label_visibility='collapsed')
+            selected_model_info = col2.selectbox(
+                                                 label = "*Select model*:", 
+                                                 options = ['-', 'Naive Model', 'Linear Regression', 'SARIMAX', 'Prophet'], 
+                                                 label_visibility='collapsed'
+                                                )
             vertical_spacer(2)
+            
         # update session state
         st.session_state['selected_model_info'] = selected_model_info
-            
      
     with st.sidebar.form('model_train_form'):
         vertical_spacer(1)
         my_text_paragraph('Model Selection')
         # generic graph settings
-        my_conf_interval = st.slider("*Set Confidence Interval (%)*", 
+        my_conf_interval = st.slider(
+                                     label = "*Set Confidence Interval (%)*", 
                                      min_value=1, 
                                      max_value=99, 
                                      value=80, 
                                      step=1, 
                                      help='A confidence interval is a range of values around a sample statistic, such as a mean or proportion, which is likely to contain the true population parameter with a certain degree of confidence.\
                                            The level of confidence is typically expressed as a percentage, such as 95%, and represents the probability that the true parameter lies within the interval.\
-                                           A wider interval will generally have a higher level of confidence, while a narrower interval will have a lower level of confidence.')
+                                           A wider interval will generally have a higher level of confidence, while a narrower interval will have a lower level of confidence.'
+                                    )
         
         # define all models you want user to choose from
-        models = [('Naive Model', None),
+        models = [
+                  ('Naive Model', None),
                   ('Linear Regression', LinearRegression(fit_intercept=True)), 
                   ('SARIMAX', SARIMAX(y_train)),
-                  ('Prophet', Prophet())]
+                  ('Prophet', Prophet())
+                 ]
       
         # create a checkbox for each model
         selected_models = []
@@ -7126,104 +7297,14 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                     # define the font family to display the text of paragraph
                     train_models_carousel(my_title= 'Select your models to train in the sidebar!')
 
-                    def show_df_xy_btns():
-                        my_text_header('Model Input')
-                        show_lottie_animation(url="./images/86093-data-fork.json", key='inputs')
-                    
-                        col1, col2, col3 = st.columns([1, 3, 1])
-                        with col2:
-                            color_train = '#624e9f'  # '#217cd0'
-                            color_test = '#149ef3'  # '#ffa500'
-                            button_container = """
-                                <div style="display: flex; flex-direction: column; align-items: center; padding: 10px; margin-top: -30px;">
-                                    <div style="display: flex; width: 100%; max-width: 400px;">
-                                        <div style="flex: 1; background: {color_train}; border-radius: 20px 0 0 20px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.1);">
-                                            <a href='#' id='train' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: {color_train}; border-radius: 5px; padding: 10px;">
-                                                <span style="color: #FFFFFF; font-size: 14px;">Train</span>
-                                            </a>
-                                        </div>
-                                        <div style="flex: 1; background: {color_train}; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.1);">
-                                            <a href='#' id='X_train' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: {color_train}; padding: 10px;">
-                                                <span style="color: #FFFFFF; font-size: 14px;">Train X</span>
-                                            </a>
-                                        </div>
-                                        <div style="flex: 1; background: {color_train}; border-radius: 0 20px 20px 0; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.1);">
-                                            <a href='#' id='y_train' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: {color_train}; border-radius: 5px; padding: 10px;">
-                                                <span style="color: #FFFFFF; font-size: 14px;">Train y</span>
-                                            </a>
-                                        </div>
-                                    </div>
-                                    <div style="display: flex; width: 100%; max-width: 400px; margin-top: 10px;">
-                                        <div style="flex: 1; background: {color_test}; border-radius: 20px 0 0 20px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.1);">
-                                            <a href='#' id='test' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: {color_test}; border-radius: 5px; padding: 10px;">
-                                                <span style="color: #FFFFFF; font-size: 14px;">Test</span>
-                                            </a>
-                                        </div>
-                                        <div style="flex: 1; background: {color_test}; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.1);">
-                                            <a href='#' id='X_test' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: {color_test}; border-radius: 5px; padding: 10px;">
-                                                <span style="color: #FFFFFF; font-size: 14px;">Test X</span>
-                                            </a>
-                                        </div>
-                                        <div style="flex: 1; background: {color_test}; border-radius: 0 20px 20px 0; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.1);">
-                                            <a href='#' id='y_test' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: {color_test}; border-radius: 5px;; padding: 10px;">
-                                                <span style="color: #FFFFFF; font-size: 14px;">Test y</span>
-                                            </a>
-                                        </div>
-                                    </div>
-                                    <div style="display: flex; width: 100%; max-width: 400px; margin-top: 10px;">
-                                        <div style="flex: 1; background: {color_train}; border-radius: 0 0 30px 30px; box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.1), 0px 1px 3px rgba(0, 0, 0, 0.1);">
-                                            <a href='#' id='close_btn' style="display: flex; justify-content: center; align-items: center; height: 100%; text-decoration: none; background: ; border-radius: 50%; padding: 10px; margin-bottom: -20px;">
-                                                <span style="color: #FFFFFF; font-size: 14px;">&times;</span>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            """.format(color_train=color_train, color_test=color_test)
-
-                            # Call the click_detector function with the HTML content
-                            clicked = click_detector(button_container)
-
-
-                            set_state('TRAIN_PAGE_btns', ('btn_close', False))
-                    
-                        if clicked == "train":
-                            my_text_paragraph('Training Dataset', my_font_size='28px')
-                            vertical_spacer(1)
-                            st.dataframe(st.session_state['df'].iloc[:-st.session_state['insample_forecast_steps'], :], use_container_width=True)
-                        elif clicked == "test":
-                            my_text_paragraph('Test Dataset', my_font_size='28px')
-                            vertical_spacer(1)
-                            # get the length of test-set based on insample_forecast_steps
-                            test_range = len(st.session_state['df']) - st.session_state['insample_forecast_steps']
-                            st.dataframe(st.session_state['df'].iloc[test_range:, :], use_container_width=True)
-                        elif clicked == "X_train":
-                            my_text_paragraph('Explanatory Variables (X)', my_font_size='28px')
-                            vertical_spacer(1)
-                            st.dataframe(X_train, use_container_width=True)
-                        elif clicked == "y_train":
-                            my_text_paragraph('Target Variable (y)', my_font_size='28px')
-                            vertical_spacer(1)
-                            st.dataframe(y_train, use_container_width=True)
-                        elif clicked == "X_test":
-                            my_text_paragraph('Explanatory Variables (X)', my_font_size='28px')
-                            vertical_spacer(1)
-                            st.dataframe(X_test, use_container_width=True)
-                        elif clicked == "y_test":
-                            my_text_paragraph('Target Variable (y)', my_font_size='28px')
-                            vertical_spacer(1)
-                            st.dataframe(y_test, use_container_width=True)
-                        elif clicked == "close_btn":
-                            pass
-                        else:
-                            pass
-
-
+        # =============================================================================
+        # Model Inputs Card
+        # =============================================================================
         with st.expander('', expanded=True):
             # Show buttons with Training Data/Test Data 
             # if clicked user will get corresponding Train/Test dataframe displayed in streamlit
-            show_df_xy_btns()
-                    
-  
+            show_model_inputs()
+
     elif st.session_state['selected_model_info'] == '-' and not selected_models:
         with st.expander('', expanded=True):
             col1, col2, col3 = st.columns([1,3,1])
