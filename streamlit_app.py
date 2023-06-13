@@ -31,9 +31,7 @@ source ASCII ART: https://patorjk.com/software/taag/#p=display&v=0&f=Big&t=FOREC
 import pandas as pd
 import numpy as np
 import streamlit as st
-
-
-        
+       
 import json
 import requests
 
@@ -143,6 +141,7 @@ st.set_page_config(page_title="ForecastGenie™️",
                    layout="centered", # "centered" or "wide"
                    page_icon="🌀", 
                    initial_sidebar_state="expanded") # "auto" or "expanded" or "collapsed"
+
 # =============================================================================
 #   _____   ____   ____  _____  _      ______  _____ 
 #  |  __ \ / __ \ / __ \|  __ \| |    |  ____|/ ____|
@@ -205,7 +204,6 @@ st.set_page_config(page_title="ForecastGenie™️",
 #             # vertical spacer
 #             st.write('')
 # =============================================================================
-
 # =============================================================================
 #                 # Create Carousel Cards
 #                 # define for each card the header in the header list
@@ -238,6 +236,292 @@ st.set_page_config(page_title="ForecastGenie™️",
 #  |_|     \____/|_| \_|\_____|  |_|  |_____\____/|_| \_|_____/ 
 #                                                               
 # =============================================================================
+def analyze_feature_correlations(
+    selected_corr_model: str,
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    selected_cols_rfe: list,
+    selected_cols_pca: list,
+    selected_cols_mifs: list,
+    corr_threshold: float = 0.8,
+    models: dict = {
+        'Linear Regression': LinearRegression(),
+        'Random Forest Regressor': RandomForestRegressor(n_estimators=100)
+        }
+    ) -> tuple:
+    """
+    Analyzes feature correlations and computes importance scores.
+
+    Args:
+        X_train (pd.DataFrame): Training dataset of independent features.
+        corr_threshold (float): Threshold for considering highly correlated features.
+        selected_cols_rfe (list): List of selected columns from Recursive Feature Elimination (RFE).
+        selected_cols_pca (list): List of selected columns from Principal Component Analysis (PCA).
+        selected_cols_mifs (list): List of selected columns from Mutual Information Feature Selection (MIFS).
+        models (dict): Dictionary of models with model names as keys and model objects as values.
+
+    Returns:
+        tuple: A tuple containing the following:
+            - total_features (list): List of total features (selected_cols_rfe + selected_cols_pca + selected_cols_mifs).
+            - importance_scores (pd.Series or np.array): Feature importance scores or permutation importance scores.
+            - pairwise_features_in_total_features (list): List of pairwise features that are in total_features.
+    """
+    # Create correlation matrix from training dataset of independent features
+    corr_matrix = X_train.corr()
+
+    # Get the indices of the highly correlated features
+    indices = np.where(abs(corr_matrix) >= corr_threshold)
+
+    # Create a dataframe with the pairwise correlation values above the threshold
+    df_pairwise = pd.DataFrame({
+        'feature1': corr_matrix.columns[indices[0]],
+        'feature2': corr_matrix.columns[indices[1]],
+        'correlation': corr_matrix.values[indices]
+    })
+
+    # Sort feature pairs and drop duplicates
+    df_pairwise = df_pairwise.assign(sorted_features=df_pairwise[['feature1', 'feature2']].apply(sorted, axis=1).apply(tuple))
+    df_pairwise = df_pairwise.loc[df_pairwise['feature1'] != df_pairwise['feature2']].drop_duplicates(subset='sorted_features').drop(columns='sorted_features')
+
+    # Sort by correlation and format output
+    df_pairwise = df_pairwise.sort_values(by='correlation', ascending=False).reset_index(drop=True)
+    df_pairwise['correlation'] = (df_pairwise['correlation'] * 100).apply('{:.2f}%'.format)
+
+    # Find pairs in total_features
+    total_features = np.unique(selected_cols_rfe + selected_cols_pca + selected_cols_mifs).tolist()
+
+    pairwise_features = list(df_pairwise[['feature1', 'feature2']].itertuples(index=False, name=None))
+    pairwise_features_in_total_features = [pair for pair in pairwise_features if pair[0] in total_features and pair[1] in total_features]
+
+    # Create estimator based on user-selected model
+    estimator = models[selected_corr_model]
+    estimator.fit(X_train, y_train)
+    
+    # Compute feature importance scores or permutation importance scores
+    importance_scores = compute_importance_scores(X_train, y_train, estimator)
+    
+    return total_features, importance_scores, pairwise_features_in_total_features, df_pairwise   
+
+def remove_lowest_importance_feature(total_features, importance_scores, pairwise_features_in_total_features):
+    lowest_importance_features = []
+    for feature1, feature2 in pairwise_features_in_total_features:
+        if feature1 in total_features and feature2 in total_features:
+            score1 = importance_scores[feature1]
+            score2 = importance_scores[feature2]
+            if score1 < score2:
+                lowest_importance_features.append(feature1)
+            else:
+                lowest_importance_features.append(feature2)
+    updated_total_features = [feature for feature in total_features if feature not in lowest_importance_features]
+    return updated_total_features
+            
+def show_rfe_plot(rfecv, selected_features):
+    """
+    Show the Recursive Feature Elimination (RFE) plot and feature rankings in Streamlit.
+
+    Parameters:
+        rfecv (sklearn.feature_selection.RFECV): The fitted RFECV model.
+        selected_features (list): The list of selected feature/column names.
+
+    Returns:
+        None
+
+    """
+    # Scatterplot the results
+    #############################################################
+    # Get the feature ranking
+    feature_rankings = pd.Series(rfecv.ranking_, index=X_train.columns).rename('Ranking')
+    # Sort the feature rankings in descending order
+    sorted_rankings = feature_rankings.sort_values(ascending=True)
+    # Create a dataframe with feature rankings and selected features
+    df_ranking = pd.DataFrame({'Features': sorted_rankings.index, 'Ranking': sorted_rankings})
+    # Sort the dataframe by ranking
+    df_ranking = df_ranking.sort_values('Ranking', ascending=True)
+    # Highlight selected features
+    df_ranking['Selected'] = np.where(df_ranking['Features'].isin(selected_features), 'Yes', 'No')
+    
+    # Create the rfe plot
+    vertical_spacer(2)
+    fig = create_rfe_plot(df_ranking)
+    # Show the plot
+    st.plotly_chart(fig, use_container_width=True)                       
+    # show the ranking and selected features dataframes side by side
+    col1, col2, col3, col4 = st.columns([1,2,2,1])
+    with col2:
+        st.write(':blue[**Selected features:**]', selected_features)
+    # Print the feature rankings
+    with col3: 
+        feature_rankings = pd.Series(rfecv.ranking_, index=X.columns).rename('Ranking')
+        st.write(':blue[**Feature rankings:**]')
+        st.write(feature_rankings.sort_values())
+    
+    #############################################################
+    # Show in Streamlit the ranking
+    #############################################################
+    selected_cols_rfe = list(selected_features)
+    st.info(f'Top {len(selected_cols_rfe)} features selected with RFECV: {selected_cols_rfe}')
+    
+    show_rfe_info_btn = st.button(f'About RFE plot', use_container_width=True, type='secondary')
+    # if user clicks "About RFE plot" button, display information about RFE
+    if show_rfe_info_btn:
+        st.write('')
+        # show user info about how to interpret the graph
+        st.markdown('''
+                    **Recursive Feature Elimination** involves recursively removing features and building a model on the remaining features. It then **ranks the features** based on their importance and **eliminates** the **least important feature**.
+                    ''')
+
+def perform_rfe(X_train, y_train, estimator_rfe, num_steps_rfe, num_features_rfe, timeseriessplit_value_rfe):
+    """
+    Perform Recursive Feature Elimination with Cross-Validation and display the results using a scatter plot.
+
+    Parameters:
+        X_train (pandas.DataFrame): Training data features.
+        y_train (pandas.Series): Training data target.
+        est_rfe (estimator object): A supervised learning estimator with a `fit` method.
+        num_steps_rfe (int): Number of features to remove at each iteration of RFE.
+        num_features (int): Number of features to select, defaults to None.
+        timeseriessplit_value_rfe (int): Number of splits in time series cross-validation.
+
+    Returns:
+        None
+    """
+    # Set up the estimator based on the user's selection
+    if estimator_rfe == 'Linear Regression':
+        est_rfe = LinearRegression()
+    elif estimator_rfe == 'Random Forest Regression':
+        est_rfe = RandomForestRegressor()
+                  
+    #############################################################
+    # Recursive Feature Elemination
+    #############################################################
+    # define the time series splits set by user in sidebar slider      
+    tscv = TimeSeriesSplit(n_splits=timeseriessplit_value_rfe)
+    # Set up the recursive feature elimination with cross validation
+    rfecv = RFECV(estimator=est_rfe, step=num_steps_rfe, cv=tscv, scoring='neg_mean_squared_error', n_jobs=-1)
+    # Fit the feature selection model
+    rfecv.fit(X_train, y_train)
+    # Define the selected features
+    if num_features_rfe is not None:
+        selected_features = X_train.columns[rfecv.ranking_ <= num_features_rfe]
+    else:
+        selected_features = X_train.columns[rfecv.support_]
+    # show user selected columns
+    selected_cols_rfe = list(selected_features)
+    return selected_cols_rfe, selected_features, rfecv
+
+def perform_mifs(X_train, y_train, num_features_mifs):
+    """
+    Perform Mutual Information Feature Selection (MIFS) on the training data.
+
+    Parameters:
+        X_train (pandas.DataFrame): The training data.
+        y_train (pandas.Series or numpy.ndarray): The target variable for training.
+        num_features_mifs (int): The number of top features to select based on mutual information.
+
+    Returns:
+        tuple: A tuple containing the following:
+            - mutual_info (numpy.ndarray): The array of mutual information values.
+            - selected_features_mi (numpy.ndarray): The selected feature/column names based on mutual information.
+            - selected_cols_mifs (list): The selected feature/column names as a list.
+
+    """
+    mutual_info = mutual_info_regression(X_train, y_train, random_state=42)
+    selected_features_mi = X_train.columns[np.argsort(mutual_info)[::-1]][:num_features_mifs]
+    selected_cols_mifs = list(selected_features_mi)
+    return mutual_info, selected_features_mi, selected_cols_mifs
+
+def show_mifs_plot(mutual_info, selected_features_mi, num_features_mifs):
+    """
+    Display the Mutual Information Feature Selection (MIFS) plot.
+
+    Parameters:
+        mutual_info (numpy.ndarray): The array of mutual information values.
+        selected_features_mi (list): The list of selected features based on mutual information.
+        num_features_mifs (int): The number of top features to display in the plot.
+
+    Returns:
+        None
+
+    """
+    vertical_spacer(2)
+    my_text_paragraph(' Mutual Information', my_font_size='26px',)
+    my_text_paragraph(f'<b> TOP {num_features_mifs} </b>', my_font_size='16px', my_font_family='Segui UI')
+    
+    # Create plot
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=mutual_info[np.argsort(mutual_info)[::-1]][:num_features_mifs],
+        y=selected_features_mi,
+        orientation='h',
+        text=[f'{val:.2f}' for val in mutual_info[np.argsort(mutual_info)[::-1]][:num_features_mifs]],
+        textposition='inside'
+    ))
+    
+    fig.update_layout(
+        title={
+            'text': '',
+            'x': 0.5,
+            'y': 0.95,
+            'xanchor': 'center',
+            'yanchor': 'top'
+        }
+    )
+    
+    # Display plot in Streamlit
+    st.plotly_chart(fig, use_container_width=True)
+    
+    ##############################################################
+    # SELECT YOUR FAVORITE FEATURES TO INCLUDE IN MODELING
+    ##############################################################            
+    st.info(f'Top {num_features_mifs} features selected with MIFS: {list(selected_features_mi)}')
+    
+    # create button to display information about mutual information feature selection
+    show_mifs_info_btn = st.button(f'About MIFS plot', use_container_width=True, type='secondary')            
+    
+    if show_mifs_info_btn:
+        st.write('')
+        # show user info about how to interpret the graph
+        st.markdown('''
+            Mutual Information Feature Selection (MIFS) is a method for selecting the most important features in a dataset for predicting a target variable.  
+            It measures the mutual information between each feature and the target variable, 
+            using an entropy-based approach to quantify the amount of information that each feature provides about the target.  
+            Features with high mutual information values are considered to be more important in predicting the target variable
+            and features with low mutual information values are considered to be less important.  
+            MIFS helps improve the accuracy of predictive models by identifying the most informative features to include in the model.
+        ''')
+
+def perform_pca(X_train, num_features_pca):
+    """
+    Perform Principal Component Analysis (PCA) on the training data.
+
+    Parameters:
+        X_train (pandas.DataFrame): The training data.
+        num_features_pca (int): The desired number of components for PCA.
+
+    Returns:
+        list: The selected feature/column names based on PCA.
+
+    """
+    # Create a PCA object with the desired number of components
+    pca = PCA(n_components = num_features_pca)
+    # Fit the PCA model to the training data
+    pca.fit(X_train)
+    # Get the names of the features/columns in the training data
+    feature_names = X_train.columns
+    # Sort the features based on the explained variance ratio in descending order
+    sorted_idx = np.argsort(pca.explained_variance_ratio_)[::-1]
+    # Reorder the feature names based on the sorted indices
+    sorted_features = feature_names[sorted_idx]
+    # Convert the sorted features to a list
+    selected_cols_pca = sorted_features.tolist()
+    
+    # =============================================================================
+    #     # Get the explained variance for each feature
+    #     variances = pca.explained_variance_
+    #     st.write(variances)
+    # =============================================================================
+    return sorted_features, pca, sorted_idx, selected_cols_pca
+
 def show_pca_plot(sorted_features, pca, sorted_idx, selected_cols_pca):
     """
     Display a PCA plot and information about the selected features.
@@ -257,11 +541,11 @@ def show_pca_plot(sorted_features, pca, sorted_idx, selected_cols_pca):
     # Create plot
     fig = go.Figure()
     fig.add_trace(go.Bar(
-        x=pca.explained_variance_ratio_[sorted_idx],
-        y=sorted_features,
-        orientation='h',
-        text=np.round(pca.explained_variance_ratio_[sorted_idx] * 100, 2),
-        textposition='auto'
+        x= pca.explained_variance_ratio_[sorted_idx],
+        y= sorted_features,
+        orientation = 'h',
+        text = np.round(pca.explained_variance_ratio_[sorted_idx] * 100, 2),
+        textposition = 'auto'
     ))
     fig.update_layout(
         title={
@@ -2400,79 +2684,6 @@ def forecast_wavelet_features(X, features_df_wavelet, future_dates, df_future_da
             return df_future_dates
         except:
             st.warning('Error: Discrete Wavelet Features are not created correctly, please remove from selection criteria')
-
-def rfe_cv(X_train, y_train, est_rfe, num_steps_rfe, num_features, timeseriessplit_value_rfe):
-    """
-    Perform Recursive Feature Elimination with Cross-Validation and display the results using a scatter plot.
-
-    Parameters:
-        X_train (pandas.DataFrame): Training data features.
-        y_train (pandas.Series): Training data target.
-        est_rfe (estimator object): A supervised learning estimator with a `fit` method.
-        num_steps_rfe (int): Number of features to remove at each iteration of RFE.
-        num_features (int): Number of features to select, defaults to None.
-        timeseriessplit_value_rfe (int): Number of splits in time series cross-validation.
-
-    Returns:
-        None
-    """
-    #############################################################
-    # Recursive Feature Elemination
-    #############################################################
-    # define the time series splits set by user in sidebar slider      
-    tscv = TimeSeriesSplit(n_splits=timeseriessplit_value_rfe)
-    # Set up the recursive feature elimination with cross validation
-    rfecv = RFECV(estimator=est_rfe, step=num_steps_rfe, cv=tscv, scoring='neg_mean_squared_error', n_jobs=-1)
-    # Fit the feature selection model
-    rfecv.fit(X_train, y_train)
-    # Define the selected features
-    if num_features is not None:
-        selected_features = X_train.columns[rfecv.ranking_ <= num_features]
-    else:
-        selected_features = X_train.columns[rfecv.support_]
-    # Get the feature ranking
-    feature_rankings = pd.Series(rfecv.ranking_, index=X_train.columns).rename('Ranking')
-    # Sort the feature rankings in descending order
-    sorted_rankings = feature_rankings.sort_values(ascending=True)
-    # Create a dataframe with feature rankings and selected features
-    df_ranking = pd.DataFrame({'Features': sorted_rankings.index, 'Ranking': sorted_rankings})
-    # Sort the dataframe by ranking
-    df_ranking = df_ranking.sort_values('Ranking', ascending=True)
-    # Highlight selected features
-    df_ranking['Selected'] = np.where(df_ranking['Features'].isin(selected_features), 'Yes', 'No')
-    #############################################################
-    # Scatterplot the results
-    #############################################################
-    # Create the rfe plot
-    vertical_spacer(2)
-    fig = create_rfe_plot(df_ranking)
-    # Show the plot
-    st.plotly_chart(fig, use_container_width=True)                       
-    # show the ranking and selected features dataframes side by side
-    col1, col2, col3, col4 = st.columns([1,2,2,1])
-    with col2:
-        st.write(':blue[**Selected features:**]', selected_features)
-    # Print the feature rankings
-    with col3: 
-        feature_rankings = pd.Series(rfecv.ranking_, index=X.columns).rename('Ranking')
-        st.write(':blue[**Feature rankings:**]')
-        st.write(feature_rankings.sort_values())
-    
-    #############################################################
-    # Show in streamlit the ranking        
-    #############################################################              
-    # show user selected columns
-    selected_cols_rfe = list(selected_features)
-    st.info(f'Top {len(selected_cols_rfe)} features selected with RFECV: {selected_cols_rfe}')
-    
-    show_rfe_info_btn = st.button(f'About RFE plot', use_container_width=True, type='secondary')
-    # if user clicks "Submit" button for recursive feature elimination run below
-    if show_rfe_info_btn:
-        st.write('')
-        # show user info about how to interpret the graph
-        st.markdown('''**Recursive Feature Elimination** involves recursively removing features and building a model on the remaining features. It then **ranks the features** based on their importance and **eliminates** the **least important feature**.
-                    ''')
-    return selected_cols_rfe
 
 def perform_train_test_split(df, my_insample_forecast_steps, scaler_choice=None, numerical_features=[]):
     """
@@ -4745,6 +4956,34 @@ key1_prepare_normalization, key2_prepare_standardization, key3_prepare = create_
     ("standardization_choice", "None"), #key2_prepare_standardization
     ("run", 0)])                     #key3_prepare
 
+
+# ================================ SELECT ===================================  
+key1_select_page_pca, key2_select_page_pca = create_store("SELECT_PAGE_PCA", [
+                            # default of PCA features set to minimum of either 5 or the number of independent features in the dataframe
+                            ("num_features_pca", 5), #key1_select_page_pca # min(5, st.session_state['X_train'].shape[1])
+                            ("run", 0) #key2_select_page_pca
+                            ])
+
+key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, key5_select_page_rfe = create_store("SELECT_PAGE_RFE", [
+                            ("num_features_rfe", 5), #key1_select_page_rfe
+                            ("estimator_rfe", "Linear Regression"), #key2_select_page_rfe
+                            ("timeseriessplit_value_rfe", 5),   #key3_select_page_rfe
+                            ("num_steps_rfe", 1), #key4_select_page_rfe
+                            ("run", 0) #key5_select_page_rfe
+                            ])
+
+key1_select_page_mifs, key2_select_page_mifs = create_store("SELECT_PAGE_MIFS", [
+                            ("num_features_mifs", 5), #key1_select_page_mifs # min(5, st.session_state['X'].shape[1])
+                            ("run", 0) #key2_select_page_mifs
+                            ])
+
+key1_select_page_corr, key2_select_page_corr, key3_select_page_corr = create_store("SELECT_PAGE_CORR", [
+                                                            ("corr_threshold", 0.8), #key1_select_page_corr 
+                                                            ("selected_corr_model", 'Linear Regression'), #key2_select_page_corr
+                                                            ("run", 0) #key3_select_page_corr
+                                                            ])
+
+
 # ================================ TRAIN ===================================  
 # TRAIN MENU TEST
 if 'train_models_btn' not in st.session_state:
@@ -6417,22 +6656,15 @@ else:
     special_calendar_days_checkbox = get_state("ENGINEER_PAGE", "special_calendar_days_checkbox")
     calendar_dummies_checkbox = get_state("ENGINEER_PAGE", "calendar_dummies_checkbox")
     dwt_features_checkbox = get_state("ENGINEER_PAGE", "dwt_features_checkbox")
-    
-    # TEST - ADD SESSION STATES FOR THE STATE OF THE CHECKBOX
-    st.write('calendar_holidays_checkbox, special_calendar_days_checkbox, calendar_dummies_checkbox:')
-    st.write(calendar_holidays_checkbox, special_calendar_days_checkbox, calendar_dummies_checkbox)
-    ####
-    
+        
     # if feature engineering option is checked for holidays, add features:
     if calendar_holidays_checkbox:
-        st.write('calendar_holidays_checkbox code in else block runs so evaluates to TRUE!')
         df = create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'], slider = False)
     # if feature engineering option is checked for special calendar days (e.g. black friday etc.), add features
     if special_calendar_days_checkbox:
         df = create_calendar_special_days(df)
     # if featue engineering option is checked for the year/month/day dummy variables, add features
     if calendar_dummies_checkbox:
-        st.write('calendar_dummies_checkbox code in else block runs so evaluates to TRUE!')
         df = create_date_features(df, 
                                   year_dummies = get_state("ENGINEER_PAGE_VARS", "year_dummies_checkbox"), 
                                   month_dummies = get_state("ENGINEER_PAGE_VARS", "month_dummies_checkbox"), 
@@ -6738,7 +6970,6 @@ else:
     # 3. TRAIN/TEST SPLIT
     ##########################
     st.session_state['insample_forecast_steps'] = round((st.session_state['insample_forecast_perc'] / 100) * len(df))
-    #st.write(st.session_state['insample_forecast_steps'], 'equals insample forecast ')
     
     if 'date' in st.session_state['df']:
         #st.write('date is in the session state of dataframe df and will now be set as index') # TEST
@@ -6751,9 +6982,6 @@ else:
                                                                                   st.session_state['insample_forecast_steps'], 
                                                                                   st.session_state['normalization_choice'], 
                                                                                   numerical_features=numerical_features)
-        
-
-        
 # Update Session States
 st.session_state['X'] = X
 st.session_state['y'] = y
@@ -6764,12 +6992,15 @@ st.session_state['y_test'] = y_test
 #st.session_state['scaler'] = scaler
 
 
+# TEST -> key currently not in use - TBD
 # set default values for feature selection
-key1_select_page, key2_select_page = create_store("SELECT_PAGE", [
-                            ("feature_selection_user", st.session_state['X'].columns.tolist()),
-                            ("run", 0)
+key1_select_page_feature_selection, key2_select_page_feature_selection = create_store("SELECT_PAGE", [
+                            ("feature_selection_user", st.session_state['X'].columns.tolist()), # key1_select_page_feature_selection
+                            ("run", 0) #key2_select_page_feature_selection
                             ])
 
+
+  
 # =============================================================================
 #    _____ ______ _      ______ _____ _______ 
 #   / ____|  ____| |    |  ____/ ____|__   __|
@@ -6803,18 +7034,21 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
             
             #### CAROUSEL ####
             header_list = ['🎨', '🧮', '🎏']
-            paragraph_list_front = ["<b> Recursive Feature Elimination </b>", 
+            paragraph_list_front = [
+                                    "<b> Recursive Feature Elimination </b>", 
                                     "<b>Principal Component Analysis</b>", 
                                     "<b>Mutual Information</b>"
-                                    ]
-            paragraph_list_back = ["<b>RFE</b> is a <b>feature selection technique</b> that repeatedly removes feature(s) and each turn evaluates remaining features by ranking the features based on their importance scores and eliminates the least important feature. This process continues until a desired number of features is reached.", 
+                                   ]
+            paragraph_list_back = [
+                                   "<b>RFE</b> is a <b>feature selection technique</b> that repeatedly removes feature(s) and each turn evaluates remaining features by ranking the features based on their importance scores and eliminates the least important feature. This process continues until a desired number of features is reached.", 
                                    "<b>PCA</b> is a <b>feature selection technique</b> that repeatedly transforms and evaluates features based on their variance, reducing the dataset to a smaller set of uncorrelated variables called principal components. This process continues until a desired number of components is achieved.", 
-                                   "<b>MIFS</b> aka <nobr>`Mutual Information Feature Selection`</nobr> is a <b>feature selection technique</b> that calculates the mutual information between each feature and the target to determine how much information each feature provides about the target."]
+                                   "<b>MIFS</b> aka <nobr>`Mutual Information Feature Selection`</nobr> is a <b>feature selection technique</b> that calculates the mutual information between each feature and the target to determine how much information each feature provides about the target."
+                                  ]
             font_family = "Helvetica"
             font_size_front = '14px'
             font_size_back = '15px'    
             
-            # in streamlit create and show the user defined number of carousel cards with header+text
+            # in Streamlit create and show the user defined number of carousel cards with header+text
             create_carousel_cards_v2(3, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back)
             vertical_spacer(2)
 
@@ -6831,34 +7065,36 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         with st.form('rfe'):
              my_text_paragraph('Recursive Feature Elimination')
              # Add a slider to select the number of features to be selected by the RFECV algorithm
-             num_features = st.slider(label = '*Select number of top features to include:*', 
-                                      min_value = 1, 
-                                      max_value = len(st.session_state['X'].columns), 
-                                      value = 5,
-                                      help = '**`Recursive Feature Elimination (RFE)`** is an algorithm that iteratively removes the least important features from the feature set until the desired number of features is reached.\
-                                              \nIt assigns a rank to each feature based on their importance scores. It is possible to have multiple features with the same ranking because the importance scores of these features are identical or very close to each other.\
-                                              \nThis can happen when the features are highly correlated or provide very similar information to the model.\
-                                              \nIn such cases, the algorithm may not be able to distinguish between them and assign the same rank to multiple features.')
+             num_features_rfe = st.slider(
+                                          label = '*Select number of top features to include:*', 
+                                          min_value = 1, 
+                                          max_value = len(st.session_state['X'].columns), 
+                                          key = key1_select_page_rfe,
+                                          help = '**`Recursive Feature Elimination (RFE)`** is an algorithm that iteratively removes the least important features from the feature set until the desired number of features is reached.\
+                                                  \nIt assigns a rank to each feature based on their importance scores. It is possible to have multiple features with the same ranking because the importance scores of these features are identical or very close to each other.\
+                                                  \nThis can happen when the features are highly correlated or provide very similar information to the model.\
+                                                  \nIn such cases, the algorithm may not be able to distinguish between them and assign the same rank to multiple features.'
+                                          )
+             
              # set the options for the rfe (recursive feature elimination)
              with st.expander('🔽 RFE Settings:', expanded=False):
                  
                  # Add a selectbox for the user to choose the estimator
-                 estimator_rfe = st.selectbox(label = '*Set estimator:*', 
+                 estimator_rfe = st.selectbox(
+                                              label = '*Set estimator:*', 
                                               options = ['Linear Regression', 'Random Forest Regression'], 
-                                              index = 0, 
-                                              help = 'The **`estimator`** parameter is used to specify the machine learning model that will be used to evaluate the importance of each feature. \
-                                                      The estimator is essentially the algorithm used to fit the data and make predictions.')
-                                                      
-                 # Set up the estimator based on the user's selection
-                 if estimator_rfe == 'Linear Regression':
-                     est_rfe = LinearRegression()
-                 elif estimator_rfe == 'Random Forest Regression':
-                     est_rfe = RandomForestRegressor()
+                                              key = key2_select_page_rfe,
+                                              help = '''
+                                                     The **`estimator`** parameter is used to specify the machine learning model that will be used to evaluate the importance of each feature. \
+                                                     The estimator is essentially the algorithm used to fit the data and make predictions.
+                                                     '''
+                                              )
+                                                                      
                  # Add a slider to select the number of n_splits for the RFE method
                  timeseriessplit_value_rfe = st.slider(label = '*Set number of splits for Cross-Validation:*', 
                                                        min_value = 2, 
                                                        max_value = 5, 
-                                                       value = 5, 
+                                                       key = key3_select_page_rfe,
                                                        help = '**`Cross-validation`** is a statistical method used to evaluate the performance of a model by splitting the dataset into multiple "folds," where each fold is used as a holdout set for testing the model trained on the remaining folds. \
                                                               The cross-validation procedure helps to estimate the performance of the model on unseen data and reduce the risk of overfitting.  \
                                                               In the context of RFE, the cv parameter specifies the number of folds to use for the cross-validation procedure.\
@@ -6870,26 +7106,35 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                                            min_value = 1, 
                                            max_value = 10, 
                                            value = 1, 
+                                           key = key4_select_page_rfe,
                                            help = 'The `step` parameter controls the **number of features** to remove at each iteration of the RFE process.')
              
              col1, col2, col3 = st.columns([4,4,4])
              with col2:       
-                 rfe_btn = st.form_submit_button("Submit", type="secondary")
-                 
+                 rfe_btn = st.form_submit_button("Submit", type="secondary", on_click=form_update, args=('SELECT_PAGE_RFE',))   
+
     # =============================================================================
     # RFE Feature Selection - PAGE RESULTS
     # =============================================================================
     try:
         with st.expander('🎨 RFECV', expanded=True):
-            # run function to perform recursive feature elimination with cross-validation and display results using plot
-            #st.write('X_TRAIN FOR RFE', st.session_state['X_train']) # TEST
-            #st.write('y_train for RFE', st.session_state['y_train']) # TEST
-            selected_cols_rfe = rfe_cv(st.session_state['X_train'], 
-                                       st.session_state['y_train'], 
-                                       est_rfe, 
-                                       num_steps_rfe, 
-                                       num_features, 
-                                       timeseriessplit_value_rfe)   
+            ####################
+            # MIFS ANALYSIS
+            ####################
+            # Run function to perform recursive feature elimination with cross-validation and display results using plot
+            selected_cols_rfe, selected_features, rfecv = perform_rfe(
+                                                                       X_train = st.session_state['X_train'], 
+                                                                       y_train = st.session_state['y_train'], 
+                                                                       estimator_rfe = estimator_rfe, 
+                                                                       num_steps_rfe= num_steps_rfe, 
+                                                                       num_features_rfe = num_features_rfe, 
+                                                                       timeseriessplit_value_rfe = timeseriessplit_value_rfe
+                                                                     )   
+            ####################
+            # MIFS RESULTS
+            ####################
+            show_rfe_plot(rfecv, selected_features)
+            
     except:
         selected_cols_rfe= []
         st.error('**ForecastGenie Error**: *Recursive Feature Elimination with Cross-Validation* could not execute. Need at least 2 features to be able to apply Feature Elimination. Please adjust your selection criteria.')
@@ -6898,39 +7143,42 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
     # PCA Feature Selection
     # =============================================================================
     with st.sidebar:    
+        ####################
+        # PCA USER FORM
+        ####################
         with st.form('pca'):
+            
             my_text_paragraph('Principal Component Analysis')
+            
             # Add a slider to select the number of features to be selected by the PCA algorithm
-            num_features_pca = st.slider(label = '*Select number of top features to include:*', 
-                                         min_value=1, 
-                                         max_value=len(X.columns), 
-                                         value=5)
+            num_features_pca = st.slider(
+                                         label = '*Select number of top features to include:*', 
+                                         min_value = 1, 
+                                         max_value = len(X_train.columns), 
+                                         key = key1_select_page_pca
+                                        )
             
             col1, col2, col3 = st.columns([4,4,4])
             with col2:       
-                pca_btn = st.form_submit_button("Submit", type="secondary")
+                pca_btn = st.form_submit_button(label = "Submit", type = "secondary", on_click=form_update, args=('SELECT_PAGE_PCA',))  
     try:
-        with st.expander('🧮 PCA', expanded=True):
-            # Create a PCA object with the desired number of components
-            pca = PCA(n_components = num_features_pca)
-            # Fit the PCA model to the training data
-            pca.fit(X_train)
-            # Get the names of the features/columns in the training data
-            feature_names = X_train.columns
-            # Sort the features based on the explained variance ratio in descending order
-            sorted_idx = np.argsort(pca.explained_variance_ratio_)[::-1]
-            # Reorder the feature names based on the sorted indices
-            sorted_features = feature_names[sorted_idx]
-            # Convert the sorted features to a list
-            selected_cols_pca = sorted_features.tolist()
+        with st.expander('🧮 PCA', expanded=True):        
+            ####################
+            # PCA ANALYSIS
+            ####################
+            # Perform Principal Component Analysis on the Training Dataset
+            sorted_features, pca, sorted_idx, selected_cols_pca = perform_pca(X_train = X_train, 
+                                                                              num_features_pca = num_features_pca)
             
-            # Show in Streamlit a title, subtitle and plot of top features with Principal Component Analysis
+            ####################
+            # PCA RESULTS
+            ####################
+            # Show in Streamlit a Title, Subtitle and Plot of Top Features with Principal Component Analysis
             # Additionally show button when clicked shows additional explanation of PCA Plot
             show_pca_plot(sorted_features = sorted_features, 
                           pca = pca, 
                           sorted_idx = sorted_idx, 
                           selected_cols_pca = selected_cols_pca)
-        
     except:
         # if pca could not execute show user error
         selected_cols_pca = []
@@ -6943,53 +7191,35 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         with st.sidebar:
             with st.form('mifs'):
                 my_text_paragraph('Mutual Information')
+                
                 # Add slider to select number of top features
-                num_features = st.slider("*Select number of top features to include:*", min_value=1, max_value=len(X.columns), value=5, step=1)
+                num_features_mifs = st.slider(
+                                              label = "*Select number of top features to include:*", 
+                                              min_value = 1, 
+                                              max_value = len(X.columns), 
+                                              #value = 5,
+                                              key = key1_select_page_mifs,
+                                              step = 1
+                                             )
+                
                 col1, col2, col3 = st.columns([4,4,4])
                 with col2:       
-                    mifs_btn = st.form_submit_button("Submit", type="secondary")
+                    mifs_btn = st.form_submit_button("Submit", type="secondary", on_click=form_update, args=('SELECT_PAGE_MIFS',))   
+                    
         with st.expander('🎏 MIFS', expanded=True):
-            # Mutual information feature selection
-            mutual_info = mutual_info_regression(X_train, y_train, random_state=42)
-            selected_features_mi = X.columns[np.argsort(mutual_info)[::-1]][:num_features]
+            ####################
+            # MIFS ANALYSIS
+            ####################
+            mutual_info, selected_features_mi, selected_cols_mifs = perform_mifs(X_train, y_train, num_features_mifs)
             
-            vertical_spacer(2)
-            my_text_paragraph(' Mutual Information', my_font_size='26px',)
-            my_text_paragraph(f'<b> TOP {num_features} </b>', my_font_size='16px', my_font_family='Segui UI')
-            # Create plot
-            fig = go.Figure()
-            fig.add_trace(go.Bar(x=mutual_info[np.argsort(mutual_info)[::-1]][:num_features],
-                                 y=selected_features_mi, 
-                                 orientation='h',
-                                 text=[f'{val:.2f}' for val in mutual_info[np.argsort(mutual_info)[::-1]][:num_features]],
-                                 textposition='inside'))
-            fig.update_layout(title={'text': '',
-                                    'x': 0.5,
-                                    'y': 0.95,
-                                    'xanchor': 'center',
-                                    'yanchor': 'top'})
-            # Display plot in Streamlit
-            st.plotly_chart(fig, use_container_width=True)
-            
-            ##############################################################
-            # SELECT YOUR FAVORITE FEATURES TO INCLUDE IN MODELING
-            ##############################################################            
-            # Mutual Information Selection
-            selected_cols_mifs = list(selected_features_mi)
-            st.info(f'Top {num_features} features selected with MIFS: {selected_cols_mifs}')
-            
-            # create button to display information about mutual information feature selection
-            show_mifs_info_btn = st.button(f'About MIFS plot', use_container_width=True, type='secondary')            
-            if show_mifs_info_btn == True:
-                st.write('')
-                # show user info about how to interpret the graph
-                st.markdown('''Mutual Information Feature Selection (MIFS) is a method for selecting the most important features in a dataset for predicting a target variable.  
-                            It measures the mutual information between each feature and the target variable, 
-                            using an entropy-based approach to quantify the amount of information that each feature provides about the target.  
-                            Features with high mutual information values are considered to be more important in predicting the target variable
-                            and features with low mutual information values are considered to be less important.  
-                            MIFS helps improve the accuracy of predictive models by identifying the most informative features to include in the model.
-                        ''')
+            ####################
+            # MIFS RESULTS
+            ####################
+            show_mifs_plot(
+                           mutual_info = mutual_info, 
+                           selected_features_mi = selected_features_mi, 
+                           num_features_mifs = num_features_mifs
+                          )
     except: 
         selected_cols_mifs = []
         st.warning(':red[**ERROR**: Mutual Information Feature Selection could not execute...please adjust your selection criteria]')
@@ -7003,118 +7233,109 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
             with st.form('correlation analysis'):
                 # set subheader of form
                 my_text_paragraph('Correlation Analysis')
+                
                 # set slider threshold for correlation strength
                 corr_threshold = st.slider("*Select Correlation Threshold*", 
                                            min_value=0.0, 
                                            max_value=1.0, 
-                                           value=0.8, 
+                                           #value=0.8, 
+                                           key = key1_select_page_corr,
                                            step=0.05, 
                                            help='Set `Correlation Threshold` to determine which pair(s) of variables in the dataset are strongly correlated e.g. no correlation = 0, perfect correlation = 1')
+                
+                # define models for computing importance scores of highly correlated independent features
                 models = {'Linear Regression': LinearRegression(), 'Random Forest Regressor': RandomForestRegressor(n_estimators=100)}
-                selected_corr_model = st.selectbox(label = '*Select **model** for computing **importance scores** for highly correlated feature pairs, to drop the **least important** feature of each pair which is highly correlated*:', 
-                                                   options = list(models.keys()))
+                
+                # provide user option to select model (default = Linear Regression)
+                selected_corr_model = st.selectbox(
+                                                   label = '*Select **model** for computing **importance scores** for highly correlated feature pairs, to drop the **least important** feature of each pair which is highly correlated*:', 
+                                                   options = list(models.keys()),
+                                                   key = key2_select_page_corr
+                                                  )
+                
                 col1, col2, col3 = st.columns([4,4,4])
-                with col2:       
-                    corr_btn = st.form_submit_button("Submit", type="secondary")
+                with col2:   
+                    # show submit button of user form
+                    corr_btn = st.form_submit_button("Submit", type="secondary", on_click=form_update, args=('SELECT_PAGE_CORR',))
+                    
         with st.expander('🍻 Correlation Analysis', expanded=True):
-            st.write("")
-            # Display output
+            vertical_spacer(1)
             my_text_paragraph('Pairwise Correlation', my_font_size='26px')
             col1,col2,col3 = st.columns([5,3,5])
             with col2:
                 st.caption(f'with threshold >={corr_threshold*100:.0f}%')
+                
             ################################################################
             # PLOT HEATMAP WITH PAIRWISE CORRELATION OF INDEPENDENT FEATURES.
             ################################################################
             # Generate correlation heatmap for independent features based on threshold from slider set by user e.g. default to 0.8
-            correlation_heatmap(X, correlation_threshold=corr_threshold)
-            # Get the indices of the highly correlated features
-            corr_matrix = X.corr()
-            indices = np.where(abs(corr_matrix) >= corr_threshold)
-            # Create a dataframe with the pairwise correlation values above the threshold
-            df_pairwise = pd.DataFrame({
-                                        'feature1': corr_matrix.columns[indices[0]],
-                                        'feature2': corr_matrix.columns[indices[1]],
-                                        'correlation': corr_matrix.values[indices]
-                                       })
-            ############################
-            # Filter out Duplicate Pairs
-            ############################
-            # Sort feature pairs and drop duplicates
-            df_pairwise = df_pairwise.assign(sorted_features=df_pairwise[['feature1', 'feature2']].apply(sorted, axis=1).apply(tuple))
-            df_pairwise = df_pairwise.loc[df_pairwise['feature1'] != df_pairwise['feature2']].drop_duplicates(subset='sorted_features').drop(columns='sorted_features')
-            # Sort by correlation and format output
-            df_pairwise = df_pairwise.sort_values(by='correlation', ascending=False).reset_index(drop=True)
-            df_pairwise['correlation'] = (df_pairwise['correlation']*100).apply('{:.2f}%'.format)
+            correlation_heatmap(X_train, correlation_threshold=corr_threshold)
+            
+            # Apply Function to analyse feature correlations and computes importance scores.             
+            total_features, importance_scores, pairwise_features_in_total_features, df_pairwise = analyze_feature_correlations(   
+                                                                                                                                selected_corr_model, 
+                                                                                                                                X_train, 
+                                                                                                                                y_train, 
+                                                                                                                                selected_cols_rfe, 
+                                                                                                                                selected_cols_pca, 
+                                                                                                                                selected_cols_mifs, 
+                                                                                                                                corr_threshold, 
+                                                                                                                                models
+                                                                                                                              )
             # Display message with pairs in total_features
             if df_pairwise.empty:
                 st.info(f'There are no **pairwise combinations** in the selected features with a **correlation** larger than or equal to the user defined threshold of **{corr_threshold*100:.0f}%**')
-                st.write("")
+                vertical_spacer(1)
             else:
                 st.markdown(f' <center> The following pairwise combinations of features have a correlation >= threshold: </center>', unsafe_allow_html=True)      
-                st.write("")
+                vertical_spacer(1)
+                # show dataframe with pairwise features
                 st.dataframe(df_pairwise, use_container_width=True)
+                # download button for dataframe of pairwise correlation
                 download_csv_button(df_pairwise, my_file="pairwise_correlation.csv", help_message='Download pairwise correlation to .CSV', set_index=False)
-            st.markdown('---')
-            # Find pairs in total_features
-            total_features = np.unique(selected_cols_rfe + selected_cols_pca + selected_cols_mifs)
-            # convert to list
-            total_features = total_features.tolist()
-            pairwise_features = list(df_pairwise[['feature1', 'feature2']].itertuples(index=False, name=None))
-            pairwise_features_in_total_features = [pair for pair in pairwise_features if pair[0] in total_features and pair[1] in total_features]
-            # IMPORTANCE SCORES
-            # create estimator based on user selected model            
-            estimator = models[selected_corr_model]
-            estimator.fit(X, y) 
-            # Compute feature importance scores or permutation importance scores
-            importance_scores = compute_importance_scores(X, y, estimator)
-            # ALTAIR CORRELATION CHART FUNCTION        
+                # insert divider line
+                st.markdown('---')
+            
+            # SHOW CORRELATION CHART
             altair_correlation_chart(total_features, importance_scores, pairwise_features_in_total_features, corr_threshold)
+            
+            # Remove features with lowest importance scores from each pair
+            # note: only remove one of highly correlated features based on importance score after plot is shown
+            total_features = remove_lowest_importance_feature(total_features, importance_scores, pairwise_features_in_total_features)
     except:
         st.warning(':red[**ERROR**: Error with Correlation Analysis...please adjust your selection criteria]')
 
     # =============================================================================
-    # Top features
+    # Top Features
     # =============================================================================
     with st.sidebar:        
         with st.form('top_features'):
             my_text_paragraph('Selected Features')
-            
-            # combine list of features selected from feature selection methods and only keep unique features excluding duplicate features
-            #total_features = np.unique(selected_cols_rfe + selected_cols_pca + selected_cols_mifs)
-
-# =============================================================================
-#             # combine 3 feature selection methods and show to user in multi-selectbox to adjust as needed
-#             feature_selection_user = st.multiselect(label = "favorite features", 
-#                                                     options = list(total_features), 
-#                                                     default = get_state("SELECT_PAGE", "feature_selection_user"), 
-#                                                     label_visibility="collapsed")
-# =============================================================================
-            lst1 = get_state("SELECT_PAGE", "feature_selection_user")
-            lst2 = list(total_features)
-            common_elements = list(set(lst1).intersection(lst2))
-            
+                        
             # combine 3 feature selection methods and show to user in multi-selectbox to adjust as needed
             feature_selection_user = st.multiselect(label = "favorite features", 
-                                                    options = list(total_features), 
-                                                    default = common_elements, 
-                                                    #key = key1_select_page,
+                                                    options = get_state("SELECT_PAGE", "feature_selection_user"), 
+                                                    default = total_features,
                                                     label_visibility="collapsed")
+
             
             col1, col2, col3 = st.columns([4,4,4])
             with col2:       
                 top_features_btn = st.form_submit_button("Submit", type="secondary",  on_click=form_update, args=("SELECT_PAGE",))
                 
     ######################################################################################################
-    # redefine dynamic user picked features for X,y, X_train, X_test, y_train, y_test
+    # Redefine dynamic user picked features for X, y, X_train, X_test, y_train, y_test
     ######################################################################################################
+    
+    # apply columns user selected to X
     X = X.loc[:, feature_selection_user]
     y = y
     X_train = X[:(len(df)-st.session_state['insample_forecast_steps'])]
     X_test = X[(len(df)-st.session_state['insample_forecast_steps']):]
+
     # set endogenous variable train/test split
     y_train = y[:(len(df)-st.session_state['insample_forecast_steps'])]
-    y_test = y[(len(df)-st.session_state['insample_forecast_steps']):]           
+    y_test = y[(len(df)-st.session_state['insample_forecast_steps']):]        
 
     with st.expander('🥇 Top Features Selected', expanded=True):
         my_subheader('')
@@ -7125,27 +7346,110 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         # NOTE: updated below code from 'total_features' to 'feature_selection_user' to only show features that are in sidebar selected
         # instead of all that are outputed from feature selection techniques
         df_total_features = pd.DataFrame(feature_selection_user, columns = ['Top Features'])
-        st.dataframe(df_total_features, use_container_width=True)
         
-        # display the dataframe in streamlit
+        # THIS CODE RETRIEVES DIFFERENCE WHAT WAS RECOMMENDED BY FEATURE SELECTION METHODS
+        # AND WHAT USER ADDS AS ADDITIONAL VARIABLES OUTSIDE OF RECOMMENDATION
+        difference_lsts = list(set(feature_selection_user) - set(total_features))
+        
+        def highlight_cols_feature_selection(val):
+            """
+            A function that highlights the cells of a DataFrame based on their values.
+            
+            Args:
+            val: The value of the cell.
+            
+            Returns:
+            str: The CSS style to be applied to the cell.
+            """
+            if val in difference_lsts:
+                return 'background-color: #ffda22' # yellow
+            return ''
+        
+        # define the styled dataframe with applying custom function to highlight cells that are in difference_lsts        
+        styled_df = df_total_features.style.applymap(highlight_cols_feature_selection)
+        st.dataframe(styled_df, use_container_width=True)
+        
+        # TEST IF CORRECT ALL FEATURES ARE DISPLAYED!
+        # Display the dataframe in Streamlit
         st.dataframe(X, use_container_width=True)
-       
-        # create download button for forecast results to .csv
+
+        # Create download button for forecast results to .CSV
         download_csv_button(X, my_file="features_dataframe.csv", help_message="Download your **features** to .CSV", my_key='features_df_download_btn')
 else:
-    # apply 3 selection methods
+    # ELSE WHEN USER IS NOT ON SELECT PAGE 
+    # 0. RUN THE FEATURE SELECTION TO SELECT TOP FEATURES
+    # 1. REMOVE FROM HIGHLY CORRELATED INDEPENDENT FEATURES PAIRS THE ONE WITH LOWEST IMPORTANCE SCORES
+    # 2. 
     
-    # retrieve features
+    # =============================================================================
+    # Apply 3 Feature Selection Techniques
+    # =============================================================================
+    ################
+    # 1. RFE
+    ################   
+    selected_cols_rfe, selected_features, rfecv = perform_rfe(
+                                                                X_train = st.session_state['X_train'], 
+                                                                y_train = st.session_state['y_train'], 
+                                                                num_features_rfe = get_state("SELECT_PAGE_RFE", "num_features_rfe"), 
+                                                                estimator_rfe = get_state("SELECT_PAGE_RFE", "estimator_rfe"), 
+                                                                timeseriessplit_value_rfe = get_state("SELECT_PAGE_RFE", "timeseriessplit_value_rfe"), 
+                                                                num_steps_rfe = get_state("SELECT_PAGE_RFE", "num_steps_rfe")
+                                                              )   
+    ################
+    # 2. PCA
+    ################
+    # Perform Principal Component Analysis on the Training Dataset
+    sorted_features, pca, sorted_idx, selected_cols_pca = perform_pca(
+                                                                      X_train = X_train, 
+                                                                      num_features_pca = get_state("SELECT_PAGE_PCA", "num_features_pca")
+                                                                     )
+    ################
+    # 3. MIFS
+    ################
+    mutual_info, selected_features_mi, selected_cols_mifs = perform_mifs(X_train, y_train, num_features_mifs = get_state("SELECT_PAGE_MIFS", "num_features_mifs"))
     
-    # update session state --> get_state("SELECT_PAGE", "feature_selection_user")
+    # =============================================================================
+    # Combine Features from 3 Feature Selection Techniques   
+    # =============================================================================
+    # Find unique total_features            
+    total_features = np.unique(selected_cols_rfe + selected_cols_pca + selected_cols_mifs)
+    # convert to list
+    total_features = total_features.tolist()
+    
+    # =============================================================================
+    # Remove Highly Correlated Features >= threshold ( default = 80% pairwise-correlation)
+    # =============================================================================
+    # Apply Function to analyse feature correlations and computes importance scores.             
+    total_features, importance_scores, pairwise_features_in_total_features, df_pairwise = analyze_feature_correlations(   
+                                                                                                                        selected_corr_model = get_state("SELECT_PAGE_CORR", "selected_corr_model"), 
+                                                                                                                        X_train = X_train, 
+                                                                                                                        y_train = y_train, 
+                                                                                                                        selected_cols_rfe = selected_cols_rfe, 
+                                                                                                                        selected_cols_pca = selected_cols_pca, 
+                                                                                                                        selected_cols_mifs = selected_cols_mifs, 
+                                                                                                                        models = {'Linear Regression': LinearRegression(), 
+                                                                                                                                  'Random Forest Regressor': RandomForestRegressor(n_estimators=100)
+                                                                                                                                  },
+                                                                                                                        corr_threshold = get_state("SELECT_PAGE_CORR", "corr_threshold")
+                                                                                                                      )
+           
+    # Remove features with lowest importance scores from each pair
+    # note: only remove one of highly correlated features based on importance score after plot is shown
+    total_features = remove_lowest_importance_feature(total_features, importance_scores, pairwise_features_in_total_features)
+    
+    # =============================================================================
+    # Update session state --> get_state("SELECT_PAGE", "feature_selection_user")
+    # =============================================================================
+    #set_state("SELECT_PAGE", ("feature_selection_user", ))
     
     
-    # else if user not on select screen then perform either default selection or user selection overwritten default from session state 
-    X = X.loc[:, get_state("SELECT_PAGE", "feature_selection_user")]
+    # =============================================================================
+    # UPDATE TRAIN/TEST SET WITH USER SELECTION OR DEFAULT SELECTION
+    # =============================================================================
+    X = X.loc[:, get_state("SELECT_PAGE", "feature_selection_user")] # TEST -> total_features if not user on page you want the feature_selection from user to propegate down
     y = y
     X_train = X[:(len(df)-st.session_state['insample_forecast_steps'])]
     X_test = X[(len(df)-st.session_state['insample_forecast_steps']):]
-    # set endogenous variable train/test split
     y_train = y[:(len(df)-st.session_state['insample_forecast_steps'])]
     y_test = y[(len(df)-st.session_state['insample_forecast_steps']):]    
     
@@ -7320,80 +7624,72 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
         #st.info("You can always retrain your models and adjust hyperparameters!")
         # iterate over all models and if user selected checkbox for model the model(s) is/are trained
         for model_name, model in selected_models:
-# =============================================================================
-#             try:
-# =============================================================================
-            if model_name == "Naive Model":
-                with st.expander('📈' + model_name, expanded=True):
-                    df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test, lag=lag, custom_lag_value=custom_lag_value)
-                    display_my_metrics(df_preds, "Naive Model")
-                    # plot graph with actual versus insample predictions
-                    plot_actual_vs_predicted(df_preds, my_conf_interval)
+            try:
+                if model_name == "Naive Model":
+                    with st.expander('📈' + model_name, expanded=True):
+                        df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test, lag=lag, custom_lag_value=custom_lag_value)
+                        display_my_metrics(df_preds, "Naive Model")
+                        # plot graph with actual versus insample predictions
+                        plot_actual_vs_predicted(df_preds, my_conf_interval)
+                           
+                        # =============================================================================
+                        #  Show/Hide Button to download dataframe                   
+                        # =============================================================================
+                        # have button available for user and if clicked it expands with the dataframe
+                        col1, col2, col3 = st.columns([100,50,95])
+                        with col2:    
+                            # create empty placeholder for button show/hide
+                            placeholder = st.empty()
+                            
+                            # create button (enabled to click e.g. disabled=false with unique key)
+                            btn = placeholder.button('Show Details', disabled=False,  key = "show_naive_trained_model_btn")
                        
-                    # =============================================================================
-                    #  Show/Hide Button to download dataframe                   
-                    # =============================================================================
-                    # have button available for user and if clicked it expands with the dataframe
-                    col1, col2, col3 = st.columns([100,50,95])
-                    with col2:    
-                        # create empty placeholder for button show/hide
-                        placeholder = st.empty()
-                        
-                        # create button (enabled to click e.g. disabled=false with unique key)
-                        btn = placeholder.button('Show Details', disabled=False,  key = "show_naive_trained_model_btn")
-                   
-                    # if button is clicked run below code
-                    if btn == True:                       
-                        # display button with text "click me again", with unique key
-                        placeholder.button('Hide Details', disabled=False, key = "hide_naive_trained_model_btn")
-                        
-                        # show the dataframe
-                        st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
-                        
-                        # create download button for forecast results to .csv
-                        download_csv_button(df_preds, my_file="insample_forecast_naivemodel_results.csv", 
-                                             help_message="Download your **Naive** model results to .CSV",
-                                             my_key = 'naive_trained_model_download_btn')
-                    vertical_spacer(1)
-
-                    mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
-                    # add test-results to sidebar Model Test Results dataframe
-                    new_row = {'model_name': 'Naive Model',
-                               'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
-                               'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']),
-                               'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
-                               'features':features_str}
-                    results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-# =============================================================================
-#             except:
-#                 st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
-# =============================================================================
-# =============================================================================
-#             try:
-# =============================================================================
-            if model_name == "Linear Regression":                 
-                 # create card with model insample prediction with linear regression model
-                 create_streamlit_model_card(X_train = X_train, 
-                                             y_train = y_train, 
-                                             X_test = X_test, 
-                                             y_test = y_test, 
-                                             results_df = results_df, 
-                                             model = model, 
-                                             model_name = model_name)
-                 
-                 # define new row of train/test results
-                 new_row = {'model_name': 'Linear Regression',
-                            'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
-                            'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
-                            'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
-                            'features':features_str}
-                 
-                 # add the results of the model train/test to dataframe
-                 results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-# =============================================================================
-#             except:
-#                 st.warning(f'Linear Regression failed to train, please contact your administrator!')
-# =============================================================================
+                        # if button is clicked run below code
+                        if btn == True:                       
+                            # display button with text "click me again", with unique key
+                            placeholder.button('Hide Details', disabled=False, key = "hide_naive_trained_model_btn")
+                            
+                            # show the dataframe
+                            st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                            
+                            # create download button for forecast results to .csv
+                            download_csv_button(df_preds, my_file="insample_forecast_naivemodel_results.csv", 
+                                                 help_message="Download your **Naive** model results to .CSV",
+                                                 my_key = 'naive_trained_model_download_btn')
+                        vertical_spacer(1)
+    
+                        mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
+                        # add test-results to sidebar Model Test Results dataframe
+                        new_row = {'model_name': 'Naive Model',
+                                   'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
+                                   'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']),
+                                   'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
+                                   'features':features_str}
+                        results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+            except:
+                st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
+            try:
+                if model_name == "Linear Regression":                 
+                     # create card with model insample prediction with linear regression model
+                     create_streamlit_model_card(X_train = X_train, 
+                                                 y_train = y_train, 
+                                                 X_test = X_test, 
+                                                 y_test = y_test, 
+                                                 results_df = results_df, 
+                                                 model = model, 
+                                                 model_name = model_name)
+                     
+                     # define new row of train/test results
+                     new_row = {'model_name': 'Linear Regression',
+                                'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
+                                'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
+                                'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
+                                'features':features_str}
+                     
+                     # add the results of the model train/test to dataframe
+                     results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+            except:
+                st.warning(f'Linear Regression failed to train, please contact your administrator!')
             try:
                 if model_name == "SARIMAX":
                     with st.expander('📈' + model_name, expanded=True):
