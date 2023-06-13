@@ -6789,6 +6789,7 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
         #######################################
         # SET VARIABLES
         length_df = len(st.session_state['df'])
+        
         # format as new variables insample_forecast steps in days/as percentage e.g. the test set to predict for
         perc_test_set = "{:.2f}%".format((st.session_state['insample_forecast_steps']/length_df)*100)
         perc_train_set = "{:.2f}%".format(((length_df-st.session_state['insample_forecast_steps'])/length_df)*100)
@@ -6995,7 +6996,7 @@ st.session_state['y_test'] = y_test
 # TEST -> key currently not in use - TBD
 # set default values for feature selection
 key1_select_page_feature_selection, key2_select_page_feature_selection = create_store("SELECT_PAGE", [
-                            ("feature_selection_user", st.session_state['X'].columns.tolist()), # key1_select_page_feature_selection
+                            ("feature_selection_possible", st.session_state['X'].columns.tolist()), # key1_select_page_feature_selection
                             ("run", 0) #key2_select_page_feature_selection
                             ])
 
@@ -7311,13 +7312,23 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
     with st.sidebar:        
         with st.form('top_features'):
             my_text_paragraph('Selected Features')
-                        
+            
+            # 1 state to keep all features possible e.g. X column names
+            # 1 state to keep user selected features
+            key1_select_page_user_selection, key2_select_page_user_selection = create_store("SELECT_PAGE_USER_SELECTION", [
+                                        ("feature_selection_user", total_features), # key1_select_page_user_selection
+                                        ("run", 0) #key2_select_page_user_selection
+                                        ])
+            
             # combine 3 feature selection methods and show to user in multi-selectbox to adjust as needed
             feature_selection_user = st.multiselect(label = "favorite features", 
-                                                    options = get_state("SELECT_PAGE", "feature_selection_user"), 
-                                                    default = total_features,
+                                                    options = get_state("SELECT_PAGE", "feature_selection_possible"), 
+                                                    default = get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user"),
                                                     label_visibility="collapsed")
 
+
+            # update session state with user selection to keep in memory when switching pages
+            set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", feature_selection_user))
             
             col1, col2, col3 = st.columns([4,4,4])
             with col2:       
@@ -7432,7 +7443,6 @@ else:
                                                                                                                                   },
                                                                                                                         corr_threshold = get_state("SELECT_PAGE_CORR", "corr_threshold")
                                                                                                                       )
-           
     # Remove features with lowest importance scores from each pair
     # note: only remove one of highly correlated features based on importance score after plot is shown
     total_features = remove_lowest_importance_feature(total_features, importance_scores, pairwise_features_in_total_features)
@@ -7440,13 +7450,21 @@ else:
     # =============================================================================
     # Update session state --> get_state("SELECT_PAGE", "feature_selection_user")
     # =============================================================================
-    #set_state("SELECT_PAGE", ("feature_selection_user", ))
+    #set_state("SELECT_PAGE", ("feature_selection_possible", total_features))
+    # set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", feature_selection_user))
     
-    
+    # if user added or removed features use the session state, else use the recommended total features
+    # which is a result of combining 3 feature selection techniques and taking top 5 features of each
+    # and then removing from each top correlated pair the one with lowest importance score
+    try:
+        my_feature_selection = get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")
+    except:
+        my_feature_selection = total_features
+        
     # =============================================================================
     # UPDATE TRAIN/TEST SET WITH USER SELECTION OR DEFAULT SELECTION
     # =============================================================================
-    X = X.loc[:, get_state("SELECT_PAGE", "feature_selection_user")] # TEST -> total_features if not user on page you want the feature_selection from user to propegate down
+    X = X.loc[:, my_feature_selection] # TEST -> total_features if not user on page you want the feature_selection from user to propegate down
     y = y
     X_train = X[:(len(df)-st.session_state['insample_forecast_steps'])]
     X_test = X[(len(df)-st.session_state['insample_forecast_steps']):]
