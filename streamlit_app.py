@@ -226,7 +226,16 @@ st.set_page_config(page_title="ForecastGenie™️",
 #                 # in streamlit create and show the user defined number of carousel cards with header+text
 #                 create_carousel_cards(4, header_list, paragraph_list, font_family, font_size)
 # =============================================================================
-                
+
+# set session states for SELECTING FEATURES
+# TO DEAL WITH EITHER FEATURE SELECTION METHODS FEATURES OR TO REVERT TO USER SELECTION
+create_store("SELECT_PAGE_BTN_CLICKED", [
+                                        ("rfe_btn", False),
+                                        ("mifs_btn", False), 
+                                        ("pca_btn", False)
+                                        ]
+            )
+
 # =============================================================================
 #   ______ _    _ _   _  _____ _______ _____ ____  _   _  _____ 
 #  |  ____| |  | | \ | |/ ____|__   __|_   _/ __ \| \ | |/ ____|
@@ -236,6 +245,171 @@ st.set_page_config(page_title="ForecastGenie™️",
 #  |_|     \____/|_| \_|\_____|  |_|  |_____\____/|_| \_|_____/ 
 #                                                               
 # =============================================================================
+def form_feature_selection_method_mifs():
+    try:
+        with st.form('mifs'):
+            my_text_paragraph('Mutual Information')
+            
+            # Add slider to select number of top features
+            num_features_mifs = st.slider(
+                                          label = "*Select number of top features to include:*", 
+                                          min_value = 1, 
+                                          max_value = len(X.columns), 
+                                          #value = 5,
+                                          key = key1_select_page_mifs,
+                                          step = 1
+                                         )
+            
+            col1, col2, col3 = st.columns([4,4,4])
+            with col2:       
+                
+                mifs_btn = st.form_submit_button("Submit", type="secondary", on_click=form_update, args=('SELECT_PAGE_MIFS',))
+                
+                # keep track of changes if mifs_btn is pressed
+                if mifs_btn:
+                    set_state("SELECT_PAGE_BTN_CLICKED", ('mifs_btn', True))
+            return num_features_mifs
+    except:
+        st.error('the user form for feature selection method \'Mutual Information\' could not execute')
+
+def form_feature_selection_method_pca():
+    try:
+        with st.form('pca'):
+            
+            my_text_paragraph('Principal Component Analysis')
+            
+            # Add a slider to select the number of features to be selected by the PCA algorithm
+            num_features_pca = st.slider(
+                                         label = '*Select number of top features to include:*', 
+                                         min_value = 1, 
+                                         max_value = len(X_train.columns), 
+                                         key = key1_select_page_pca
+                                        )
+            
+            col1, col2, col3 = st.columns([4,4,4])
+            with col2:       
+                pca_btn = st.form_submit_button(label = "Submit", type = "secondary", on_click=form_update, args=('SELECT_PAGE_PCA',))  
+                if pca_btn:
+                    set_state("SELECT_PAGE_BTN_CLICKED", ('pca_btn', True))
+            return num_features_pca
+    except:
+        st.error('the user form for feature selection method \'Principal Component Analaysis\' could not execute')
+            
+def form_feature_selection_method_rfe():
+    try:
+        # show Title in sidebar 'Feature Selection' with purple background
+        my_title(f'{select_icon}', "#7B52AB", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
+        
+        # =============================================================================
+        # RFE Feature Selection - SIDEBAR FORM
+        # =============================================================================
+        with st.form('rfe'):
+             my_text_paragraph('Recursive Feature Elimination')
+             # Add a slider to select the number of features to be selected by the RFECV algorithm
+             num_features_rfe = st.slider(
+                                          label = '*Select number of top features to include:*', 
+                                          min_value = 1, 
+                                          max_value = len(st.session_state['X'].columns), 
+                                          key = key1_select_page_rfe,
+                                          help = '**`Recursive Feature Elimination (RFE)`** is an algorithm that iteratively removes the least important features from the feature set until the desired number of features is reached.\
+                                                  \nIt assigns a rank to each feature based on their importance scores. It is possible to have multiple features with the same ranking because the importance scores of these features are identical or very close to each other.\
+                                                  \nThis can happen when the features are highly correlated or provide very similar information to the model.\
+                                                  \nIn such cases, the algorithm may not be able to distinguish between them and assign the same rank to multiple features.'
+                                          )
+             
+             # set the options for the rfe (recursive feature elimination)
+             with st.expander('🔽 RFE Settings:', expanded=False):
+                 
+                 # Add a selectbox for the user to choose the estimator
+                 estimator_rfe = st.selectbox(
+                                              label = '*Set estimator:*', 
+                                              options = ['Linear Regression', 'Random Forest Regression'], 
+                                              key = key2_select_page_rfe,
+                                              help = '''
+                                                     The **`estimator`** parameter is used to specify the machine learning model that will be used to evaluate the importance of each feature. \
+                                                     The estimator is essentially the algorithm used to fit the data and make predictions.
+                                                     '''
+                                              )
+                                                                      
+                 # Add a slider to select the number of n_splits for the RFE method
+                 timeseriessplit_value_rfe = st.slider(label = '*Set number of splits for Cross-Validation:*', 
+                                                       min_value = 2, 
+                                                       max_value = 5, 
+                                                       key = key3_select_page_rfe,
+                                                       help = '**`Cross-validation`** is a statistical method used to evaluate the performance of a model by splitting the dataset into multiple "folds," where each fold is used as a holdout set for testing the model trained on the remaining folds. \
+                                                              The cross-validation procedure helps to estimate the performance of the model on unseen data and reduce the risk of overfitting.  \
+                                                              In the context of RFE, the cv parameter specifies the number of folds to use for the cross-validation procedure.\
+                                                              The RFE algorithm fits the estimator on the training set, evaluates the performance of the estimator on the validation set, and selects the best subset of features. \
+                                                              The feature selection process is repeated for each fold of the cross-validation procedure.')
+                 
+                 # Add a slider in the sidebar for the user to set the number of steps parameter
+                 num_steps_rfe = st.slider(label = '*Set Number of Steps*', 
+                                           min_value = 1, 
+                                           max_value = 10, 
+                                           value = 1, 
+                                           key = key4_select_page_rfe,
+                                           help = 'The `step` parameter controls the **number of features** to remove at each iteration of the RFE process.')
+             
+             col1, col2, col3 = st.columns([4,4,4])
+             with col2:       
+                 rfe_btn = st.form_submit_button("Submit", type="secondary", on_click=form_update, args=('SELECT_PAGE_RFE',))   
+                 if rfe_btn:
+                     # delete session state with user preference feature selection
+                     set_state("SELECT_PAGE_BTN_CLICKED", ('rfe_btn', True))
+             return num_features_rfe, estimator_rfe, timeseriessplit_value_rfe, num_steps_rfe
+    except:
+        st.error('the user form for feature selection method \'Recursive Feature Selection\' could not execute')
+         
+def show_card_feature_selection_methods():
+    """
+   Displays feature selection methods using a Streamlit expander and carousel cards.
+   
+   Parameters:
+       None
+   
+   Returns:
+       None
+   """
+    with st.expander('', expanded=True):
+
+        vertical_spacer(2)
+        
+        col1, col2, col3 = st.columns([3,8,2])
+        with col2:
+            
+            title = 'Select your top features with 3 methods!'
+            
+            # set gradient color of letters of title
+            gradient = '-webkit-linear-gradient(left, #9c27b0, #673ab7, #3f51b5, #2196f3, #03a9f4)'
+            
+            # show in streamlit the title with gradient
+            st.markdown(f'<h1 style="text-align:center; background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient};"> {title} </h1>', unsafe_allow_html=True)
+           
+            vertical_spacer(2)
+            
+            #### CAROUSEL ####
+            header_list = ['🎨', '🧮', '🎏']
+            paragraph_list_front = [
+                                    "<b> Recursive Feature Elimination </b>", 
+                                    "<b>Principal Component Analysis</b>", 
+                                    "<b>Mutual Information</b>"
+                                   ]
+            paragraph_list_back = [
+                                   "<b>RFE</b> is a <b>feature selection technique</b> that repeatedly removes feature(s) and each turn evaluates remaining features by ranking the features based on their importance scores and eliminates the least important feature. This process continues until a desired number of features is reached.", 
+                                   "<b>PCA</b> is a <b>feature selection technique</b> that repeatedly transforms and evaluates features based on their variance, reducing the dataset to a smaller set of uncorrelated variables called principal components. This process continues until a desired number of components is achieved.", 
+                                   "<b>MIFS</b> aka <nobr>`Mutual Information Feature Selection`</nobr> is a <b>feature selection technique</b> that calculates the mutual information between each feature and the target to determine how much information each feature provides about the target."
+                                  ]
+            font_family = "Helvetica"
+            font_size_front = '14px'
+            font_size_back = '15px'    
+            
+            # in Streamlit create and show the user defined number of carousel cards with header+text
+            create_carousel_cards_v2(3, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back)
+            vertical_spacer(2)
+
+        # Display a NOTE to the user about using the training set for feature selection
+        my_text_paragraph('NOTE: per common practice <b>only</b> the training dataset is used for feature selection to prevent <b>data leakage</b>.',my_font_size='12px', my_font_family='Arial')   
+        
 def analyze_feature_correlations(
     selected_corr_model: str,
     X_train: pd.DataFrame,
@@ -362,6 +536,7 @@ def show_rfe_plot(rfecv, selected_features):
     st.info(f'Top {len(selected_cols_rfe)} features selected with RFECV: {selected_cols_rfe}')
     
     show_rfe_info_btn = st.button(f'About RFE plot', use_container_width=True, type='secondary')
+    
     # if user clicks "About RFE plot" button, display information about RFE
     if show_rfe_info_btn:
         st.write('')
@@ -405,8 +580,10 @@ def perform_rfe(X_train, y_train, estimator_rfe, num_steps_rfe, num_features_rfe
         selected_features = X_train.columns[rfecv.ranking_ <= num_features_rfe]
     else:
         selected_features = X_train.columns[rfecv.support_]
+        
     # show user selected columns
     selected_cols_rfe = list(selected_features)
+    st.write('selected_cols_rfe:', selected_cols_rfe)
     return selected_cols_rfe, selected_features, rfecv
 
 def perform_mifs(X_train, y_train, num_features_mifs):
@@ -4957,32 +5134,6 @@ key1_prepare_normalization, key2_prepare_standardization, key3_prepare = create_
     ("run", 0)])                     #key3_prepare
 
 
-# ================================ SELECT ===================================  
-key1_select_page_pca, key2_select_page_pca = create_store("SELECT_PAGE_PCA", [
-                            # default of PCA features set to minimum of either 5 or the number of independent features in the dataframe
-                            ("num_features_pca", 5), #key1_select_page_pca # min(5, st.session_state['X_train'].shape[1])
-                            ("run", 0) #key2_select_page_pca
-                            ])
-
-key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, key5_select_page_rfe = create_store("SELECT_PAGE_RFE", [
-                            ("num_features_rfe", 5), #key1_select_page_rfe
-                            ("estimator_rfe", "Linear Regression"), #key2_select_page_rfe
-                            ("timeseriessplit_value_rfe", 5),   #key3_select_page_rfe
-                            ("num_steps_rfe", 1), #key4_select_page_rfe
-                            ("run", 0) #key5_select_page_rfe
-                            ])
-
-key1_select_page_mifs, key2_select_page_mifs = create_store("SELECT_PAGE_MIFS", [
-                            ("num_features_mifs", 5), #key1_select_page_mifs # min(5, st.session_state['X'].shape[1])
-                            ("run", 0) #key2_select_page_mifs
-                            ])
-
-key1_select_page_corr, key2_select_page_corr, key3_select_page_corr = create_store("SELECT_PAGE_CORR", [
-                                                            ("corr_threshold", 0.8), #key1_select_page_corr 
-                                                            ("selected_corr_model", 'Linear Regression'), #key2_select_page_corr
-                                                            ("run", 0) #key3_select_page_corr
-                                                            ])
-
 
 # ================================ TRAIN ===================================  
 # TRAIN MENU TEST
@@ -5615,7 +5766,7 @@ with st.sidebar:
             # radio button option for user to pick between demo data and load their own dataset
             data_option = st.radio("*Choose an option:*", ["Demo Data", "Upload Data"], 
                                    on_change = handle_click_wo_button, 
-                                   key= 'data_choice' )
+                                   key = 'data_choice')
             vertical_spacer(1)
         
         if st.session_state['my_data_choice'] == "Upload Data":
@@ -5623,7 +5774,21 @@ with st.sidebar:
                                              type=["csv", "xls", "xlsx", "xlsm", "xlsb"], 
                                              accept_multiple_files=False, 
                                              label_visibility='collapsed')
-            
+        
+# =============================================================================
+#             # =============================================================================
+#             # TEST DELETE SESSION STATES WHEN SWITCHING FILES 
+#             # =============================================================================         
+#             if uploaded_file is None:
+#                 st.write('going to delete session states for variables as new file is uploaded!')
+#                 st.write('no uploaded file')
+#                 st.write(' i will delete session state if present')
+#                 if "__SELECT_PAGE_USER_SELECTION-feature_selection_user__" in st.session_state:
+#                     del st.session_state["__SELECT_PAGE_USER_SELECTION-feature_selection_user__"]
+#                     del st.session_state["X"]
+#                     del st.session_state["__SELECT_PAGE-feature_selection_possible__"]
+# =============================================================================
+              
 if menu_item == 'Load' and sidebar_menu_item=='Home':
     my_title(f"{load_icon} Load Dataset ", "#45B8AC")
     
@@ -6299,6 +6464,7 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
     with st.sidebar:
         # set title in sidebar for engineer page
         my_title(f"{engineer_icon}", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
+        
     with st.sidebar.form('feature engineering sidebar'):
         my_text_paragraph('Features')
         # create empty newline
@@ -6624,30 +6790,33 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
     else:
         pass
     
-    # add the date column but only as numeric feature
+    # =============================================================================
+    # Add the date column but only as numeric feature
+    # =============================================================================
     df['date_numeric'] = (df['date'] - df['date'].min()).dt.days
    
     #################################################################
     # ALL FEATURES COMBINED INTO A DATAFRAME
     #################################################################
-    # SHOW DATAFRAME
+    # Show dataframe
     with st.expander('', expanded=True):
         my_text_header('Engineered Features')
 
-        # retrieve number of features to show on page
+        # Retrieve number of features to show on page
         # -2 because of datetime index and target variable
         num_features_df = len(df.columns)-2
         my_text_paragraph(f'{num_features_df}')
         
-        # show animation
+        # Show animation
         show_lottie_animation(url="./images/features_round.json", key="features_round", width=400, height=400)
         
-        # show dataframe in streamlit
+        # Show dataframe in streamlit
         st.dataframe(copy_df_date_index(my_df=df, datetime_to_date=True, date_to_index=True), use_container_width=True)
+        
         # add download button
         download_csv_button(df, my_file="dataframe_incl_features.csv", help_message="Download your dataset incl. features to .CSV")
 else:
-    # else e.g. if user is not within menu_item == 'Engineer' and sidebar_menu_item is not 'Home':
+    # Else e.g. if user is not within menu_item == 'Engineer' and sidebar_menu_item is not 'Home':
     # execute code below...
     df = st.session_state['df_cleaned_outliers_with_index']
     
@@ -6670,7 +6839,7 @@ else:
                                   month_dummies = get_state("ENGINEER_PAGE_VARS", "month_dummies_checkbox"), 
                                   day_dummies = get_state("ENGINEER_PAGE_VARS", "day_dummies_checkbox"))
     # =============================================================================
-    #     # TEST
+    #     # TEST OUTSIDE FUNCTION TO RUN WAVELET FUNCTION
     #     # df = <insert wavelet function code>
     #     if dwt_features_checkbox:
     #         df = 
@@ -6696,16 +6865,15 @@ else:
 
 ###############################################
 # update dataframe's session state with transformations: 
-# - added calendar days
-# - date dummy variables
-# - wavelet features 
-# - updated changed datatypes
+# - Added calendar days
+# - Date dummy variables
+# - Wavelet features 
+# - Datatypes updated
 ###############################################
 st.session_state['df'] = df     
 
 # assumption date column and y column are at index 0 and index 1 so start from column 3 e.g. index 2 to count potential numerical_features
 # e.g. changed float64 to float to include other floats such as float32 and float16 data types
-
 numerical_features = list(st.session_state['df'].iloc[:, 2:].select_dtypes(include=['float', 'int']).columns)
 
 # create copy of dataframe not altering original
@@ -6722,14 +6890,18 @@ local_df = st.session_state['df'].copy(deep=True)
 # =============================================================================
 # PREPARE DATASET (REMOVE OBJECT DTYPE FEATURES, TRAIN/TEST SPLIT, NORMALIZE, STANDARDIZE)
 if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
+    
     my_title(f'{prepare_icon} Prepare Data', "#FF9F00", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
+    
     with st.sidebar:
+        
         my_title(f'{prepare_icon}', "#FF9F00", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
        
     ############################################
     # 5.0.1 PREPROCESS (remove redundant features)
     ############################################
     obj_cols = local_df.select_dtypes(include='object').columns.tolist()
+    
     # if not an empty list e.g. only show if there are variables removed with dtype = object
     if obj_cols:
         # show user which descriptive variables are removed, that just had the purpose to inform user what dummy was from e.g. holiday days such as Martin Luther King Day
@@ -6756,6 +6928,7 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
                 
                 # show dataframe to user in streamlit
                 st.dataframe(local_df, use_container_width=True)
+            
             vertical_spacer(1)            
     
     ############################################
@@ -6932,7 +7105,7 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
             my_text_paragraph(f'Method: {standardization_choice}')
             st.info('👈 Please choose in the sidebar your Standardization method for numerical columns. Note: columns with booleans will be excluded.')
             
-    # else show user the dataframe with the features that were normalized
+    # ELSE show user the dataframe with the features that were normalized
     else:
         with st.expander('Standardization',expanded=True):
             my_text_header('Standardization') 
@@ -6944,8 +7117,11 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
             
             # with custom function create the Standardization plot with numerical features i.e. before/after scaling
             plot_scaling_before_after(X_unscaled_train, X_train, numerical_features)
+           
             st.success(f'⚖️ Great, you balanced the scales! **{len(numerical_features)}** numerical feature(s) standardized with **{standardization_choice}**')
+            
             st.dataframe(X[numerical_features], use_container_width=True)
+            
             # create download button for user, to download the standardized features dataframe with dates as index i.e. first column
             download_csv_button(X[numerical_features], 
                                 my_file='standardized_features.csv', 
@@ -6992,16 +7168,43 @@ st.session_state['y_train'] = y_train
 st.session_state['y_test'] = y_test
 #st.session_state['scaler'] = scaler
 
+# ================================ SELECT ===================================  
+# Set Default values for Feature Selection
+# NOTE: did not put at start of notebook as input is session state of X
 
-# TEST -> key currently not in use - TBD
-# set default values for feature selection
+# ALL FEATURES POSSIBLE (ALL COLUMNS OF X)
 key1_select_page_feature_selection, key2_select_page_feature_selection = create_store("SELECT_PAGE", [
                             ("feature_selection_possible", st.session_state['X'].columns.tolist()), # key1_select_page_feature_selection
                             ("run", 0) #key2_select_page_feature_selection
                             ])
 
+# PCA
+key1_select_page_pca, key2_select_page_pca = create_store("SELECT_PAGE_PCA", [
+                            # default of PCA features set to minimum of either 5 or the number of independent features in the dataframe
+                            ("num_features_pca", min(5, st.session_state['X_train'].shape[1])), #key1_select_page_pca # 
+                            ("run", 0) #key2_select_page_pca
+                            ])
+# RFE
+key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, key5_select_page_rfe = create_store("SELECT_PAGE_RFE", [
+                            ("num_features_rfe", min(5, st.session_state['X_train'].shape[1])), #key1_select_page_rfe
+                            ("estimator_rfe", "Linear Regression"), #key2_select_page_rfe
+                            ("timeseriessplit_value_rfe", 5),   #key3_select_page_rfe
+                            ("num_steps_rfe", 1), #key4_select_page_rfe
+                            ("run", 0) #key5_select_page_rfe
+                            ])
 
-  
+# MIFS
+key1_select_page_mifs, key2_select_page_mifs = create_store("SELECT_PAGE_MIFS", [
+                            ("num_features_mifs", min(5, st.session_state['X'].shape[1])), #key1_select_page_mifs # 
+                            ("run", 0) #key2_select_page_mifs
+                            ])
+# CORR
+key1_select_page_corr, key2_select_page_corr, key3_select_page_corr = create_store("SELECT_PAGE_CORR", [
+                                                            ("corr_threshold", 0.8), #key1_select_page_corr 
+                                                            ("selected_corr_model", 'Linear Regression'), #key2_select_page_corr
+                                                            ("run", 0) #key3_select_page_corr
+                                                            ])  
+
 # =============================================================================
 #    _____ ______ _      ______ _____ _______ 
 #   / ____|  ____| |    |  ____/ ____|__   __|
@@ -7011,108 +7214,25 @@ key1_select_page_feature_selection, key2_select_page_feature_selection = create_
 #  |_____/|______|______|______\_____|  |_|   
 #                                             
 # =============================================================================
-# Feature Selection
+# FEATURE SELECTION OF INDEPENDENT FEATURES / EXOGENOUS VARIABLES
 if menu_item == 'Select' and sidebar_menu_item == 'Home':    
     
+    # SHOW TITLE
     my_title(f'{select_icon} Feature Selection', "#7B52AB", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
     
-    with st.expander('', expanded=True):
-
-        vertical_spacer(2)
-        
-        col1, col2, col3 = st.columns([3,8,2])
-        with col2:
-            
-            title = 'Select your top features with 3 methods!'
-            
-            # set gradient color of letters of title
-            gradient = '-webkit-linear-gradient(left, #9c27b0, #673ab7, #3f51b5, #2196f3, #03a9f4)'
-            
-            # show in streamlit the title with gradient
-            st.markdown(f'<h1 style="text-align:center; background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient};"> {title} </h1>', unsafe_allow_html=True)
-           
-            vertical_spacer(2)
-            
-            #### CAROUSEL ####
-            header_list = ['🎨', '🧮', '🎏']
-            paragraph_list_front = [
-                                    "<b> Recursive Feature Elimination </b>", 
-                                    "<b>Principal Component Analysis</b>", 
-                                    "<b>Mutual Information</b>"
-                                   ]
-            paragraph_list_back = [
-                                   "<b>RFE</b> is a <b>feature selection technique</b> that repeatedly removes feature(s) and each turn evaluates remaining features by ranking the features based on their importance scores and eliminates the least important feature. This process continues until a desired number of features is reached.", 
-                                   "<b>PCA</b> is a <b>feature selection technique</b> that repeatedly transforms and evaluates features based on their variance, reducing the dataset to a smaller set of uncorrelated variables called principal components. This process continues until a desired number of components is achieved.", 
-                                   "<b>MIFS</b> aka <nobr>`Mutual Information Feature Selection`</nobr> is a <b>feature selection technique</b> that calculates the mutual information between each feature and the target to determine how much information each feature provides about the target."
-                                  ]
-            font_family = "Helvetica"
-            font_size_front = '14px'
-            font_size_back = '15px'    
-            
-            # in Streamlit create and show the user defined number of carousel cards with header+text
-            create_carousel_cards_v2(3, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back)
-            vertical_spacer(2)
-
-        # Display a NOTE to the user about using the training set for feature selection
-        my_text_paragraph('NOTE: per common practice <b>only</b> the training dataset is used for feature selection to prevent <b>data leakage</b>.',my_font_size='12px', my_font_family='Arial')   
-   
+    # SHOW INFORMATION CARD ABOUT FEATURE SELECTION METHODS
+    show_card_feature_selection_methods()
+    
+    # SHOW USER FORMS FOR PARAMETERS OF FEATURE SELECTION METHODS
     with st.sidebar:
-        # show Title in sidebar 'Feature Selection' with purple background
-        my_title(f'{select_icon}', "#7B52AB", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
+        # USER FORM: Recursive Feature Elimination (RFE)
+        num_features_rfe, estimator_rfe, timeseriessplit_value_rfe, num_steps_rfe = form_feature_selection_method_rfe()
         
-        # =============================================================================
-        # RFE Feature Selection - SIDEBAR FORM
-        # =============================================================================
-        with st.form('rfe'):
-             my_text_paragraph('Recursive Feature Elimination')
-             # Add a slider to select the number of features to be selected by the RFECV algorithm
-             num_features_rfe = st.slider(
-                                          label = '*Select number of top features to include:*', 
-                                          min_value = 1, 
-                                          max_value = len(st.session_state['X'].columns), 
-                                          key = key1_select_page_rfe,
-                                          help = '**`Recursive Feature Elimination (RFE)`** is an algorithm that iteratively removes the least important features from the feature set until the desired number of features is reached.\
-                                                  \nIt assigns a rank to each feature based on their importance scores. It is possible to have multiple features with the same ranking because the importance scores of these features are identical or very close to each other.\
-                                                  \nThis can happen when the features are highly correlated or provide very similar information to the model.\
-                                                  \nIn such cases, the algorithm may not be able to distinguish between them and assign the same rank to multiple features.'
-                                          )
-             
-             # set the options for the rfe (recursive feature elimination)
-             with st.expander('🔽 RFE Settings:', expanded=False):
-                 
-                 # Add a selectbox for the user to choose the estimator
-                 estimator_rfe = st.selectbox(
-                                              label = '*Set estimator:*', 
-                                              options = ['Linear Regression', 'Random Forest Regression'], 
-                                              key = key2_select_page_rfe,
-                                              help = '''
-                                                     The **`estimator`** parameter is used to specify the machine learning model that will be used to evaluate the importance of each feature. \
-                                                     The estimator is essentially the algorithm used to fit the data and make predictions.
-                                                     '''
-                                              )
-                                                                      
-                 # Add a slider to select the number of n_splits for the RFE method
-                 timeseriessplit_value_rfe = st.slider(label = '*Set number of splits for Cross-Validation:*', 
-                                                       min_value = 2, 
-                                                       max_value = 5, 
-                                                       key = key3_select_page_rfe,
-                                                       help = '**`Cross-validation`** is a statistical method used to evaluate the performance of a model by splitting the dataset into multiple "folds," where each fold is used as a holdout set for testing the model trained on the remaining folds. \
-                                                              The cross-validation procedure helps to estimate the performance of the model on unseen data and reduce the risk of overfitting.  \
-                                                              In the context of RFE, the cv parameter specifies the number of folds to use for the cross-validation procedure.\
-                                                              The RFE algorithm fits the estimator on the training set, evaluates the performance of the estimator on the validation set, and selects the best subset of features. \
-                                                              The feature selection process is repeated for each fold of the cross-validation procedure.')
-                 
-                 # Add a slider in the sidebar for the user to set the number of steps parameter
-                 num_steps_rfe = st.slider(label = '*Set Number of Steps*', 
-                                           min_value = 1, 
-                                           max_value = 10, 
-                                           value = 1, 
-                                           key = key4_select_page_rfe,
-                                           help = 'The `step` parameter controls the **number of features** to remove at each iteration of the RFE process.')
-             
-             col1, col2, col3 = st.columns([4,4,4])
-             with col2:       
-                 rfe_btn = st.form_submit_button("Submit", type="secondary", on_click=form_update, args=('SELECT_PAGE_RFE',))   
+        # USER FORM: Principal Component Analysis (PCA)
+        num_features_pca = form_feature_selection_method_pca()
+        
+        # USER FORM: MUTUAL INFORMATION FEATURE SELECTION (MIFS)
+        num_features_mifs = form_feature_selection_method_mifs()
 
     # =============================================================================
     # RFE Feature Selection - PAGE RESULTS
@@ -7120,19 +7240,19 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
     try:
         with st.expander('🎨 RFECV', expanded=True):
             ####################
-            # MIFS ANALYSIS
+            # RFE ANALYSIS
             ####################
             # Run function to perform recursive feature elimination with cross-validation and display results using plot
             selected_cols_rfe, selected_features, rfecv = perform_rfe(
                                                                        X_train = st.session_state['X_train'], 
                                                                        y_train = st.session_state['y_train'], 
                                                                        estimator_rfe = estimator_rfe, 
-                                                                       num_steps_rfe= num_steps_rfe, 
+                                                                       num_steps_rfe = num_steps_rfe, 
                                                                        num_features_rfe = num_features_rfe, 
                                                                        timeseriessplit_value_rfe = timeseriessplit_value_rfe
-                                                                     )   
+                                                                     )
             ####################
-            # MIFS RESULTS
+            # RFE RESULTS
             ####################
             show_rfe_plot(rfecv, selected_features)
             
@@ -7142,26 +7262,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
 
     # =============================================================================        
     # PCA Feature Selection
-    # =============================================================================
-    with st.sidebar:    
-        ####################
-        # PCA USER FORM
-        ####################
-        with st.form('pca'):
-            
-            my_text_paragraph('Principal Component Analysis')
-            
-            # Add a slider to select the number of features to be selected by the PCA algorithm
-            num_features_pca = st.slider(
-                                         label = '*Select number of top features to include:*', 
-                                         min_value = 1, 
-                                         max_value = len(X_train.columns), 
-                                         key = key1_select_page_pca
-                                        )
-            
-            col1, col2, col3 = st.columns([4,4,4])
-            with col2:       
-                pca_btn = st.form_submit_button(label = "Submit", type = "secondary", on_click=form_update, args=('SELECT_PAGE_PCA',))  
+    # =============================================================================          
     try:
         with st.expander('🧮 PCA', expanded=True):        
             ####################
@@ -7170,7 +7271,6 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
             # Perform Principal Component Analysis on the Training Dataset
             sorted_features, pca, sorted_idx, selected_cols_pca = perform_pca(X_train = X_train, 
                                                                               num_features_pca = num_features_pca)
-            
             ####################
             # PCA RESULTS
             ####################
@@ -7181,32 +7281,14 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                           sorted_idx = sorted_idx, 
                           selected_cols_pca = selected_cols_pca)
     except:
-        # if pca could not execute show user error
+        # IF PCA could not execute show user error
         selected_cols_pca = []
         st.error('**ForecastGenie Error**: *Principal Component Analysis* could not execute. Please adjust your selection criteria.')
     
     # =============================================================================
     # Mutual Information Feature Selection
     # =============================================================================
-    try: 
-        with st.sidebar:
-            with st.form('mifs'):
-                my_text_paragraph('Mutual Information')
-                
-                # Add slider to select number of top features
-                num_features_mifs = st.slider(
-                                              label = "*Select number of top features to include:*", 
-                                              min_value = 1, 
-                                              max_value = len(X.columns), 
-                                              #value = 5,
-                                              key = key1_select_page_mifs,
-                                              step = 1
-                                             )
-                
-                col1, col2, col3 = st.columns([4,4,4])
-                with col2:       
-                    mifs_btn = st.form_submit_button("Submit", type="secondary", on_click=form_update, args=('SELECT_PAGE_MIFS',))   
-                    
+    try:             
         with st.expander('🎏 MIFS', expanded=True):
             ####################
             # MIFS ANALYSIS
@@ -7256,7 +7338,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                 
                 col1, col2, col3 = st.columns([4,4,4])
                 with col2:   
-                    # show submit button of user form
+                    # SHOW SUBMIT BUTTON OF USER FORM
                     corr_btn = st.form_submit_button("Submit", type="secondary", on_click=form_update, args=('SELECT_PAGE_CORR',))
                     
         with st.expander('🍻 Correlation Analysis', expanded=True):
@@ -7293,16 +7375,29 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                 # show dataframe with pairwise features
                 st.dataframe(df_pairwise, use_container_width=True)
                 # download button for dataframe of pairwise correlation
-                download_csv_button(df_pairwise, my_file="pairwise_correlation.csv", help_message='Download pairwise correlation to .CSV', set_index=False)
+                download_csv_button(
+                                    df_pairwise, 
+                                    my_file="pairwise_correlation.csv", 
+                                    help_message='Download pairwise correlation to .CSV', 
+                                    set_index=False
+                                    )
+                
                 # insert divider line
                 st.markdown('---')
             
             # SHOW CORRELATION CHART
-            altair_correlation_chart(total_features, importance_scores, pairwise_features_in_total_features, corr_threshold)
+            altair_correlation_chart(total_features, 
+                                     importance_scores, 
+                                     pairwise_features_in_total_features, 
+                                     corr_threshold)
             
             # Remove features with lowest importance scores from each pair
             # note: only remove one of highly correlated features based on importance score after plot is shown
-            total_features = remove_lowest_importance_feature(total_features, importance_scores, pairwise_features_in_total_features)
+            total_features_default = remove_lowest_importance_feature(
+                                                                      total_features, 
+                                                                      importance_scores, 
+                                                                      pairwise_features_in_total_features
+                                                                     )
     except:
         st.warning(':red[**ERROR**: Error with Correlation Analysis...please adjust your selection criteria]')
 
@@ -7313,32 +7408,88 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         with st.form('top_features'):
             my_text_paragraph('Selected Features')
             
+            # LOGIC
+            ########
             # 1 state to keep all features possible e.g. X column names
-            # 1 state to keep user selected features
+            # 1 state to keep user selected features, which has default value of recommended features if user does not update
+            # 1 state to keep the recommended features, which will be used if user skips the page
+            # logic: if selected features by user then use user preference, else use pipeline recommended features
+            # if file is switched delete the session state of old data feature preference
             key1_select_page_user_selection, key2_select_page_user_selection = create_store("SELECT_PAGE_USER_SELECTION", [
-                                        ("feature_selection_user", total_features), # key1_select_page_user_selection
+                                        ("feature_selection_user", []), #key1_select_page_user_selection
                                         ("run", 0) #key2_select_page_user_selection
                                         ])
             
+            # if user selected features, use those! else use the recommended features by feature selection methods
+            # if user changes one of the selection method parameters -> reset to feature selection method selection and remove user feature selection preference 
+            #if rfe pca or mifs submitted button is pressed, set total_features equal again to recommended/calculated total_features from feature selection methods:
+            if get_state("SELECT_PAGE_BTN_CLICKED", "rfe_btn") or get_state("SELECT_PAGE_BTN_CLICKED", "pca_btn") or get_state("SELECT_PAGE_BTN_CLICKED", "mifs_btn"):
+                #st.write('you pressed one of the feature selection buttons! Your feature selection is reset:')
+                # set default feature selection
+                total_features = total_features_default 
+                
+                # remove old user choice saved
+                #del st.session_state["__SELECT_PAGE_USER_SELECTION-feature_selection_user__"]
+                set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", total_features))
+                
+                # reset state (back to False)
+                set_state("SELECT_PAGE_BTN_CLICKED", ("rfe_btn", False)) and set_state("SELECT_PAGE_BTN_CLICKED", ("pca_btn", False)) and set_state("SELECT_PAGE_BTN_CLICKED", ("mifs_btn", False))
+                
+            elif "__SELECT_PAGE_USER_SELECTION-feature_selection_user__" in st.session_state and get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user") != []:
+               # st.write('**running test 1**', get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")) # TEST
+                total_features = get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")
+            else:
+                # set default feature selection
+                total_features = total_features_default 
+                total_features = set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", total_features))
+# =============================================================================
+#             else:
+#                 st.write('**running test 2**')
+#                 my_feature_selection = total_features
+#                 set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", my_feature_selection))
+# =============================================================================
+              
+# =============================================================================
+#             # double check if X has the features recommended?
+#             lst1 = X_train.columns
+#             lst2 = my_feature_selection
+#             # get the difference?
+#             st.write('difference two lists;', [set(lst2) - set(lst1)])
+#             
+#             st.write('this is feature selection options', get_state("SELECT_PAGE", "feature_selection_possible"))
+#             st.write('this is default selection', my_feature_selection)
+# =============================================================================
+
+# =============================================================================
+#             def update_user_selection():
+#                 # update session state with user selection to keep in memory when switching pages
+#                 set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", feature_selection_user))
+# =============================================================================
+
             # combine 3 feature selection methods and show to user in multi-selectbox to adjust as needed
-            feature_selection_user = st.multiselect(label = "favorite features", 
-                                                    options = get_state("SELECT_PAGE", "feature_selection_possible"), 
-                                                    default = get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user"),
-                                                    label_visibility="collapsed")
-
-
-            # update session state with user selection to keep in memory when switching pages
-            set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", feature_selection_user))
+            feature_selection_user = st.multiselect(
+                                                    label = "favorite features", 
+                                                    options = X_train.columns, #get_state("SELECT_PAGE", "feature_selection_possible"), 
+                                                    #default = total_features,
+                                                    #on_change = ,
+                                                    key = key1_select_page_user_selection,
+                                                    label_visibility = "collapsed"
+                                                   )
+            #update_user_selection()
+            
+          
             
             col1, col2, col3 = st.columns([4,4,4])
             with col2:       
-                top_features_btn = st.form_submit_button("Submit", type="secondary",  on_click=form_update, args=("SELECT_PAGE",))
-                
+                top_features_btn = st.form_submit_button("Submit", type="secondary",  on_click=form_update, args=("SELECT_PAGE_USER_SELECTION",))
+                #top_features_btn = st.form_submit_button("Submit", type="secondary")
+            #st.write('session state after you clicked button features is:',  get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user"))
+            
+# IS THIS CODE REDUNDANT? I CAN DEFINE IT OUTSIDE OF SELECT PAGE WITH SESSION STATES               
     ######################################################################################################
     # Redefine dynamic user picked features for X, y, X_train, X_test, y_train, y_test
     ######################################################################################################
-    
-    # apply columns user selected to X
+    # Apply columns user selected to X
     X = X.loc[:, feature_selection_user]
     y = y
     X_train = X[:(len(df)-st.session_state['insample_forecast_steps'])]
@@ -7351,16 +7502,31 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
     with st.expander('🥇 Top Features Selected', expanded=True):
         my_subheader('')
         my_text_paragraph('Your Feature Selection', my_font_size='26px')
-        show_lottie_animation(url = "./images/astronaut_star_in_hand.json", key = 'austronaut-star', width=200, height=200, col_sizes=[5,4,5],margin_before=1, margin_after=2)
+        show_lottie_animation(url = "./images/astronaut_star_in_hand.json", 
+                              key = 'austronaut-star', 
+                              width=200, 
+                              height=200, 
+                              col_sizes=[5,4,5], 
+                              margin_before=1, 
+                              margin_after=2)
         
         # create dataframe from list of features and specify column header
         # NOTE: updated below code from 'total_features' to 'feature_selection_user' to only show features that are in sidebar selected
         # instead of all that are outputed from feature selection techniques
-        df_total_features = pd.DataFrame(feature_selection_user, columns = ['Top Features'])
+        df_total_features = pd.DataFrame(
+                                         feature_selection_user, 
+                                         columns = ['Top Features']
+                                        )
         
         # THIS CODE RETRIEVES DIFFERENCE WHAT WAS RECOMMENDED BY FEATURE SELECTION METHODS
         # AND WHAT USER ADDS AS ADDITIONAL VARIABLES OUTSIDE OF RECOMMENDATION
-        difference_lsts = list(set(feature_selection_user) - set(total_features))
+       
+        # first time app starts the total_features is None
+        if total_features != None:
+            difference_lsts = list(set(feature_selection_user) - set(total_features_default))
+        else:
+            # if no features chosen by user then return empty list -> no cells need to be highlighted yellow 
+            difference_lsts = []
         
         def highlight_cols_feature_selection(val):
             """
@@ -7378,14 +7544,18 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         
         # define the styled dataframe with applying custom function to highlight cells that are in difference_lsts        
         styled_df = df_total_features.style.applymap(highlight_cols_feature_selection)
-        st.dataframe(styled_df, use_container_width=True)
+        
+        st.dataframe(styled_df, 
+                     use_container_width=True)
         
         # TEST IF CORRECT ALL FEATURES ARE DISPLAYED!
         # Display the dataframe in Streamlit
         st.dataframe(X, use_container_width=True)
 
         # Create download button for forecast results to .CSV
-        download_csv_button(X, my_file="features_dataframe.csv", help_message="Download your **features** to .CSV", my_key='features_df_download_btn')
+        download_csv_button(X, my_file="features_dataframe.csv", 
+                            help_message="Download your **features** to .CSV", 
+                            my_key='features_df_download_btn')
 else:
     # ELSE WHEN USER IS NOT ON SELECT PAGE 
     # 0. RUN THE FEATURE SELECTION TO SELECT TOP FEATURES
@@ -7398,21 +7568,28 @@ else:
     ################
     # 1. RFE
     ################   
-    selected_cols_rfe, selected_features, rfecv = perform_rfe(
-                                                                X_train = st.session_state['X_train'], 
-                                                                y_train = st.session_state['y_train'], 
-                                                                num_features_rfe = get_state("SELECT_PAGE_RFE", "num_features_rfe"), 
-                                                                estimator_rfe = get_state("SELECT_PAGE_RFE", "estimator_rfe"), 
-                                                                timeseriessplit_value_rfe = get_state("SELECT_PAGE_RFE", "timeseriessplit_value_rfe"), 
-                                                                num_steps_rfe = get_state("SELECT_PAGE_RFE", "num_steps_rfe")
-                                                              )   
+    try:
+        selected_cols_rfe, selected_features, rfecv = perform_rfe(
+                                                                    X_train = st.session_state['X_train'], 
+                                                                    y_train = st.session_state['y_train'], 
+                                                                    num_features_rfe = get_state("SELECT_PAGE_RFE", "num_features_rfe"), 
+                                                                    estimator_rfe = get_state("SELECT_PAGE_RFE", "estimator_rfe"), 
+                                                                    timeseriessplit_value_rfe = get_state("SELECT_PAGE_RFE", "timeseriessplit_value_rfe"), 
+                                                                    num_steps_rfe = get_state("SELECT_PAGE_RFE", "num_steps_rfe")
+                                                                  )   
+    except:
+        selected_cols_rfe = []
+        #st.error('**ForecastGenie Error**: *Recursive Feature Elimination with Cross-Validation* could not execute. Need at least 2 features to be able to apply Feature Elimination. Please adjust your selection criteria.')
+    
     ################
     # 2. PCA
     ################
+    st.write('getstate session state num_features_pca', get_state("SELECT_PAGE_PCA", "num_features_pca"))
+    st.write('outside func X_train', X_train)
     # Perform Principal Component Analysis on the Training Dataset
     sorted_features, pca, sorted_idx, selected_cols_pca = perform_pca(
                                                                       X_train = X_train, 
-                                                                      num_features_pca = get_state("SELECT_PAGE_PCA", "num_features_pca")
+                                                                      num_features_pca = min(get_state("SELECT_PAGE_PCA", "num_features_pca"), X_train.shape[1])
                                                                      )
     ################
     # 3. MIFS
@@ -7456,15 +7633,37 @@ else:
     # if user added or removed features use the session state, else use the recommended total features
     # which is a result of combining 3 feature selection techniques and taking top 5 features of each
     # and then removing from each top correlated pair the one with lowest importance score
-    try:
-        my_feature_selection = get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")
-    except:
-        my_feature_selection = total_features
-        
+   
+    # THINK OF ALL COMBINATIONS POSSIBLE!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    
+    # USER SELECTED A LIST OF FEATURES
+    # USER REMOVED FEATURES ON ENGINEER PAGE -> still has selected list of features in session state
+    # USER RERUNS CODE AND GETS ERROR FOR X = X.loc[:, my_feature_selection] #TEST -> total_features if not user on page you want the feature_selection from user to propegate down
+      # ONLY GETS DATE_NUMERIC IN X dataframe -> LIST OF FEATURES IS STILL CALENDAR_EVENT, DATE_NUMERIC, PAY_DAY from ("SELECT_PAGE_USER_SELECTION-feature_selection_user" found in session state)
+    
+# =============================================================================
+#     # if user selected features, use those! else use the recommended features by feature selection methods
+#     if "__SELECT_PAGE_USER_SELECTION-feature_selection_user__" in st.session_state:
+#         st.write('"__SELECT_PAGE_USER_SELECTION-feature_selection_user__" found in session state')
+#         my_feature_selection = get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")
+#     else:
+#         st.write('system selected total_features selected')
+#         my_feature_selection = total_features
+# 
+# =============================================================================
+    my_feature_selection = total_features
+    # sanity check if user preferenced columns are still in X
+    lst1 = X.columns
+    lst2 = my_feature_selection
+    # find all matches in lst1 that are in lst2 and keep those
+
+
     # =============================================================================
     # UPDATE TRAIN/TEST SET WITH USER SELECTION OR DEFAULT SELECTION
     # =============================================================================
-    X = X.loc[:, my_feature_selection] # TEST -> total_features if not user on page you want the feature_selection from user to propegate down
+    st.write(my_feature_selection)
+    st.write('X outside select page:', X)
+    X = X.loc[:, my_feature_selection] #TEST -> total_features if not user on page you want the feature_selection from user to propegate down
     y = y
     X_train = X[:(len(df)-st.session_state['insample_forecast_steps'])]
     X_test = X[(len(df)-st.session_state['insample_forecast_steps']):]
@@ -8258,7 +8457,7 @@ if menu_item == 'Forecast':
                     download_csv_button(df_forecast_lr, my_file="forecast_linear_regression_results.csv") 
             
             if model_name == "SARIMAX":
-                # define model parameters
+                # Define Model Parameters
                 order = (p,d,q)
                 seasonal_order = (P,D,Q,s)
                 # define model on all data (X)
