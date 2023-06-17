@@ -583,7 +583,7 @@ def perform_rfe(X_train, y_train, estimator_rfe, num_steps_rfe, num_features_rfe
         
     # show user selected columns
     selected_cols_rfe = list(selected_features)
-    st.write('selected_cols_rfe:', selected_cols_rfe)
+    #st.write('selected_cols_rfe:', selected_cols_rfe) # TEST
     return selected_cols_rfe, selected_features, rfecv
 
 def perform_mifs(X_train, y_train, num_features_mifs):
@@ -5006,8 +5006,10 @@ if "df_raw" not in st.session_state:
     st.session_state["df_raw"] = pd.DataFrame()
     st.session_state.df_raw = generate_demo_data()
     df_graph = st.session_state.df_raw.copy(deep=True)
+    
     # set minimum date
     df_min = st.session_state.df_raw .iloc[:,0].min().date()
+    
     # set maximum date
     df_max = st.session_state.df_raw .iloc[:,0].max().date()
     
@@ -5134,6 +5136,20 @@ key1_prepare_normalization, key2_prepare_standardization, key3_prepare = create_
     ("run", 0)])                     #key3_prepare
 
 
+# ================================ SELECT ====================================
+
+# TESTING
+# LOGIC
+########
+# 1 state to keep all features possible e.g. X column names
+# 1 state to keep user selected features, which has default value of recommended features if user does not update
+# 1 state to keep the recommended features, which will be used if user skips the page
+# logic: if selected features by user then use user preference, else use pipeline recommended features
+# if file is switched delete the session state of old data feature preference
+key1_select_page_user_selection, key2_select_page_user_selection = create_store("SELECT_PAGE_USER_SELECTION", [
+                            ("feature_selection_user", []), #key1_select_page_user_selection
+                            ("run", 0) #key2_select_page_user_selection
+                            ])
 
 # ================================ TRAIN ===================================  
 # TRAIN MENU TEST
@@ -5757,6 +5773,40 @@ print('Forecastgenie Print: Loaded Documentation Page')
 #  |______\____/_/    \_\_____/ 
 #                               
 # =============================================================================   
+
+# =============================================================================
+# FUNCTION DELETE SESSION STATES WHEN SWITCHING FILES 
+# =============================================================================         
+def reset_session_states():
+    """
+    Resets the session states for variables by deleting all items in Session state, except for 'data_choice' and 'my_data_choice'.
+    
+    This function is useful when a new file is uploaded and you want to clear the existing session state.
+    
+    Returns:
+        None
+    
+    Example:
+        reset_session_states()
+    """
+    #st.write('TEST: I am going to delete session states for variables as new file is uploaded!') # TEST 
+    
+    # Delete all the items in Session state
+    for key in st.session_state.keys():
+        ############### NEW TEST ############################
+        # FIX: review need of 2 session states
+        if key == 'data_choice' or key == 'my_data_choice':
+            pass
+        else:
+            #st.write(f'removing key: {key}') # TEST
+            del st.session_state[key]
+            
+    # update session state to "Upload Data"        
+    st.session_state['my_data_choice'] = "Upload Data"
+    
+    # create session state to know user switched
+    create_store("DATA_OPTION", [("upload_new_data", True)])
+
 with st.sidebar:
     my_title(f"{load_icon}", "#45B8AC")
     with st.expander('', expanded=True):
@@ -5770,35 +5820,67 @@ with st.sidebar:
             vertical_spacer(1)
         
         if st.session_state['my_data_choice'] == "Upload Data":
-            uploaded_file = st.file_uploader("Upload your file", 
-                                             type=["csv", "xls", "xlsx", "xlsm", "xlsb"], 
-                                             accept_multiple_files=False, 
-                                             label_visibility='collapsed')
+            uploaded_file = st.file_uploader(label = "Upload your file", 
+                                             type = ["csv", "xls", "xlsx", "xlsm", "xlsb"], 
+                                             accept_multiple_files = False, 
+                                             label_visibility = 'collapsed',
+                                             on_change = reset_session_states)
+
+
+############### NEW TEST ############################
+if st.session_state['my_data_choice'] == "Demo Data":
+    # TEST2 TEST2
+    # reset session states
+    reset_session_states()
+    uploaded_file  = 'demo_data_loaded'
+    if 'freq' not in st.session_state:
+        # assume frequency is daily data for now -> expand to automated frequency detection later 
+        st.session_state['freq'] = 'Daily'
+    ######################################    
+    
+    st.session_state['df_raw'] = generate_demo_data()
+    
+    df_raw = generate_demo_data()
+    
+    df_graph = df_raw.copy(deep=True)
+    
+    df_min = df_raw.iloc[:,0].min().date()
+    df_max = df_raw.iloc[:,0].max().date()
         
-# =============================================================================
-#             # =============================================================================
-#             # TEST DELETE SESSION STATES WHEN SWITCHING FILES 
-#             # =============================================================================         
-#             if uploaded_file is None:
-#                 st.write('going to delete session states for variables as new file is uploaded!')
-#                 st.write('no uploaded file')
-#                 st.write(' i will delete session state if present')
-#                 if "__SELECT_PAGE_USER_SELECTION-feature_selection_user__" in st.session_state:
-#                     del st.session_state["__SELECT_PAGE_USER_SELECTION-feature_selection_user__"]
-#                     del st.session_state["X"]
-#                     del st.session_state["__SELECT_PAGE-feature_selection_possible__"]
-# =============================================================================
+    # set data option to false 
+    # Note: this variable is used in other code to reset e.g. the feature selection and not keep previous session in memory before SELECT PAGE codeblock
+    # DID THIS WORK?
+    set_state("DATA_OPTION", ("upload_new_data", False))
+    
+        
+############### NEW TEST ############################
+elif st.session_state.my_data_choice == "Upload Data" and uploaded_file is not None:
+    
+    # define dataframe from custom function to read from uploaded read_csv file
+    st.session_state['df_raw'] = load_data()
+    
+    df_graph = st.session_state['df_raw'].copy(deep=True)
+    
+    # set minimum date
+    df_min = st.session_state.df_raw.iloc[:,0].min().date()
+   
+    # set maximum date
+    df_max = st.session_state.df_raw.iloc[:,0].max().date()
+
               
 if menu_item == 'Load' and sidebar_menu_item=='Home':
+    
     my_title(f"{load_icon} Load Dataset ", "#45B8AC")
     
+# =============================================================================
+#     if st.session_state['my_data_choice'] == "Demo Data":
+#         st.session_state['df_raw'] = generate_demo_data()
+#         df_raw = generate_demo_data()
+#         df_graph = df_raw.copy(deep=True)
+#         df_min = df_raw.iloc[:,0].min().date()
+#         df_max = df_raw.iloc[:,0].max().date()
+# =============================================================================
     if st.session_state['my_data_choice'] == "Demo Data":
-        st.session_state['df_raw'] = generate_demo_data()
-        df_raw = generate_demo_data()
-        df_graph = df_raw.copy(deep=True)
-        df_min = df_raw.iloc[:,0].min().date()
-        df_max = df_raw.iloc[:,0].max().date()
-        
         with st.expander('', expanded=True):
             col0, col1, col2, col3 = st.columns([20, 90, 8, 1])        
             with col2:
@@ -5862,13 +5944,16 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
     
     # check if data is uploaded
     elif st.session_state.my_data_choice == "Upload Data" and uploaded_file is not None:
-        # define dataframe from custom function to read from uploaded read_csv file
-        st.session_state['df_raw'] = load_data()
-        df_graph = st.session_state['df_raw'].copy(deep=True)
-        # set minimum date
-        df_min = st.session_state.df_raw.iloc[:,0].min().date()
-        # set maximum date
-        df_max = st.session_state.df_raw.iloc[:,0].max().date()
+# =============================================================================
+#        
+#         # define dataframe from custom function to read from uploaded read_csv file
+#         st.session_state['df_raw'] = load_data()
+#         df_graph = st.session_state['df_raw'].copy(deep=True)
+#         # set minimum date
+#         df_min = st.session_state.df_raw.iloc[:,0].min().date()
+#         # set maximum date
+#         df_max = st.session_state.df_raw.iloc[:,0].max().date()
+# =============================================================================
        
         # let user select color for graph
         with st.expander('', expanded=True):
@@ -5882,7 +5967,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
                 set_state("COLORS", ("chart_color", my_chart_color))
             with col1:    
                 my_text_header('Uploaded Data')
-            
+                
             show_lottie_animation("./images/107590-rocket-launch.json", key='rocket_launch', speed=1, height=160, width=399)
                  
             # create 3 columns for spacing
@@ -7172,11 +7257,13 @@ st.session_state['y_test'] = y_test
 # Set Default values for Feature Selection
 # NOTE: did not put at start of notebook as input is session state of X
 
-# ALL FEATURES POSSIBLE (ALL COLUMNS OF X)
-key1_select_page_feature_selection, key2_select_page_feature_selection = create_store("SELECT_PAGE", [
-                            ("feature_selection_possible", st.session_state['X'].columns.tolist()), # key1_select_page_feature_selection
-                            ("run", 0) #key2_select_page_feature_selection
-                            ])
+# =============================================================================
+# # ALL FEATURES POSSIBLE (ALL COLUMNS OF X)
+# key1_select_page_feature_selection, key2_select_page_feature_selection = create_store("SELECT_PAGE", [
+#                             ("feature_selection_possible", st.session_state['X'].columns.tolist()), # key1_select_page_feature_selection
+#                             ("run", 0) #key2_select_page_feature_selection
+#                             ])
+# =============================================================================
 
 # PCA
 key1_select_page_pca, key2_select_page_pca = create_store("SELECT_PAGE_PCA", [
@@ -7205,6 +7292,12 @@ key1_select_page_corr, key2_select_page_corr, key3_select_page_corr = create_sto
                                                             ("run", 0) #key3_select_page_corr
                                                             ])  
 
+# If you uploaded a new file then reset the previous feature selection of user to an empty list
+#if st.session_state["df_raw"].columns[1] != 'demo_data' and get_state("DATA_OPTION", "upload_data") == True:
+if get_state("DATA_OPTION", "upload_new_data") == True:
+    # set equal to empty list again if user uploads new file
+    set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", []))
+    
 # =============================================================================
 #    _____ ______ _      ______ _____ _______ 
 #   / ____|  ____| |    |  ____/ ____|__   __|
@@ -7408,84 +7501,58 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         with st.form('top_features'):
             my_text_paragraph('Selected Features')
             
-            # LOGIC
-            ########
-            # 1 state to keep all features possible e.g. X column names
-            # 1 state to keep user selected features, which has default value of recommended features if user does not update
-            # 1 state to keep the recommended features, which will be used if user skips the page
-            # logic: if selected features by user then use user preference, else use pipeline recommended features
-            # if file is switched delete the session state of old data feature preference
-            key1_select_page_user_selection, key2_select_page_user_selection = create_store("SELECT_PAGE_USER_SELECTION", [
-                                        ("feature_selection_user", []), #key1_select_page_user_selection
-                                        ("run", 0) #key2_select_page_user_selection
-                                        ])
-            
             # if user selected features, use those! else use the recommended features by feature selection methods
             # if user changes one of the selection method parameters -> reset to feature selection method selection and remove user feature selection preference 
             #if rfe pca or mifs submitted button is pressed, set total_features equal again to recommended/calculated total_features from feature selection methods:
-            if get_state("SELECT_PAGE_BTN_CLICKED", "rfe_btn") or get_state("SELECT_PAGE_BTN_CLICKED", "pca_btn") or get_state("SELECT_PAGE_BTN_CLICKED", "mifs_btn"):
-                #st.write('you pressed one of the feature selection buttons! Your feature selection is reset:')
-                # set default feature selection
-                total_features = total_features_default 
-                
-                # remove old user choice saved
-                #del st.session_state["__SELECT_PAGE_USER_SELECTION-feature_selection_user__"]
-                set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", total_features))
+            if get_state("SELECT_PAGE_BTN_CLICKED", "rfe_btn") == True or get_state("SELECT_PAGE_BTN_CLICKED", "pca_btn") == True or get_state("SELECT_PAGE_BTN_CLICKED", "mifs_btn") == True:
                 
                 # reset state (back to False)
-                set_state("SELECT_PAGE_BTN_CLICKED", ("rfe_btn", False)) and set_state("SELECT_PAGE_BTN_CLICKED", ("pca_btn", False)) and set_state("SELECT_PAGE_BTN_CLICKED", ("mifs_btn", False))
+                set_state("SELECT_PAGE_BTN_CLICKED", ("rfe_btn", False)) 
+                set_state("SELECT_PAGE_BTN_CLICKED", ("pca_btn", False))
+                set_state("SELECT_PAGE_BTN_CLICKED", ("mifs_btn", False))
                 
-            elif "__SELECT_PAGE_USER_SELECTION-feature_selection_user__" in st.session_state and get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user") != []:
-               # st.write('**running test 1**', get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")) # TEST
-                total_features = get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")
-            else:
+                # delete session states as it still otherwise evaluates to True
+                del st.session_state["__SELECT_PAGE_BTN_CLICKED-rfe_btn__"]
+                del st.session_state["__SELECT_PAGE_BTN_CLICKED-pca_btn__"]
+                del st.session_state["__SELECT_PAGE_BTN_CLICKED-mifs_btn__"]
+                
+                st.write('option 1') #TEST1
+                st.write('rfe_btn', get_state("SELECT_PAGE_BTN_CLICKED", "rfe_btn"))   # TEST1
+                st.write('pca_btn', get_state("SELECT_PAGE_BTN_CLICKED", "pca_btn"))   # TEST1
+                st.write('mifs_btn', get_state("SELECT_PAGE_BTN_CLICKED", "mifs_btn")) # TEST1
+                
                 # set default feature selection
                 total_features = total_features_default 
-                total_features = set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", total_features))
-# =============================================================================
-#             else:
-#                 st.write('**running test 2**')
-#                 my_feature_selection = total_features
-#                 set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", my_feature_selection))
-# =============================================================================
-              
-# =============================================================================
-#             # double check if X has the features recommended?
-#             lst1 = X_train.columns
-#             lst2 = my_feature_selection
-#             # get the difference?
-#             st.write('difference two lists;', [set(lst2) - set(lst1)])
-#             
-#             st.write('this is feature selection options', get_state("SELECT_PAGE", "feature_selection_possible"))
-#             st.write('this is default selection', my_feature_selection)
-# =============================================================================
+                
+                # set features equal to default (based on 3 feature selection methods)
+                set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", total_features))
 
-# =============================================================================
-#             def update_user_selection():
-#                 # update session state with user selection to keep in memory when switching pages
-#                 set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", feature_selection_user))
-# =============================================================================
+            elif "__SELECT_PAGE_USER_SELECTION-feature_selection_user__" in st.session_state and get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user") != []:
+                st.write('option 2') # TEST
+                total_features = get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")
+            else:
+                st.write('option 3') # TEST
+                # set feature selection to default (based on 3 feature selection methods)
+                total_features = total_features_default 
+                total_features = set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", total_features))
 
             # combine 3 feature selection methods and show to user in multi-selectbox to adjust as needed
+            #st.write('these are all options from X train columns:', X_train.columns)    # TEST
+            #st.write(get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")) # TEST
+            
             feature_selection_user = st.multiselect(
                                                     label = "favorite features", 
-                                                    options = X_train.columns, #get_state("SELECT_PAGE", "feature_selection_possible"), 
-                                                    #default = total_features,
-                                                    #on_change = ,
+                                                    options = X_train.columns,
                                                     key = key1_select_page_user_selection,
                                                     label_visibility = "collapsed"
                                                    )
-            #update_user_selection()
-            
-          
-            
+
             col1, col2, col3 = st.columns([4,4,4])
             with col2:       
+                # SHOW SUBMIT BUTTON OF USER FORM
                 top_features_btn = st.form_submit_button("Submit", type="secondary",  on_click=form_update, args=("SELECT_PAGE_USER_SELECTION",))
-                #top_features_btn = st.form_submit_button("Submit", type="secondary")
-            #st.write('session state after you clicked button features is:',  get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user"))
-            
-# IS THIS CODE REDUNDANT? I CAN DEFINE IT OUTSIDE OF SELECT PAGE WITH SESSION STATES               
+
+    # IS THIS CODE REDUNDANT? I CAN DEFINE IT OUTSIDE OF SELECT PAGE WITH SESSION STATES               
     ######################################################################################################
     # Redefine dynamic user picked features for X, y, X_train, X_test, y_train, y_test
     ######################################################################################################
@@ -7518,10 +7585,11 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                                          columns = ['Top Features']
                                         )
         
+        # =============================================================================      
         # THIS CODE RETRIEVES DIFFERENCE WHAT WAS RECOMMENDED BY FEATURE SELECTION METHODS
         # AND WHAT USER ADDS AS ADDITIONAL VARIABLES OUTSIDE OF RECOMMENDATION
-       
-        # first time app starts the total_features is None
+        # Note: first time app starts the total_features is None
+        # =============================================================================
         if total_features != None:
             difference_lsts = list(set(feature_selection_user) - set(total_features_default))
         else:
@@ -7556,120 +7624,125 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         download_csv_button(X, my_file="features_dataframe.csv", 
                             help_message="Download your **features** to .CSV", 
                             my_key='features_df_download_btn')
-else:
-    # ELSE WHEN USER IS NOT ON SELECT PAGE 
-    # 0. RUN THE FEATURE SELECTION TO SELECT TOP FEATURES
-    # 1. REMOVE FROM HIGHLY CORRELATED INDEPENDENT FEATURES PAIRS THE ONE WITH LOWEST IMPORTANCE SCORES
-    # 2. 
-    
-    # =============================================================================
-    # Apply 3 Feature Selection Techniques
-    # =============================================================================
-    ################
-    # 1. RFE
-    ################   
-    try:
-        selected_cols_rfe, selected_features, rfecv = perform_rfe(
-                                                                    X_train = st.session_state['X_train'], 
-                                                                    y_train = st.session_state['y_train'], 
-                                                                    num_features_rfe = get_state("SELECT_PAGE_RFE", "num_features_rfe"), 
-                                                                    estimator_rfe = get_state("SELECT_PAGE_RFE", "estimator_rfe"), 
-                                                                    timeseriessplit_value_rfe = get_state("SELECT_PAGE_RFE", "timeseriessplit_value_rfe"), 
-                                                                    num_steps_rfe = get_state("SELECT_PAGE_RFE", "num_steps_rfe")
-                                                                  )   
-    except:
-        selected_cols_rfe = []
-        #st.error('**ForecastGenie Error**: *Recursive Feature Elimination with Cross-Validation* could not execute. Need at least 2 features to be able to apply Feature Elimination. Please adjust your selection criteria.')
-    
-    ################
-    # 2. PCA
-    ################
-    st.write('getstate session state num_features_pca', get_state("SELECT_PAGE_PCA", "num_features_pca"))
-    st.write('outside func X_train', X_train)
-    # Perform Principal Component Analysis on the Training Dataset
-    sorted_features, pca, sorted_idx, selected_cols_pca = perform_pca(
-                                                                      X_train = X_train, 
-                                                                      num_features_pca = min(get_state("SELECT_PAGE_PCA", "num_features_pca"), X_train.shape[1])
-                                                                     )
-    ################
-    # 3. MIFS
-    ################
-    mutual_info, selected_features_mi, selected_cols_mifs = perform_mifs(X_train, y_train, num_features_mifs = get_state("SELECT_PAGE_MIFS", "num_features_mifs"))
-    
-    # =============================================================================
-    # Combine Features from 3 Feature Selection Techniques   
-    # =============================================================================
-    # Find unique total_features            
-    total_features = np.unique(selected_cols_rfe + selected_cols_pca + selected_cols_mifs)
-    # convert to list
-    total_features = total_features.tolist()
-    
-    # =============================================================================
-    # Remove Highly Correlated Features >= threshold ( default = 80% pairwise-correlation)
-    # =============================================================================
-    # Apply Function to analyse feature correlations and computes importance scores.             
-    total_features, importance_scores, pairwise_features_in_total_features, df_pairwise = analyze_feature_correlations(   
-                                                                                                                        selected_corr_model = get_state("SELECT_PAGE_CORR", "selected_corr_model"), 
-                                                                                                                        X_train = X_train, 
-                                                                                                                        y_train = y_train, 
-                                                                                                                        selected_cols_rfe = selected_cols_rfe, 
-                                                                                                                        selected_cols_pca = selected_cols_pca, 
-                                                                                                                        selected_cols_mifs = selected_cols_mifs, 
-                                                                                                                        models = {'Linear Regression': LinearRegression(), 
-                                                                                                                                  'Random Forest Regressor': RandomForestRegressor(n_estimators=100)
-                                                                                                                                  },
-                                                                                                                        corr_threshold = get_state("SELECT_PAGE_CORR", "corr_threshold")
-                                                                                                                      )
-    # Remove features with lowest importance scores from each pair
-    # note: only remove one of highly correlated features based on importance score after plot is shown
-    total_features = remove_lowest_importance_feature(total_features, importance_scores, pairwise_features_in_total_features)
-    
-    # =============================================================================
-    # Update session state --> get_state("SELECT_PAGE", "feature_selection_user")
-    # =============================================================================
-    #set_state("SELECT_PAGE", ("feature_selection_possible", total_features))
-    # set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", feature_selection_user))
-    
-    # if user added or removed features use the session state, else use the recommended total features
-    # which is a result of combining 3 feature selection techniques and taking top 5 features of each
-    # and then removing from each top correlated pair the one with lowest importance score
-   
-    # THINK OF ALL COMBINATIONS POSSIBLE!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    
-    # USER SELECTED A LIST OF FEATURES
-    # USER REMOVED FEATURES ON ENGINEER PAGE -> still has selected list of features in session state
-    # USER RERUNS CODE AND GETS ERROR FOR X = X.loc[:, my_feature_selection] #TEST -> total_features if not user on page you want the feature_selection from user to propegate down
-      # ONLY GETS DATE_NUMERIC IN X dataframe -> LIST OF FEATURES IS STILL CALENDAR_EVENT, DATE_NUMERIC, PAY_DAY from ("SELECT_PAGE_USER_SELECTION-feature_selection_user" found in session state)
-    
+        
+        # TEST
+        set_state("DATA_OPTION", ("upload_new_data", False))
 # =============================================================================
-#     # if user selected features, use those! else use the recommended features by feature selection methods
-#     if "__SELECT_PAGE_USER_SELECTION-feature_selection_user__" in st.session_state:
-#         st.write('"__SELECT_PAGE_USER_SELECTION-feature_selection_user__" found in session state')
-#         my_feature_selection = get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")
-#     else:
-#         st.write('system selected total_features selected')
-#         my_feature_selection = total_features
+# else:
+#     # ELSE WHEN USER IS NOT ON SELECT PAGE 
+#     # 0. RUN THE FEATURE SELECTION TO SELECT TOP FEATURES
+#     # 1. REMOVE FROM HIGHLY CORRELATED INDEPENDENT FEATURES PAIRS THE ONE WITH LOWEST IMPORTANCE SCORES
+#     # 2. 
+#     
+#     # =============================================================================
+#     # Apply 3 Feature Selection Techniques
+#     # =============================================================================
+#     ################
+#     # 1. RFE
+#     ################   
+#     try:
+#         selected_cols_rfe, selected_features, rfecv = perform_rfe(
+#                                                                     X_train = st.session_state['X_train'], 
+#                                                                     y_train = st.session_state['y_train'], 
+#                                                                     num_features_rfe = get_state("SELECT_PAGE_RFE", "num_features_rfe"), 
+#                                                                     estimator_rfe = get_state("SELECT_PAGE_RFE", "estimator_rfe"), 
+#                                                                     timeseriessplit_value_rfe = get_state("SELECT_PAGE_RFE", "timeseriessplit_value_rfe"), 
+#                                                                     num_steps_rfe = get_state("SELECT_PAGE_RFE", "num_steps_rfe")
+#                                                                   )   
+#     except:
+#         selected_cols_rfe = []
+#         #st.error('**ForecastGenie Error**: *Recursive Feature Elimination with Cross-Validation* could not execute. Need at least 2 features to be able to apply Feature Elimination. Please adjust your selection criteria.')
+#     
+#     ################
+#     # 2. PCA
+#     ################
+#     st.write('getstate session state num_features_pca', get_state("SELECT_PAGE_PCA", "num_features_pca"))
+#     st.write('outside func X_train', X_train)
+#     # Perform Principal Component Analysis on the Training Dataset
+#     sorted_features, pca, sorted_idx, selected_cols_pca = perform_pca(
+#                                                                       X_train = X_train, 
+#                                                                       num_features_pca = min(get_state("SELECT_PAGE_PCA", "num_features_pca"), X_train.shape[1])
+#                                                                      )
+#     ################
+#     # 3. MIFS
+#     ################
+#     mutual_info, selected_features_mi, selected_cols_mifs = perform_mifs(X_train, y_train, num_features_mifs = get_state("SELECT_PAGE_MIFS", "num_features_mifs"))
+#     
+#     # =============================================================================
+#     # Combine Features from 3 Feature Selection Techniques   
+#     # =============================================================================
+#     # Find unique total_features            
+#     total_features = np.unique(selected_cols_rfe + selected_cols_pca + selected_cols_mifs)
+#     # convert to list
+#     total_features = total_features.tolist()
+#     
+#     # =============================================================================
+#     # Remove Highly Correlated Features >= threshold ( default = 80% pairwise-correlation)
+#     # =============================================================================
+#     # Apply Function to analyse feature correlations and computes importance scores.             
+#     total_features, importance_scores, pairwise_features_in_total_features, df_pairwise = analyze_feature_correlations(   
+#                                                                                                                         selected_corr_model = get_state("SELECT_PAGE_CORR", "selected_corr_model"), 
+#                                                                                                                         X_train = X_train, 
+#                                                                                                                         y_train = y_train, 
+#                                                                                                                         selected_cols_rfe = selected_cols_rfe, 
+#                                                                                                                         selected_cols_pca = selected_cols_pca, 
+#                                                                                                                         selected_cols_mifs = selected_cols_mifs, 
+#                                                                                                                         models = {'Linear Regression': LinearRegression(), 
+#                                                                                                                                   'Random Forest Regressor': RandomForestRegressor(n_estimators=100)
+#                                                                                                                                   },
+#                                                                                                                         corr_threshold = get_state("SELECT_PAGE_CORR", "corr_threshold")
+#                                                                                                                       )
+#     # Remove features with lowest importance scores from each pair
+#     # note: only remove one of highly correlated features based on importance score after plot is shown
+#     total_features = remove_lowest_importance_feature(total_features, importance_scores, pairwise_features_in_total_features)
+#     
+#     # =============================================================================
+#     # Update session state --> get_state("SELECT_PAGE", "feature_selection_user")
+#     # =============================================================================
+#     #set_state("SELECT_PAGE", ("feature_selection_possible", total_features))
+#     # set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", feature_selection_user))
+#     
+#     # if user added or removed features use the session state, else use the recommended total features
+#     # which is a result of combining 3 feature selection techniques and taking top 5 features of each
+#     # and then removing from each top correlated pair the one with lowest importance score
+#    
+#     # THINK OF ALL COMBINATIONS POSSIBLE!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#     
+#     # USER SELECTED A LIST OF FEATURES
+#     # USER REMOVED FEATURES ON ENGINEER PAGE -> still has selected list of features in session state
+#     # USER RERUNS CODE AND GETS ERROR FOR X = X.loc[:, my_feature_selection] #TEST -> total_features if not user on page you want the feature_selection from user to propegate down
+#       # ONLY GETS DATE_NUMERIC IN X dataframe -> LIST OF FEATURES IS STILL CALENDAR_EVENT, DATE_NUMERIC, PAY_DAY from ("SELECT_PAGE_USER_SELECTION-feature_selection_user" found in session state)
+#     
+# # =============================================================================
+# #     # if user selected features, use those! else use the recommended features by feature selection methods
+# #     if "__SELECT_PAGE_USER_SELECTION-feature_selection_user__" in st.session_state:
+# #         st.write('"__SELECT_PAGE_USER_SELECTION-feature_selection_user__" found in session state')
+# #         my_feature_selection = get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")
+# #     else:
+# #         st.write('system selected total_features selected')
+# #         my_feature_selection = total_features
+# # 
+# # =============================================================================
+#     my_feature_selection = total_features
+#     # sanity check if user preferenced columns are still in X
+#     lst1 = X.columns
+#     lst2 = my_feature_selection
+#     # find all matches in lst1 that are in lst2 and keep those
 # 
+# 
+#     # =============================================================================
+#     # UPDATE TRAIN/TEST SET WITH USER SELECTION OR DEFAULT SELECTION
+#     # =============================================================================
+#     st.write(my_feature_selection)
+#     st.write('X outside select page:', X)
+#     X = X.loc[:, my_feature_selection] #TEST -> total_features if not user on page you want the feature_selection from user to propegate down
+#     y = y
+#     X_train = X[:(len(df)-st.session_state['insample_forecast_steps'])]
+#     X_test = X[(len(df)-st.session_state['insample_forecast_steps']):]
+#     y_train = y[:(len(df)-st.session_state['insample_forecast_steps'])]
+#     y_test = y[(len(df)-st.session_state['insample_forecast_steps']):]    
+#     
 # =============================================================================
-    my_feature_selection = total_features
-    # sanity check if user preferenced columns are still in X
-    lst1 = X.columns
-    lst2 = my_feature_selection
-    # find all matches in lst1 that are in lst2 and keep those
-
-
-    # =============================================================================
-    # UPDATE TRAIN/TEST SET WITH USER SELECTION OR DEFAULT SELECTION
-    # =============================================================================
-    st.write(my_feature_selection)
-    st.write('X outside select page:', X)
-    X = X.loc[:, my_feature_selection] #TEST -> total_features if not user on page you want the feature_selection from user to propegate down
-    y = y
-    X_train = X[:(len(df)-st.session_state['insample_forecast_steps'])]
-    X_test = X[(len(df)-st.session_state['insample_forecast_steps']):]
-    y_train = y[:(len(df)-st.session_state['insample_forecast_steps'])]
-    y_test = y[(len(df)-st.session_state['insample_forecast_steps']):]    
-    
 # =============================================================================
 #   _______ _____            _____ _   _ 
 #  |__   __|  __ \     /\   |_   _| \ | |
