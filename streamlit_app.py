@@ -1963,10 +1963,10 @@ def ljung_box_test(df, variable_loc, lag, model_type="AutoReg"):
     alpha = 0.05  # Significance level
     
     if p_value > 0.05:
-        st.markdown(f"**Conclusion:** The null hypothesis **cannot** be rejected for lag **{lag}**. The residuals show **no significant autocorrelation.**")
+        st.markdown(f"**Conclusion:** The null hypothesis **cannot** be rejected for all lags up to maximum lag of **{lag}**. The residuals show **no significant autocorrelation.**")
         vertical_spacer(2)
     else:
-        st.markdown(f"**Conclusion:** The null hypothesis can be **rejected** for lag **{lag}** with a p-value of **`{p_value:.2e}`**, which is smaller than the significance level of **`{alpha:}`**. This provides strong evidence of significant autocorrelation in the residuals, suggesting the presence of serial dependence in the time series.")
+        st.markdown(f"**Conclusion:** The null hypothesis can be **rejected** for all lags up to a maximum lag of **{lag}** with a p-value of **`{p_value:.2e}`**, which is smaller than the significance level of **`{alpha:}`**. This provides strong evidence of significant autocorrelation in the residuals, suggesting the presence of serial dependence in the time series.")
     
     return res, result_ljungbox
 
@@ -4972,14 +4972,30 @@ def handle_click_wo_button():
     This function handles the click event without a button. It saves the session state of the user in-memory.
     If the key of the radio button, 'data_choice', exists in the session state, the function assigns the value of 'data_choice' to a new variable, 'my_data_choice'.
     """
+    # =============================================================================
+    # TEST
+    # =============================================================================
+    # reset session states to default -> initiate global variables
+    cal, metrics_dict, random_state, results_df, custom_fill_value, \
+    key1_explore, key2_explore, key3_explore, key4_explore, \
+    key1_missing, key2_missing, key3_missing, \
+    key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, \
+    key1_engineer, key2_engineer, key3_engineer, key4_engineer, key5_engineer, key6_engineer, key7_engineer, \
+    key1_prepare_normalization, key2_prepare_standardization, \
+    key1_select_page_user_selection, \
+    key1_select_page_pca, \
+    key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, \
+    key1_select_page_mifs, \
+    key1_select_page_corr, key2_select_page_corr = initiate_global_variables()
+
+    
     # if key of radio button exists
     if st.session_state['data_choice']:
         # this new variable my_data_choice set it equal to information collected from the user
         # via the radio button called "data_option"
         st.session_state['my_data_choice'] = st.session_state['data_choice']
 
-# Log
-print('ForecastGenie Print: Loaded Functions')
+
 
 # =============================================================================
 #  __      __     _____  _____          ____  _      ______  _____ 
@@ -4990,210 +5006,263 @@ print('ForecastGenie Print: Loaded Functions')
 #      \/_/    \_\_|  \_\_____/_/    \_\____/|______|______|_____/ 
 #                                                                  
 # =============================================================================
-# ================================ GLOBAL =====================================
-# store color scheme for app
-create_store("COLORS", [
-    ("chart_color", "#45B8AC"),
-    ("chart_patterns", "#0068c9"),
-    ("run", 0)
-])
-
-# ================================ LOAD =======================================
-# SET VARIABLE DEFAULTS: demo data or uploaded data
-# check if df_raw not in current session state else add it
-if "df_raw" not in st.session_state:
-    # define an empty dataframe with two headers for date and target variable
-    st.session_state["df_raw"] = pd.DataFrame()
-    st.session_state.df_raw = generate_demo_data()
-    df_graph = st.session_state.df_raw.copy(deep=True)
+def initiate_global_variables():
+    # ================================ COLORS =====================================
+    # store color scheme for app
+    create_store("COLORS", [
+        ("chart_color", "#45B8AC"),
+        ("chart_patterns", "#0068c9"),
+        ("run", 0)
+    ])
     
-    # set minimum date
-    df_min = st.session_state.df_raw .iloc[:,0].min().date()
+    # ================================ LOAD =======================================
+    # SET VARIABLE DEFAULTS: demo data or uploaded data
+    # check if df_raw not in current session state else add it
+    if "df_raw" not in st.session_state:
+        # define an empty dataframe with two headers for date and target variable
+        st.session_state["df_raw"] = pd.DataFrame()
+        st.session_state.df_raw = generate_demo_data()
+        df_graph = st.session_state.df_raw.copy(deep=True)
+        
+        # set minimum date
+        df_min = st.session_state.df_raw .iloc[:,0].min().date()
+        
+        # set maximum date
+        df_max = st.session_state.df_raw .iloc[:,0].max().date()
+        
+    if "df_graph" not in st.session_state:
+        df_graph = st.session_state.df_raw.copy(deep=True)
+        
+    if "my_data_choice" not in st.session_state:
+        st.session_state['my_data_choice'] = "Demo Data"
     
-    # set maximum date
-    df_max = st.session_state.df_raw .iloc[:,0].max().date()
+    # ================================ EXPLORE ====================================
+    # Set default values for parameters
+    key1_explore, key2_explore, key3_explore, key4_explore, key5_explore = create_store("EXPLORE_PAGE", [
+        ("lags_acf", min(30, int((len(st.session_state.df_raw)-1)))), #key1_explore
+        ("lags_pacf", min(30, int((len(st.session_state.df_raw)-2)/2))), #key2_explore
+        ("default_pacf_method", "yw"), #key3_explore
+        ("order_of_differencing_series", "Original Series"), #key4_explore
+        ("run", 0) #key5_explore
+    ])
     
-if "df_graph" not in st.session_state:
-    df_graph = st.session_state.df_raw.copy(deep=True)
+    key_hist = create_store("HIST", [("histogram_freq_type", "Absolute"),  ("run", 0)])
     
-if "my_data_choice" not in st.session_state:
-    st.session_state.my_data_choice = "Demo Data"
-
-# ================================ EXPLORE ====================================
-# Set default values for parameters
-key1_explore, key2_explore, key3_explore, key4_explore, key5_explore = create_store("EXPLORE_PAGE", [
-    ("lags_acf", min(30, int((len(st.session_state.df_raw)-1)))), #key1_explore
-    ("lags_pacf", min(30, int((len(st.session_state.df_raw)-2)/2))), #key2_explore
-    ("default_pacf_method", "yw"), #key3_explore
-    ("order_of_differencing_series", "Original Series"), #key4_explore
-    ("run", 0) #key5_explore
-])
-
-key_hist = create_store("HIST", [("histogram_freq_type", "Absolute"),  ("run", 0)])
-
-# ================================ CLEAN ======================================
-
-#fill_method = None
-custom_fill_value = None
-#freq_dict = None
-#freq = None
-
-# define keys and store them in memory with their associated values
-key1_missing, key2_missing, key3_missing, key4_missing = create_store("CLEAN_PAGE_MISSING", 
-                                                                      [
-                                                                        ("missing_fill_method", "Backfill"), #key1
-                                                                        ("missing_custom_fill_value", "1"), #key2
-                                                                        ("data_frequency", 'Daily'), #key3
-                                                                        ("run", 0) #key4
-                                                                      ]
-                                                                     ) 
-key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, key8_outlier = create_store("CLEAN_PAGE", 
-                                                                                                                              [
-                                                                                                                                ("outlier_detection_method", "None"), # key1
-                                                                                                                                ("outlier_isolationforest_contamination", 0.01), #key2
-                                                                                                                                ("outlier_zscore_threshold", 3.0), #key3
-                                                                                                                                ("outlier_iqr_q1", 25.0), #key4
-                                                                                                                                ("outlier_iqr_q3", 75.0), #key5
-                                                                                                                                ("outlier_iqr_multiplier", 1.5), #key6
-                                                                                                                                ("outlier_replacement_method", "Interpolation"), #key7
-                                                                                                                                ("run", 0)  #key8
-                                                                                                                              ])
-
-# set the random state
-random_state = 10
-
-if 'freq_dict' not in st.session_state:
-    st.session_state['freq_dict'] = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
-if 'freq' not in st.session_state:
-    # assume frequency is daily data for now -> expand to automated frequency detection later 
-    st.session_state['freq'] = 'Daily'
+    # ================================ CLEAN ======================================
     
-# ================================ ENGINEER ===================================
-# define calendar
-cal = calendar()
-
-# create a slot called "ENGINEER_PAGE" and assign keys with values within slot to persist in memory
-# note: this is because when switching streamlit pages normally the session_state would reset the in-memory saved variables 
-# such as user choices in sliders and checkboxes
-key1_engineer, key2_engineer, key3_engineer, key4_engineer, key5_engineer, key6_engineer, key7_engineer, key8_engineer = create_store("ENGINEER_PAGE",
-                                                                                                          [
-                                                                                                            ("calendar_dummies_checkbox", True),          #key1_engineer
-                                                                                                            ("calendar_holidays_checkbox", True),         #key2_engineer
-                                                                                                            ("special_calendar_days_checkbox", True),     #key3_engineer
-                                                                                                            ("dwt_features_checkbox", False),             #key4_engineer
-                                                                                                            ("wavelet_family_selectbox", "db4"),          #key5_engineer
-                                                                                                            ("wavelet_level_decomposition_selectbox", 3), #key6_engineer
-                                                                                                            ("wavelet_window_size_slider", 7),            #key7_engineer
-                                                                                                            ("run", 0)                                    #key8_engineer
-                                                                                                          ]
-                                                                                                        )
-
-key1_engineer_var, key2_engineer_var, key3_engineer_var, key4_engineer_var, key5_engineer_var, key6_engineer_var, key7_engineer_var, key8_engineer_var, key9_engineer_var, key10_engineer_var, \
-key11_engineer_var, key12_engineer_var, key13_engineer_var, key14_engineer_var, key15_engineer_var, key16_engineer_var, key17_engineer_var = create_store("ENGINEER_PAGE_VARS",
-                                                                                                          [("year_dummies_checkbox", True),             #key1_engineer 
-                                                                                                          ("month_dummies_checkbox", True),             #key2_engineer 
-                                                                                                          ("day_dummies_checkbox", True),               #key3_engineer 
-                                                                                                          ("jan_sales", True),                          #key4_engineer 
-                                                                                                          ("val_day_lod", True),                        #key5_engineer 
-                                                                                                          ("val_day", True),                            #key6_engineer 
-                                                                                                          ("mother_day_lod", True),                     #key7_engineer 
-                                                                                                          ("mother_day", True),                         #key8_engineer 
-                                                                                                          ("father_day_lod", True),                     #key9_engineer 
-                                                                                                          ("pay_days", True),                           #key10_engineer 
-                                                                                                          ("father_day", True),                         #key11_engineer 
-                                                                                                          ("black_friday_lod", True),                   #key12_engineer 
-                                                                                                          ("black_friday", True),                       #key13_engineer 
-                                                                                                          ("cyber_monday", True),                       #key14_engineer 
-                                                                                                          ("christmas_day", True),                      #key15_engineer 
-                                                                                                          ("boxing_day", True),                         #key16_engineer 
-                                                                                                          ("run", 0)                                    #key17_engineer
-                                                                                                        ]
-                                                                                                      )   
-# ================================ PREPARE ====================================
-# define my_insample_forecast_steps used for train/test split
-if 'percentage' not in st.session_state:
-    st.session_state['percentage'] = 20
+    #fill_method = None
+    custom_fill_value = None
+    #freq_dict = None
+    #freq = None
     
-if 'steps' not in st.session_state:
-    #st.session_state.days = int(max(len(df)*0.2, 1))
-    st.session_state['steps'] = 1
+    # define keys and store them in memory with their associated values
+    key1_missing, key2_missing, key3_missing, key4_missing = create_store("CLEAN_PAGE_MISSING", 
+                                                                          [
+                                                                            ("missing_fill_method", "Backfill"), #key1
+                                                                            ("missing_custom_fill_value", "1"), #key2
+                                                                            ("data_frequency", 'Daily'), #key3
+                                                                            ("run", 0) #key4
+                                                                          ]
+                                                                         ) 
+    key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, key8_outlier = create_store("CLEAN_PAGE", 
+                                                                                                                                  [
+                                                                                                                                    ("outlier_detection_method", "None"), # key1
+                                                                                                                                    ("outlier_isolationforest_contamination", 0.01), #key2
+                                                                                                                                    ("outlier_zscore_threshold", 3.0), #key3
+                                                                                                                                    ("outlier_iqr_q1", 25.0), #key4
+                                                                                                                                    ("outlier_iqr_q3", 75.0), #key5
+                                                                                                                                    ("outlier_iqr_multiplier", 1.5), #key6
+                                                                                                                                    ("outlier_replacement_method", "Interpolation"), #key7
+                                                                                                                                    ("run", 0)  #key8
+                                                                                                                                  ])
     
-# save user choice in session state of in sample test-size
-if 'insample_forecast_perc' not in st.session_state:
-    st.session_state['insample_forecast_perc'] = 20
+    # set the random state
+    random_state = 10
     
-# save user choice in session state of in sample test-size
-if 'insample_forecast_steps' not in st.session_state:
-    st.session_state['insample_forecast_steps'] = 1
+    if 'freq_dict' not in st.session_state:
+        st.session_state['freq_dict'] = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
+    if 'freq' not in st.session_state:
+        # assume frequency is daily data for now -> expand to automated frequency detection later 
+        st.session_state['freq'] = 'Daily'
+        
+    # ================================ ENGINEER ===================================
+    # define calendar
+    cal = calendar()
     
-if 'normalization_choice' not in st.session_state:
-    st.session_state['normalization_choice'] = 'None'
-
-# set the normalization and standardization to default None which has index 0 
-key1_prepare_normalization, key2_prepare_standardization, key3_prepare = create_store("PREPARE", [
-    ("normalization_choice", "None"),    #key1_prepare_normalization
-    ("standardization_choice", "None"), #key2_prepare_standardization
-    ("run", 0)])                     #key3_prepare
-
-
-# ================================ SELECT ====================================
-
-# TESTING
-# LOGIC
-########
-# 1 state to keep all features possible e.g. X column names
-# 1 state to keep user selected features, which has default value of recommended features if user does not update
-# 1 state to keep the recommended features, which will be used if user skips the page
-# logic: if selected features by user then use user preference, else use pipeline recommended features
-# if file is switched delete the session state of old data feature preference
-key1_select_page_user_selection, key2_select_page_user_selection = create_store("SELECT_PAGE_USER_SELECTION", [
-                            ("feature_selection_user", []), #key1_select_page_user_selection
-                            ("run", 0) #key2_select_page_user_selection
+    # create a slot called "ENGINEER_PAGE" and assign keys with values within slot to persist in memory
+    # note: this is because when switching streamlit pages normally the session_state would reset the in-memory saved variables 
+    # such as user choices in sliders and checkboxes
+    key1_engineer, key2_engineer, key3_engineer, key4_engineer, key5_engineer, key6_engineer, key7_engineer, key8_engineer = create_store("ENGINEER_PAGE",
+                                                                                                              [
+                                                                                                                ("calendar_dummies_checkbox", True),          #key1_engineer
+                                                                                                                ("calendar_holidays_checkbox", True),         #key2_engineer
+                                                                                                                ("special_calendar_days_checkbox", True),     #key3_engineer
+                                                                                                                ("dwt_features_checkbox", False),             #key4_engineer
+                                                                                                                ("wavelet_family_selectbox", "db4"),          #key5_engineer
+                                                                                                                ("wavelet_level_decomposition_selectbox", 3), #key6_engineer
+                                                                                                                ("wavelet_window_size_slider", 7),            #key7_engineer
+                                                                                                                ("run", 0)                                    #key8_engineer
+                                                                                                              ]
+                                                                                                            )
+    
+    key1_engineer_var, key2_engineer_var, key3_engineer_var, key4_engineer_var, key5_engineer_var, key6_engineer_var, key7_engineer_var, key8_engineer_var, key9_engineer_var, key10_engineer_var, \
+    key11_engineer_var, key12_engineer_var, key13_engineer_var, key14_engineer_var, key15_engineer_var, key16_engineer_var, key17_engineer_var = create_store("ENGINEER_PAGE_VARS",
+                                                                                                              [("year_dummies_checkbox", True),             #key1_engineer_var 
+                                                                                                              ("month_dummies_checkbox", True),             #key2_engineer_var 
+                                                                                                              ("day_dummies_checkbox", True),               #key3_engineer_var 
+                                                                                                              ("jan_sales", True),                          #key4_engineer_var 
+                                                                                                              ("val_day_lod", True),                        #key5_engineer_var
+                                                                                                              ("val_day", True),                            #key6_engineer_var
+                                                                                                              ("mother_day_lod", True),                     #key7_engineer_var
+                                                                                                              ("mother_day", True),                         #key8_engineer_var
+                                                                                                              ("father_day_lod", True),                     #key9_engineer_var
+                                                                                                              ("pay_days", True),                           #key10_engineer_var
+                                                                                                              ("father_day", True),                         #key11_engineer_var
+                                                                                                              ("black_friday_lod", True),                   #key12_engineer_var
+                                                                                                              ("black_friday", True),                       #key13_engineer_var
+                                                                                                              ("cyber_monday", True),                       #key14_engineer_var
+                                                                                                              ("christmas_day", True),                      #key15_engineer_var
+                                                                                                              ("boxing_day", True),                         #key16_engineer_var
+                                                                                                              ("run", 0)                                    #key17_engineer_var
+                                                                                                            ]
+                                                                                                          )   
+    # ================================ PREPARE ====================================
+    # define my_insample_forecast_steps used for train/test split
+    if 'percentage' not in st.session_state:
+        st.session_state['percentage'] = 20
+        
+    if 'steps' not in st.session_state:
+        #st.session_state.days = int(max(len(df)*0.2, 1))
+        st.session_state['steps'] = 1
+        
+    # save user choice in session state of in sample test-size
+    if 'insample_forecast_perc' not in st.session_state:
+        st.session_state['insample_forecast_perc'] = 20
+        
+    # save user choice in session state of in sample test-size
+    if 'insample_forecast_steps' not in st.session_state:
+        st.session_state['insample_forecast_steps'] = 1
+        
+    if 'normalization_choice' not in st.session_state:
+        st.session_state['normalization_choice'] = 'None'
+    
+    # set the normalization and standardization to default None which has index 0 
+    key1_prepare_normalization, key2_prepare_standardization, key3_prepare = create_store("PREPARE", [
+        ("normalization_choice", "None"),    #key1_prepare_normalization
+        ("standardization_choice", "None"), #key2_prepare_standardization
+        ("run", 0)])                     #key3_prepare
+    
+    
+    # ================================ SELECT ====================================
+    
+    # TESTING
+    # LOGIC
+    ########
+    # 1 state to keep all features possible e.g. X column names
+    # 1 state to keep user selected features, which has default value of recommended features if user does not update
+    # 1 state to keep the recommended features, which will be used if user skips the page
+    # logic: if selected features by user then use user preference, else use pipeline recommended features
+    # if file is switched delete the session state of old data feature preference
+    key1_select_page_user_selection, key2_select_page_user_selection = create_store("SELECT_PAGE_USER_SELECTION", [
+                                ("feature_selection_user", []), #key1_select_page_user_selection
+                                ("run", 0) #key2_select_page_user_selection
+                                ])
+    
+    key1_select_page_pca, key2_select_page_pca = create_store("SELECT_PAGE_PCA", [
+                            # default of PCA features set to minimum of either 5 or the number of independent features in the dataframe
+                            ("num_features_pca", 5), #key1_select_page_pca # 
+                            ("run", 0) #key2_select_page_pca
                             ])
-
-# ================================ TRAIN ===================================  
-# TRAIN MENU TEST
-if 'train_models_btn' not in st.session_state:
-    st.session_state['train_models_btn'] = False
- 
-if 'selected_model_info' not in st.session_state:
-    st.session_state['selected_model_info'] = '-'
+    # RFE
+    key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, key5_select_page_rfe = create_store("SELECT_PAGE_RFE", [
+                                ("num_features_rfe", 5), #key1_select_page_rfe
+                                ("estimator_rfe", "Linear Regression"), #key2_select_page_rfe
+                                ("timeseriessplit_value_rfe", 5),   #key3_select_page_rfe
+                                ("num_steps_rfe", 1), #key4_select_page_rfe
+                                ("run", 0) #key5_select_page_rfe
+                                ])
     
-# save user choice in session state
-# of naive model lag for sidebar 'Select Seasonal lag for the Naive Model'
-# standard value = 'week'
-create_store("TRAIN_PARAMS", [
-    ("naive_model_seasonal_lag_index", 1)])
-
-# set session states for the TRAIN Page buttons when models are trained, 
-# to expand dataframe below graph
-create_store("TRAIN", [
-                        ("naive_model_btn_show", False),
-                        ("naive_model_btn_hide", False),
-                        ("linreg_model_btn_show", False),
-                        ("sarimax_model_btn_show", False),
-                        ("prophet_model_btn_show", False)
-                      ]
-             )       
-# ================================ EVALUATE ===================================
-# create an empty dictionary to store the results of the models
-# that I call after I train the models to display on sidebar under hedaer "Evaluate Models"
-metrics_dict = {}
-
-# Initialize results_df in global scope that has model test evaluation results 
-results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
-
-if 'results_df' not in st.session_state:
-    st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
+    # MIFS
+    key1_select_page_mifs, key2_select_page_mifs = create_store("SELECT_PAGE_MIFS", [
+                                ("num_features_mifs", 5), #key1_select_page_mifs # 
+                                ("run", 0) #key2_select_page_mifs
+                                ])
+    # CORR
+    key1_select_page_corr, key2_select_page_corr, key3_select_page_corr = create_store("SELECT_PAGE_CORR", [
+                                                                ("corr_threshold", 0.8), #key1_select_page_corr 
+                                                                ("selected_corr_model", 'Linear Regression'), #key2_select_page_corr
+                                                                ("run", 0) #key3_select_page_corr
+                                                                ])
     
-#///////////////////////////////////////////////////////////////////
-# SHOW IN STREAMLIT DICTIONARY OF VARIABLES IN SESSION STATE
-#///////////////////////////////////////////////////////////////////
-# show in streamlit the session state variables that are stored cache for the user session
-st.write(st.session_state)
+    # ================================ TRAIN ===================================  
+    # TRAIN MENU TEST
+    if 'train_models_btn' not in st.session_state:
+        st.session_state['train_models_btn'] = False
+     
+    if 'selected_model_info' not in st.session_state:
+        st.session_state['selected_model_info'] = '-'
+        
+    # save user choice in session state
+    # of naive model lag for sidebar 'Select Seasonal lag for the Naive Model'
+    # standard value = 'week'
+    create_store("TRAIN_PARAMS", [
+        ("naive_model_seasonal_lag_index", 1)])
+    
+    # set session states for the TRAIN Page buttons when models are trained, 
+    # to expand dataframe below graph
+    create_store("TRAIN", [
+                            ("naive_model_btn_show", False),
+                            ("naive_model_btn_hide", False),
+                            ("linreg_model_btn_show", False),
+                            ("sarimax_model_btn_show", False),
+                            ("prophet_model_btn_show", False)
+                          ]
+                 )       
+    # ================================ EVALUATE ===================================
+    # create an empty dictionary to store the results of the models
+    # that I call after I train the models to display on sidebar under hedaer "Evaluate Models"
+    metrics_dict = {}
+    
+    # Initialize results_df in global scope that has model test evaluation results 
+    results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
+    
+    if 'results_df' not in st.session_state:
+        st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
+        
+    #///////////////////////////////////////////////////////////////////
+    # SHOW IN STREAMLIT DICTIONARY OF VARIABLES IN SESSION STATE
+    #///////////////////////////////////////////////////////////////////
+    # show in streamlit the session state variables that are stored cache for the user session
+    st.write(st.session_state)
+    
+    # Logging
+    print('ForecastGenie Print: Loaded Global Variables')
+    
+    return cal, metrics_dict, random_state, results_df, custom_fill_value, \
+    key1_explore, key2_explore, key3_explore, key4_explore, \
+    key1_missing, key2_missing, key3_missing, \
+    key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, \
+    key1_engineer, key2_engineer, key3_engineer, key4_engineer, key5_engineer, key6_engineer, key7_engineer, \
+    key1_prepare_normalization, key2_prepare_standardization, \
+    key1_select_page_user_selection, \
+    key1_select_page_pca, \
+    key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, \
+    key1_select_page_mifs, \
+    key1_select_page_corr, key2_select_page_corr
+    
 
-# Logging
-print('ForecastGenie Print: Loaded Global Variables')
+# INITIATE GLOBAL VARIABLES
+cal, metrics_dict, random_state, results_df, custom_fill_value, \
+key1_explore, key2_explore, key3_explore, key4_explore, \
+key1_missing, key2_missing, key3_missing, \
+key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, \
+key1_engineer, key2_engineer, key3_engineer, key4_engineer, key5_engineer, key6_engineer, key7_engineer, \
+key1_prepare_normalization, key2_prepare_standardization, \
+key1_select_page_user_selection, \
+key1_select_page_pca, \
+key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, \
+key1_select_page_mifs, \
+key1_select_page_corr, key2_select_page_corr = initiate_global_variables()
 
 # =============================================================================
 #   _____ _____ ____  _   _  _____ 
@@ -5773,7 +5842,6 @@ print('Forecastgenie Print: Loaded Documentation Page')
 #  |______\____/_/    \_\_____/ 
 #                               
 # =============================================================================   
-
 # =============================================================================
 # FUNCTION DELETE SESSION STATES WHEN SWITCHING FILES 
 # =============================================================================         
@@ -5789,7 +5857,7 @@ def reset_session_states():
     Example:
         reset_session_states()
     """
-    #st.write('TEST: I am going to delete session states for variables as new file is uploaded!') # TEST 
+    st.write('TEST: I am going to delete session states for variables as new file is uploaded!') # TEST 
     
     # Delete all the items in Session state
     for key in st.session_state.keys():
@@ -5800,12 +5868,28 @@ def reset_session_states():
         else:
             #st.write(f'removing key: {key}') # TEST
             del st.session_state[key]
+   
+    
+    # initiate_global_variables
+    # ?????????????????????????
+    # reset session states to default -> initiate global variables
+    cal, metrics_dict, random_state, results_df, custom_fill_value, \
+    key1_explore, key2_explore, key3_explore, key4_explore, \
+    key1_missing, key2_missing, key3_missing, \
+    key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, \
+    key1_engineer, key2_engineer, key3_engineer, key4_engineer, key5_engineer, key6_engineer, key7_engineer, \
+    key1_prepare_normalization, key2_prepare_standardization, \
+    key1_select_page_user_selection = initiate_global_variables()
             
     # update session state to "Upload Data"        
     st.session_state['my_data_choice'] = "Upload Data"
     
     # create session state to know user switched
     create_store("DATA_OPTION", [("upload_new_data", True)])
+    
+    #"__SELECT_PAGE_USER_SELECTION-feature_selection_user__"
+    set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", []))
+
 
 with st.sidebar:
     my_title(f"{load_icon}", "#45B8AC")
@@ -5826,53 +5910,57 @@ with st.sidebar:
                                              label_visibility = 'collapsed',
                                              on_change = reset_session_states)
 
-
 ############### NEW TEST ############################
 if st.session_state['my_data_choice'] == "Demo Data":
-    # TEST2 TEST2
-    # reset session states
-    reset_session_states()
-    uploaded_file  = 'demo_data_loaded'
-    if 'freq' not in st.session_state:
-        # assume frequency is daily data for now -> expand to automated frequency detection later 
-        st.session_state['freq'] = 'Daily'
-    ######################################    
+# =============================================================================
+#     # =============================================================================
+#     # TEST2
+#     # =============================================================================
+#     # RESET SESSION STATES
+#     #reset_session_states()
+#     uploaded_file  = 'demo_data_loaded'
+#     
+#     if 'freq' not in st.session_state:
+#         # assume frequency is daily data for now -> expand to automated frequency detection later 
+#         st.session_state['freq'] = 'Daily'
+#     # =============================================================================
+# =============================================================================
     
     st.session_state['df_raw'] = generate_demo_data()
-    
-    df_raw = generate_demo_data()
-    
+    df_raw = generate_demo_data()   
     df_graph = df_raw.copy(deep=True)
-    
+    # set minimum date
     df_min = df_raw.iloc[:,0].min().date()
+    # set maximum date
     df_max = df_raw.iloc[:,0].max().date()
         
-    # set data option to false 
-    # Note: this variable is used in other code to reset e.g. the feature selection and not keep previous session in memory before SELECT PAGE codeblock
-    # DID THIS WORK?
-    set_state("DATA_OPTION", ("upload_new_data", False))
-    
+# =============================================================================
+#     # =============================================================================
+#     # TEST2
+#     # =============================================================================
+#     # SET DATA OPTION TO FALSE
+#     # Note: this variable is used in other code to reset e.g. the feature selection and not keep previous session in memory before SELECT PAGE codeblock
+#     # DID THIS WORK?
+#     set_state("DATA_OPTION", ("upload_new_data", False))
+#     # ============================================================================= 
+# =============================================================================
         
 ############### NEW TEST ############################
-elif st.session_state.my_data_choice == "Upload Data" and uploaded_file is not None:
-    
+elif st.session_state['my_data_choice'] == "Upload Data" and uploaded_file is not None:
     # define dataframe from custom function to read from uploaded read_csv file
     st.session_state['df_raw'] = load_data()
-    
     df_graph = st.session_state['df_raw'].copy(deep=True)
-    
     # set minimum date
-    df_min = st.session_state.df_raw.iloc[:,0].min().date()
-   
+    df_min = st.session_state['df_raw'].iloc[:,0].min().date()
     # set maximum date
-    df_max = st.session_state.df_raw.iloc[:,0].max().date()
+    df_max = st.session_state['df_raw'].iloc[:,0].max().date()
 
               
 if menu_item == 'Load' and sidebar_menu_item=='Home':
-    
     my_title(f"{load_icon} Load Dataset ", "#45B8AC")
     
 # =============================================================================
+#     # old code was at this position
 #     if st.session_state['my_data_choice'] == "Demo Data":
 #         st.session_state['df_raw'] = generate_demo_data()
 #         df_raw = generate_demo_data()
@@ -5889,6 +5977,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
                                                  #on_change = on_click_event,
                                                  label_visibility = 'collapsed')    
                 
+                # save user color choice in session state
                 set_state("COLORS", ("chart_color", my_chart_color))
             
             with col1:
@@ -5902,6 +5991,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
                            rows and <b><font color='#555555'>{st.session_state.df_raw.shape[1]}</b></font> columns <br> with date range: \
                            <b><font color='#555555'>{df_min}</b></font> to <b><font color='#555555'>{df_max}</font></b>.</center>", 
                            unsafe_allow_html=True)
+                
             # create deepcopy of dataframe which will be manipulated for graphs
             df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
                         
@@ -5945,6 +6035,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
     # check if data is uploaded
     elif st.session_state.my_data_choice == "Upload Data" and uploaded_file is not None:
 # =============================================================================
+#     # old code was at this position
 #        
 #         # define dataframe from custom function to read from uploaded read_csv file
 #         st.session_state['df_raw'] = load_data()
@@ -7255,42 +7346,92 @@ st.session_state['y_test'] = y_test
 
 # ================================ SELECT ===================================  
 # Set Default values for Feature Selection
-# NOTE: did not put at start of notebook as input is session state of X
+# NOTE: did not put at start of notebook as variable input is needed of session state of X
+
 
 # =============================================================================
-# # ALL FEATURES POSSIBLE (ALL COLUMNS OF X)
-# key1_select_page_feature_selection, key2_select_page_feature_selection = create_store("SELECT_PAGE", [
-#                             ("feature_selection_possible", st.session_state['X'].columns.tolist()), # key1_select_page_feature_selection
-#                             ("run", 0) #key2_select_page_feature_selection
+# *****************************************************************************
+# IDEA: set initial variables not dependable on X and then update value with set_state here
+# as you can have less then 5 features in X -> then error, that's why you need to know number of columns in X
+# *****************************************************************************
+# =============================================================================
+
+###############
+# DEFINE LOGIC: 
+###############
+# SITUATIONS IT NEEDS TO RESET THE VALUES OF SLIDERS TO DEFAULT:
+# 0. WHEN APP STARTS FIRST TIME (HOWEVER ALSO RADIO BUTTON DEFAULTS TO DEMO BUT DO NOT WANT TO MAKE IT DEPENDENT ON THAT)    
+# 1. IF NEW FILE IS UPLOADED
+# 2. IF SWITCHING RADIO BUTTON
+
+##############################################
+# SITUATION TO SAVE IN MEMORY THE USER CHOICE:
+##############################################
+# IF USER CHANGES SLIDER AND PRESSED SUBMIT
+# IF USER SWITCHES PAGE AND COMES BACK TO SELECT PAGE
+# 
+
+
+# if user changes engineered features to lower number than default e.g. 5, 
+# then check the number of features in X_train and also check if a user did not set slider to lower number than maximum of e.g. 3 features:
+if st.session_state['X_train'].shape[1] < 5:
+    st.write('number of features in X_train is smaller than default value of 5')
+    # PCA
+    # if user changed slider set it to that value
+    if get_state("SELECT_PAGE_PCA", "num_features_pca") < st.session_state['X_train'].shape[1]:
+        st.write('number of features is smaller than X_train for pca')
+    else:    
+        # PCA UPDATE SESSION STATE
+        set_state("SELECT_PAGE_PCA", ("num_features_pca", min(5, st.session_state['X_train'].shape[1])))
+    # RFE   
+    if get_state("SELECT_PAGE_RFE", "num_features_rfe") < st.session_state['X_train'].shape[1]:    
+        st.write('number of features is smaller than X_train for rfe')
+    else:
+        # RFE UPDATE SESSION STATE
+        set_state("SELECT_PAGE_RFE", ("num_features_rfe", min(5, st.session_state['X_train'].shape[1])))
+        # =============================================================================
+        # set_state("SELECT_PAGE_RFE", ("estimator_rfe", "Linear Regression"))
+        # set_state("SELECT_PAGE_RFE", ("timeseriessplit_value_rfe", 5))
+        # set_state("SELECT_PAGE_RFE", ("num_steps_rfe", 1))
+        # =============================================================================
+    # MIFS
+    if get_state("SELECT_PAGE_MIFS", "num_features_mifs") < st.session_state['X_train'].shape[1]:    
+        st.write('number of features is smaller than X_train for mifs')
+    else:
+        # MIFS UPDATE SESSION STATE
+        set_state("SELECT_PAGE_MIFS", ("num_features_mifs", min(5, st.session_state['X_train'].shape[1])))
+
+# =============================================================================
+# =============================================================================
+# 
+# # MOVED CODE TO TOP
+# # PCA
+# key1_select_page_pca, key2_select_page_pca = create_store("SELECT_PAGE_PCA", [
+#                             # default of PCA features set to minimum of either 5 or the number of independent features in the dataframe
+#                             ("num_features_pca", min(5, st.session_state['X_train'].shape[1])), #key1_select_page_pca # 
+#                             ("run", 0) #key2_select_page_pca
 #                             ])
+# # RFE
+# key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, key5_select_page_rfe = create_store("SELECT_PAGE_RFE", [
+#                             ("num_features_rfe", min(5, st.session_state['X_train'].shape[1])), #key1_select_page_rfe
+#                             ("estimator_rfe", "Linear Regression"), #key2_select_page_rfe
+#                             ("timeseriessplit_value_rfe", 5),   #key3_select_page_rfe
+#                             ("num_steps_rfe", 1), #key4_select_page_rfe
+#                             ("run", 0) #key5_select_page_rfe
+#                             ])
+# 
+# # MIFS
+# key1_select_page_mifs, key2_select_page_mifs = create_store("SELECT_PAGE_MIFS", [
+#                             ("num_features_mifs", min(5, st.session_state['X'].shape[1])), #key1_select_page_mifs # 
+#                             ("run", 0) #key2_select_page_mifs
+#                             ])
+# # CORR
+# key1_select_page_corr, key2_select_page_corr, key3_select_page_corr = create_store("SELECT_PAGE_CORR", [
+#                                                             ("corr_threshold", 0.8), #key1_select_page_corr 
+#                                                             ("selected_corr_model", 'Linear Regression'), #key2_select_page_corr
+#                                                             ("run", 0) #key3_select_page_corr
+#                                                             ])
 # =============================================================================
-
-# PCA
-key1_select_page_pca, key2_select_page_pca = create_store("SELECT_PAGE_PCA", [
-                            # default of PCA features set to minimum of either 5 or the number of independent features in the dataframe
-                            ("num_features_pca", min(5, st.session_state['X_train'].shape[1])), #key1_select_page_pca # 
-                            ("run", 0) #key2_select_page_pca
-                            ])
-# RFE
-key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, key5_select_page_rfe = create_store("SELECT_PAGE_RFE", [
-                            ("num_features_rfe", min(5, st.session_state['X_train'].shape[1])), #key1_select_page_rfe
-                            ("estimator_rfe", "Linear Regression"), #key2_select_page_rfe
-                            ("timeseriessplit_value_rfe", 5),   #key3_select_page_rfe
-                            ("num_steps_rfe", 1), #key4_select_page_rfe
-                            ("run", 0) #key5_select_page_rfe
-                            ])
-
-# MIFS
-key1_select_page_mifs, key2_select_page_mifs = create_store("SELECT_PAGE_MIFS", [
-                            ("num_features_mifs", min(5, st.session_state['X'].shape[1])), #key1_select_page_mifs # 
-                            ("run", 0) #key2_select_page_mifs
-                            ])
-# CORR
-key1_select_page_corr, key2_select_page_corr, key3_select_page_corr = create_store("SELECT_PAGE_CORR", [
-                                                            ("corr_threshold", 0.8), #key1_select_page_corr 
-                                                            ("selected_corr_model", 'Linear Regression'), #key2_select_page_corr
-                                                            ("run", 0) #key3_select_page_corr
-                                                            ])  
 
 # If you uploaded a new file then reset the previous feature selection of user to an empty list
 #if st.session_state["df_raw"].columns[1] != 'demo_data' and get_state("DATA_OPTION", "upload_data") == True:
@@ -7501,9 +7642,9 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         with st.form('top_features'):
             my_text_paragraph('Selected Features')
             
-            # if user selected features, use those! else use the recommended features by feature selection methods
-            # if user changes one of the selection method parameters -> reset to feature selection method selection and remove user feature selection preference 
+
             #if rfe pca or mifs submitted button is pressed, set total_features equal again to recommended/calculated total_features from feature selection methods:
+            # if user changes one of the selection method parameters -> reset to feature selection method selection and remove user feature selection preference 
             if get_state("SELECT_PAGE_BTN_CLICKED", "rfe_btn") == True or get_state("SELECT_PAGE_BTN_CLICKED", "pca_btn") == True or get_state("SELECT_PAGE_BTN_CLICKED", "mifs_btn") == True:
                 
                 # reset state (back to False)
@@ -7517,6 +7658,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                 del st.session_state["__SELECT_PAGE_BTN_CLICKED-mifs_btn__"]
                 
                 st.write('option 1') #TEST1
+                
                 st.write('rfe_btn', get_state("SELECT_PAGE_BTN_CLICKED", "rfe_btn"))   # TEST1
                 st.write('pca_btn', get_state("SELECT_PAGE_BTN_CLICKED", "pca_btn"))   # TEST1
                 st.write('mifs_btn', get_state("SELECT_PAGE_BTN_CLICKED", "mifs_btn")) # TEST1
@@ -7526,12 +7668,15 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                 
                 # set features equal to default (based on 3 feature selection methods)
                 set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", total_features))
-
+            
+            # if user selected features, use those! else use the recommended features by feature selection methods 
             elif "__SELECT_PAGE_USER_SELECTION-feature_selection_user__" in st.session_state and get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user") != []:
                 st.write('option 2') # TEST
+                
                 total_features = get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")
             else:
                 st.write('option 3') # TEST
+                
                 # set feature selection to default (based on 3 feature selection methods)
                 total_features = total_features_default 
                 total_features = set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", total_features))
