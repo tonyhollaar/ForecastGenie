@@ -3596,6 +3596,17 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
             y_pred = y_test.shift(custom_lag_value)
         else:
             raise ValueError('Invalid value for "lag". Must be "day", "week", "month", or "year".')
+        # Create dataframe for insample predictions versus actual
+        df_preds = pd.DataFrame({'Actual': y_test.squeeze(), 'Predicted': y_pred.squeeze()})
+        # set the index to just the date portion of the datetime index
+        df_preds.index = df_preds.index.date
+        # Drop rows with N/A values
+        df_preds.dropna(inplace=True)
+        # Calculate percentage difference between actual and predicted values and add it as a new column
+        df_preds = df_preds.assign(Percentage_Diff = ((df_preds['Predicted'] - df_preds['Actual']) / df_preds['Actual']))
+        # Calculate MAPE and add it as a new column
+        df_preds = df_preds.assign(MAPE = abs(df_preds['Percentage_Diff']))   
+        return df_preds
     else:
         # Train the model using the training sets
         model.fit(X_train, y_train)
@@ -3614,7 +3625,7 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
         # Create a table to display the coefficients and intercept
         coefficients_table = pd.DataFrame({'Feature': ['Intercept'] + feature_names, 'Coefficient': np.insert(coefficients, 0, intercept)})
         # show coefficients table
-        st.write(coefficients_table)
+        #st.write(coefficients_table)
         # =============================================================================
         
         # =============================================================================
@@ -3647,31 +3658,21 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
             equation_str = equation_str.replace(str(symbol), str(value))
         
         # Display the equation expression in Streamlit
-        st.write("Linear Regression Equation:")
-        st.write(equation_str)
+        #st.write("Linear Regression Equation:")
+        #st.write(equation_str)
         # =============================================================================
 
-# =============================================================================
-#         # Create the equation string
-#         equation_parts = [f"({coeff:.2f} * {feature})" for coeff, feature in zip(coefficients, feature_names)]
-#         equation = " + ".join(equation_parts)
-#         equation = f"y = {equation} + {intercept:.2f}"
-#         
-#         # Display the equation in Streamlit
-#         st.write("Linear Regression Equation:")
-#         st.write(equation)
-# =============================================================================
-    # Create dataframe for insample predictions versus actual
-    df_preds = pd.DataFrame({'Actual': y_test.squeeze(), 'Predicted': y_pred.squeeze()})
-    # set the index to just the date portion of the datetime index
-    df_preds.index = df_preds.index.date
-    # Drop rows with N/A values
-    df_preds.dropna(inplace=True)
-    # Calculate percentage difference between actual and predicted values and add it as a new column
-    df_preds = df_preds.assign(Percentage_Diff = ((df_preds['Predicted'] - df_preds['Actual']) / df_preds['Actual']))
-    # Calculate MAPE and add it as a new column
-    df_preds = df_preds.assign(MAPE = abs(df_preds['Percentage_Diff']))   
-    return df_preds
+        # Create dataframe for insample predictions versus actual
+        df_preds = pd.DataFrame({'Actual': y_test.squeeze(), 'Predicted': y_pred.squeeze()})
+        # set the index to just the date portion of the datetime index
+        df_preds.index = df_preds.index.date
+        # Drop rows with N/A values
+        df_preds.dropna(inplace=True)
+        # Calculate percentage difference between actual and predicted values and add it as a new column
+        df_preds = df_preds.assign(Percentage_Diff = ((df_preds['Predicted'] - df_preds['Actual']) / df_preds['Actual']))
+        # Calculate MAPE and add it as a new column
+        df_preds = df_preds.assign(MAPE = abs(df_preds['Percentage_Diff']))   
+        return df_preds, coefficients_table, equation_str
 
 def evaluate_sarimax_model(order, seasonal_order, exog_train, exog_test, endog_train, endog_test):
     """
@@ -3731,8 +3732,10 @@ def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, mo
     None
     """
     # Evaluate the insample test-set performance linear regression model
-    df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test)
+    df_preds, coefficients_table, equation_str = evaluate_regression_model(model, X_train, y_train, X_test, y_test)
+    
     mape, rmse, r2 = my_metrics(df_preds, model_name)
+    
     with st.expander('📈'+ model_name, expanded=True):
         display_my_metrics(my_df = df_preds, 
                            model_name = model_name)
@@ -3741,18 +3744,53 @@ def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, mo
         plot_actual_vs_predicted(df_preds, 
                                  my_conf_interval
                                  )
-        # show the dataframe
-        st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), 
-                     use_container_width = True)
+        # =============================================================================
+        #  Show/Hide Button to download dataframe                   
+        # =============================================================================
+        # have button available for user and if clicked it expands with the dataframe
+        col1, col2, col3 = st.columns([100,50,95])
+        with col2:    
+            # create empty placeholder for button show/hide
+            placeholder = st.empty()
+            
+            # create button (enabled to click e.g. disabled=false with unique key)
+            btn = placeholder.button('Show Details', disabled=False,  key = "show_linreg_model_btn")
         
-        # create download button for forecast results to .csv
-        download_csv_button(
-                            df_preds, 
-                            my_file = "insample_forecast_linear_regression_results.csv", 
-                            help_message = f'Download your **{model_name}** model results to .CSV',
-                            my_key = 'download_btn_linreg_df_preds'
-                            )
+        # if button is clicked run below code
+        if btn == True:                       
+            # display button with text "click me again", with unique key
+            placeholder.button('Hide Details', disabled=False, key = "hide_linreg_model_btn")
+            
+            st.markdown('---')
+            my_text_paragraph('In-sample Forecast', my_font_size='24px')
+            # show the dataframe
+            st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), 
+                         use_container_width = True)
+           
 
+            # create download button for forecast results to .csv
+            download_csv_button(
+                                df_preds, 
+                                my_file = "insample_forecast_linear_regression_results.csv", 
+                                help_message = f'Download your **{model_name}** model results to .CSV',
+                                my_key = 'download_btn_linreg_df_preds'
+                                )
+
+            st.markdown('---')
+            my_text_paragraph('Coefficients Table', my_font_size='24px')
+            vertical_spacer(1)
+            st.dataframe(coefficients_table, use_container_width=True)
+            st.markdown('---')
+            my_text_paragraph('Regression Equation', my_font_size='24px')
+            vertical_spacer(1)
+            st.write(equation_str)
+            # INTERCEPT ROUNDING?
+            
+            
+        vertical_spacer(1)
+        ##############
+        
+      
 def preprocess_data_prophet(y_data):
     """
     Preprocess the given data for Prophet model
