@@ -3601,7 +3601,9 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
         
-        
+        # =============================================================================
+        # COEFFICIENTS TABLE   
+        # =============================================================================
         # Extract the coefficient values and feature names
         coefficients = model.coef_
         #st.write(coefficients) # TEST
@@ -3609,13 +3611,15 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
         #st.write(intercept) # TEST
         feature_names = X_train.columns.tolist()
         #st.write(feature_names) # TEST
-        
         # Create a table to display the coefficients and intercept
         coefficients_table = pd.DataFrame({'Feature': ['Intercept'] + feature_names, 'Coefficient': np.insert(coefficients, 0, intercept)})
         # show coefficients table
         st.write(coefficients_table)
+        # =============================================================================
         
-        ## LINEAR REGRESSION EQUATION
+        # =============================================================================
+        # LINEAR REGRESSION EQUATION
+        # =============================================================================
         import sympy as sp
         # Get the intercept and coefficients from the table
         intercept = coefficients_table.loc[0, 'Coefficient'].round(2)
@@ -3645,6 +3649,7 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
         # Display the equation expression in Streamlit
         st.write("Linear Regression Equation:")
         st.write(equation_str)
+        # =============================================================================
 
 # =============================================================================
 #         # Create the equation string
@@ -5396,7 +5401,7 @@ with st.sidebar:
             },
             "icon": {
                 "color": "#FFFFFF",
-                "font-size": "25px",
+                "font-size": "15px",
                 "margin-right": "10px"
             }, 
             "nav-link": {
@@ -5416,18 +5421,16 @@ with st.sidebar:
                 "background-color": "rgba(255, 255, 255, 0.1)",
                 "transition": "background-color 0.5s ease-out",
             },
-# =============================================================================
-#             "nav-link-selected": {
-#                             "background": "linear-gradient(45deg, #000000, ##f5f5f5)",
-#                             "background": "-webkit-linear-gradient(45deg, #000000, ##f5f5f5)", 
-#                             "background": "-moz-linear-gradient(45deg, #000000, ##f5f5f5)", 
-#                 "color": "black",
-#                 "opacity": "0.8",
-#                 "box-shadow": "0px 0px 2px rgba(0, 0, 0, 0.3)",
-#                 "border-radius": "15px",
-#                 "border": "0px solid #45B8AC"
-#             }
-# =============================================================================
+            "nav-link-selected": {
+                            "background": "linear-gradient(45deg, #000000, ##f5f5f5)",
+                            "background": "-webkit-linear-gradient(45deg, #000000, ##f5f5f5)", 
+                            "background": "-moz-linear-gradient(45deg, #000000, ##f5f5f5)", 
+                "color": "grey",
+                "opacity": "0.5",
+                #"box-shadow": "0px 0px 2px rgba(0, 0, 0, 0.3)",
+                #"border-radius": "15px",
+                #"border": "0px solid #45B8AC"
+            }
         })
     
 # =============================================================================
@@ -6010,13 +6013,19 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
             
     # check if data is uploaded in file_uploader, if so -> use the function load_data to load file into a dataframe 
     if get_state('LOAD_PAGE', "my_data_choice") == "Upload Data" and uploaded_file is not None:
-       
-        # update session state that user uploaded a file
-        set_state("LOAD_PAGE", ("user_data_uploaded", True))
 
+        # =============================================================================
+        #         # WHEN NEW FILE IS UPLOADED -> UPDATE THE FOLLOWING SESSION STATE(S):
+        # =============================================================================
         # define dataframe from custom function to read from uploaded read_csv file
         st.session_state['df_raw'] = load_data()
-            
+        
+        # update session state that user uploaded a file
+        set_state("LOAD_PAGE", ("user_data_uploaded", True))
+        
+        # update session state that new file is uploaded / set to True -> use variable reset user selection of features list to empty list
+        set_state("DATA_OPTION", ("upload_new_data", True))
+
     # for multi-page app if user previously uploaded data uploaded_file will return to None but then get the persistent session state stored
     if get_state('LOAD_PAGE', "my_data_choice") == "Upload Data" and ((uploaded_file is not None) or (get_state("LOAD_PAGE", "user_data_uploaded") == True)) and 'demo_data' not in st.session_state['df_raw'].columns:
         # define dataframe copy used for graphs
@@ -7450,12 +7459,11 @@ if st.session_state['X_train'].shape[1] < 5:
 
 # If you uploaded a new file then reset the previous feature selection of user to an empty list
 #if st.session_state["df_raw"].columns[1] != 'demo_data' and get_state("DATA_OPTION", "upload_data") == True:
-# =============================================================================
-# st.write(get_state("DATA_OPTION", "upload_new_data"))
-# if get_state("DATA_OPTION", "upload_new_data") == True:
-#     # set equal to empty list again if user uploads new file
-#     set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", []))
-# =============================================================================
+
+#st.write('upload_new_data', get_state("DATA_OPTION", "upload_new_data"))
+if get_state("DATA_OPTION", "upload_new_data") == True:
+    # set equal to empty list again if user uploads new file
+    set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", []))
     
 # =============================================================================
 #    _____ ______ _      ______ _____ _______ 
@@ -7689,9 +7697,16 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
             
             # if user selected features, use those! else use the recommended features by feature selection methods 
             elif "__SELECT_PAGE_USER_SELECTION-feature_selection_user__" in st.session_state and get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user") != []:
-                st.write('option 2') # TEST
-                
+# =============================================================================
+#                 # issue when switching from demo to new file and making user selection -> change to new file -> mismatch X and selection, selection is old still and not reset properly
+#                 st.write('option 2') # TEST
+#                 st.write('feature selection user:', get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")) # TEST
+#                 st.write(' X_train.columns',  X_train.columns) # TEST
+#                 st.write('my_data_choice - old variable', st.session_state['my_data_choice'])
+#                 # fixed issue with load data screen code conditional: set_state("DATA_OPTION", ("upload_new_data", True)) 
+# =============================================================================
                 total_features = get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")
+                
             else:
                 st.write('option 3') # TEST
                 
