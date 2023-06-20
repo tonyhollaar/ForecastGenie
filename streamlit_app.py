@@ -12,9 +12,9 @@ _____ _____ _____ _____ _____ _____ _____ _____ _____ _____
 Streamlit App: ForecastGenie
 Forecast y based on X timeseries data
 @author: Tony Hollaar
-Date: 06/03/2023
-Version 1.3
-source ASCII ART: https://patorjk.com/software/taag/#p=display&v=0&f=Big&t=FORECASTGENIE
+Date: 06/19/2023
+Version 1.4
+source ASCII ART: http://patorjk.com/software/taag/#p=display&f=Graffiti&t=Type%20Something%20
 """
 # =============================================================================
 #   _      _____ ____  _____            _____  _____ ______  _____ 
@@ -127,6 +127,7 @@ from pandas.tseries.holiday import(
                                     next_monday, nearest_workday, sunday_to_monday,
                                     EasterMonday, GoodFriday, Easter
                                   )
+    
 # =============================================================================
 #   _____        _____ ______    _____ ______ _______ _    _ _____  
 #  |  __ \ /\   / ____|  ____|  / ____|  ____|__   __| |  | |  __ \ 
@@ -137,10 +138,12 @@ from pandas.tseries.holiday import(
 #                                                                                                                                    
 # =============================================================================
 # SET PAGE CONFIGURATIONS STREAMLIT
-st.set_page_config(page_title="ForecastGenie™️", 
-                   layout="centered", # "centered" or "wide"
-                   page_icon="🌀", 
-                   initial_sidebar_state="expanded") # "auto" or "expanded" or "collapsed"
+st.set_page_config(
+                   page_title = "ForecastGenie™️", 
+                   layout = "centered", # "centered" or "wide"
+                   page_icon = "🌀", 
+                   initial_sidebar_state = "expanded"
+                   ) # "auto" or "expanded" or "collapsed"
 
 # =============================================================================
 #   _____   ____   ____  _____  _      ______  _____ 
@@ -161,15 +164,13 @@ st.set_page_config(page_title="ForecastGenie™️",
 #                 caption = 'Doodle: A Slippery Slope'
 #                 st.image(image_path, caption=caption)
 # =============================================================================
-
 # =============================================================================
 #         # Doodle Dickey-Fuller Test
 #         image = Image.open("./images/adf_test.png")
 #         # Display the image in Streamlit
 #         st.image(image, caption="", use_column_width=True)
 #         #my_text_paragraph('Doodle: Dickey-Fuller Test', my_font_size='12px')
-# =============================================================================
-   
+# =============================================================================  
 # =============================================================================
 #         # AUTOCORRELATION DOODLE #
 #         # canva drawing autocorrelation
@@ -183,7 +184,6 @@ st.set_page_config(page_title="ForecastGenie™️",
 #             st.image(image, caption="", use_column_width='auto')
 #             my_text_paragraph('Doodle: Autocorrelation', my_font_size='12px')
 # =============================================================================
-
 # =============================================================================
 #    _____  _____ _____            _____  ____   ____   ____  _  __
 #   / ____|/ ____|  __ \     /\   |  __ \|  _ \ / __ \ / __ \| |/ /
@@ -226,15 +226,6 @@ st.set_page_config(page_title="ForecastGenie™️",
 #                 # in streamlit create and show the user defined number of carousel cards with header+text
 #                 create_carousel_cards(4, header_list, paragraph_list, font_family, font_size)
 # =============================================================================
-
-# set session states for SELECTING FEATURES
-# TO DEAL WITH EITHER FEATURE SELECTION METHODS FEATURES OR TO REVERT TO USER SELECTION
-create_store("SELECT_PAGE_BTN_CLICKED", [
-                                        ("rfe_btn", False),
-                                        ("mifs_btn", False), 
-                                        ("pca_btn", False)
-                                        ]
-            )
 
 # =============================================================================
 #   ______ _    _ _   _  _____ _______ _____ ____  _   _  _____ 
@@ -298,7 +289,7 @@ def form_feature_selection_method_pca():
 def form_feature_selection_method_rfe():
     try:
         # show Title in sidebar 'Feature Selection' with purple background
-        my_title(f'{select_icon}', "#7B52AB", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
+        my_title(f'{select_icon}', "#3b3b3b", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
         
         # =============================================================================
         # RFE Feature Selection - SIDEBAR FORM
@@ -1020,11 +1011,11 @@ def highlight_cols(s):
 ############################
 # FORMATTING TEXT FUNCTIONS
 ############################
-def my_title(my_string, my_background_color="#45B8AC", gradient_colors=None):
+def my_title(my_string, my_background_color="#my_title", gradient_colors=None):
     if gradient_colors is None:
         gradient_colors = f"{my_background_color}, #2CB8A1, #0072B2"
     gradient = f"-webkit-linear-gradient(45deg, {gradient_colors})"
-    st.markdown(f'<h3 style="background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient}; padding:10px; border-radius: 10px; border: 2px solid {my_background_color}; box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);"> <center> {my_string} </center> </h3>', unsafe_allow_html=True)
+    st.markdown(f'<h3 style="background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient}; padding:10px; border-radius: 10px; border: 1px solid {my_background_color}; box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);"> <center> {my_string} </center> </h3>', unsafe_allow_html=True)
 
 def my_header(my_string, my_style="#217CD0"):
     st.markdown(f'<h2 style="color:{my_style};"> <center> {my_string} </center> </h2>', unsafe_allow_html=True)
@@ -1060,10 +1051,11 @@ def my_text_paragraph(my_string,
 
 def my_forecastgenie_title(my_string, my_background_color="#2CB8A1"):
     gradient = f"-webkit-linear-gradient(45deg, {my_background_color}, #2CB8A1, #0072B2)"
+    text_style = f"text-align: center; font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; font-weight: 200; font-size: 36px; line-height: 1.5; -webkit-background-clip: text; -webkit-text-fill-color: black; padding: 20px; position: relative;"
     st.markdown(f'''
         <div style="position: relative;">
             <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: -1; opacity: 0.2;"></div>
-            <h1 style="background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient}; padding:20px; position: relative;">
+            <h1 style="{text_style}">
                 <center>{my_string}</center>
                 <div style="position: absolute; top: 20px; left: 80px;">
                     <div style="background-color: #0072B2; width: 8px; height: 8px; border-radius: 50%; animation: bubble 3s infinite;"></div>
@@ -2032,7 +2024,6 @@ def ljung_box_plots(df, variable_loc, res, lag, result_ljungbox, my_chart_color)
     
     # Position the legend at the top right inside the graph
     fig_pvalues.update_layout(legend=dict(x=1, y=1, xanchor='right', yanchor='top'))
-    
     fig_pvalues.update_layout(xaxis_title="Lag", yaxis_title="P-value", showlegend=True)
     st.plotly_chart(fig_pvalues, use_container_width=True)
     
@@ -2152,6 +2143,7 @@ def acf_pacf_info():
                     - The **PACF** plot measures the correlation between an observation and its lagged values while controlling for the effects of intermediate observations.
                     - The **ACF** plot is useful for identifying the order of a moving average **(MA)** model, while the **PACF** plot is useful for identifying the order of an autoregressive **(AR)** model.
                     ''')
+                    
 def chart_title(title, subtitle, font, font_size):
     """
     Creates a dictionary containing the properties for a chart title and subtitle.
@@ -2299,9 +2291,9 @@ def display_dataframe_graph(df, key=0, my_chart_color = '#217CD0'):
                     dict(count=1, label='1y', step='year', stepmode='backward'),
                     dict(step='all')
                 ]),
-                x=0.3,
+                x=0.35,
                 y=1.2,
-                yanchor='top',
+                yanchor='auto', #top
                 font=dict(size=10),
             ),
             rangeslider=dict( #bgcolor='45B8AC',
@@ -2731,7 +2723,6 @@ def model_documentation(selected_model_info):
             else:
                 pass   
             
-    
 #******************************************************************************
 # OTHER FUNCTIONS
 #******************************************************************************
@@ -2764,7 +2755,6 @@ def display_summary_statistics(df):
     summary.columns = ['Min', 'Max', 'Mean', 'Median', 'Std', 'dtype']
     return summary
 
-# define function to generate demo time-series data
 def generate_demo_data(seed=42):
     """
     Generate demo data with weekly, monthly, quarterly, and yearly patterns.
@@ -2792,10 +2782,8 @@ def generate_demo_data(seed=42):
     # generate time series data
     values = weekly + monthly + quarterly + yearly + noise + 10
     demo_data = pd.DataFrame({'date': date_range, 'demo_data': values})
-
     return demo_data
 
-# add wavelet features if applicable e.g. user selected it to be included
 def forecast_wavelet_features(X, features_df_wavelet, future_dates, df_future_dates):
     """
     Forecast the wavelet features of a time series using historical data and a selected model.
@@ -3482,7 +3470,6 @@ def create_calendar_special_days(df, start_date_calendar=None,  end_date_calenda
     events = events.reset_index(name = 'pay_day_desc').rename(columns = {'index': 'date'})
     df_exogenous_vars = df_exogenous_vars.merge(events, on = 'date', how = 'left').fillna('')
     df_exogenous_vars['pay_day'] = df_exogenous_vars['pay_day_desc'].apply(lambda x: 1 if len(x) > 1 else 0)
-    # add boolean
     df_exogenous_vars['calendar_event'] = df_exogenous_vars['calendar_event_desc'].apply(lambda x: 1 if len(x)>1 else 0)
     
     ###############################################################################
@@ -3531,7 +3518,7 @@ def my_holiday_name_func(my_date):
     >>> my_holiday_name_func('2022-09-05')
     'Labor Day'
     """    
-    holiday_name = cal.holidays(start = my_date, end = my_date, return_name = True)
+    holiday_name = calendar().holidays(start = my_date, end = my_date, return_name = True)
     if len(holiday_name) < 1:
       holiday_name = ""
       return holiday_name
@@ -3669,8 +3656,6 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
 #         st.write("Linear Regression Equation:")
 #         st.write(equation)
 # =============================================================================
-
-
     # Create dataframe for insample predictions versus actual
     df_preds = pd.DataFrame({'Actual': y_test.squeeze(), 'Predicted': y_pred.squeeze()})
     # set the index to just the date portion of the datetime index
@@ -3744,16 +3729,24 @@ def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, mo
     df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test)
     mape, rmse, r2 = my_metrics(df_preds, model_name)
     with st.expander('📈'+ model_name, expanded=True):
-        display_my_metrics(my_df=df_preds, model_name=model_name)
+        display_my_metrics(my_df = df_preds, 
+                           model_name = model_name)
+        
         # plot graph with actual versus insample predictions
-        plot_actual_vs_predicted(df_preds, my_conf_interval)
+        plot_actual_vs_predicted(df_preds, 
+                                 my_conf_interval
+                                 )
         # show the dataframe
-        st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+        st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), 
+                     use_container_width = True)
+        
         # create download button for forecast results to .csv
-        download_csv_button(df_preds, 
-                            my_file="insample_forecast_linear_regression_results.csv", 
-                            help_message=f'Download your **{model_name}** model results to .CSV',
-                            my_key='download_btn_linreg_df_preds')
+        download_csv_button(
+                            df_preds, 
+                            my_file = "insample_forecast_linear_regression_results.csv", 
+                            help_message = f'Download your **{model_name}** model results to .CSV',
+                            my_key = 'download_btn_linreg_df_preds'
+                            )
 
 def preprocess_data_prophet(y_data):
     """
@@ -3827,7 +3820,7 @@ def predict_prophet(y_train, y_test, **kwargs):
 
 def load_data():
     """
-    This function loads data from a CSV file and returns a pandas DataFrame object.
+    This function loads data from a CSV or XLS file and returns a pandas DataFrame object.
     """
     try:
         df_raw = pd.read_csv(uploaded_file, parse_dates=['date'])
@@ -4198,7 +4191,7 @@ def infer_frequency(date_df_series):
         else:
             my_freq = None
             my_freq_name = None
-    return my_freq, my_freq_name  # Unable to infer frequency
+    return my_freq, my_freq_name
 
 def determine_df_frequency(df, column_name='date'):
     try:
@@ -4207,7 +4200,6 @@ def determine_df_frequency(df, column_name='date'):
         my_freq_name = '-'
         # infer frequency with pandas function infer_freq that has outputs possible below
         freq = pd.infer_freq(df[column_name])
-        # TEST PANDAS DATAFRAME FREQUENCY E.G. DAY MONTH QUARTER YEAR
         # DAILY
         if freq in ['D', 'B', 'BS']:
             my_freq = 'D'
@@ -4454,9 +4446,6 @@ def plot_overview(df, y):
     # Display in Streamlit app
     st.plotly_chart(fig, use_container_width=True)
     
-#################### PACF GRAPH ###########################################
-# Define functions to calculate PACF
-#################### PACF GRAPH ###########################################
 def df_differencing(df, selection, my_chart_color):
     """
     Perform differencing on a time series DataFrame up to third order.
@@ -4771,7 +4760,6 @@ def plot_acf(data, nlags, my_chart_color):
     # Plot ACF with Streamlit Plotly 
     st.plotly_chart(fig, use_container_width=True)    
  
-######### OUTLIER DETECTION FUNCTIONS ##############
 def outlier_form():
     """
     This function creates a streamlit form for handling outliers in a dataset using different outlier detection methods. 
@@ -4976,7 +4964,8 @@ def handle_click_wo_button():
     # TEST
     # =============================================================================
     # reset session states to default -> initiate global variables
-    cal, metrics_dict, random_state, results_df, custom_fill_value, \
+    metrics_dict, random_state, results_df, custom_fill_value, \
+    key1_load, \
     key1_explore, key2_explore, key3_explore, key4_explore, \
     key1_missing, key2_missing, key3_missing, \
     key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, \
@@ -4988,14 +4977,13 @@ def handle_click_wo_button():
     key1_select_page_mifs, \
     key1_select_page_corr, key2_select_page_corr = initiate_global_variables()
 
-    
     # if key of radio button exists
     if st.session_state['data_choice']:
         # this new variable my_data_choice set it equal to information collected from the user
         # via the radio button called "data_option"
         st.session_state['my_data_choice'] = st.session_state['data_choice']
-
-
+        
+    
 
 # =============================================================================
 #  __      __     _____  _____          ____  _      ______  _____ 
@@ -5010,16 +4998,13 @@ def initiate_global_variables():
     # ================================ COLORS =====================================
     # store color scheme for app
     create_store("COLORS", [
-        ("chart_color", "#45B8AC"),
-        ("chart_patterns", "#0068c9"),
+        ("chart_color", "#706d77"),
+        ("chart_patterns", "#4715ef"),
         ("run", 0)
     ])
     
     # ================================ LOAD =======================================
-    # SET VARIABLE DEFAULTS: demo data or uploaded data
-    # check if df_raw not in current session state else add it
     if "df_raw" not in st.session_state:
-        # define an empty dataframe with two headers for date and target variable
         st.session_state["df_raw"] = pd.DataFrame()
         st.session_state.df_raw = generate_demo_data()
         df_graph = st.session_state.df_raw.copy(deep=True)
@@ -5036,8 +5021,17 @@ def initiate_global_variables():
     if "my_data_choice" not in st.session_state:
         st.session_state['my_data_choice'] = "Demo Data"
     
+    # create session state for if demo data (default) or user uploaded a file
+    create_store("DATA_OPTION", [("upload_new_data", False)])
+
+    # Save the Data Choice of User
+    key1_load, key1_load = create_store("LOAD_PAGE", [
+                                                      ("my_data_choice", "Demo Data"),  #key1_load,
+                                                      ("user_data_uploaded", False) #key2_load,
+                                                     ]
+                                                )
+    
     # ================================ EXPLORE ====================================
-    # Set default values for parameters
     key1_explore, key2_explore, key3_explore, key4_explore, key5_explore = create_store("EXPLORE_PAGE", [
         ("lags_acf", min(30, int((len(st.session_state.df_raw)-1)))), #key1_explore
         ("lags_pacf", min(30, int((len(st.session_state.df_raw)-2)/2))), #key2_explore
@@ -5046,15 +5040,23 @@ def initiate_global_variables():
         ("run", 0) #key5_explore
     ])
     
+    # HISTOGRAM PARAMETER FOR STORING RADIO_BUTTON USER PREFERENCE
     key_hist = create_store("HIST", [("histogram_freq_type", "Absolute"),  ("run", 0)])
     
     # ================================ CLEAN ======================================
+    # set the random state
+    random_state = 10
     
-    #fill_method = None
+    # for missing values custom fill value can be set by user (initiate variable with None)
     custom_fill_value = None
-    #freq_dict = None
-    #freq = None
+
+    if 'freq_dict' not in st.session_state:
+        st.session_state['freq_dict'] = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
     
+    if 'freq' not in st.session_state:
+        # assume frequency is daily data for now -> expand to automated frequency detection later 
+        st.session_state['freq'] = 'Daily'
+        
     # define keys and store them in memory with their associated values
     key1_missing, key2_missing, key3_missing, key4_missing = create_store("CLEAN_PAGE_MISSING", 
                                                                           [
@@ -5063,7 +5065,8 @@ def initiate_global_variables():
                                                                             ("data_frequency", 'Daily'), #key3
                                                                             ("run", 0) #key4
                                                                           ]
-                                                                         ) 
+                                                                         )
+    
     key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, key8_outlier = create_store("CLEAN_PAGE", 
                                                                                                                                   [
                                                                                                                                     ("outlier_detection_method", "None"), # key1
@@ -5075,23 +5078,7 @@ def initiate_global_variables():
                                                                                                                                     ("outlier_replacement_method", "Interpolation"), #key7
                                                                                                                                     ("run", 0)  #key8
                                                                                                                                   ])
-    
-    # set the random state
-    random_state = 10
-    
-    if 'freq_dict' not in st.session_state:
-        st.session_state['freq_dict'] = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
-    if 'freq' not in st.session_state:
-        # assume frequency is daily data for now -> expand to automated frequency detection later 
-        st.session_state['freq'] = 'Daily'
-        
     # ================================ ENGINEER ===================================
-    # define calendar
-    cal = calendar()
-    
-    # create a slot called "ENGINEER_PAGE" and assign keys with values within slot to persist in memory
-    # note: this is because when switching streamlit pages normally the session_state would reset the in-memory saved variables 
-    # such as user choices in sliders and checkboxes
     key1_engineer, key2_engineer, key3_engineer, key4_engineer, key5_engineer, key6_engineer, key7_engineer, key8_engineer = create_store("ENGINEER_PAGE",
                                                                                                               [
                                                                                                                 ("calendar_dummies_checkbox", True),          #key1_engineer
@@ -5149,25 +5136,34 @@ def initiate_global_variables():
     # set the normalization and standardization to default None which has index 0 
     key1_prepare_normalization, key2_prepare_standardization, key3_prepare = create_store("PREPARE", [
         ("normalization_choice", "None"),    #key1_prepare_normalization
-        ("standardization_choice", "None"), #key2_prepare_standardization
-        ("run", 0)])                     #key3_prepare
-    
+        ("standardization_choice", "None"),  #key2_prepare_standardization
+        ("run", 0)])                         #key3_prepare
     
     # ================================ SELECT ====================================
-    
-    # TESTING
-    # LOGIC
+    # TESTING LOGIC
     ########
     # 1 state to keep all features possible e.g. X column names
     # 1 state to keep user selected features, which has default value of recommended features if user does not update
     # 1 state to keep the recommended features, which will be used if user skips the page
     # logic: if selected features by user then use user preference, else use pipeline recommended features
     # if file is switched delete the session state of old data feature preference
+    ########
+    # set session states for SELECTING FEATURES
+    
+    # TO DEAL WITH EITHER FEATURE SELECTION METHODS FEATURES OR TO REVERT TO USER SELECTION
+    create_store("SELECT_PAGE_BTN_CLICKED", [
+                                            ("rfe_btn", False),
+                                            ("mifs_btn", False), 
+                                            ("pca_btn", False)
+                                            ]
+                )
+    
+    # FEATURE SELECTION BY USER
     key1_select_page_user_selection, key2_select_page_user_selection = create_store("SELECT_PAGE_USER_SELECTION", [
                                 ("feature_selection_user", []), #key1_select_page_user_selection
-                                ("run", 0) #key2_select_page_user_selection
+                                ("run", 0)                      #key2_select_page_user_selection
                                 ])
-    
+    # PCA
     key1_select_page_pca, key2_select_page_pca = create_store("SELECT_PAGE_PCA", [
                             # default of PCA features set to minimum of either 5 or the number of independent features in the dataframe
                             ("num_features_pca", 5), #key1_select_page_pca # 
@@ -5175,25 +5171,23 @@ def initiate_global_variables():
                             ])
     # RFE
     key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, key5_select_page_rfe = create_store("SELECT_PAGE_RFE", [
-                                ("num_features_rfe", 5), #key1_select_page_rfe
+                                ("num_features_rfe", 5),                #key1_select_page_rfe
                                 ("estimator_rfe", "Linear Regression"), #key2_select_page_rfe
-                                ("timeseriessplit_value_rfe", 5),   #key3_select_page_rfe
-                                ("num_steps_rfe", 1), #key4_select_page_rfe
-                                ("run", 0) #key5_select_page_rfe
+                                ("timeseriessplit_value_rfe", 5),       #key3_select_page_rfe
+                                ("num_steps_rfe", 1),                   #key4_select_page_rfe
+                                ("run", 0)                              #key5_select_page_rfe
                                 ])
-    
     # MIFS
     key1_select_page_mifs, key2_select_page_mifs = create_store("SELECT_PAGE_MIFS", [
-                                ("num_features_mifs", 5), #key1_select_page_mifs # 
-                                ("run", 0) #key2_select_page_mifs
+                                ("num_features_mifs", 5), #key1_select_page_mifs
+                                ("run", 0)                #key2_select_page_mifs
                                 ])
     # CORR
     key1_select_page_corr, key2_select_page_corr, key3_select_page_corr = create_store("SELECT_PAGE_CORR", [
-                                                                ("corr_threshold", 0.8), #key1_select_page_corr 
+                                                                ("corr_threshold", 0.8),                      #key1_select_page_corr 
                                                                 ("selected_corr_model", 'Linear Regression'), #key2_select_page_corr
-                                                                ("run", 0) #key3_select_page_corr
+                                                                ("run", 0)                                    #key3_select_page_corr
                                                                 ])
-    
     # ================================ TRAIN ===================================  
     # TRAIN MENU TEST
     if 'train_models_btn' not in st.session_state:
@@ -5234,11 +5228,13 @@ def initiate_global_variables():
     #///////////////////////////////////////////////////////////////////
     # show in streamlit the session state variables that are stored cache for the user session
     st.write(st.session_state)
+    #///////////////////////////////////////////////////////////////////
     
     # Logging
     print('ForecastGenie Print: Loaded Global Variables')
     
-    return cal, metrics_dict, random_state, results_df, custom_fill_value, \
+    return metrics_dict, random_state, results_df, custom_fill_value, \
+    key1_load, \
     key1_explore, key2_explore, key3_explore, key4_explore, \
     key1_missing, key2_missing, key3_missing, \
     key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, \
@@ -5250,9 +5246,18 @@ def initiate_global_variables():
     key1_select_page_mifs, \
     key1_select_page_corr, key2_select_page_corr
     
-
+# =============================================================================
+#   _____ _   _ _____ _______ _____       _______ ______ 
+#  |_   _| \ | |_   _|__   __|_   _|   /\|__   __|  ____|
+#    | | |  \| | | |    | |    | |    /  \  | |  | |__   
+#    | | | . ` | | |    | |    | |   / /\ \ | |  |  __|  
+#   _| |_| |\  |_| |_   | |   _| |_ / ____ \| |  | |____ 
+#  |_____|_| \_|_____|  |_|  |_____/_/    \_\_|  |______|
+#                                                        
+# =============================================================================
 # INITIATE GLOBAL VARIABLES
-cal, metrics_dict, random_state, results_df, custom_fill_value, \
+metrics_dict, random_state, results_df, custom_fill_value, \
+key1_load, \
 key1_explore, key2_explore, key3_explore, key4_explore, \
 key1_missing, key2_missing, key3_missing, \
 key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, \
@@ -5280,58 +5285,58 @@ balloon_heart_svg = """
                     </svg>
                     """
                     
-paint_bucket_icon = """<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#999999" class="bi bi-paint-bucket" viewBox="0 0 16 16">
+paint_bucket_icon = """<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-paint-bucket" viewBox="0 0 16 16">
   <path d="M6.192 2.78c-.458-.677-.927-1.248-1.35-1.643a2.972 2.972 0 0 0-.71-.515c-.217-.104-.56-.205-.882-.02-.367.213-.427.63-.43.896-.003.304.064.664.173 1.044.196.687.556 1.528 1.035 2.402L.752 8.22c-.277.277-.269.656-.218.918.055.283.187.593.36.903.348.627.92 1.361 1.626 2.068.707.707 1.441 1.278 2.068 1.626.31.173.62.305.903.36.262.05.64.059.918-.218l5.615-5.615c.118.257.092.512.05.939-.03.292-.068.665-.073 1.176v.123h.003a1 1 0 0 0 1.993 0H14v-.057a1.01 1.01 0 0 0-.004-.117c-.055-1.25-.7-2.738-1.86-3.494a4.322 4.322 0 0 0-.211-.434c-.349-.626-.92-1.36-1.627-2.067-.707-.707-1.441-1.279-2.068-1.627-.31-.172-.62-.304-.903-.36-.262-.05-.64-.058-.918.219l-.217.216zM4.16 1.867c.381.356.844.922 1.311 1.632l-.704.705c-.382-.727-.66-1.402-.813-1.938a3.283 3.283 0 0 1-.131-.673c.091.061.204.15.337.274zm.394 3.965c.54.852 1.107 1.567 1.607 2.033a.5.5 0 1 0 .682-.732c-.453-.422-1.017-1.136-1.564-2.027l1.088-1.088c.054.12.115.243.183.365.349.627.92 1.361 1.627 2.068.706.707 1.44 1.278 2.068 1.626.122.068.244.13.365.183l-4.861 4.862a.571.571 0 0 1-.068-.01c-.137-.027-.342-.104-.608-.252-.524-.292-1.186-.8-1.846-1.46-.66-.66-1.168-1.32-1.46-1.846-.147-.265-.225-.47-.251-.607a.573.573 0 0 1-.01-.068l3.048-3.047zm2.87-1.935a2.44 2.44 0 0 1-.241-.561c.135.033.324.11.562.241.524.292 1.186.8 1.846 1.46.45.45.83.901 1.118 1.31a3.497 3.497 0 0 0-1.066.091 11.27 11.27 0 0 1-.76-.694c-.66-.66-1.167-1.322-1.458-1.847z"/>
 </svg>
 """
 
 load_icon = """
- <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#45B8AC" class="bi bi-cloud-arrow-up" viewBox="0 0 16 16">
+ <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-cloud-arrow-up" viewBox="0 0 16 16">
    <path fill-rule="evenodd" d="M7.646 5.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 6.707V10.5a.5.5 0 0 1-1 0V6.707L6.354 7.854a.5.5 0 1 1-.708-.708l2-2z"/>
    <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383zm.653.757c-.757.653-1.153 1.44-1.153 2.056v.448l-.445.049C2.064 6.805 1 7.952 1 9.318 1 10.785 2.23 12 3.781 12h8.906C13.98 12 15 10.988 15 9.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 4.825 10.328 3 8 3a4.53 4.53 0 0 0-2.941 1.1z"/>
  </svg>
 """
 
 explore_icon = """
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#217CD0" class="bi bi-search" viewBox="0 0 16 16">
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-search" viewBox="0 0 16 16">
   <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
 </svg>
 """
 
 clean_icon = """
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#440154" class="bi bi-bezier2" viewBox="0 0 16 16">
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-bezier2" viewBox="0 0 16 16">
   <path fill-rule="evenodd" d="M1 2.5A1.5 1.5 0 0 1 2.5 1h1A1.5 1.5 0 0 1 5 2.5h4.134a1 1 0 1 1 0 1h-2.01c.18.18.34.381.484.605.638.992.892 2.354.892 3.895 0 1.993.257 3.092.713 3.7.356.476.895.721 1.787.784A1.5 1.5 0 0 1 12.5 11h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 1-1.5-1.5H6.866a1 1 0 1 1 0-1h1.711a2.839 2.839 0 0 1-.165-.2C7.743 11.407 7.5 10.007 7.5 8c0-1.46-.246-2.597-.733-3.355-.39-.605-.952-1-1.767-1.112A1.5 1.5 0 0 1 3.5 5h-1A1.5 1.5 0 0 1 1 3.5v-1zM2.5 2a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1zm10 10a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1z"/>
 </svg>
 """
 
 engineer_icon = """
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#FF6F61" class="bi bi-gear" viewBox="0 0 16 16">
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-gear" viewBox="0 0 16 16">
   <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
   <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
 </svg>
 """
 
 prepare_icon = """
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#FF9F00" class="bi bi-shuffle" viewBox="0 0 16 16">
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-shuffle" viewBox="0 0 16 16">
   <path fill-rule="evenodd" d="M0 3.5A.5.5 0 0 1 .5 3H1c2.202 0 3.827 1.24 4.874 2.418.49.552.865 1.102 1.126 1.532.26-.43.636-.98 1.126-1.532C9.173 4.24 10.798 3 13 3v1c-1.798 0-3.173 1.01-4.126 2.082A9.624 9.624 0 0 0 7.556 8a9.624 9.624 0 0 0 1.317 1.918C9.828 10.99 11.204 12 13 12v1c-2.202 0-3.827-1.24-4.874-2.418A10.595 10.595 0 0 1 7 9.05c-.26.43-.636.98-1.126 1.532C4.827 11.76 3.202 13 1 13H.5a.5.5 0 0 1 0-1H1c1.798 0 3.173-1.01 4.126-2.082A9.624 9.624 0 0 0 6.444 8a9.624 9.624 0 0 0-1.317-1.918C4.172 5.01 2.796 4 1 4H.5a.5.5 0 0 1-.5-.5z"/>
   <path d="M13 5.466V1.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384l-2.36 1.966a.25.25 0 0 1-.41-.192zm0 9v-3.932a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384l-2.36 1.966a.25.25 0 0 1-.41-.192z"/>
 </svg>
 """
 
 select_icon = """
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#7B52AB" class="bi bi-sort-down" viewBox="0 0 16 16">
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-sort-down" viewBox="0 0 16 16">
   <path d="M3.5 2.5a.5.5 0 0 0-1 0v8.793l-1.146-1.147a.5.5 0 0 0-.708.708l2 1.999.007.007a.497.497 0 0 0 .7-.006l2-2a.5.5 0 0 0-.707-.708L3.5 11.293V2.5zm3.5 1a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zM7.5 6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5zm0 3a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3zm0 3a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1h-1z"/>
 </svg>
 """
 
 train_icon = """
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#0072B2" class="bi bi-cpu" viewBox="0 0 16 16">
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-cpu" viewBox="0 0 16 16">
   <path d="M5 0a.5.5 0 0 1 .5.5V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2A2.5 2.5 0 0 1 14 4.5h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14a2.5 2.5 0 0 1-2.5 2.5v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14A2.5 2.5 0 0 1 2 11.5H.5a.5.5 0 0 1 0-1H2v-1H.5a.5.5 0 0 1 0-1H2v-1H.5a.5.5 0 0 1 0-1H2v-1H.5a.5.5 0 0 1 0-1H2A2.5 2.5 0 0 1 4.5 2V.5A.5.5 0 0 1 5 0zm-.5 3A1.5 1.5 0 0 0 3 4.5v7A1.5 1.5 0 0 0 4.5 13h7a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 11.5 3h-7zM5 6.5A1.5 1.5 0 0 1 6.5 5h3A1.5 1.5 0 0 1 11 6.5v3A1.5 1.5 0 0 1 9.5 11h-3A1.5 1.5 0 0 1 5 9.5v-3zM6.5 6a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"/>
 </svg>
 """
 
 evaluate_icon = """
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#2CB8A1" class="bi bi-clipboard-check" viewBox="0 0 16 16">
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-clipboard-check" viewBox="0 0 16 16">
   <path fill-rule="evenodd" d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
   <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
   <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
@@ -5339,13 +5344,13 @@ evaluate_icon = """
 """
 
 tune_icon = """
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#88466D" class="bi bi-sliders" viewBox="0 0 16 16">
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-sliders" viewBox="0 0 16 16">
   <path fill-rule="evenodd" d="M11.5 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM9.05 3a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0V3h9.05zM4.5 7a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM2.05 8a2.5 2.5 0 0 1 4.9 0H16v1H6.95a2.5 2.5 0 0 1-4.9 0H0V8h2.05zm9.45 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm-2.45 1a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0v-1h9.05z"/>
 </svg>
 """
 
 forecast_icon = """
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-graph-up-arrow" viewBox="0 0 16 16">
+<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="3b3b3b" class="bi bi-graph-up-arrow" viewBox="0 0 16 16">
   <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0Zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5Z"/>
 </svg>
 """
@@ -5363,8 +5368,9 @@ print('ForecastGenie Print: Loaded SVG ICONS')
 #                                       
 # =============================================================================
 # Create title with bubbles floating around
-my_forecastgenie_title('ForecastGenie')
-
+with st.sidebar:
+    my_text_header("ForecastGenie")
+#my_forecastgenie_title('')
 # =============================================================================
 #    _____ _____ _____  ______ ____          _____    __  __ ______ _   _ _    _ 
 #   / ____|_   _|  __ \|  ____|  _ \   /\   |  __ \  |  \/  |  ____| \ | | |  | |
@@ -5377,17 +5383,19 @@ my_forecastgenie_title('ForecastGenie')
 # CREATE SIDEBAR MENU FOR HOME / ABOUT / FAQ PAGES FOR USER
 with st.sidebar:
     sidebar_menu_item = option_menu(None, ["Home", "About", "FAQ", "Doc"], 
-        icons=["house", "file-person", "info-circle", "file-text"], 
-        menu_icon="cast", default_index=0, orientation="horizontal",
-        styles={
+        icons = ["house", "file-person", "info-circle", "file-text"], 
+        menu_icon = "cast", 
+        default_index = 0, 
+        orientation = "horizontal",
+        styles = {
             "container": {
-                "padding": "5px",
-                "background": "white", #"linear-gradient(45deg, #0C8F74, #99D8FF)",
+                "padding": "0px",
+                "background": "rgba(255, 255, 255, 0.2)", #"linear-gradient(45deg, #0C8F74, #99D8FF)",
                 "border-radius": "0px",
-                "box-shadow": "0px 0px 2px rgba(0, 0, 0, 0.2)"
+                #"box-shadow": "0px 0px 2px rgba(0, 0, 0, 0.2)"
             },
             "icon": {
-                "color": "#45B8AC",
+                "color": "#FFFFFF",
                 "font-size": "25px",
                 "margin-right": "10px"
             }, 
@@ -5408,15 +5416,20 @@ with st.sidebar:
                 "background-color": "rgba(255, 255, 255, 0.1)",
                 "transition": "background-color 0.5s ease-out",
             },
-            "nav-link-selected": {
-                "background-color": "linear-gradient(45deg, #06D6A0, #82D8FF)",
-                "color": "white",
-                "opacity": "0.8",
-                "box-shadow": "0px 0px 2px rgba(0, 0, 0, 0.3)",
-                "border-radius": "5px",
-                "border": "0px solid #45B8AC"
-            }
+# =============================================================================
+#             "nav-link-selected": {
+#                             "background": "linear-gradient(45deg, #000000, ##f5f5f5)",
+#                             "background": "-webkit-linear-gradient(45deg, #000000, ##f5f5f5)", 
+#                             "background": "-moz-linear-gradient(45deg, #000000, ##f5f5f5)", 
+#                 "color": "black",
+#                 "opacity": "0.8",
+#                 "box-shadow": "0px 0px 2px rgba(0, 0, 0, 0.3)",
+#                 "border-radius": "15px",
+#                 "border": "0px solid #45B8AC"
+#             }
+# =============================================================================
         })
+    
 # =============================================================================
 #   __  __          _____ _   _   __  __ ______ _   _ _    _ 
 #  |  \/  |   /\   |_   _| \ | | |  \/  |  ____| \ | | |  | |
@@ -5428,37 +5441,47 @@ with st.sidebar:
 # =============================================================================
 # source for package: https://github.com/victoryhb/streamlit-option-menu
 # CREATE MAIN MENU BAR FOR APP WITH BUTTONS OF DATA PIPELINE
-# Horizontal menu with default on first tab e.g. default_index=0
-menu_item = option_menu(None, ["Load", "Explore", "Clean", "Engineer", "Prepare", "Select", "Train", "Evaluate", "Tune", "Forecast"], 
-            icons=['cloud-arrow-up', 'search', 'bi-bezier2', 'gear', 'shuffle', 'bi-sort-down', "cpu", 'clipboard-check', 'sliders', 'graph-up-arrow'], 
-            menu_icon="cast", default_index=0, orientation="horizontal", 
-            styles={
-                "container": {
-                    "padding": "0!important",
-                    "background-image": "linear-gradient(to right, #2CB8A1 10%, #2CB8A1 10%, #217CD0 10%, #217CD0 20%, #440154 20%, #440154 30%, #FF6F61 30%, #FF6F61 40%, #FF9F00 40%, #FF9F00 50%, #7B52AB 50%, #7B52AB 60%, #0072B2 60%, #0072B2 70%, #2CB8A1 70%, #2CB8A1 80%, #88466D 80%, #88466D 90%, #48466D 90%)"
-                },
-                "icon": {"color": "white", "font-size": "25px"}, 
-                "nav-link": {
-                    "font-size": "10px",
-                    "color": "white",
-                    "text-align": "center",
-                    "margin": "0px",
-                    "padding": "8px",
-                    "background-color": "transparent",
-                    "opacity": "1",
-                    "transition": "background-color 0.5s ease-out",
-                },
-                "nav-link:hover": {
-                    "background-color": "rgba(255, 255, 255, 0.3)",
-                    "transition": "background-color 0.5s ease-out",
-                },
-                "nav-link-selected": {"background-color": "#F0F0F0", 
-                                      "color": "black",
-                                      "opacity": "1", 
-                                      "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.3)", 
-                                      "border": "1px solid white", 
-                                      "border-radius": "5px"}
-            })
+# Horizontal menu with default on first tab e.g. default_index = 0
+
+menu_item = option_menu(menu_title = None, 
+                        options = ["Load", "Explore", "Clean", "Engineer", "Prepare", "Select", "Train", "Evaluate", "Tune", "Forecast"], 
+                        icons = ['cloud-arrow-up', 'search', 'bi-bezier2', 'gear', 'shuffle', 'bi-sort-down', "cpu", 'clipboard-check', 'sliders', 'graph-up-arrow'], 
+                        menu_icon = "cast", 
+                        default_index = 0, 
+                        orientation = "horizontal", 
+                        styles = {
+                                    "container": {
+                                        "padding": "0!important",
+                                        "background-color": "#f5f5f5",
+                                        "border-radius": "10px",
+                                        "border": "1px solid black",
+                                    },
+                                    "icon": {
+                                        "color": "#333333",
+                                        "font-size": "20px",
+                                    },
+                                    "nav-link": {
+                                        "font-size": "12px",
+                                        "color": "#333333",
+                                        "text-align": "center",
+                                        "margin": "0px",
+                                        "padding": "8px",
+                                        "background-color": "transparent",
+                                        "opacity": "1",
+                                        "transition": "background-color 0.3s ease-in-out",
+                                    },
+                                    "nav-link:hover": {
+                                        "background-color": "#eaeaea",
+                                    },
+                                    "nav-link-selected": {
+                                        "background-color": "#F5F5F5",
+                                        "color": "black",
+                                        "opacity": "0.1",
+                                        "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.0)",
+                                        "border-radius": "5px",
+                                    },
+                                }
+                        )
 
 # =============================================================================
 #            ____   ____  _    _ _______   _____        _____ ______ 
@@ -5475,7 +5498,6 @@ if sidebar_menu_item == 'About':
         with st.expander('', expanded=True):
             # Title with gradient
             #####################
-            # set title
             vertical_spacer(2)
             my_text_paragraph('About', my_font_size='36px')
             show_lottie_animation(url="./images/89601-solar-system.json", key='solar_system', speed = 1, width=400, reverse=False, height=400, margin_before = 2, margin_after=10)
@@ -5535,7 +5557,7 @@ if sidebar_menu_item == 'About':
                     st.write('')
                     button(username="tonyhollaar", floating=False, width=221,  text = 'Buy me a coffee', bg_color = '#FFFFFF', font='Cookie', font_color='black', coffee_color='black')
                 # About App
-                st.caption(f'<h7><center> ForecastGenie version: `1.2` <br>  Release date: `05-14-2023`  </center></h7>', unsafe_allow_html=True)    
+                st.caption(f'<h7><center> ForecastGenie version: `2.0` <br>  Release date: `06-30-2023`  </center></h7>', unsafe_allow_html=True)    
             # scrolling/marquee text effect
             space_quotes = """ "That's one small step for man, one giant leap for mankind." - Neil Armstrong, Apollo 11 astronaut, upon stepping onto the lunar surface in 1969  \
                             | "The sky is not the limit; it's just the beginning." - Astronaut Kathy Sullivan, the first American woman to perform a spacewalk\
@@ -5857,132 +5879,108 @@ def reset_session_states():
     Example:
         reset_session_states()
     """
-    st.write('TEST: I am going to delete session states for variables as new file is uploaded!') # TEST 
-    
+    #st.write('TEST: I am going to delete session states for variables as new file is uploaded!') # TEST 
+            
     # Delete all the items in Session state
     for key in st.session_state.keys():
         ############### NEW TEST ############################
         # FIX: review need of 2 session states
-        if key == 'data_choice' or key == 'my_data_choice':
+        if key == 'data_choice' or key == 'my_data_choice' or key == "__LOAD_PAGE-my_data_choice__" or key == "__LOAD_PAGE-user_data_uploaded__":
             pass
         else:
             #st.write(f'removing key: {key}') # TEST
             del st.session_state[key]
-   
-    
-    # initiate_global_variables
-    # ?????????????????????????
+            
     # reset session states to default -> initiate global variables
-    cal, metrics_dict, random_state, results_df, custom_fill_value, \
+    metrics_dict, random_state, results_df, custom_fill_value, \
+    key1_load, \
     key1_explore, key2_explore, key3_explore, key4_explore, \
     key1_missing, key2_missing, key3_missing, \
     key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, \
     key1_engineer, key2_engineer, key3_engineer, key4_engineer, key5_engineer, key6_engineer, key7_engineer, \
     key1_prepare_normalization, key2_prepare_standardization, \
-    key1_select_page_user_selection = initiate_global_variables()
+    key1_select_page_user_selection, \
+    key1_select_page_pca, \
+    key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, \
+    key1_select_page_mifs, \
+    key1_select_page_corr, key2_select_page_corr = initiate_global_variables()
+    
+def load_change():
+    try:
+        # update in memory value for radio button / save user choice of histogram freq
+        index_data_option = ("Upload Data" if data_option == "Demo Data" else "Demo Data")
+        set_state("LOAD_PAGE", ("my_data_choice", index_data_option))
+    except:
+        set_state("LOAD_PAGE", ("my_data_choice", "Demo Data"))
+# =============================================================================
+
+if menu_item == 'Load' and sidebar_menu_item == 'Home':    
+    # =============================================================================
+    # SIDEBAR OF LOAD PAGE
+    # =============================================================================
+    with st.sidebar:
+        my_title(f"{load_icon}", "#3b3b3b")
+        with st.expander('', expanded = True):            
+            col1, col2, col3 = st.columns(3)
+            with col2:
+                # =============================================================================
+                #  STEP 1: SAVE USER DATA CHOICE (DEMO/UPLOAD) WITH RADIO BUTTON
+                # =============================================================================         
+                data_option = st.radio(
+                                       label = "*Choose an option:*", 
+                                       options = ["Demo Data", "Upload Data"], 
+                                       index = 0 if get_state('LOAD_PAGE', "my_data_choice") == "Demo Data" else 1,
+                                       on_change = load_change # run function
+                                       )
+                
+                # UPDATE SESSION STATE WITH USER DATA CHOICE OF RADIO BUTTON
+                set_state("LOAD_PAGE", ("my_data_choice", data_option))
+
+                vertical_spacer(1)
             
-    # update session state to "Upload Data"        
-    st.session_state['my_data_choice'] = "Upload Data"
+            # =============================================================================
+            # STEP 2: IF UPLOADED FILE THEN SHOW FILE-UPLOADER WIDGET
+            # =============================================================================
+            # WHEN CHANGES ARE PRESENT RESET SESSION STATES
+            if data_option == "Upload Data":
+               uploaded_file = st.file_uploader(label = "Upload your file", 
+                                                 type = ["csv", "xls", "xlsx", "xlsm", "xlsb"], 
+                                                 accept_multiple_files = False, 
+                                                 label_visibility = 'collapsed',
+                                                 on_change = reset_session_states)
+               
+    # =============================================================================
+    # LOAD MAIN PAGE
+    # =============================================================================
+    #my_title(f"{load_icon} Load Dataset ", "#45B8AC")
     
-    # create session state to know user switched
-    create_store("DATA_OPTION", [("upload_new_data", True)])
-    
-    #"__SELECT_PAGE_USER_SELECTION-feature_selection_user__"
-    set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", []))
-
-
-with st.sidebar:
-    my_title(f"{load_icon}", "#45B8AC")
-    with st.expander('', expanded=True):
-        # let user choose if they want to have app run with demo data or upload their own dataset
-        col1, col2, col3 = st.columns(3)
-        with col2:
-            # radio button option for user to pick between demo data and load their own dataset
-            data_option = st.radio("*Choose an option:*", ["Demo Data", "Upload Data"], 
-                                   on_change = handle_click_wo_button, 
-                                   key = 'data_choice')
-            vertical_spacer(1)
+    if get_state('LOAD_PAGE', "my_data_choice") == "Demo Data":
+       
+        # update session state that user uploaded a file
+        set_state("LOAD_PAGE", ("user_data_uploaded", False))
         
-        if st.session_state['my_data_choice'] == "Upload Data":
-            uploaded_file = st.file_uploader(label = "Upload your file", 
-                                             type = ["csv", "xls", "xlsx", "xlsm", "xlsb"], 
-                                             accept_multiple_files = False, 
-                                             label_visibility = 'collapsed',
-                                             on_change = reset_session_states)
-
-############### NEW TEST ############################
-if st.session_state['my_data_choice'] == "Demo Data":
-# =============================================================================
-#     # =============================================================================
-#     # TEST2
-#     # =============================================================================
-#     # RESET SESSION STATES
-#     #reset_session_states()
-#     uploaded_file  = 'demo_data_loaded'
-#     
-#     if 'freq' not in st.session_state:
-#         # assume frequency is daily data for now -> expand to automated frequency detection later 
-#         st.session_state['freq'] = 'Daily'
-#     # =============================================================================
-# =============================================================================
-    
-    st.session_state['df_raw'] = generate_demo_data()
-    df_raw = generate_demo_data()   
-    df_graph = df_raw.copy(deep=True)
-    # set minimum date
-    df_min = df_raw.iloc[:,0].min().date()
-    # set maximum date
-    df_max = df_raw.iloc[:,0].max().date()
+        # GENERATE THE DEMO DATA WITH FUNCTION
+        st.session_state['df_raw'] = generate_demo_data()
         
-# =============================================================================
-#     # =============================================================================
-#     # TEST2
-#     # =============================================================================
-#     # SET DATA OPTION TO FALSE
-#     # Note: this variable is used in other code to reset e.g. the feature selection and not keep previous session in memory before SELECT PAGE codeblock
-#     # DID THIS WORK?
-#     set_state("DATA_OPTION", ("upload_new_data", False))
-#     # ============================================================================= 
-# =============================================================================
+        df_raw = generate_demo_data()
+        df_graph = df_raw.copy(deep=True)
+        df_min = df_raw.iloc[:,0].min().date()
+        df_max = df_raw.iloc[:,0].max().date()
         
-############### NEW TEST ############################
-elif st.session_state['my_data_choice'] == "Upload Data" and uploaded_file is not None:
-    # define dataframe from custom function to read from uploaded read_csv file
-    st.session_state['df_raw'] = load_data()
-    df_graph = st.session_state['df_raw'].copy(deep=True)
-    # set minimum date
-    df_min = st.session_state['df_raw'].iloc[:,0].min().date()
-    # set maximum date
-    df_max = st.session_state['df_raw'].iloc[:,0].max().date()
-
-              
-if menu_item == 'Load' and sidebar_menu_item=='Home':
-    my_title(f"{load_icon} Load Dataset ", "#45B8AC")
-    
-# =============================================================================
-#     # old code was at this position
-#     if st.session_state['my_data_choice'] == "Demo Data":
-#         st.session_state['df_raw'] = generate_demo_data()
-#         df_raw = generate_demo_data()
-#         df_graph = df_raw.copy(deep=True)
-#         df_min = df_raw.iloc[:,0].min().date()
-#         df_max = df_raw.iloc[:,0].max().date()
-# =============================================================================
-    if st.session_state['my_data_choice'] == "Demo Data":
         with st.expander('', expanded=True):
-            col0, col1, col2, col3 = st.columns([20, 90, 8, 1])        
+            col0, col1, col2, col3 = st.columns([10, 90, 8, 1])        
             with col2:
                 my_chart_color = st.color_picker(label = 'Color', 
                                                  value = get_state("COLORS", "chart_color"), 
                                                  #on_change = on_click_event,
                                                  label_visibility = 'collapsed')    
-                
+
                 # save user color choice in session state
                 set_state("COLORS", ("chart_color", my_chart_color))
             
             with col1:
                my_text_header('Demo Data')     
-            show_lottie_animation("./images/107590-rocket-launch.json", key='rocket_launch', speed=1, height=160, width=399)
+            show_lottie_animation("./images/16938-asteroid.json", key='rocket_launch', speed=1, height=200, width=200, col_sizes=[4,4,4])
                  
             # create 3 columns for spacing
             col1, col2, col3 = st.columns([1,3,1])
@@ -6010,42 +6008,24 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
             vertical_spacer(1)
             
-    if st.session_state.my_data_choice == "Upload Data" and uploaded_file is None:
-
-        # inform user what template to upload
-        with st.expander("", expanded=True):
-            my_text_header("Instructions")
-            vertical_spacer(2)
-            col1, col2, col3 = st.columns([1,8,1])
-            with col2:
-                my_text_paragraph('''👈 Please upload a file with your <b><span style="color:#00bf63">dates</span></b> and <b><span style="color:#ff3131">values</span></b> in below order:<br><br>
-                         - first column named: <b><span style="color:#00bf63">date</span></b> in format: mm/dd/yyyy e.g. 12/31/2023<br>
-                         - second column named:  <b><span style="color:#ff3131">&#60;insert variable name&#62;</span></b> e.g. revenue<br>
-                         - supported frequencies: Daily/Weekly/Monthly/Quarterly/Yearly <br>
-                         - supported file extensions: .CSV, .XLS, .XLSX, .XLSM, .XLSB
-                         ''', my_font_weight=300, my_text_align='left')
-                vertical_spacer(2)
-            # Upload Doodle        
-            # Load the canva image from subfolder images
-            image = Image.open("./images/load2.png")
-            # Display the image in Streamlit
-            st.image(image, caption="", use_column_width=True)
-            my_text_paragraph('Doodle: Beep...Beep...Beep...uploading calendar values!', my_font_size='12px') 
-    
-    # check if data is uploaded
-    elif st.session_state.my_data_choice == "Upload Data" and uploaded_file is not None:
-# =============================================================================
-#     # old code was at this position
-#        
-#         # define dataframe from custom function to read from uploaded read_csv file
-#         st.session_state['df_raw'] = load_data()
-#         df_graph = st.session_state['df_raw'].copy(deep=True)
-#         # set minimum date
-#         df_min = st.session_state.df_raw.iloc[:,0].min().date()
-#         # set maximum date
-#         df_max = st.session_state.df_raw.iloc[:,0].max().date()
-# =============================================================================
+    # check if data is uploaded in file_uploader, if so -> use the function load_data to load file into a dataframe 
+    if get_state('LOAD_PAGE', "my_data_choice") == "Upload Data" and uploaded_file is not None:
        
+        # update session state that user uploaded a file
+        set_state("LOAD_PAGE", ("user_data_uploaded", True))
+
+        # define dataframe from custom function to read from uploaded read_csv file
+        st.session_state['df_raw'] = load_data()
+            
+    # for multi-page app if user previously uploaded data uploaded_file will return to None but then get the persistent session state stored
+    if get_state('LOAD_PAGE', "my_data_choice") == "Upload Data" and ((uploaded_file is not None) or (get_state("LOAD_PAGE", "user_data_uploaded") == True)) and 'demo_data' not in st.session_state['df_raw'].columns:
+        # define dataframe copy used for graphs
+        df_graph = st.session_state['df_raw'].copy(deep=True)
+        # set minimum date
+        df_min = st.session_state['df_raw'].iloc[:,0].min().date()
+        # set maximum date
+        df_max = st.session_state['df_raw'].iloc[:,0].max().date()
+        
         # let user select color for graph
         with st.expander('', expanded=True):
             col0, col1, col2, col3 = st.columns([20, 90, 8, 1])        
@@ -6059,10 +6039,11 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
             with col1:    
                 my_text_header('Uploaded Data')
                 
-            show_lottie_animation("./images/107590-rocket-launch.json", key='rocket_launch', speed=1, height=160, width=399)
+            show_lottie_animation("./images/16938-asteroid.json", key='rocket_launch', speed=1, height=200, width=200, col_sizes=[4,4,4])
                  
             # create 3 columns for spacing
             col1, col2, col3 = st.columns([1,3,1])
+            
             # display df shape and date range min/max for user
             col2.markdown(f"<center>Your <b>dataframe</b> has <b><font color='#555555'>{st.session_state.df_raw.shape[0]}</b></font> \
                           rows and <b><font color='#555555'>{st.session_state.df_raw.shape[1]}</b></font> columns <br> with date range: \
@@ -6070,10 +6051,12 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
                           unsafe_allow_html=True)
                 
             vertical_spacer(1)
+            
             df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)            
+            
             vertical_spacer(1)
             
-            ## display/plot graph of dataframe
+            # display/plot graph of dataframe
             display_dataframe_graph(df=df_graph, key=2, my_chart_color = my_chart_color)
             
             # show dataframe below graph        
@@ -6084,6 +6067,29 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
                 st.dataframe(df_graph, use_container_width=True)
             # download csv button
             download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
+            
+    elif get_state('LOAD_PAGE', "my_data_choice") == "Upload Data" and ((uploaded_file is None) or (get_state("LOAD_PAGE", "user_data_uploaded") == False)):
+        # inform user what template to upload
+        with st.expander("", expanded=True):
+            my_text_header("Instructions")
+            vertical_spacer(2)
+            col1, col2, col3 = st.columns([1,8,1])
+            with col2:
+                my_text_paragraph('''👈 Please upload a file with your <b><span style="color:#00bf63">dates</span></b> and <b><span style="color:#ff3131">values</span></b> in below order:<br><br>
+                         - first column named: <b><span style="color:#00bf63">date</span></b> in format: mm/dd/yyyy e.g. 12/31/2023<br>
+                         - second column named:  <b><span style="color:#ff3131">&#60;insert variable name&#62;</span></b> e.g. revenue<br>
+                         - supported frequencies: Daily/Weekly/Monthly/Quarterly/Yearly <br>
+                         - supported file extensions: .CSV, .XLS, .XLSX, .XLSM, .XLSB
+                         ''', my_font_weight=300, my_text_align='left')
+                vertical_spacer(2)
+            
+            # Load Doodle        
+            ###############
+            # Load the canva image from subfolder images
+            image = Image.open("./images/load2.png")
+            # Display the image in Streamlit
+            st.image(image, caption="", use_column_width=True)
+            my_text_paragraph('Doodle: Beep...Beep...Beep...uploading calendar values!', my_font_size='12px') 
 
 # =============================================================================
 #   ________   _______  _      ____  _____  ______ 
@@ -6096,7 +6102,7 @@ if menu_item == 'Load' and sidebar_menu_item=='Home':
 # =============================================================================         
 if menu_item == 'Explore' and sidebar_menu_item == 'Home':  
     # set default color for charts / style in Explore page
-    set_state("COLORS", ("chart_patterns", "#217cd0"))
+    set_state("COLORS", ("chart_patterns", "#4715ef"))
     
     # If dataset is very small (less then 31 rows), then update the key1_explore and key2_explore
     if len(st.session_state['df_raw']) < 31:
@@ -6107,7 +6113,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
     # Sidebar EDA parameters / buttons
     ####################################################
     with st.sidebar:
-        my_title(f'{explore_icon}', my_background_color="#217CD0", gradient_colors="#217CD0,#555555")
+        my_title(f'{explore_icon}', my_background_color="#3b3b3b", gradient_colors="#217CD0,#555555")
         
         # set color picker for user centered on page
         def update_color():
@@ -6171,15 +6177,15 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
     # Explore MAIN PAGE (EDA)
     ####################################################
     # Set Subject Title
-    my_title(f'{explore_icon} Exploratory Data Analysis ', my_background_color="#217CD0", gradient_colors="#217CD0,#555555")
+    #my_title(f'{explore_icon} Exploratory Data Analysis ', my_background_color="#217CD0", gradient_colors="#217CD0,#555555")
     # create expandable card with data exploration information
     with st.expander('', expanded=True):
         col0, col1, col2, col3 = st.columns([18, 90, 8, 1])   
         with col2:
            	my_chart_color = st.color_picker(
                                              label = 'Color', 
-           									value = get_state("COLORS", "chart_patterns"), 
-           									label_visibility = 'collapsed',
+           									 value = get_state("COLORS", "chart_patterns"), 
+           									 label_visibility = 'collapsed',
                                              help = 'Set the **`color`** of the charts and styling elements. It will revert back to the **default** color when switching pages.'
                                              )
         #############################################################################
@@ -6227,6 +6233,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
             # create button (enabled to click e.g. disabled=false with unique key)
             btn = placeholder.button('Show Details', disabled=False, key = "insights_statistics_show_btn")
             vertical_spacer(1)
+            
         # if button is clicked run below code
         if btn == True:
             # display button with text "click me again", with unique key
@@ -6349,9 +6356,9 @@ print('ForecastGenie Print: Ran Explore')
 # =============================================================================
 # Data Cleaning
 if menu_item == 'Clean' and sidebar_menu_item=='Home':    
-    my_title(f"{clean_icon} Data Cleaning", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
+    #my_title(f"{clean_icon} Data Cleaning", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
     with st.sidebar:
-        my_title(f"{clean_icon}", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
+        my_title(f"{clean_icon}", "#3b3b3b", gradient_colors="#440154, #2C2A6B, #FDE725")
 
         with st.form('data_cleaning'):
 
@@ -6435,7 +6442,15 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
         col1, col2, col3, col4, col5 = st.columns([2, 0.5, 2, 0.5, 2])
         with col1:
             # show original dataframe unchanged but with highlighted yellow missing NaN values
-            df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
+# =============================================================================
+#             df_graph = copy_df_date_index(my_df = df_graph, 
+#                                           datetime_to_date = True, 
+#                                           date_to_index = True)
+# =============================================================================
+            df_graph = copy_df_date_index(my_df = st.session_state['df_raw'], 
+                                          datetime_to_date = True, 
+                                          date_to_index = True)
+            
             highlighted_df = df_graph.style.highlight_null(color='yellow').format(precision = 2)
             my_subheader('Original DataFrame', my_style="#333333", my_size=6)
             st.dataframe(highlighted_df, use_container_width=True)
@@ -6635,11 +6650,11 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
     #st.write('session state df_cleaned_outliers_with_index', st.session_state['df_cleaned_outliers_with_index']) # TEST IF IMPUTATIONS FROM CLEAN PAGE AREA PROPEGATED CORRECTLY
     
     # set title of engineer page
-    my_title(f"{engineer_icon} Feature Engineering", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
+    #my_title(f"{engineer_icon} Feature Engineering", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
 
     with st.sidebar:
         # set title in sidebar for engineer page
-        my_title(f"{engineer_icon}", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
+        my_title(f"{engineer_icon}", "#3b3b3b", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
         
     with st.sidebar.form('feature engineering sidebar'):
         my_text_paragraph('Features')
@@ -7067,11 +7082,11 @@ local_df = st.session_state['df'].copy(deep=True)
 # PREPARE DATASET (REMOVE OBJECT DTYPE FEATURES, TRAIN/TEST SPLIT, NORMALIZE, STANDARDIZE)
 if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
     
-    my_title(f'{prepare_icon} Prepare Data', "#FF9F00", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
+    #my_title(f'{prepare_icon} Prepare Data', "#FF9F00", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
     
     with st.sidebar:
         
-        my_title(f'{prepare_icon}', "#FF9F00", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
+        my_title(f'{prepare_icon}', "#3b3b3b", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
        
     ############################################
     # 5.0.1 PREPROCESS (remove redundant features)
@@ -7435,9 +7450,12 @@ if st.session_state['X_train'].shape[1] < 5:
 
 # If you uploaded a new file then reset the previous feature selection of user to an empty list
 #if st.session_state["df_raw"].columns[1] != 'demo_data' and get_state("DATA_OPTION", "upload_data") == True:
-if get_state("DATA_OPTION", "upload_new_data") == True:
-    # set equal to empty list again if user uploads new file
-    set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", []))
+# =============================================================================
+# st.write(get_state("DATA_OPTION", "upload_new_data"))
+# if get_state("DATA_OPTION", "upload_new_data") == True:
+#     # set equal to empty list again if user uploads new file
+#     set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", []))
+# =============================================================================
     
 # =============================================================================
 #    _____ ______ _      ______ _____ _______ 
@@ -7452,7 +7470,7 @@ if get_state("DATA_OPTION", "upload_new_data") == True:
 if menu_item == 'Select' and sidebar_menu_item == 'Home':    
     
     # SHOW TITLE
-    my_title(f'{select_icon} Feature Selection', "#7B52AB", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
+    #my_title(f'{select_icon} Feature Selection', "#7B52AB", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
     
     # SHOW INFORMATION CARD ABOUT FEATURE SELECTION METHODS
     show_card_feature_selection_methods()
@@ -7903,7 +7921,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
     # Create a User Form to Select Model(s) to train
     ################################################
     with st.sidebar:
-        my_title(f"{train_icon}", "#0072B2")
+        my_title(f"{train_icon}", "#3b3b3b")
         with st.expander('', expanded=True):
             my_text_paragraph('Model Information')
             vertical_spacer(1)
@@ -8020,7 +8038,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
     # =============================================================================
     # IF USER HASNT SELECTED ANY MODELS AND HASNT STARTED TRAINING SHOW INFO MESSAGE            
     # =============================================================================
-    my_title(f"{train_icon} Train Models", "#0072B2", gradient_colors="#1A2980, #0072B2, #FEBD2E")       
+    #my_title(f"{train_icon} Train Models", "#0072B2", gradient_colors="#1A2980, #0072B2, #FEBD2E")       
        
     # SHOW MODEL DOCUMENTATION AFTER MODELS RUN
     selected_model_info = model_documentation(st.session_state['selected_model_info'])
@@ -8554,9 +8572,9 @@ if menu_item == 'Forecast':
     # end date dataframe + 1 day into future is start date of forecast
     start_date_forecast = end_date_calendar + timedelta(days=1)
 
-    my_title('Forecast 🔮', "#48466D")   
+    #my_title(f'{forecast_icon}', "#48466D")   
     with st.sidebar:
-        my_title('Forecast 🔮', "#48466D")                    
+        my_title(f'{forecast_icon}', "#48466D")                  
         with st.form("📆 "):
             if dwt_features_checkbox:
                 # wavelet model choice forecast
