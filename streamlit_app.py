@@ -309,7 +309,7 @@ def form_feature_selection_method_rfe():
                                           )
              
              # set the options for the rfe (recursive feature elimination)
-             with st.expander('🔽 RFE Settings:', expanded=False):
+             with st.expander('⚫', expanded=False):
                  
                  # Add a selectbox for the user to choose the estimator
                  estimator_rfe = st.selectbox(
@@ -362,9 +362,7 @@ def show_card_feature_selection_methods():
        None
    """
     with st.expander('', expanded=True):
-
-        vertical_spacer(2)
-        
+        #vertical_spacer(2)
         col1, col2, col3 = st.columns([3,8,2])
         with col2:
             
@@ -622,7 +620,8 @@ def show_mifs_plot(mutual_info, selected_features_mi, num_features_mifs):
         y=selected_features_mi,
         orientation='h',
         text=[f'{val:.2f}' for val in mutual_info[np.argsort(mutual_info)[::-1]][:num_features_mifs]],
-        textposition='inside'
+        textposition='inside',
+        marker_color='#4715EF'  # Set the desired color code
     ))
     
     fig.update_layout(
@@ -713,7 +712,8 @@ def show_pca_plot(sorted_features, pca, sorted_idx, selected_cols_pca):
         y= sorted_features,
         orientation = 'h',
         text = np.round(pca.explained_variance_ratio_[sorted_idx] * 100, 2),
-        textposition = 'auto'
+        textposition = 'auto',
+        marker_color='#4715EF'
     ))
     fig.update_layout(
         title={
@@ -2046,7 +2046,7 @@ def plot_missing_values_matrix(df):
                     labels=dict(x="Variables", y="Observations"),
                     x=missing_matrix.columns,
                     y=missing_matrix.index,
-                    color_continuous_scale='Viridis',
+                    color_continuous_scale='Viridis', # Viridis
                     title='')
     # Set Plotly configuration options
     fig.update_layout(width=400, height=400, margin=dict(l=50, r=50, t=0, b=50))
@@ -2205,8 +2205,8 @@ def altair_correlation_chart(total_features, importance_scores, pairwise_feature
                     y=alt.Y('Feature:O', sort='-x'),
                     color=alt.condition(
                         alt.datum.Feature == feature2,
-                        alt.value('#FFB6C1'),
-                        alt.value('#90EE90')
+                        alt.value('#DC143C'), # red
+                        alt.value('#00FF7F')  # green
                     )
                 ).properties(width=100, height=100, title=chart_title("Removing", feature2, title_font, title_font_size))
             elif score2 > score1:
@@ -2216,8 +2216,8 @@ def altair_correlation_chart(total_features, importance_scores, pairwise_feature
                     y=alt.Y('Feature:O', sort='-x'),
                     color=alt.condition(
                         alt.datum.Feature == feature1,
-                        alt.value('#FFB6C1'),
-                        alt.value('#90EE90')
+                        alt.value('#DC143C'), # red
+                        alt.value('#00FF7F')  # green
                     )
                 ).properties(width=100, height=100, title=chart_title("Removing", feature1, title_font, title_font_size))
             else:
@@ -2227,8 +2227,8 @@ def altair_correlation_chart(total_features, importance_scores, pairwise_feature
                     y=alt.Y('Feature:O', sort='-x'),
                     color=alt.condition(
                         alt.datum.Feature == feature1,
-                        alt.value('#FFB6C1'),
-                        alt.value('#90EE90')
+                        alt.value('#DC143C'), # red
+                        alt.value('#00FF7F')  # green
                     )
                 ).properties(width=100, height=100, title=chart_title("Removing", feature1, title_font, title_font_size))
             charts.append(chart)
@@ -2326,7 +2326,7 @@ def create_rfe_plot(df_ranking):
     my_text_paragraph('with Cross-Validation (RFECV)', my_font_size='16px')
     my_text_paragraph(f'<b> TOP {num_top_features}</b>', my_font_size='16px', my_font_family='Segui UI')
     
-    fig = px.scatter(df_ranking, x='Features', y='Ranking', color='Selected', hover_data=['Ranking'])
+    fig = px.scatter(df_ranking, x='Features', y='Ranking', color='Selected', hover_data=['Ranking'],   color_discrete_map={'Yes': '#4715EF', 'No': '#000000'})
     fig.update_layout(
         title={
             'text': '',
@@ -2457,7 +2457,7 @@ def plot_train_test_split(df, split_index):
                               y=df.iloc[:split_index, 0],
                               mode='lines',
                               name='Train',
-                              line=dict(color='#217CD0')
+                              line=dict(color='#4715ef')
                            )
                   )
     fig.add_trace(
@@ -2466,7 +2466,7 @@ def plot_train_test_split(df, split_index):
                                y=df.iloc[split_index:, 0],
                                mode='lines',
                                name='Test',
-                               line=dict(color='#FFA500')
+                               line=dict(color='#efac15')
                            )
                   )
     fig.update_layout(
@@ -2527,18 +2527,20 @@ def correlation_heatmap(X, correlation_threshold=0.8):
     corr_matrix = X_corr.corr()
     # create heatmap using plotly express
     fig = px.imshow(corr_matrix.values,
-                    color_continuous_scale="Blues",
+                    color_continuous_scale=[[0, '#FFFFFF'], [1, '#4715EF']], #"Blues",
                     zmin=-1,
                     zmax=1,
                     labels=dict(x="Features", y="Features", color="Correlation"),
                     x=corr_matrix.columns,
                     y=corr_matrix.columns,
                     origin='lower')
+    
     # add text annotations to heatmap cells
     for i in range(len(corr_matrix)):
         for j in range(i + 1, len(corr_matrix)):
             if abs(corr_matrix.iloc[i, j]) > corr_threshold:
                 fig.add_annotation(x=i, y=j, text="{:.2f}".format(corr_matrix.iloc[i, j]), font=dict(color='white'))
+    
     # add colorbar title
     fig.update_coloraxes(colorbar_title="Correlation")
     # set x and y axis labels to diagonal orientation
@@ -2548,6 +2550,7 @@ def correlation_heatmap(X, correlation_threshold=0.8):
     fig.update_layout(width=800,
                       height=800,
                       margin=dict(l=200, r=200, t=100, b=100))
+    
     # show plotly figure in streamlit
     st.plotly_chart(fig, use_container_width=True)
     
@@ -3921,7 +3924,7 @@ def download_csv_button(my_df, my_file="forecast_model.csv", help_message = 'Dow
         csv = convert_df(my_df)
     col1, col2, col3 = st.columns([54,30,50])
     with col2: 
-        st.download_button(":arrow_down: Download", 
+        st.download_button("🔲 Download", 
                            csv,
                            my_file,
                            "text/csv",
@@ -4072,7 +4075,7 @@ def remove_object_columns(df, message_columns_removed = False):
                     .my-number {{
                         font-weight: bold;
                         color: white;
-                        background-color: #fea60e;
+                        background-color: #efac15;
                         border-radius: 50%;
                         text-align: center;
                         width: 20px;
@@ -5041,7 +5044,7 @@ def initiate_global_variables():
     # ================================ COLORS =====================================
     # store color scheme for app
     create_store("COLORS", [
-        ("chart_color", "#706d77"),
+        ("chart_color", "#4715EF"),
         ("chart_patterns", "#4715ef"),
         ("run", 0)
     ])
@@ -5398,6 +5401,11 @@ forecast_icon = """
 </svg>
 """
 
+arrow_down_icon = """
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-down-circle" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v5.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V4.5z"/>
+</svg>
+"""
 print('ForecastGenie Print: Loaded SVG ICONS')
 # =============================================================================
 
@@ -5412,7 +5420,8 @@ print('ForecastGenie Print: Loaded SVG ICONS')
 # =============================================================================
 # Create title with bubbles floating around
 with st.sidebar:
-    my_text_header("ForecastGenie")
+    #my_text_header("ForecastGenie")
+    st.image('./images/forecastgenie_logo.png')
 #my_forecastgenie_title('')
 # =============================================================================
 #    _____ _____ _____  ______ ____          _____    __  __ ______ _   _ _    _ 
@@ -5512,7 +5521,7 @@ menu_item = option_menu(menu_title = None,
                                         "transition": "background-color 0.3s ease-in-out",
                                     },
                                     "nav-link:hover": {
-                                        "background-color": "#eaeaea",
+                                        "background-color": "#4715ef",
                                     },
                                     "nav-link-selected": {
                                         "background-color": "#F5F5F5",
@@ -5588,7 +5597,8 @@ if sidebar_menu_item == 'About':
                 with col2:
                     # added spaces to align website link with logo in horizontal center
                     st.write('')
-                    st.image('./images/logo_dark.png')  
+                    #st.image('./images/logo_dark.png')  
+                    st.image('./images/astronaut_helmet.png')
                 
                 # Show your support
                 st.markdown('<h1 style="text-align:center; font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; font-weight: 200; font-size: 32px; line-height: 1.5;">Show your support {}</h1>'.format(balloon_heart_svg), unsafe_allow_html=True)
@@ -5989,7 +5999,7 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
                                                  accept_multiple_files = False, 
                                                  label_visibility = 'collapsed',
                                                  on_change = reset_session_states)
-               
+              
     # =============================================================================
     # LOAD MAIN PAGE
     # =============================================================================
@@ -6148,6 +6158,7 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
 #                                                  
 # =============================================================================         
 if menu_item == 'Explore' and sidebar_menu_item == 'Home':  
+    
     # set default color for charts / style in Explore page
     set_state("COLORS", ("chart_patterns", "#4715ef"))
     
@@ -7540,7 +7551,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
             ####################
             # RFE ANALYSIS
             ####################
-            # Run function to perform recursive feature elimination with cross-validation and display results using plot
+            # Perform Recursive Feature Elimination with Cross-Validation
             selected_cols_rfe, selected_features, rfecv = perform_rfe(
                                                                        X_train = st.session_state['X_train'], 
                                                                        y_train = st.session_state['y_train'], 
@@ -7553,7 +7564,6 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
             # RFE RESULTS
             ####################
             show_rfe_plot(rfecv, selected_features)
-            
     except:
         selected_cols_rfe= []
         st.error('**ForecastGenie Error**: *Recursive Feature Elimination with Cross-Validation* could not execute. Need at least 2 features to be able to apply Feature Elimination. Please adjust your selection criteria.')
@@ -7641,7 +7651,9 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                     
         with st.expander('🍻 Correlation Analysis', expanded=True):
             vertical_spacer(1)
+            
             my_text_paragraph('Pairwise Correlation', my_font_size='26px')
+            
             col1,col2,col3 = st.columns([5,3,5])
             with col2:
                 st.caption(f'with threshold >={corr_threshold*100:.0f}%')
@@ -7669,25 +7681,30 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                 vertical_spacer(1)
             else:
                 st.markdown(f' <center> The following pairwise combinations of features have a correlation >= threshold: </center>', unsafe_allow_html=True)      
+                
                 vertical_spacer(1)
+                
                 # show dataframe with pairwise features
                 st.dataframe(df_pairwise, use_container_width=True)
+                
                 # download button for dataframe of pairwise correlation
                 download_csv_button(
                                     df_pairwise, 
                                     my_file="pairwise_correlation.csv", 
                                     help_message='Download pairwise correlation to .CSV', 
                                     set_index=False
-                                    )
+                                   )
                 
                 # insert divider line
                 st.markdown('---')
             
             # SHOW CORRELATION CHART
-            altair_correlation_chart(total_features, 
+            altair_correlation_chart(
+                                     total_features, 
                                      importance_scores, 
                                      pairwise_features_in_total_features, 
-                                     corr_threshold)
+                                     corr_threshold
+                                     )
             
             # Remove features with lowest importance scores from each pair
             # note: only remove one of highly correlated features based on importance score after plot is shown
@@ -7785,13 +7802,15 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
     with st.expander('🥇 Top Features Selected', expanded=True):
         my_subheader('')
         my_text_paragraph('Your Feature Selection', my_font_size='26px')
-        show_lottie_animation(url = "./images/astronaut_star_in_hand.json", 
-                              key = 'austronaut-star', 
-                              width=200, 
-                              height=200, 
-                              col_sizes=[5,4,5], 
-                              margin_before=1, 
-                              margin_after=2)
+        show_lottie_animation(
+                                url = "./images/astronaut_star_in_hand.json", 
+                                key = 'austronaut-star', 
+                                width=200, 
+                                height=200, 
+                                col_sizes=[5,4,5], 
+                                margin_before=1, 
+                                margin_after=2
+                             )
         
         # create dataframe from list of features and specify column header
         # NOTE: updated below code from 'total_features' to 'feature_selection_user' to only show features that are in sidebar selected
@@ -7841,124 +7860,106 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                             help_message="Download your **features** to .CSV", 
                             my_key='features_df_download_btn')
         
-        # TEST
+        # TEST - set session state variable 'upload_new_data' back to False
         set_state("DATA_OPTION", ("upload_new_data", False))
+else:
+    # ELSE WHEN USER IS NOT ON SELECT PAGE 
+    # 0. RUN THE FEATURE SELECTION TO SELECT TOP FEATURES
+    # 1. REMOVE FROM HIGHLY CORRELATED INDEPENDENT FEATURES PAIRS THE ONE WITH LOWEST IMPORTANCE SCORES
+    
+    # =============================================================================
+    # Apply 3 Feature Selection Techniques
+    # =============================================================================
+    ################
+    # 1. RFE
+    ################   
+    try:
+        selected_cols_rfe, selected_features, rfecv = perform_rfe(
+                                                                    X_train = st.session_state['X_train'], 
+                                                                    y_train = st.session_state['y_train'], 
+                                                                    estimator_rfe = get_state("SELECT_PAGE_RFE", "estimator_rfe"), 
+                                                                    num_steps_rfe = get_state("SELECT_PAGE_RFE", "num_steps_rfe"),
+                                                                    num_features_rfe = get_state("SELECT_PAGE_RFE", "num_features_rfe"), 
+                                                                    timeseriessplit_value_rfe = get_state("SELECT_PAGE_RFE", "timeseriessplit_value_rfe")
+                                                                 )
+    except:
+        selected_cols_rfe = []
+        
+    ################
+    # 2. PCA
+    ################
+    #st.write('getstate session state num_features_pca', get_state("SELECT_PAGE_PCA", "num_features_pca"))
+    #st.write('outside func X_train', X_train)
+    
+    # Perform Principal Component Analysis on the Training Dataset
+    try:
+        sorted_features, pca, sorted_idx, selected_cols_pca = perform_pca(
+                                                                          X_train = st.session_state['X_train'], 
+                                                                          num_features_pca = get_state("SELECT_PAGE_PCA", "num_features_pca") 
+                                                                         )
+    except:
+        selected_cols_pca = []
+    ################
+    # 3. MIFS
+    ################
+    try:  
+        mutual_info, selected_features_mi, selected_cols_mifs = perform_mifs(
+                                                                             X_train = st.session_state['X_train'], 
+                                                                             y_train = st.session_state['y_train'], 
+                                                                             num_features_mifs = get_state("SELECT_PAGE_MIFS", "num_features_mifs")
+                                                                            )
+    except: 
+        selected_cols_mifs = []
 # =============================================================================
-# else:
-#     # ELSE WHEN USER IS NOT ON SELECT PAGE 
-#     # 0. RUN THE FEATURE SELECTION TO SELECT TOP FEATURES
-#     # 1. REMOVE FROM HIGHLY CORRELATED INDEPENDENT FEATURES PAIRS THE ONE WITH LOWEST IMPORTANCE SCORES
-#     # 2. 
-#     
-#     # =============================================================================
-#     # Apply 3 Feature Selection Techniques
-#     # =============================================================================
-#     ################
-#     # 1. RFE
-#     ################   
-#     try:
-#         selected_cols_rfe, selected_features, rfecv = perform_rfe(
-#                                                                     X_train = st.session_state['X_train'], 
-#                                                                     y_train = st.session_state['y_train'], 
-#                                                                     num_features_rfe = get_state("SELECT_PAGE_RFE", "num_features_rfe"), 
-#                                                                     estimator_rfe = get_state("SELECT_PAGE_RFE", "estimator_rfe"), 
-#                                                                     timeseriessplit_value_rfe = get_state("SELECT_PAGE_RFE", "timeseriessplit_value_rfe"), 
-#                                                                     num_steps_rfe = get_state("SELECT_PAGE_RFE", "num_steps_rfe")
-#                                                                   )   
-#     except:
-#         selected_cols_rfe = []
-#         #st.error('**ForecastGenie Error**: *Recursive Feature Elimination with Cross-Validation* could not execute. Need at least 2 features to be able to apply Feature Elimination. Please adjust your selection criteria.')
-#     
-#     ################
-#     # 2. PCA
-#     ################
-#     st.write('getstate session state num_features_pca', get_state("SELECT_PAGE_PCA", "num_features_pca"))
-#     st.write('outside func X_train', X_train)
-#     # Perform Principal Component Analysis on the Training Dataset
-#     sorted_features, pca, sorted_idx, selected_cols_pca = perform_pca(
-#                                                                       X_train = X_train, 
-#                                                                       num_features_pca = min(get_state("SELECT_PAGE_PCA", "num_features_pca"), X_train.shape[1])
-#                                                                      )
-#     ################
-#     # 3. MIFS
-#     ################
-#     mutual_info, selected_features_mi, selected_cols_mifs = perform_mifs(X_train, y_train, num_features_mifs = get_state("SELECT_PAGE_MIFS", "num_features_mifs"))
-#     
 #     # =============================================================================
 #     # Combine Features from 3 Feature Selection Techniques   
 #     # =============================================================================
+#     
 #     # Find unique total_features            
 #     total_features = np.unique(selected_cols_rfe + selected_cols_pca + selected_cols_mifs)
+#    
 #     # convert to list
 #     total_features = total_features.tolist()
-#     
-#     # =============================================================================
-#     # Remove Highly Correlated Features >= threshold ( default = 80% pairwise-correlation)
-#     # =============================================================================
-#     # Apply Function to analyse feature correlations and computes importance scores.             
-#     total_features, importance_scores, pairwise_features_in_total_features, df_pairwise = analyze_feature_correlations(   
-#                                                                                                                         selected_corr_model = get_state("SELECT_PAGE_CORR", "selected_corr_model"), 
-#                                                                                                                         X_train = X_train, 
-#                                                                                                                         y_train = y_train, 
-#                                                                                                                         selected_cols_rfe = selected_cols_rfe, 
-#                                                                                                                         selected_cols_pca = selected_cols_pca, 
-#                                                                                                                         selected_cols_mifs = selected_cols_mifs, 
-#                                                                                                                         models = {'Linear Regression': LinearRegression(), 
-#                                                                                                                                   'Random Forest Regressor': RandomForestRegressor(n_estimators=100)
-#                                                                                                                                   },
-#                                                                                                                         corr_threshold = get_state("SELECT_PAGE_CORR", "corr_threshold")
-#                                                                                                                       )
-#     # Remove features with lowest importance scores from each pair
-#     # note: only remove one of highly correlated features based on importance score after plot is shown
-#     total_features = remove_lowest_importance_feature(total_features, importance_scores, pairwise_features_in_total_features)
-#     
-#     # =============================================================================
-#     # Update session state --> get_state("SELECT_PAGE", "feature_selection_user")
-#     # =============================================================================
-#     #set_state("SELECT_PAGE", ("feature_selection_possible", total_features))
-#     # set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", feature_selection_user))
-#     
-#     # if user added or removed features use the session state, else use the recommended total features
-#     # which is a result of combining 3 feature selection techniques and taking top 5 features of each
-#     # and then removing from each top correlated pair the one with lowest importance score
-#    
-#     # THINK OF ALL COMBINATIONS POSSIBLE!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#     
-#     # USER SELECTED A LIST OF FEATURES
-#     # USER REMOVED FEATURES ON ENGINEER PAGE -> still has selected list of features in session state
-#     # USER RERUNS CODE AND GETS ERROR FOR X = X.loc[:, my_feature_selection] #TEST -> total_features if not user on page you want the feature_selection from user to propegate down
-#       # ONLY GETS DATE_NUMERIC IN X dataframe -> LIST OF FEATURES IS STILL CALENDAR_EVENT, DATE_NUMERIC, PAY_DAY from ("SELECT_PAGE_USER_SELECTION-feature_selection_user" found in session state)
-#     
-# # =============================================================================
-# #     # if user selected features, use those! else use the recommended features by feature selection methods
-# #     if "__SELECT_PAGE_USER_SELECTION-feature_selection_user__" in st.session_state:
-# #         st.write('"__SELECT_PAGE_USER_SELECTION-feature_selection_user__" found in session state')
-# #         my_feature_selection = get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")
-# #     else:
-# #         st.write('system selected total_features selected')
-# #         my_feature_selection = total_features
-# # 
-# # =============================================================================
-#     my_feature_selection = total_features
-#     # sanity check if user preferenced columns are still in X
-#     lst1 = X.columns
-#     lst2 = my_feature_selection
-#     # find all matches in lst1 that are in lst2 and keep those
-# 
-# 
-#     # =============================================================================
-#     # UPDATE TRAIN/TEST SET WITH USER SELECTION OR DEFAULT SELECTION
-#     # =============================================================================
-#     st.write(my_feature_selection)
-#     st.write('X outside select page:', X)
-#     X = X.loc[:, my_feature_selection] #TEST -> total_features if not user on page you want the feature_selection from user to propegate down
-#     y = y
-#     X_train = X[:(len(df)-st.session_state['insample_forecast_steps'])]
-#     X_test = X[(len(df)-st.session_state['insample_forecast_steps']):]
-#     y_train = y[:(len(df)-st.session_state['insample_forecast_steps'])]
-#     y_test = y[(len(df)-st.session_state['insample_forecast_steps']):]    
-#     
 # =============================================================================
+    
+    # =============================================================================
+    # Remove Highly Correlated Features >= threshold ( default = 80% pairwise-correlation)
+    # =============================================================================
+    
+    # Apply Function to analyse feature correlations and computes importance scores.             
+    total_features, importance_scores, pairwise_features_in_total_features, df_pairwise = analyze_feature_correlations(   
+                                                                                                                        selected_corr_model = get_state("SELECT_PAGE_CORR", "selected_corr_model"), 
+                                                                                                                        X_train = X_train, 
+                                                                                                                        y_train = y_train, 
+                                                                                                                        selected_cols_rfe = selected_cols_rfe, 
+                                                                                                                        selected_cols_pca = selected_cols_pca, 
+                                                                                                                        selected_cols_mifs = selected_cols_mifs, 
+                                                                                                                        models = {'Linear Regression': LinearRegression(), 
+                                                                                                                                  'Random Forest Regressor': RandomForestRegressor(n_estimators=100)
+                                                                                                                                  },
+                                                                                                                        corr_threshold = get_state("SELECT_PAGE_CORR", "corr_threshold")
+                                                                                                                      )
+    # NOTE: only remove one of highly correlated features based on importance score after plot is shown
+    total_features_default = remove_lowest_importance_feature(
+                                                              total_features, 
+                                                              importance_scores, 
+                                                              pairwise_features_in_total_features
+                                                             )          
+    
+    # if user selected features, use those! else use the recommended features by feature selection methods 
+    if "__SELECT_PAGE_USER_SELECTION-feature_selection_user__" in st.session_state and get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user") != []:
+        total_features = get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")
+    else:
+        total_features = total_features_default 
+
+    X = X.loc[:, get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")] #TEST -> total_features if not user on page you want the feature_selection from user to propegate down
+    st.write('X outside after features selection:', X)  
+    y = y
+    X_train = X[:(len(df)-st.session_state['insample_forecast_steps'])]
+    X_test = X[(len(df)-st.session_state['insample_forecast_steps']):]
+    y_train = y[:(len(df)-st.session_state['insample_forecast_steps'])]
+    y_test = y[(len(df)-st.session_state['insample_forecast_steps']):]    
+    
 # =============================================================================
 #   _______ _____            _____ _   _ 
 #  |__   __|  __ \     /\   |_   _| \ | |
@@ -8119,6 +8120,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
         with st.expander('', expanded=True):
             col1, col2, col3 = st.columns([1,3,1])
             with col2:
+                
                 # define the font family to display the text of paragraph
                 train_models_carousel(my_title= 'Select your models to train in the sidebar!')
 
@@ -8133,8 +8135,11 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
             try:
                 if model_name == "Naive Model":
                     with st.expander('📈' + model_name, expanded=True):
+                        
                         df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test, lag=lag, custom_lag_value=custom_lag_value)
+                        
                         display_my_metrics(df_preds, "Naive Model")
+                       
                         # plot graph with actual versus insample predictions
                         plot_actual_vs_predicted(df_preds, my_conf_interval)
                            
@@ -8171,6 +8176,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                    'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']),
                                    'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
                                    'features':features_str}
+                        
                         results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
             except:
                 st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
@@ -8200,6 +8206,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                 if model_name == "SARIMAX":
                     with st.expander('📈' + model_name, expanded=True):
                         with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):   
+                            
                             # Assume df is your DataFrame with boolean columns - needed for SARIMAX model that does not handle boolean, but int instead
                             bool_cols = X_train.select_dtypes(include=bool).columns
                             X_train.loc[:, bool_cols] = X_train.loc[:, bool_cols].astype(int)
@@ -8208,16 +8215,22 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                             
                             # parameters have standard value but can be changed by user
                             preds_df = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
+                            
                             # show metric on streamlit page
                             display_my_metrics(preds_df, "SARIMAX")
+                            
                             # plot graph with actual versus insample predictions
                             plot_actual_vs_predicted(preds_df, my_conf_interval)
+                            
                             # show the dataframe
                             st.dataframe(preds_df.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                            
                             # create download button for forecast results to .csv
                             download_csv_button(preds_df, my_file="insample_forecast_sarimax_results.csv", help_message="Download your **SARIMAX** model results to .CSV")
+                            
                             # define metrics for sarimax model
                             mape, rmse, r2 = my_metrics(preds_df, model_name=model_name)
+                            
                             # display evaluation results on sidebar of streamlit_model_card
                             new_row = {'model_name': 'SARIMAX', 
                                        'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
