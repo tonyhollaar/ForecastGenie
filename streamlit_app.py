@@ -195,6 +195,62 @@ st.set_page_config(
 # =============================================================================
 # design/code that did not make it into the application
 
+# left / right arrow you can create with click event from st-click-detector package
+# =============================================================================
+# button_container2 = """
+# <style>
+# .arrow-container {
+#     display: flex;
+#     justify-content: center;
+#     align-items: center;
+# }
+# 
+# .arrow {
+#     width: 30px;
+#     height: 30px;
+#     border-radius: 50%;
+#     background-color: black;
+#     display: flex;
+#     justify-content: center;
+#     align-items: center;
+#     cursor: pointer;
+# }
+# 
+# .left-arrow {
+#     margin-right: 10px;
+# }
+# 
+# .right-arrow {
+#     margin-left: 10px;
+# }
+# 
+# .arrow-icon {
+#     width: 10px;
+#     height: 10px;
+#     border-top: 2px solid white;
+#     border-right: 2px solid white;
+#     transform: rotate(225deg);
+# }
+# .rarrow-icon {
+#     width: 10px;
+#     height: 10px;
+#     border-top: 2px solid white;
+#     border-right: 2px solid white;
+#     transform: rotate(45deg);
+# }
+# </style>
+# 
+# <div class="arrow-container">
+#     <a href="#" id="left-arrow" class="arrow left-arrow" onclick="handleClick('left-arrow')">
+#         <span class="arrow-icon"></span>
+#     </a>
+#     <a href="#" id="right-arrow" class="arrow right-arrow" onclick="handleClick('right-arrow')">
+#         <span class="rarrow-icon"></span>
+#     </a>
+# </div>
+# """
+# =============================================================================
+
 # =============================================================================
 #             title = '\"Hi 👋 Welcome to the ForecastGenie app!\"'
 #             # set gradient color of letters of title
@@ -309,7 +365,7 @@ def form_feature_selection_method_rfe():
                                           )
              
              # set the options for the rfe (recursive feature elimination)
-             with st.expander('⚫', expanded=False):
+             with st.expander('◾', expanded=False):
                  
                  # Add a selectbox for the user to choose the estimator
                  estimator_rfe = st.selectbox(
@@ -2060,31 +2116,32 @@ def acf_pacf_info():
         show_acf_info_btn = st.button(f'About ACF plot', use_container_width=True, type='secondary')
     if show_acf_info_btn == True:
         vertical_spacer(1)
-        my_subheader('Autocorrelation Function (ACF)')
+        my_subheader('Autocorrelation Function (ACF)', my_background_colors=["#4915ee", "#4715EF", "#7f2ad0", "#b03db5", "#e35099", "#ff5b8a", "#fc8d60"])
         st.markdown('''
                     The **Autocorrelation Function (ACF)** plot is a statistical tool used to identify patterns of correlation between observations in a time series dataset. 
                     It is commonly used in time series analysis to determine the extent to which a given observation is related to its previous observations.  
                     The **ACF** plot displays the correlation coefficient between the time series and its own lagged values (i.e., the correlation between the series at time $t$ and the series at times $t_{-1}$, $t_{-2}$, $t_{-3}$, etc.).  
                     The horizontal axis of the plot shows the lag or time difference between observations, while the vertical axis represents the correlation coefficient, ranging from -1 to 1.
                     ''')
-        st.write('')
-        my_subheader('How to interpret a ACF plot')
+        vertical_spacer(1)  
+        my_subheader('How to interpret a ACF plot',  my_background_colors=["#4915ee", "#4715EF", "#7f2ad0", "#b03db5", "#e35099", "#ff5b8a", "#fc8d60"])
         st.markdown('''Interpreting the **ACF** plot involves looking for significant peaks or spikes above the horizontal dashed lines (which represent the confidence interval) to determine if there is any correlation between the current observation and the lagged observations. 
                     If there is a significant peak at a particular lag value, it indicates that there is a strong correlation between the observation and its lagged values up to that point.
                     ''')
-        st.write('')                           
-        my_subheader('Key Points:')  
+        vertical_spacer(1)                            
+        my_subheader('Key Points:',  my_background_colors=["#4915ee", "#4715EF", "#7f2ad0", "#b03db5", "#e35099", "#ff5b8a", "#fc8d60"])  
         st.markdown('''
                     Some key takeaways when looking at an **ACF** plot include:  
                     - If there are no significant peaks, then there is no significant correlation between the observations and their lagged values.
                     - A significant peak at lag $k$ means that the observation at time $t$ is significantly correlated with the observation at time $t_{-k}$.
                     - A rapid decay of autocorrelation towards zero suggests a stationary time series, while a slowly decaying or persistent non-zero autocorrelations, suggests a non-stationary time series.
                     ''')
+        vertical_spacer(1)
     with col2:
         show_pacf_info_btn = st.button(f'About PACF plot', use_container_width=True, type='secondary')
     if show_pacf_info_btn == True:   
-        st.write('')    
-        my_subheader('Partial Autocorrelation Function (PACF)')
+        vertical_spacer(1)     
+        my_subheader('Partial Autocorrelation Function (PACF)',  my_background_colors=["#4915ee", "#4715EF", "#7f2ad0", "#b03db5", "#e35099", "#ff5b8a", "#fc8d60"])
         st.markdown('''
                     The **Partial Autocorrelation Function (PACF)** is a plot of the partial correlation coefficients between a time series and its lags. 
                     The PACF can help us determine the order of an autoregressive (AR) model by identifying the lag beyond which the autocorrelations are effectively zero.
@@ -2102,8 +2159,8 @@ def acf_pacf_info():
                     In this case, alternative modeling techniques such as **Moving Average (MA)** or **Autoregressive Integrated Moving Average (ARIMA)** may be more appropriate. 
                     Or you could just flip a coin and hope for the best. But I don\'t recommend the latter...
                     ''')
-        st.write('')
-        my_subheader('How to interpret a PACF plot')
+        vertical_spacer(1)  
+        my_subheader('How to interpret a PACF plot',  my_background_colors=["#4915ee", "#4715EF", "#7f2ad0", "#b03db5", "#e35099", "#ff5b8a", "#fc8d60"])
         st.markdown('''
                     The partial autocorrelation plot (PACF) is a tool used to investigate the relationship between an observation in a time series with its lagged values, while controlling for the effects of intermediate lags. Here's a brief explanation of how to interpret a PACF plot:  
                     
@@ -2113,16 +2170,17 @@ def acf_pacf_info():
                     - Each bar in the plot represents the correlation between the observation and the corresponding lag value. The height of the bar indicates the strength of the correlation. 
                       If the bar extends beyond the dotted line (which represents the 95% confidence interval), the correlation is statistically significant.  
                     ''')
-        st.write('')                           
-        my_subheader('Key Points:')  
+        vertical_spacer(1)                           
+        my_subheader('Key Points:',  my_background_colors=["#4915ee", "#4715EF", "#7f2ad0", "#b03db5", "#e35099", "#ff5b8a", "#fc8d60"])  
         st.markdown('''                            
                     - **The first lag (lag 0) is always 1**, since an observation is perfectly correlated with itself.
                     - A significant spike at a particular lag indicates that there may be some **useful information** in that lagged value for predicting the current observation. 
                       This can be used to guide the selection of lag values in time series forecasting models.
                     - A sharp drop in the PACF plot after a certain lag suggests that the lags beyond that point **are not useful** for prediction, and can be safely ignored.
                     ''')
-        st.write('')
-        my_subheader('An analogy')
+        vertical_spacer(1)                
+
+        my_subheader('An analogy',  my_background_colors=["#4915ee", "#4715EF", "#7f2ad0", "#b03db5", "#e35099", "#ff5b8a", "#fc8d60"])
         st.markdown('''
                     Imagine you are watching a magic show where the magician pulls a rabbit out of a hat. Now, imagine that the magician can do this trick with different sized hats. If you were trying to figure out how the magician does this trick, you might start by looking for clues in the size of the hats.
                     Similarly, the PACF plot is like a magic show where we are trying to figure out the "trick" that is causing our time series data to behave the way it does. 
@@ -2133,17 +2191,19 @@ def acf_pacf_info():
                     On the other hand, if there is no significant relationship between a point and its past values, it suggests that the time series may not be well explained by past values alone, and we may need to look for other "tricks" to understand it.
                     In summary, the **PACF** plot helps us identify important past values of our time series that can help us understand its behavior and make predictions about its future values.
                     ''')
+        vertical_spacer(1)
     with col3:
         diff_acf_pacf_info_btn = st.button(f'Difference ACF/PACF', use_container_width=True, type='secondary')
     if diff_acf_pacf_info_btn == True: 
         vertical_spacer(1)
-        my_subheader('Differences explained between ACF and PACF')
+        my_subheader('Differences explained between ACF and PACF',  my_background_colors=["#4915ee", "#4715EF", "#7f2ad0", "#b03db5", "#e35099", "#ff5b8a", "#fc8d60"])
         st.markdown('''
                     - The **ACF** plot measures the correlation between an observation and its lagged values.
                     - The **PACF** plot measures the correlation between an observation and its lagged values while controlling for the effects of intermediate observations.
-                    - The **ACF** plot is useful for identifying the order of a moving average **(MA)** model, while the **PACF** plot is useful for identifying the order of an autoregressive **(AR)** model.
+                    - The **ACF** plot is useful for identifying the order of a moving average **(MA)** model, while the **PACF** plot is useful for identifying the order of an autoregressive **(AR)** model.  
                     ''')
-                    
+        vertical_spacer(1)
+        
 def chart_title(title, subtitle, font, font_size):
     """
     Creates a dictionary containing the properties for a chart title and subtitle.
@@ -2205,8 +2265,8 @@ def altair_correlation_chart(total_features, importance_scores, pairwise_feature
                     y=alt.Y('Feature:O', sort='-x'),
                     color=alt.condition(
                         alt.datum.Feature == feature2,
-                        alt.value('#DC143C'), # red
-                        alt.value('#00FF7F')  # green
+                        alt.value('#b8a5f9'), # red
+                        alt.value('#6137f1')  # green
                     )
                 ).properties(width=100, height=100, title=chart_title("Removing", feature2, title_font, title_font_size))
             elif score2 > score1:
@@ -2216,8 +2276,8 @@ def altair_correlation_chart(total_features, importance_scores, pairwise_feature
                     y=alt.Y('Feature:O', sort='-x'),
                     color=alt.condition(
                         alt.datum.Feature == feature1,
-                        alt.value('#DC143C'), # red
-                        alt.value('#00FF7F')  # green
+                        alt.value('#b8a5f9'), # red #DC143C
+                        alt.value('#6137f1')   # green #00FF7F
                     )
                 ).properties(width=100, height=100, title=chart_title("Removing", feature1, title_font, title_font_size))
             else:
@@ -2227,8 +2287,8 @@ def altair_correlation_chart(total_features, importance_scores, pairwise_feature
                     y=alt.Y('Feature:O', sort='-x'),
                     color=alt.condition(
                         alt.datum.Feature == feature1,
-                        alt.value('#DC143C'), # red
-                        alt.value('#00FF7F')  # green
+                        alt.value('#b8a5f9'), # red
+                        alt.value('#6137f1')  # green
                     )
                 ).properties(width=100, height=100, title=chart_title("Removing", feature1, title_font, title_font_size))
             charts.append(chart)
@@ -2245,9 +2305,11 @@ def altair_correlation_chart(total_features, importance_scores, pairwise_feature
     grid_chart = alt.vconcat(*grid_charts, spacing=10)
     # create a streamlit container with a title and caption
     my_text_paragraph("Removing Highly Correlated Features", my_font_size='26px')
+    
     col1,col2,col3 = st.columns([5.5,4,5])
     with col2:
-        st.caption(f'pair-wise features >={corr_threshold*100:.0f}%')
+        st.caption(f'for pair-wise features >={corr_threshold*100:.0f}%')
+        
     # show altair chart with pairwise correlation importance scores and in red lowest and green highest
     st.altair_chart(grid_chart, use_container_width=True)
 
@@ -5324,6 +5386,11 @@ key1_select_page_corr, key2_select_page_corr = initiate_global_variables()
 #  |_____\_____\____/|_| \_|_____/ 
 #                                  
 # =============================================================================
+# svg image of open book used for text on docs page
+book_icon = """<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-book" viewBox="0 0 16 16">
+               <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"/>
+             </svg>
+            """
 # svg image of heart used for text on about page
 balloon_heart_svg = """
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-balloon-heart" viewBox="0 0 16 16">
@@ -5585,7 +5652,7 @@ if sidebar_menu_item == 'About':
               
                 # Who is this for?
                 my_text_header('Who is this for?')
-                st.markdown('<p style="text-align:center; font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; font-weight: 200; font-size: 18px; line-height: 1.5;">Business Analysts, Data Scientists and Statisticians</p>', unsafe_allow_html=True)    
+                st.markdown('<p style="text-align:center; font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; font-weight: 200; font-size: 18px; line-height: 1.5;">Business Analysts, Data Scientists, Statisticians or Enthousiasts!</p>', unsafe_allow_html=True)    
                 
                 # About ForecastGenie
                 my_text_header('Origin Story')
@@ -5791,117 +5858,154 @@ print('ForecastGenie Print: Loaded FAQ Page')
 #  | |__| | |__| | |____ 
 #  |_____/ \____/ \_____|
 #                        
-# =============================================================================                    
+# =============================================================================  
+
+
 # Documentation                                                                                       
 if sidebar_menu_item == 'Doc':
-    with st.expander('', expanded=True):
-        # Display the static image
-        my_text_header('Documentation')
-        show_lottie_animation(url = "./images/reading.json", key = 'astronaut_reading', height=200, width=200, speed = 1, loop=True, quality='high', col_sizes = [4,4,4], margin_before=10, margin_after=16)
-        st.markdown('---')    
-        # DOC: LOAD
-        my_text_header('<b> Step 1: </b> <br> Load Dataset')
-        show_lottie_animation(url="./images/116206-rocket-fly-out-the-laptop.json", key="rocket_fly_out_of_laptop", height=200, width=200, speed = 1, loop=True, quality='high', col_sizes = [4,4,4])
-        col1, col2, col3 = st.columns([2,8,2])    
-        with col2:
-           my_text_paragraph('''The <i> ForecastGenie </i> application provides users with a convenient way to upload data files from the sidebar menu. The application supports common file formats such as .csv and .xls. \
-                                To load a file, users can navigate to the sidebar menu and locate the <i> "Upload Data" </i> option. Upon clicking on this option, a file upload dialog box will appear, allowing users to select a file from their local system. \
-                                When uploading a file, it is important to ensure that the file meets specific requirements for proper data processing and forecasting. 
-                                <br> - The first column should have a header named <i> 'date' </i> and dates should be in the mm/dd/yyyy format (12/31/2023), representing the time series data. The dates should be sorted in chronological order, as this is crucial for accurate forecasting. 
-                                <br> - The second column should contain a header that includes the name of the variable of interest and below it's historical data, for which the user wishes to forecast.
-                                <br> Fasten your seatbelt, lean back, and savor the journey as your data blasts off into the realm of forecasting possibilities! Embrace the adventure and enjoy the ride.
-                                ''', my_text_align='justify')
+    with st.sidebar:
         vertical_spacer(2)
-        st.markdown('---') 
+    
+        my_text_paragraph(f'{book_icon}')
+        col1, col2, col3 = st.columns([2,3,2])
         
+        with col2:
+            selected_doc_page = st.selectbox(
+                                                 label = "*Select Page*:", 
+                                                 options = ['-',
+                                                            'Step 1: Load Dataset', 
+                                                            'Step 2: Explore Dataset', 
+                                                            'Step 3: Clean Dataset', 
+                                                            'Step 4: Engineer Features',
+                                                            'Step 5: Prepare Dataset',
+                                                            'Step 6: Select Features',
+                                                            'Step 7: Train Models',
+                                                            'Step 8: Evaluate Models',
+                                                            'Step 9: Tune Models',
+                                                            'Step 10: Forecast'], 
+                                                label_visibility='collapsed', 
+                                                index = 0,
+                                             )
+       
+       
+
+        
+    with st.expander('', expanded=True):
+
+
+
+        # DOC: FRONT PAGE
+        ################################
+        if selected_doc_page == '-':
+            # SHOW FRONT PAGE IMAGE
+            st.image('./images/documentation.png')
+       
+        # DOC: LOAD
+        ################################
+        if selected_doc_page == 'Step 1: Load Dataset':   
+            my_text_header('<b> Step 1: </b> <br> Load Dataset')
+            show_lottie_animation(url="./images/116206-rocket-fly-out-the-laptop.json", key="rocket_fly_out_of_laptop", height=200, width=200, speed = 1, loop=True, quality='high', col_sizes = [4,4,4])
+            col1, col2, col3 = st.columns([2,8,2])    
+            with col2:
+               my_text_paragraph('''The <i> ForecastGenie </i> application provides users with a convenient way to upload data files from the sidebar menu. The application supports common file formats such as .csv and .xls. \
+                                    To load a file, users can navigate to the sidebar menu and locate the <i> "Upload Data" </i> option. Upon clicking on this option, a file upload dialog box will appear, allowing users to select a file from their local system. \
+                                    When uploading a file, it is important to ensure that the file meets specific requirements for proper data processing and forecasting. 
+                                    <br> - The first column should have a header named <i> 'date' </i> and dates should be in the mm/dd/yyyy format (12/31/2023), representing the time series data. The dates should be sorted in chronological order, as this is crucial for accurate forecasting. 
+                                    <br> - The second column should contain a header that includes the name of the variable of interest and below it's historical data, for which the user wishes to forecast.
+                                    <br> Fasten your seatbelt, lean back, and savor the journey as your data blasts off into the realm of forecasting possibilities! Embrace the adventure and enjoy the ride.
+                                    ''', my_text_align='justify')
+            vertical_spacer(2)
+      
         # DOC: EDA
-        ################################                
-        my_text_header('<b> Step 2: </b> <br> Explore Dataset')
-        show_lottie_animation(url="./images/58666-sputnik-mission-launch.json", key='test', width=150, height=150,
-                              speed=1, col_sizes=[45, 40, 40], margin_before=1)
-        col1, col2, col3 = st.columns([2,8,2])    
-        with col2:
-            my_text_paragraph('''
-                              The <i> Explore </i> tab in the app is designed to provide users with comprehensive tools for data exploration and analysis. It offers valuable insights into the dataset.
-                              <br> The <i> Quick Summary </i> section provides an overview of the dataset including the number of rows, start date, missing values, mean, minimum, standard deviation, maximum date, frequency, median, maximum, and mode.
-                              <br> The <i> Quick Insights </i>  section is designed to get the summarized observations that highlight important characteristics of the data. This includes indications of dataset size, presence or absence of missing values, balance between mean and median values, variability, symmetry, and the number of distinct values.
-                              <br> The <i> Patterns </i> section allows users to visually explore underlying patterns and relationships within the data. Users can select different histogram frequency types to visualize data distribution. The Ljung-Box test is available to assess the presence of white noise. The Augmented Dickey-Fuller (ADF) test can be used to determine stationarity, indicating whether the data exhibits time-dependent patterns. 
-                              Additionally, users can analyze autocorrelation using the ACF/PACF to understand how data point relates to previous data points.
-                              <br> Do not skip exploratory data analysis, because you don't want to end up finding yourself lost in a black hole!
-                              ''', my_text_align='justify')
-        vertical_spacer(2)
-        st.markdown('---') 
-            
+        ################################      
+        if selected_doc_page == 'Step 2: Explore Dataset':
+            my_text_header('<b> Step 2: </b> <br> Explore Dataset')
+            show_lottie_animation(url="./images/58666-sputnik-mission-launch.json", key='test', width=150, height=150,
+                                  speed=1, col_sizes=[45, 40, 40], margin_before=1)
+            col1, col2, col3 = st.columns([2,8,2])    
+            with col2:
+                my_text_paragraph('''
+                                  The <i> Explore </i> tab in the app is designed to provide users with comprehensive tools for data exploration and analysis. It offers valuable insights into the dataset.
+                                  <br> The <i> Quick Summary </i> section provides an overview of the dataset including the number of rows, start date, missing values, mean, minimum, standard deviation, maximum date, frequency, median, maximum, and mode.
+                                  <br> The <i> Quick Insights </i>  section is designed to get the summarized observations that highlight important characteristics of the data. This includes indications of dataset size, presence or absence of missing values, balance between mean and median values, variability, symmetry, and the number of distinct values.
+                                  <br> The <i> Patterns </i> section allows users to visually explore underlying patterns and relationships within the data. Users can select different histogram frequency types to visualize data distribution. The Ljung-Box test is available to assess the presence of white noise. The Augmented Dickey-Fuller (ADF) test can be used to determine stationarity, indicating whether the data exhibits time-dependent patterns. 
+                                  Additionally, users can analyze autocorrelation using the ACF/PACF to understand how data point relates to previous data points.
+                                  <br> Do not skip exploratory data analysis, because you don't want to end up finding yourself lost in a black hole!
+                                  ''', my_text_align='justify')
+                vertical_spacer(2)
+        
         # DOC: Clean
-        ################################                
-        my_text_header('<b> Step 3: </b> <br> Clean Dataset')
-        show_lottie_animation(url="./images/88404-loading-bubbles.json", key="loading_bubbles", width=200, height=200, col_sizes=[2,2,2])
-        col1, col2, col3 = st.columns([2,8,2])   
-        with col2:
-            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
-        st.markdown('---') 
+        ################################ 
+        if selected_doc_page == 'Step 3: Clean Dataset':                   
+            my_text_header('<b> Step 3: </b> <br> Clean Dataset')
+            show_lottie_animation(url="./images/88404-loading-bubbles.json", key="loading_bubbles", width=200, height=200, col_sizes=[2,2,2])
+            col1, col2, col3 = st.columns([2,8,2])   
+            with col2:
+                my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
         
         # DOC: Engineer
-        ################################      
-        my_text_header('<b> Step 4: </b> <br> Engineer Features')
-        show_lottie_animation(url="./images/141844-shapes-changing-preloader.json", key='shapes_changing_preloader', width=200, height=200, col_sizes=[2,2,2])
-        col1, col2, col3 = st.columns([2,8,2])   
-        with col2:
-            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
-        st.markdown('---') 
+        ################################ 
+        if selected_doc_page == 'Step 4: Engineer Features':
+            my_text_header('<b> Step 4: </b> <br> Engineer Features')
+            show_lottie_animation(url="./images/141844-shapes-changing-preloader.json", key='shapes_changing_preloader', width=200, height=200, col_sizes=[2,2,2])
+            col1, col2, col3 = st.columns([2,8,2])   
+            with col2:
+                my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
         
         # DOC: Prepare
-        ################################      
-        my_text_header('<b> Step 5: </b> <br> Prepare Dataset')
-        show_lottie_animation(url="./images/141560-loader-v25.json", key='prepare', width=200, height=200, col_sizes=[20,20,20])
-        col1, col2, col3 = st.columns([2,8,2])   
-        with col2:
-            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
-        st.markdown('---') 
-        
+        ################################    
+        if selected_doc_page == 'Step 5: Prepare Dataset':
+            my_text_header('<b> Step 5: </b> <br> Prepare Dataset')
+            show_lottie_animation(url="./images/141560-loader-v25.json", key='prepare', width=200, height=200, col_sizes=[20,20,20])
+            col1, col2, col3 = st.columns([2,8,2])   
+            with col2:
+                my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
+       
         # DOC: Select
-        ################################    
-        my_text_header('<b> Step 6: </b> <br> Select Features')
-        show_lottie_animation(url="./images/102149-square-loader.json", key='square_loader', width=200, height=200, col_sizes = [4,4,4])
-        col1, col2, col3 = st.columns([2,8,2])   
-        with col2:
-            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
-        st.markdown('---') 
-        
+        ################################   
+        if selected_doc_page == 'Step 6: Select Features':
+            my_text_header('<b> Step 6: </b> <br> Select Features')
+            show_lottie_animation(url="./images/102149-square-loader.json", key='square_loader', width=200, height=200, col_sizes = [4,4,4])
+            col1, col2, col3 = st.columns([2,8,2])   
+            with col2:
+                my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
+            
         # DOC: Train
-        ################################    
-        my_text_header('<b> Step 7: </b> <br> Train Models')
-        show_lottie_animation(url="./images/100037-rubiks-cube.json", key='rubiks_cube', width=200, height=200, col_sizes = [4,4,4])
-        col1, col2, col3 = st.columns([2,8,2])   
-        with col2:
-            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
-        st.markdown('---') 
+        ################################   
+        if selected_doc_page == 'Step 7: Train Models':
+            my_text_header('<b> Step 7: </b> <br> Train Models')
+            show_lottie_animation(url="./images/100037-rubiks-cube.json", key='rubiks_cube', width=200, height=200, col_sizes = [4,4,4])
+            col1, col2, col3 = st.columns([2,8,2])   
+            with col2:
+                my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
         
         # DOC: Evaluate
         ################################    
-        my_text_header('<b> Step 8: </b> <br> Evaluate Models')
-        show_lottie_animation(url="./images/70114-blue-stars.json", key='blue-stars', width=200, height=200, col_sizes = [4,4,4], speed = 1)
-        col1, col2, col3 = st.columns([2,8,2])   
-        with col2:
-            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
-        st.markdown('---') 
-        
+        if selected_doc_page == 'Step 8: Evaluate Models':
+            my_text_header('<b> Step 8: </b> <br> Evaluate Models')
+            show_lottie_animation(url="./images/70114-blue-stars.json", key='blue-stars', width=200, height=200, col_sizes = [4,4,4], speed = 1)
+            col1, col2, col3 = st.columns([2,8,2])   
+            with col2:
+                my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
+            
         # DOC: Tune
         ################################    
-        my_text_header('<b> Step 9: </b> <br> Tune Models')
-        show_lottie_animation(url="./images/95733-loading-20.json", key='tune_sliders', width=150, height=150, col_sizes = [5,4,4], speed = 1)
-        col1, col2, col3 = st.columns([2,8,2])   
-        with col2:
-            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
-        st.markdown('---') 
-
+        if selected_doc_page == 'Step 9: Tune Models':
+            my_text_header('<b> Step 9: </b> <br> Tune Models')
+            show_lottie_animation(url="./images/95733-loading-20.json", key='tune_sliders', width=150, height=150, col_sizes = [5,4,4], speed = 1)
+            col1, col2, col3 = st.columns([2,8,2])   
+            with col2:
+                my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
+    
         # DOC: Forecast
-        ################################    
-        my_text_header('<b> Step 10: </b> <br> Forecast')
-        show_lottie_animation(url="./images/55298-data-forecast-loading.json", key='forecast', width=200, height=200, col_sizes = [4,4,4], speed = 1)
-        col1, col2, col3 = st.columns([2,8,2])   
-        with col2:
-            my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
+        ################################   
+        if selected_doc_page == 'Step 10: Forecast':
+            my_text_header('<b> Step 10: </b> <br> Forecast')
+            show_lottie_animation(url="./images/55298-data-forecast-loading.json", key='forecast', width=200, height=200, col_sizes = [4,4,4], speed = 1)
+            col1, col2, col3 = st.columns([2,8,2])   
+            with col2:
+                my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
+
 
 # LOGGING
 print('Forecastgenie Print: Loaded Documentation Page')
@@ -5966,6 +6070,7 @@ def load_change():
 # =============================================================================
 
 if menu_item == 'Load' and sidebar_menu_item == 'Home':    
+    
     # =============================================================================
     # SIDEBAR OF LOAD PAGE
     # =============================================================================
@@ -6085,7 +6190,7 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
         
         # let user select color for graph
         with st.expander('', expanded=True):
-            col0, col1, col2, col3 = st.columns([20, 90, 8, 1])        
+            col0, col1, col2, col3 = st.columns([15, 90, 8, 1])        
             with col2:
                 my_chart_color = st.color_picker(label = 'Color', 
                                                  value = get_state("COLORS", "chart_color"), 
@@ -6095,8 +6200,8 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
                 set_state("COLORS", ("chart_color", my_chart_color))
             with col1:    
                 my_text_header('Uploaded Data')
-                
-            show_lottie_animation("./images/16938-asteroid.json", key='rocket_launch', speed=1, height=200, width=200, col_sizes=[4,4,4])
+                 
+            #show_lottie_animation("./images/16938-asteroid.json", key='rocket_launch', speed=1, height=200, width=200, col_sizes=[4,4,4])
                  
             # create 3 columns for spacing
             col1, col2, col3 = st.columns([1,3,1])
@@ -6124,6 +6229,8 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
                 st.dataframe(df_graph, use_container_width=True)
             # download csv button
             download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
+            
+        
             
     elif get_state('LOAD_PAGE', "my_data_choice") == "Upload Data" and ((uploaded_file is None) or (get_state("LOAD_PAGE", "user_data_uploaded") == False)):
         # inform user what template to upload
@@ -6177,7 +6284,21 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         def update_color():
             # set session state for user chosen chart color
             set_state("COLORS", ("chart_patterns", my_chart_color))
-
+        with st.form('ljung-box'):
+             my_text_paragraph('White Noise')
+             model_type = st.selectbox("Select Model Type", ["AutoReg", "ARMA"], index=0)             
+             lag1_ljung_box = st.number_input(label = '*Enter maximum lag:*', 
+                                              min_value=1, 
+                                              value = min(24, len(st.session_state.df_raw)-2), 
+                                              max_value=len(st.session_state.df_raw)-2,
+                                              key='lag1_ljung_box',
+                                              help = ' the lag parameter in the Ljung-Box test determines the number of time periods over which the autocorrelation of residuals is evaluated to assess the presence of significant autocorrelation in the time series.')
+             
+             col1, col2, col3 = st.columns([5,4,4])
+             with col2:
+                # create button in sidebar for the ACF and PACF Plot Parameters
+                vertical_spacer(1)
+                ljung_box_btn = st.form_submit_button("Submit", type="secondary")
         # Autocorrelation parameters form     
         with st.form('autocorrelation'):
             # Create sliders in sidebar for the parameters of PACF Plot
@@ -6215,21 +6336,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                 vertical_spacer(1)
                 acf_pacf_btn = st.form_submit_button("Submit", type="secondary",  on_click=form_update, args=('EXPLORE_PAGE',))   
          
-        with st.form('ljung-box'):
-             my_text_paragraph('White Noise')
-             model_type = st.selectbox("Select Model Type", ["AutoReg", "ARMA"], index=0)             
-             lag1_ljung_box = st.number_input(label = '*Enter maximum lag:*', 
-                                              min_value=1, 
-                                              value = min(24, len(st.session_state.df_raw)-2), 
-                                              max_value=len(st.session_state.df_raw)-2,
-                                              key='lag1_ljung_box',
-                                              help = ' the lag parameter in the Ljung-Box test determines the number of time periods over which the autocorrelation of residuals is evaluated to assess the presence of significant autocorrelation in the time series.')
-             
-             col1, col2, col3 = st.columns([5,4,4])
-             with col2:
-                # create button in sidebar for the ACF and PACF Plot Parameters
-                vertical_spacer(1)
-                ljung_box_btn = st.form_submit_button("Submit", type="secondary")   
+      
         
     ####################################################            
     # Explore MAIN PAGE (EDA)
@@ -6262,10 +6369,10 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         with col2:        
             placeholder = st.empty()
             # create button (enabled to click e.g. disabled=false with unique key)
-            btn = placeholder.button('Show Details', disabled=False,  key = "summary_statistics_show_btn")
+            btn_summary_stats = placeholder.button('Show Details', disabled=False,  key = "summary_statistics_show_btn")
 
         # if button is clicked run below code
-        if btn == True:
+        if btn_summary_stats == True:
             # display button with text "click me again", with unique key
             placeholder.button('Hide Details', disabled=False, key = "summary_statistics_hide_btn")
             # Display summary statistics table
@@ -6289,11 +6396,11 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         with col2:        
             placeholder = st.empty()
             # create button (enabled to click e.g. disabled=false with unique key)
-            btn = placeholder.button('Show Details', disabled=False, key = "insights_statistics_show_btn")
+            btn_insights = placeholder.button('Show Details', disabled=False, key = "insights_statistics_show_btn")
             vertical_spacer(1)
             
         # if button is clicked run below code
-        if btn == True:
+        if btn_insights == True:
             # display button with text "click me again", with unique key
             placeholder.button('Hide Details', disabled=False,  key = "insights_statistics_hide_btn")
             st.dataframe(summary_statistics_df, use_container_width=True)
@@ -6322,11 +6429,14 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                                       horizontal = True)
             vertical_spacer(3)   
     
+    ################################################
+    st.image('./images/statistical_tests.png') 
+    
     ###################################################################
     # LJUNG-BOX STATISTICAL TEST FOR WHITE NOISE e.g. random residuals
     ###################################################################
     # Perform the Ljung-Box test on the residuals
-    with st.expander('Ljung-Box', expanded=True):
+    with st.expander('White Noise', expanded=False):
         my_text_header('White Noise')
         my_text_paragraph('Ljung-Box')
         col1, col2, col3 = st.columns([18,44,10])
@@ -6368,19 +6478,91 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
     # AUGMENTED DICKEY-FULLER TEST
     ###################################################################
     # Show Augmented Dickey-Fuller Statistical Test Result with hypotheses
-    with st.expander('ADF', expanded=True):
+    with st.expander('Stationarity', expanded=False):
         my_text_header('Stationarity')
         my_text_paragraph('Augmented Dickey Fuller')
         # Augmented Dickey-Fuller (ADF) test results
-        adf_result = adf_test(st.session_state.df_raw, 1)        
+        adf_result = adf_test(st.session_state['df_raw'], 1)        
         col1, col2, col3 = st.columns([18,40,10])
         col2.write(adf_result)
         vertical_spacer(2)
 
+    ###################################################################  
+    # SHAPIRO TEST
+    ###################################################################
+    def shapiro_test(df, variable_loc, alpha=0.05):
+        """
+        Perform the Shapiro-Wilk test for normality on a dataset.
+    
+        Parameters
+        ----------
+        data : array-like
+            The data to test for normality.
+        alpha : float, optional
+            The significance level for the test. Defaults to 0.05.
+    
+        Returns
+        -------
+        result : str
+            A string containing the results of the Shapiro-Wilk test.
+        """
+        # Select the variable to test for stationarity
+        if isinstance(variable_loc, int):
+            variable = df.iloc[:, variable_loc]
+        elif isinstance(variable_loc, (tuple, list)):
+            variable = df.iloc[:, variable_loc]
+        elif isinstance(variable_loc, pd.Series):
+            variable = variable_loc
+        else:
+            raise ValueError("The 'variable_loc' argument must be an integer, tuple, list, or pandas Series.")
+# =============================================================================
+#         # Drop missing values
+#         variable = variable.dropna()
+# =============================================================================
+
+        # Perform the Shapiro-Wilk test
+        statistic, p_value = shapiro(variable)
+        
+        # Check if the p-value is less than or equal to the significance level
+        if p_value <= alpha:
+            # If the p-value is less than 0.001, use scientific notation with 2 decimal places
+            if p_value < 1e-3:
+                p_value_str = f"{p_value:.2e}"
+            # Otherwise, use regular decimal notation with 3 decimal places
+            else:
+                p_value_str = f"{p_value:.3f}"
+            
+            # H0 and H1 hypotheses
+            h0 = r"❌$H_0$: The data is normally distributed."
+            h1 = r"✅$H_1$: The data is **not** normally distributed."
+            
+            # Conclusion when H0 is rejected
+            conclusion = f"**Conclusion:** The null hypothesis can be **:red[rejected]** with a p-value of **`{p_value_str}`**, which is smaller than or equal to the significance level of **`{alpha}`**. Therefore, the data is **not** normally distributed."
+        else:
+            # H0 and H1 hypotheses
+           h0 = r"✅$H_0$: The data is normally distributed."
+           h1 = r"$H_1$: The data is **not** normally distributed."
+            
+           # Conclusion when H0 is not rejected
+           conclusion = f"**Conclusion:** The null hypothesis cannot be rejected with a p-value of **`{p_value:.5f}`**, which is greater than the significance level of **`{alpha}`**. Therefore, the data is normally distributed."
+        
+        # Combine H0, H1, and conclusion
+        result = f"{h0}\n\n{h1}\n\n{conclusion}"
+        
+        return result
+    
+    with st.expander('Normality', expanded=False):
+        my_text_header('Normality')
+        my_text_paragraph('Shapiro')
+        shapiro_result = shapiro_test(st.session_state['df_raw'], 1, alpha = 0.05)
+        col1, col2, col3 = st.columns([18,40,10])
+        col2.write(shapiro_result)
+        vertical_spacer(2)
+        
     ###################################################################
     # AUTOCORRELATION PLOTS - Autocorrelation Plots (ACF & PACF) with optional Differencing applied
     ###################################################################
-    with st.expander('ACF/PACF', expanded=True):     
+    with st.expander('Autocorrelation', expanded=False):     
         my_text_header('Autocorrelation')
         ############################## ACF & PACF ################################
         # Display the original or data differenced Plot based on the user's selection
@@ -7804,7 +7986,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         my_text_paragraph('Your Feature Selection', my_font_size='26px')
         show_lottie_animation(
                                 url = "./images/astronaut_star_in_hand.json", 
-                                key = 'austronaut-star', 
+                                key = 'lottie_animation_austronaut_star', 
                                 width=200, 
                                 height=200, 
                                 col_sizes=[5,4,5], 
@@ -8000,7 +8182,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                      max_value=99, 
                                      value=80, 
                                      step=1, 
-                                     help='A confidence interval is a range of values around a sample statistic, such as a mean or proportion, which is likely to contain the true population parameter with a certain degree of confidence.\
+                                     help='A **`confidence interval`** is a range of values around a sample statistic, such as a mean or proportion, which is likely to contain the true population parameter with a certain degree of confidence.\
                                            The level of confidence is typically expressed as a percentage, such as 95%, and represents the probability that the true parameter lies within the interval.\
                                            A wider interval will generally have a higher level of confidence, while a narrower interval will have a lower level of confidence.'
                                     )
@@ -8022,7 +8204,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                 selected_models.append((model_name, model))
             if model_name == "Naive Model":
                 custom_lag_value = None
-                with st.expander('Naive Model Hyperparameters'):
+                with st.expander('◾'):
                     lag = st.selectbox(label = '*Select seasonal **lag** for the Naive Model:*', 
                                        options = ['Day', 'Week', 'Month', 'Year', 'Custom'],
                                        index = get_state("TRAIN_PARAMS", "naive_model_seasonal_lag_index")
@@ -8042,7 +8224,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                     set_state("TRAIN_PARAMS", ("naive_model_seasonal_lag_index", ['day', 'week', 'month', 'year', 'custom'].index(lag.lower())))
             
             if model_name == "SARIMAX":
-                with st.expander('SARIMAX Hyperparameters', expanded=False):
+                with st.expander('◾', expanded=False):
                     col1, col2, col3 = st.columns([5,1,5])
                     with col1:
                         p = st.number_input("Autoregressive Order (p):", value=1, min_value=0, max_value=10)
@@ -8069,7 +8251,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                         enforce_invertibility = st.selectbox('Enforce Invertibility', [True, False], index=0)
                         
             if model_name == "Prophet":
-                with st.expander('Prophet Hyperparameters', expanded=False):
+                with st.expander('◾', expanded=False):
                     horizon_option = int(st.slider('Set Forecast Horizon (default = 30 Days):', min_value=1, max_value=365, step=1, value=30, help='The horizon for a Prophet model is typically set to the number of time periods that you want to forecast into the future. This is also known as the forecasting horizon or prediction horizon.'))
                     changepoint_prior_scale = st.slider("changepoint_prior_scale", min_value=0.001, max_value=1.0, value=0.05, step=0.01, help='This is probably the most impactful parameter. It determines the flexibility of the trend, and in particular how much the trend changes at the trend changepoints. As described in this documentation, if it is too small, the trend will be underfit and variance that should have been modeled with trend changes will instead end up being handled with the noise term. If it is too large, the trend will overfit and in the most extreme case you can end up with the trend capturing yearly seasonality. The default of 0.05 works for many time series, but this could be tuned; a range of [0.001, 0.5] would likely be about right. Parameters like this (regularization penalties; this is effectively a lasso penalty) are often tuned on a log scale.')
                     seasonality_mode = str(st.selectbox("seasonality_mode", ["additive", "multiplicative"], index=1))
