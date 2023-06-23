@@ -195,6 +195,9 @@ st.set_page_config(
 # =============================================================================
 # design/code that did not make it into the application
 
+#show_lottie_animation(url="./images/89601-solar-system.json", key='solar_system', speed = 1, width=400, reverse=False, height=400, margin_before = 2, margin_after=10)
+            
+
 # left / right arrow you can create with click event from st-click-detector package
 # =============================================================================
 # button_container2 = """
@@ -1105,7 +1108,7 @@ def my_text_paragraph(my_string,
     paragraph = f'<p style="text-align:{my_text_align}; font-family:{my_font_family}; font-weight:{my_font_weight}; font-size:{my_font_size}; line-height:{my_line_height}; background-color: rgba(255, 255, 255, 0); {border_style}">{my_string}</p>'
     st.markdown(paragraph, unsafe_allow_html=True)
 
-def my_forecastgenie_title(my_string, my_background_color="#2CB8A1"):
+def my_bubbles(my_string, my_background_color="#2CB8A1"):
     gradient = f"-webkit-linear-gradient(45deg, {my_background_color}, #2CB8A1, #0072B2)"
     text_style = f"text-align: center; font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; font-weight: 200; font-size: 36px; line-height: 1.5; -webkit-background-clip: text; -webkit-text-fill-color: black; padding: 20px; position: relative;"
     st.markdown(f'''
@@ -1116,13 +1119,13 @@ def my_forecastgenie_title(my_string, my_background_color="#2CB8A1"):
                 <div style="position: absolute; top: 20px; left: 80px;">
                     <div style="background-color: #0072B2; width: 8px; height: 8px; border-radius: 50%; animation: bubble 3s infinite;"></div>
                 </div>
-                <div style="position: absolute; top: 30px; right: 100px;">
-                    <div style="background-color: #6c757d; width: 12px; height: 12px; border-radius: 50%; animation: bubble 4s infinite;"></div>
+                <div style="position: absolute; top: -20px; right: 100px;">
+                    <div style="background-color: #FF0000; width: 14px; height: 14px; border-radius: 50%; animation: bubble 4s infinite;"></div>
                 </div>
                 <div style="position: absolute; top: 10px; right: 50px;">
                     <div style="background-color: #0072B2; width: 8px; height: 8px; border-radius: 50%; animation: bubble 5s infinite;"></div>
                 </div>
-                <div style="position: absolute; top: 40px; left: 60px;">
+                <div style="position: absolute; top: -20px; left: 60px;">
                     <div style="background-color: #88466D; width: 8px; height: 8px; border-radius: 50%; animation: bubble 6s infinite;"></div>
                 </div>
                 <div style="position: absolute; top: 0px; left: -10px;">
@@ -1551,7 +1554,7 @@ def eda_quick_summary(my_chart_color):
                     f'</div>'
                     f'<div style="text-align: center;">'
                     f'<div><b style="color: {my_chart_color};">Columns</b></div><div>{cols}</div><br/>'
-                    f'<div><b style="color: {my_chart_color};">Max Date</b></div><div>{max_date}</div><br/>'
+                    f'<div><b style="color: {my_chart_color};">End Date</b></div><div>{max_date}</div><br/>'
                     f'<div><b style="color: {my_chart_color};">Frequency</b></div><div>{dataframe_freq_name}</div><br/>'
                     f'<div><b style="color: {my_chart_color};">Median</b></div><div>{median_val}</div><br/>'
                     f'<div><b style="color: {my_chart_color};">Maximum</b></div><div>{max_val}</div><br/>'
@@ -5335,7 +5338,7 @@ def initiate_global_variables():
     # SHOW IN STREAMLIT DICTIONARY OF VARIABLES IN SESSION STATE
     #///////////////////////////////////////////////////////////////////
     # show in streamlit the session state variables that are stored cache for the user session
-    st.write(st.session_state)
+    #st.write(st.session_state)
     #///////////////////////////////////////////////////////////////////
     
     # Logging
@@ -5611,94 +5614,185 @@ menu_item = option_menu(menu_title = None,
 # =============================================================================
 if sidebar_menu_item == 'About':
     try:
-        
-        with st.expander('', expanded=True):
-            # Title with gradient
-            #####################
+        with st.sidebar:
             vertical_spacer(2)
-            my_text_paragraph('About', my_font_size='36px')
-            show_lottie_animation(url="./images/89601-solar-system.json", key='solar_system', speed = 1, width=400, reverse=False, height=400, margin_before = 2, margin_after=10)
-            st.markdown('---')
-
-            col1, col2, col3 = st.columns([2,8,2])
+            
+            my_text_paragraph(f'{book_icon}')
+            
+            col1, col2, col3 = st.columns([2,3,2])
             with col2:
-                #################################
-                # ABOUT MENU - HEADERS+PARAGRAPHS
-                #################################
-                # What does it do?
-                my_text_header('What does it do?')
-                my_text_paragraph('🕵️‍♂️ <b> Analyze data:', add_border=True, border_color = "#F08A5D")
-                my_text_paragraph('Inspect seasonal patterns and distribution of the data', add_border=False)
-                my_text_paragraph('🧹 <b> Cleaning data: </b>', add_border=True, border_color = "#F08A5D")
-                my_text_paragraph('Automatic detection and replacing missing data points and remove outliers')
-                my_text_paragraph('🧰 <b> Feature Engineering: </b>', add_border=True,border_color = "#F08A5D")
-                my_text_paragraph(' Add holidays, calendar day/week/month/year and optional wavelet features')
-                my_text_paragraph('⚖️ <b> Normalization and Standardization </b>', add_border=True, border_color = "#F08A5D")
-                my_text_paragraph('Select from industry standard techniques')
-                my_text_paragraph('🍏 <b> Feature Selection: </b>', add_border=True, border_color = "#F08A5D")
-                my_text_paragraph('</b> Only keep relevant features based on feature selection techniques')
-                my_text_paragraph('🍻 <b> Correlation Analysis:</b> ', add_border=True, border_color = "#F08A5D")
-                my_text_paragraph('Automatically remove highly correlated features')
-                my_text_paragraph('🔢 <b> Train Models:</b>', add_border=True, border_color = "#F08A5D")
-                my_text_paragraph('Including Naive, Linear, SARIMAX and Prophet Models')
-                my_text_paragraph('🎯 <b> Evaluate Model Performance:', add_border=True, border_color = "#F08A5D")
-                my_text_paragraph('Benchmark models performance with evaluation metrics')
-                my_text_paragraph('🔮  <b> Forecast:', add_border=True, border_color = "#F08A5D")
-                my_text_paragraph('Forecast your variable of interest with ease by selecting your desired end-date from the calendar')
+                selected_about_page = st.selectbox(
+                                                     label = "*Select Page*:", 
+                                                     options = ['-',
+                                                                'What does it do?', 
+                                                                'What do I need?', 
+                                                                'Who is this for?', 
+                                                                'Origin Story',
+                                                                'Show your support',
+                                                                'Version'], 
+                                                    label_visibility='collapsed', 
+                                                    index = 0,
+                                                 )
                 
-                # What do I need?
-                my_text_header('What do I need?')
-                my_text_paragraph('Upload in the app on the left sidebar your file with in the first column your dates with header "date" and in the second column your variable of interest (target variable) with custom header e.g. \'y\'. Common file-formats are supported, namely: .csv, .xls .xlsx, xlsm and xlsb.')               
-              
-                # Who is this for?
-                my_text_header('Who is this for?')
-                st.markdown('<p style="text-align:center; font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; font-weight: 200; font-size: 18px; line-height: 1.5;">Business Analysts, Data Scientists, Statisticians or Enthousiasts!</p>', unsafe_allow_html=True)    
-                
-                # About ForecastGenie
-                my_text_header('Origin Story')
-                my_text_paragraph('ForecastGenie is a forecasting app created by Tony Hollaar with a background in data analytics with the goal of making accurate forecasting accessible to businesses of all sizes.')
-                my_text_paragraph('As the developer of the app, I saw a need for a tool that simplifies the process of forecasting, without sacrificing accuracy, therefore ForecastGenie was born.')
-                my_text_paragraph('With ForecastGenie, you can upload your data and quickly generate forecasts using state-of-the-art machine learning algorithms. The app also provides various evaluation metrics to help you benchmark your models and ensure their performance meets your needs.')
-                # DISPLAY LOGO
+        # =============================================================================
+        # Front About Page            
+        # =============================================================================   
+        if selected_about_page == '-':   
+            with st.expander('', expanded=True):
+                st.image('./images/about_page.png')
+        
+        # =============================================================================
+        # What does it do?            
+        # =============================================================================   
+        if selected_about_page == 'What does it do?':   
+            with st.expander('', expanded=True):
+                col1, col2, col3 = st.columns([2,8,2])
+                with col2:
+                    my_text_header('What does it do?')
+                    my_text_paragraph('🕵️‍♂️ <b> Analyze data:', add_border=True, border_color = "#F08A5D")
+                    my_text_paragraph('Inspect seasonal patterns and distribution of the data', add_border=False)
+                    my_text_paragraph('🧹 <b> Cleaning data: </b>', add_border=True, border_color = "#F08A5D")
+                    my_text_paragraph('Automatic detection and replacing missing data points and remove outliers')
+                    my_text_paragraph('🧰 <b> Feature Engineering: </b>', add_border=True,border_color = "#F08A5D")
+                    my_text_paragraph(' Add holidays, calendar day/week/month/year and optional wavelet features')
+                    my_text_paragraph('⚖️ <b> Normalization and Standardization </b>', add_border=True, border_color = "#F08A5D")
+                    my_text_paragraph('Select from industry standard techniques')
+                    my_text_paragraph('🍏 <b> Feature Selection: </b>', add_border=True, border_color = "#F08A5D")
+                    my_text_paragraph('</b> Only keep relevant features based on feature selection techniques')
+                    my_text_paragraph('🍻 <b> Correlation Analysis:</b> ', add_border=True, border_color = "#F08A5D")
+                    my_text_paragraph('Automatically remove highly correlated features')
+                    my_text_paragraph('🔢 <b> Train Models:</b>', add_border=True, border_color = "#F08A5D")
+                    my_text_paragraph('Including Naive, Linear, SARIMAX and Prophet Models')
+                    my_text_paragraph('🎯 <b> Evaluate Model Performance:', add_border=True, border_color = "#F08A5D")
+                    my_text_paragraph('Benchmark models performance with evaluation metrics')
+                    my_text_paragraph('🔮  <b> Forecast:', add_border=True, border_color = "#F08A5D")
+                    my_text_paragraph('Forecast your variable of interest with ease by selecting your desired end-date from the calendar')
+        
+        # =============================================================================
+        # What do I need?         
+        # =============================================================================        
+        if selected_about_page == 'What do I need?':   
+            with st.expander('', expanded=True):  
+                col1, col2, col3 = st.columns([2,8,2])
+                with col2:
+                    my_text_header('What do I need?')
+                    my_text_paragraph('<b> File: </b>', add_border=True, border_color = "#0262ac")    
+                    my_text_paragraph('''From the <i> Load </i> menu you can select the radio-button 'Upload Data' and drag-and-drop or left-click to browse the file from your local computer. 
+                                      ''', my_text_align='justify')
+   
+                    my_text_paragraph('<b> File Requirements: </b>', add_border=True, border_color = "#0262ac")     
+                    my_text_paragraph(''' - the 1st column should have a header with the following lowercase name: <b> 'date' </b> with dates in ascending order in format: <b>mm/dd/yyyy</b>.  For example 12/31/2024.
+                                      <br>
+                                          - the 2nd column should have a header as well with a name of your choosing. This column should contain the historical values of your variable of interest, which you are trying to forecast, based on historical data.
+                                      ''', my_text_align='left')   
+                    my_text_paragraph('<b> Supported File Formats: </b>', add_border=True, border_color = "#0262ac")                   
+                    my_text_paragraph('Common file-formats are supported, namely: .csv, .xls .xlsx, xlsm and xlsb.', my_text_align='justify')                       
+                    vertical_spacer(25)
+        # =============================================================================
+        # Who is this for?       
+        # =============================================================================   
+        if selected_about_page == 'Who is this for?':   
+            with st.expander('', expanded=True):  
                 col1, col2, col3 = st.columns([2,6,2])
                 with col2:
-                    # added spaces to align website link with logo in horizontal center
-                    st.write('')
-                    #st.image('./images/logo_dark.png')  
-                    st.image('./images/astronaut_helmet.png')
-                
-                # Show your support
-                st.markdown('<h1 style="text-align:center; font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; font-weight: 200; font-size: 32px; line-height: 1.5;">Show your support {}</h1>'.format(balloon_heart_svg), unsafe_allow_html=True)
-                my_text_paragraph('If you find this app useful, please consider supporting it by buying me a coffee. Your support helps me continue developing and maintaining this app. Thank you!')
-                col1, col2, col3 = st.columns([2,5,2])
+                    my_text_header('Who is this for?')
+                    my_text_paragraph("<b>Target Groups</b>", add_border=True, border_color="#bc62f6")
+                    my_text_paragraph('ForecastGenie is designed to cater to a wide range of users, including <i>Business Analysts, Data Scientists, Statisticians, and Enthusiasts.</i> Whether you are a seasoned professional or an aspiring data enthusiast, this app aims to provide you with powerful data analysis and forecasting capabilities! If you are curious about the possibilities, some use cases are listed below.', my_text_align='justify')
+                    
+                    my_text_paragraph("<b>Business Analysts:</b>", add_border=True, border_color="#bc62f6")
+                    my_text_paragraph('''
+                                         - <b>Sales Forecasting:</b> Predict future sales volumes and trends to optimize inventory management, plan marketing campaigns, and make informed business decisions.<br>
+                                         - <b>Demand Forecasting:</b> Estimate future demand for products or services to streamline supply chain operations, improve production planning, and optimize resource allocation.<br>
+                                         - <b>Financial Forecasting:</b> Forecast revenues, expenses, and cash flows to facilitate budgeting, financial planning, and investment decisions.
+                                     ''',  my_text_align='left')
+                    my_text_paragraph("<b>Data Scientists:</b>", add_border=True, border_color="#bc62f6")
+                    my_text_paragraph('''
+                                         - <b>Time Series Analysis:</b> Analyze historical data patterns and trends to identify seasonality, trend components, and anomalies for various applications such as finance, energy, stock market, or weather forecasting.<br>
+                                         - <b>Predictive Maintenance:</b> Forecast equipment failures or maintenance needs based on sensor data, enabling proactive maintenance scheduling and minimizing downtime.<br>
+                                         - <b>Customer Churn Prediction:</b> Predict customer churn probabilities, allowing companies to take preventive measures, retain customers, and enhance customer satisfaction.''',
+                                         my_text_align='left')
+                    my_text_paragraph("<b>Statisticians:</b>", add_border=True, border_color="#bc62f6")
+                    my_text_paragraph('''                                     
+                                         - <b>Economic Forecasting:</b> Forecast macroeconomic indicators such as GDP, inflation rates, or employment levels to support economic policy-making, investment strategies, and financial planning.<br>
+                                         - <b>Population Forecasting:</b> Predict future population sizes and demographic changes for urban planning, resource allocation, and infrastructure development.<br>
+                                         - <b>Epidemiological Forecasting:</b> Forecast disease spread and outbreak patterns to aid in public health planning, resource allocation, and implementation of preventive measures.
+                                      ''', my_text_align='left')
+                    
+                    my_text_paragraph("<b>Enthusiasts:</b>", add_border=True, border_color="#bc62f6")
+                    my_text_paragraph('''- <b>Personal Budget Forecasting:</b> Forecast your personal income and expenses to better manage your finances, plan savings goals, and make informed spending decisions.<br>
+                                         - <b>Weather Forecasting:</b> Generate short-term or long-term weather forecasts for personal planning, outdoor activities, or agricultural purposes.<br>
+                                         - <b>Energy Consumption Forecasting:</b> Forecast your household or individual energy consumption patterns based on historical data, helping you optimize energy usage, identify potential savings opportunities, and make informed decisions about energy-efficient upgrades or renewable energy investments.''',
+                                      my_text_align='left')
+        # =============================================================================
+        # About ForecastGenie    
+        # ============================================================================= 
+        if selected_about_page == 'Origin Story':   
+            with st.expander('', expanded=True):   
+                col1, col2, col3 = st.columns([2,8,2])
                 with col2:
-                    st.write('')
+                    my_text_header('Origin Story')
+                    my_text_paragraph('ForecastGenie is a forecasting app created by Tony Hollaar with a background in data analytics with the goal of making accurate forecasting accessible to businesses of all sizes.')
+                    my_text_paragraph('As the developer of the app, I saw a need for a tool that simplifies the process of forecasting, without sacrificing accuracy, therefore ForecastGenie was born.')
+                    my_text_paragraph('With ForecastGenie, you can upload your data and quickly generate forecasts using state-of-the-art machine learning algorithms. The app also provides various evaluation metrics to help you benchmark your models and ensure their performance meets your needs.')
+                    
+                    # DISPLAY LOGO
+                    col1, col2, col3 = st.columns([2,8,2])
+                    with col2:
+                        vertical_spacer(1)
+                        st.image('./images/astronaut_helmet.png')
+        # =============================================================================
+        # Show your support 
+        # ============================================================================= 
+        if selected_about_page == 'Show your support':  
+            
+            with st.expander('', expanded=True):    
+                col1, col2, col3 = st.columns([2,4,2])
+                with col2:
+                    
+                    st.markdown('<h1 style="text-align:center; font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; font-weight: 200; font-size: 32px; line-height: 1.5;">Show your support {}</h1>'.format(balloon_heart_svg), unsafe_allow_html=True)
+                    vertical_spacer(2)
+                    my_text_paragraph('If you find this app useful, please consider supporting it by buying me a coffee. Your support helps me continue developing and maintaining this app. Thank you!')
+                
+                col1, col2, col3 = st.columns([2,2,2])
+                with col2:
+                    vertical_spacer(2)
+                    my_bubbles('')
                     button(username="tonyhollaar", floating=False, width=221,  text = 'Buy me a coffee', bg_color = '#FFFFFF', font='Cookie', font_color='black', coffee_color='black')
-                # About App
+                
+                    vertical_spacer(14)
+                # scrolling/marquee text effect
+                space_quotes = """ "That's one small step for man, one giant leap for mankind." - Neil Armstrong, Apollo 11 astronaut, upon stepping onto the lunar surface in 1969  \
+                                | "The sky is not the limit; it's just the beginning." - Astronaut Kathy Sullivan, the first American woman to perform a spacewalk\
+                                | "Look again at that dot. That's here. That's home. That's us." - Carl Sagan
+                                """
+                #stock_ticker(space_quotes, speed = 30)
+                #st.markdown('---')
+                streamlit_marquee(**{
+                    # the marquee container background color
+                    'background': "#f5f5f5",
+                    # the marquee text size
+                    'fontSize': '16px',
+                    # the marquee text color
+                    "color": "#000000",
+                    # the marquee text content
+                    'content': space_quotes,
+                    # the marquee container width
+                    'width': '800px',
+                    # the marquee container line height
+                    'lineHeight': "0px",
+                    # the marquee duration
+                    'animationDuration': '45s',
+                })
+                
+                
+        # =============================================================================
+        # Versioning 
+        # ============================================================================= 
+        if selected_about_page == 'Version':
+            with st.expander('', expanded=True):  
+                my_text_header('Version')
                 st.caption(f'<h7><center> ForecastGenie version: `2.0` <br>  Release date: `06-30-2023`  </center></h7>', unsafe_allow_html=True)    
-            # scrolling/marquee text effect
-            space_quotes = """ "That's one small step for man, one giant leap for mankind." - Neil Armstrong, Apollo 11 astronaut, upon stepping onto the lunar surface in 1969  \
-                            | "The sky is not the limit; it's just the beginning." - Astronaut Kathy Sullivan, the first American woman to perform a spacewalk\
-                            | "Look again at that dot. That's here. That's home. That's us." - Carl Sagan
-                            """
-            #stock_ticker(space_quotes, speed = 30)
-            st.markdown('---')
-            streamlit_marquee(**{
-                # the marquee container background color
-                'background': "#f5f5f5",
-                # the marquee text size
-                'fontSize': '16px',
-                # the marquee text color
-                "color": "#000000",
-                # the marquee text content
-                'content': space_quotes,
-                # the marquee container width
-                'width': '800px',
-                # the marquee container line height
-                'lineHeight': "0px",
-                # the marquee duration
-                'animationDuration': '45s',
-            })
+                vertical_spacer(30)              
     except:
         st.error('ForecastGenie Error: "About" in sidebar-menu did not load properly')
 print('ForecastGenie Print: Loaded About Page')
@@ -5713,139 +5807,153 @@ print('ForecastGenie Print: Loaded About Page')
 #                     
 # =============================================================================
 if sidebar_menu_item == 'FAQ':
-    with st.expander('', expanded=True):
+    with st.sidebar:
         vertical_spacer(2)
-        my_text_paragraph('FAQ', my_font_size='36px')
-        vertical_spacer(8)
-        col1, col2, col3 = st.columns([4,3,4])            
-        with col1:
-            path = "./images/137106-question-mark.json"
-            with open(path,"r") as file:
-                url = json.load(file)
-                # show lottie file in streamlit  
-                # source: https://lottiefiles.com/68689-cute-astronaut-read-book-on-planet-cartoon
-                st_lottie(url,
-                reverse=False,
-                height=160,
-                width=399,
-                speed=0.2,
-                loop=True,
-                quality='high',
-                key='question-mark'
-                )
+        my_text_paragraph(f'{book_icon}')
+        
+        col1, col2, col3 = st.columns([2,14,2])
         with col2:
-            path = "./images/astronaut-with-space-shuttle.json"
-            with open(path,"r") as file:
-                 url = json.load(file)
-                 # show lottie file in streamlit  
-                 # source: https://lottiefiles.com/68689-cute-astronaut-read-book-on-planet-cartoon
-                 st_lottie(url,
-                             reverse=False,
-                             height=200,
-                             width=200,
-                             speed=1,
-                             loop=True,
-                             quality='high',
-                             key='astronaut'
-                         )
-
-        vertical_spacer(17)
-        st.markdown('---')
-        col1, col2, col3 = st.columns([2,8,2])
-        with col2:
-            # FAQ - Questions and Answers
-            my_text_paragraph('<b> What is ForecastGenie? </b>', add_border=True)
-            my_text_paragraph('ForecastGenie is a free, open-source application that enables users to perform time-series forecasting on their data. The application offers a range of advanced features and models to help users generate accurate forecasts and gain insights into their data.')
-            vertical_spacer(1)
-            my_text_paragraph('<b> What kind of data can I use with ForecastGenie? </b>', add_border=True)
-            my_text_paragraph('ForecastGenie accepts data in the form of common file types such as .CSV or .XLS. Hereby the first column should contain the dates and the second column containing the target variable of interest. The application can handle a wide range of time-series data, including financial data, sales data, weather data, and more.')
-            vertical_spacer(1)
-            my_text_paragraph('<b>What kind of models does ForecastGenie offer? </b>', add_border=True)
-            my_text_paragraph('ForecastGenie offers a range of models to suit different data and use cases, including Naive, SARIMAX, and Prophet. The application also includes hyper-parameter tuning, enabling users to optimize the performance of their models and achieve more accurate forecasts.')
-            vertical_spacer(1)
-            my_text_paragraph('<b> What kind of metrics does ForecastGenie use to evaluate model performance? </b>', add_border=True)
-            my_text_paragraph('ForecastGenie uses a range of business-standard evaluation metrics to assess the accuracy of forecasting models, including Mean Absolute Error (MAE), Mean Squared Error (MSE), Root Mean Squared Error (RMSE), and more. These metrics provide users with a reliable and objective measure of their model\'s performance.')
-            vertical_spacer(1)
-            my_text_paragraph('<b>Is ForecastGenie really free? </b>', add_border=True)
-            my_text_paragraph('Yes! ForecastGenie is completely free and open-source. If you find the application useful and would like to show your support, you can choose to "buy the creator a coffee" using the link provided on the app. However, this is entirely optional, and there are no hidden fees or costs associated with using ForecastGenie.')
-            vertical_spacer(1)
-            my_text_paragraph('<b>Is ForecastGenie suitable for non-technical users? </b>', add_border=True)
-            my_text_paragraph('Yes! ForecastGenie is designed to be user-friendly and intuitive, even for users with little or no technical experience. The application includes automated data cleaning and feature engineering, making it easy to prepare your data for forecasting. Additionally, the user interface is simple and easy to navigate, with clear instructions and prompts throughout the process.')
-            
-            #### Flashcard front / back
-            st.write('')
-            col1, col2, col3 = st.columns([1,30,1])
+            selected_faq_page = st.selectbox(
+                                                 label = "*Select Page*:", 
+                                                 options = ['-',
+                                                            'What is ForecastGenie?', 
+                                                            'What data can I use with ForecastGenie?', 
+                                                            'What forecasting models does ForecastGenie offer?', 
+                                                            'What metrics does ForecastGenie use?',
+                                                            'Is ForecastGenie really free?',
+                                                            'Is ForecastGenie suitable for non-technical users?',
+                                                            'Other Questions?'], 
+                                                label_visibility='collapsed', 
+                                                index = 0,
+                                             )
+    
+    if selected_faq_page == '-':
+        with st.expander('', expanded=True):
+            st.image('./images/faq_page.png') # Tree Image     
+    
+    # FAQ - Questions and Answers
+    # =============================================================================
+    # What is ForecastGenie?    
+    # =============================================================================
+    if selected_faq_page == 'What is ForecastGenie?':
+        with st.expander('', expanded=True):
+            col1, col2, col3 = st.columns([2,8,2])
             with col2:
-                st.write('')
-                my_code = """<div class="flashcard_faq">
-                              <div class="front_faq">
-                                <h2><center>Other Questions?</center></h2>
-                              </div>
-                              <div class="back_faq">
-                                <h2><center>info@forecastgenie.com</center></h2>
-                              </div>
-                            </div>
-                            <style>
-                            .flashcard_faq {
-                              position: relative;
-                              width: 400px;
-                              height: 150px;
-                              background-color: white;
-                              border-radius: 10px;
-                              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-                              perspective: 1000px;
-                            }
-                            
-                            .front_faq, .back_faq {
-                              position: absolute;
-                              top: 0;
-                              left: 0;
-                              width: 100%;
-                              height: 100%;
-                              border-radius: 10px;
-                              backface-visibility: hidden;
-                              font-family: Arial;
-                            }
-                            
-                            .front_faq {
-                              background: linear-gradient(to bottom, #45B8AC , #3690c0);
-                              color: white;
-                              transform: rotateY(0deg);
-                            }
-                            
-                            .back_faq {
-                              background:linear-gradient(to bottom, #45B8AC , #3690c0);
-                              color: black;
-                              transform: rotateY(180deg);
-                            }
-                            
-                            .flashcard_faq:hover .front_faq {
-                              transform: rotateY(180deg);
-                            }
-                            
-                            .flashcard_faq:hover .back_faq {
-                              transform: rotateY(0deg);
-                            }
-                            .front_faq h2, .back_faq h2 {
-                                color: white;
-                                text-align: center;
-                                margin-top: 10%;
-                                transform: translateY(-10%);
-                                font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
-                            }
-                            .front_faq h2 {
-                                        font-size: 26px;
-                                        line-height: 1.5;
-                                        }
-                            .back_faq h2 {
-                                        font-size: 22px;
-                                        line-height: 2;
-                                        }
-                            </style>"""
-                # show flashcard in streamlit                    
-                st.markdown(my_code, unsafe_allow_html=True)
-                # vertical spacers
-                vertical_spacer(5)
+                vertical_spacer(10)
+                my_text_paragraph('<b>Question:</b> <i> What is ForecastGenie? </i>', 
+                                  my_text_align='justify')
+                my_text_paragraph('<b> Answer:</b> ForecastGenie is a free, open-source application that enables users to perform time-series forecasting on their data. The application offers a range of advanced features and models to help users generate accurate forecasts and gain insights into their data.', 
+                                  my_text_align='justify')
+                vertical_spacer(20)
+    # =============================================================================
+    # What data can I use with ForecastGenie?                    
+    # =============================================================================
+    if selected_faq_page == 'What data can I use with ForecastGenie?':
+        with st.expander('', expanded=True):
+            col1, col2, col3 = st.columns([2,8,2])
+            with col2:
+                vertical_spacer(10)
+                my_text_paragraph('<b>Question:</b><i> What data can I use with ForecastGenie?</i>', my_text_align='justify')
+                my_text_paragraph('<b>Answer:</b> ForecastGenie accepts data in the form of common file types such as .CSV or .XLS. Hereby the first column should contain the dates and the second column containing the target variable of interest. The application can handle a wide range of time-series data, including financial data, sales data, weather data, and more.',
+                                  my_text_align='justify')
+                vertical_spacer(20)
+                
+    # =============================================================================
+    # What forecasting models does ForecastGenie offer?                
+    # =============================================================================
+    if selected_faq_page == 'What forecasting models does ForecastGenie offer?':
+        with st.expander('', expanded=True):
+            col1, col2, col3 = st.columns([2,8,2])
+            with col2:
+                vertical_spacer(10)
+                my_text_paragraph('<b>Question:</b> <i>What forecasting models does ForecastGenie offer?</i>', my_text_align='justify')
+                my_text_paragraph('<b>Answer:</b> ForecastGenie offers a range of models to suit different data and use cases, including Naive, SARIMAX, and Prophet. The application also includes hyper-parameter tuning, enabling users to optimize the performance of their models and achieve more accurate forecasts.',
+                                  my_text_align='justify')
+                vertical_spacer(20)
+                
+        my_text_paragraph('<b>Question:</b><i>What kind of metrics does ForecastGenie use to evaluate model performance?</i>', my_text_align='justify')
+        my_text_paragraph('<b>Answer:</b> ForecastGenie uses a range of business-standard evaluation metrics to assess the accuracy of forecasting models, including Mean Absolute Error (MAE), Mean Squared Error (MSE), Root Mean Squared Error (RMSE), and more. These metrics provide users with a reliable and objective measure of their model\'s performance.')
+        vertical_spacer(1)
+        my_text_paragraph('<b>Is ForecastGenie really free? </b>', add_border=True)
+        my_text_paragraph('Yes! ForecastGenie is completely free and open-source. If you find the application useful and would like to show your support, you can choose to "buy the creator a coffee" using the link provided on the app. However, this is entirely optional, and there are no hidden fees or costs associated with using ForecastGenie.')
+        vertical_spacer(1)
+        my_text_paragraph('<b>Is ForecastGenie suitable for non-technical users? </b>', add_border=True)
+        my_text_paragraph('Yes! ForecastGenie is designed to be user-friendly and intuitive, even for users with little or no technical experience. The application includes automated data cleaning and feature engineering, making it easy to prepare your data for forecasting. Additionally, the user interface is simple and easy to navigate, with clear instructions and prompts throughout the process.')
+        
+        #### Flashcard front / back
+        st.write('')
+        col1, col2, col3 = st.columns([1,30,1])
+        with col2:
+            st.write('')
+            my_code = """<div class="flashcard_faq">
+                          <div class="front_faq">
+                            <h2><center>Other Questions?</center></h2>
+                          </div>
+                          <div class="back_faq">
+                            <h2><center>info@forecastgenie.com</center></h2>
+                          </div>
+                        </div>
+                        <style>
+                        .flashcard_faq {
+                          position: relative;
+                          width: 400px;
+                          height: 150px;
+                          background-color: white;
+                          border-radius: 10px;
+                          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                          perspective: 1000px;
+                        }
+                        
+                        .front_faq, .back_faq {
+                          position: absolute;
+                          top: 0;
+                          left: 0;
+                          width: 100%;
+                          height: 100%;
+                          border-radius: 10px;
+                          backface-visibility: hidden;
+                          font-family: Arial;
+                        }
+                        
+                        .front_faq {
+                          background: linear-gradient(to bottom, #45B8AC , #3690c0);
+                          color: white;
+                          transform: rotateY(0deg);
+                        }
+                        
+                        .back_faq {
+                          background:linear-gradient(to bottom, #45B8AC , #3690c0);
+                          color: black;
+                          transform: rotateY(180deg);
+                        }
+                        
+                        .flashcard_faq:hover .front_faq {
+                          transform: rotateY(180deg);
+                        }
+                        
+                        .flashcard_faq:hover .back_faq {
+                          transform: rotateY(0deg);
+                        }
+                        .front_faq h2, .back_faq h2 {
+                            color: white;
+                            text-align: center;
+                            margin-top: 10%;
+                            transform: translateY(-10%);
+                            font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
+                        }
+                        .front_faq h2 {
+                                    font-size: 26px;
+                                    line-height: 1.5;
+                                    }
+                        .back_faq h2 {
+                                    font-size: 22px;
+                                    line-height: 2;
+                                    }
+                        </style>"""
+            # show flashcard in streamlit                    
+            st.markdown(my_code, unsafe_allow_html=True)
+            # vertical spacers
+            vertical_spacer(5)
   
 # LOGGING
 print('ForecastGenie Print: Loaded FAQ Page')
@@ -6239,9 +6347,9 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
             vertical_spacer(2)
             col1, col2, col3 = st.columns([1,8,1])
             with col2:
-                my_text_paragraph('''👈 Please upload a file with your <b><span style="color:#00bf63">dates</span></b> and <b><span style="color:#ff3131">values</span></b> in below order:<br><br>
-                         - first column named: <b><span style="color:#00bf63">date</span></b> in format: mm/dd/yyyy e.g. 12/31/2023<br>
-                         - second column named:  <b><span style="color:#ff3131">&#60;insert variable name&#62;</span></b> e.g. revenue<br>
+                my_text_paragraph('''👈 Please upload a file with your <b><span style="color:#000000">dates</span></b> and <b><span style="color:#000000">values</span></b> in below order:<br><br>
+                         - first column named: <b><span style="color:#000000">date</span></b> in format: mm/dd/yyyy e.g. 12/31/2023<br>
+                         - second column named:  <b><span style="color:#000000">&#60;insert variable name&#62;</span></b> e.g. revenue<br>
                          - supported frequencies: Daily/Weekly/Monthly/Quarterly/Yearly <br>
                          - supported file extensions: .CSV, .XLS, .XLSX, .XLSM, .XLSB
                          ''', my_font_weight=300, my_text_align='left')
@@ -6253,7 +6361,7 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
             image = Image.open("./images/load2.png")
             # Display the image in Streamlit
             st.image(image, caption="", use_column_width=True)
-            my_text_paragraph('Doodle: Beep...Beep...Beep...uploading calendar values!', my_font_size='12px') 
+            
 
 # =============================================================================
 #   ________   _______  _      ____  _____  ______ 
@@ -6265,6 +6373,13 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
 #                                                  
 # =============================================================================         
 if menu_item == 'Explore' and sidebar_menu_item == 'Home':  
+    
+    # define tabs for page sections
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Overview", 
+                                            "Insights", 
+                                            "Patterns", 
+                                            "Statistical Tests", 
+                                            "Lag Analysis"])
     
     # set default color for charts / style in Explore page
     set_state("COLORS", ("chart_patterns", "#4715ef"))
@@ -6284,6 +6399,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         def update_color():
             # set session state for user chosen chart color
             set_state("COLORS", ("chart_patterns", my_chart_color))
+            
         with st.form('ljung-box'):
              my_text_paragraph('White Noise')
              model_type = st.selectbox("Select Model Type", ["AutoReg", "ARMA"], index=0)             
@@ -6341,246 +6457,254 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
     ####################################################            
     # Explore MAIN PAGE (EDA)
     ####################################################
-    # Set Subject Title
-    #my_title(f'{explore_icon} Exploratory Data Analysis ', my_background_color="#217CD0", gradient_colors="#217CD0,#555555")
-    # create expandable card with data exploration information
-    with st.expander('', expanded=True):
-        col0, col1, col2, col3 = st.columns([18, 90, 8, 1])   
-        with col2:
-           	my_chart_color = st.color_picker(
-                                             label = 'Color', 
-           									 value = get_state("COLORS", "chart_patterns"), 
-           									 label_visibility = 'collapsed',
-                                             help = 'Set the **`color`** of the charts and styling elements. It will revert back to the **default** color when switching pages.'
-                                             )
-        #############################################################################
-        # Quick Summary Results
-        #############################################################################
-        # show in streamlit in sidebar Quick Summary tiles with e.g. rows/columns/start date/end date/mean/median
-        # Display the header for the quick summary
-        #col1, col2, col3 = st.columns([24,40,20])
-        with col1:
-            my_text_header('Quick Summary')
-        # show tile with the quick summary results on page    
-        eda_quick_summary(my_chart_color)
-        
-        # show button and if clicked, show dataframe
-        col1, col2, col3 = st.columns([100,50,95])
-        with col2:        
-            placeholder = st.empty()
-            # create button (enabled to click e.g. disabled=false with unique key)
-            btn_summary_stats = placeholder.button('Show Details', disabled=False,  key = "summary_statistics_show_btn")
-
-        # if button is clicked run below code
-        if btn_summary_stats == True:
-            # display button with text "click me again", with unique key
-            placeholder.button('Hide Details', disabled=False, key = "summary_statistics_hide_btn")
-            # Display summary statistics table
-            summary_stats_df = display_summary_statistics(st.session_state.df_raw)
-            st.dataframe(summary_stats_df, use_container_width=True)
-            download_csv_button(summary_stats_df, my_file="summary_statistics.csv", help_message='Download your Summary Statistics Dataframe to .CSV', my_key = "summary_statistics_download_btn")      
-        vertical_spacer(1)
-        
-        #######################################
-        # Quick Insights Results
-        #####################################
-        # Show Summary Statistics and statistical test results of dependent variable (y)
-        summary_statistics_df = create_summary_df(data = st.session_state.df_raw.iloc[:,1])
-    
-    with st.expander('', expanded=True):   
-        # create in sidebar quick insights with custom function
-        eda_quick_insights(df=summary_statistics_df, my_string_column='Label', my_chart_color = my_chart_color)
-        
-        # have button available for user and if clicked it expands with the dataframe
-        col1, col2, col3 = st.columns([100,50,95])
-        with col2:        
-            placeholder = st.empty()
-            # create button (enabled to click e.g. disabled=false with unique key)
-            btn_insights = placeholder.button('Show Details', disabled=False, key = "insights_statistics_show_btn")
-            vertical_spacer(1)
-            
-        # if button is clicked run below code
-        if btn_insights == True:
-            # display button with text "click me again", with unique key
-            placeholder.button('Hide Details', disabled=False,  key = "insights_statistics_hide_btn")
-            st.dataframe(summary_statistics_df, use_container_width=True)
-            download_csv_button(summary_statistics_df, my_file="insights.csv", help_message='Download your Insights Dataframe to .CSV', my_key = "insights_download_btn")      
-
-    #############################################################################
-    # Call function for plotting Graphs of Seasonal Patterns D/W/M/Q/Y in Plotly Charts
-    #############################################################################
-    with st.expander('', expanded=True):
-        
-        # Update layout
-        my_text_header('Patterns')
-        
-        # show all graphs with patterns in streamlit
-        plot_overview(df = st.session_state.df_raw, 
-                      y = st.session_state.df_raw.columns[1])
-  
-        # radio button for user to select frequency of hist: absolute values or relative
-        col1, col2, col3 = st.columns([10,9,9])
-        with col2:
-            # Add radio button for frequency type of histogram
-            frequency_type = st.radio(label = "*Select histogram frequency type:*", 
-                                      options = ("Absolute", "Relative"), 
-                                      index = 1 if get_state("HIST", "histogram_freq_type") == "Relative" else 0,
-                                      on_change = hist_change_freq,
-                                      horizontal = True)
-            vertical_spacer(3)   
-    
-    ################################################
-    st.image('./images/statistical_tests.png') 
-    
-    ###################################################################
-    # LJUNG-BOX STATISTICAL TEST FOR WHITE NOISE e.g. random residuals
-    ###################################################################
-    # Perform the Ljung-Box test on the residuals
-    with st.expander('White Noise', expanded=False):
-        my_text_header('White Noise')
-        my_text_paragraph('Ljung-Box')
-        col1, col2, col3 = st.columns([18,44,10])
-        with col2:
-            vertical_spacer(2)
-            
-            res, result_ljungbox = ljung_box_test(
-                                                   df = st.session_state.df_raw,
-                                                   variable_loc = 1, 
-                                                   lag = lag1_ljung_box,
-                                                   model_type = model_type
+    with tab1:
+        #my_title(f'{explore_icon} Exploratory Data Analysis ', my_background_color="#217CD0", gradient_colors="#217CD0,#555555")
+        # create expandable card with data exploration information
+        with st.expander('', expanded=True):
+            col0, col1, col2, col3 = st.columns([18, 90, 8, 1])   
+            with col2:
+               	my_chart_color = st.color_picker(
+                                                 label = 'Color', 
+               									 value = get_state("COLORS", "chart_patterns"), 
+               									 label_visibility = 'collapsed',
+                                                 help = 'Set the **`color`** of the charts and styling elements. It will revert back to the **default** color when switching pages.'
                                                  )
-            vertical_spacer(1) 
+            #############################################################################
+            # Quick Summary Results
+            #############################################################################
+            # show in streamlit in sidebar Quick Summary tiles with e.g. rows/columns/start date/end date/mean/median
+            # Display the header for the quick summary
+            #col1, col2, col3 = st.columns([24,40,20])
+            with col1:
+                my_text_header('Quick Summary')
             
-        col1, col2, col3 = st.columns([89,40,80])
-        with col2:        
-            placeholder = st.empty()
+            # show tile with the quick summary results on page    
+            eda_quick_summary(my_chart_color)
             
-            # create button (enabled to click e.g. disabled=false with unique key)
-            btn = placeholder.button('Show Plots', disabled=False)
-            
+            # show button and if clicked, show dataframe
+            col1, col2, col3 = st.columns([100,50,95])
+            with col2:        
+                placeholder = st.empty()
+                # create button (enabled to click e.g. disabled=false with unique key)
+                btn_summary_stats = placeholder.button('Show Details', disabled=False,  key = "summary_statistics_show_btn")
+    
+            # if button is clicked run below code
+            if btn_summary_stats == True:
+                # display button with text "click me again", with unique key
+                placeholder.button('Hide Details', disabled=False, key = "summary_statistics_hide_btn")
+                # Display summary statistics table
+                summary_stats_df = display_summary_statistics(st.session_state.df_raw)
+                st.dataframe(summary_stats_df, use_container_width=True)
+                download_csv_button(summary_stats_df, my_file="summary_statistics.csv", help_message='Download your Summary Statistics Dataframe to .CSV', my_key = "summary_statistics_download_btn")      
             vertical_spacer(1)
-        # if button is clicked run below code
-        if btn == True:
             
-            # display button with text "click me again", with unique key
-            placeholder.button('Hide Plots', disabled=False)
-
-            ljung_box_plots(df = st.session_state.df_raw, 
-                            variable_loc = 1,
-                            lag = lag1_ljung_box,
-                            res = res,
-                            result_ljungbox = result_ljungbox,
-                            my_chart_color = my_chart_color)
-        else:
-            pass
-
-    ###################################################################  
-    # AUGMENTED DICKEY-FULLER TEST
-    ###################################################################
-    # Show Augmented Dickey-Fuller Statistical Test Result with hypotheses
-    with st.expander('Stationarity', expanded=False):
-        my_text_header('Stationarity')
-        my_text_paragraph('Augmented Dickey Fuller')
-        # Augmented Dickey-Fuller (ADF) test results
-        adf_result = adf_test(st.session_state['df_raw'], 1)        
-        col1, col2, col3 = st.columns([18,40,10])
-        col2.write(adf_result)
-        vertical_spacer(2)
-
-    ###################################################################  
-    # SHAPIRO TEST
-    ###################################################################
-    def shapiro_test(df, variable_loc, alpha=0.05):
-        """
-        Perform the Shapiro-Wilk test for normality on a dataset.
-    
-        Parameters
-        ----------
-        data : array-like
-            The data to test for normality.
-        alpha : float, optional
-            The significance level for the test. Defaults to 0.05.
-    
-        Returns
-        -------
-        result : str
-            A string containing the results of the Shapiro-Wilk test.
-        """
-        # Select the variable to test for stationarity
-        if isinstance(variable_loc, int):
-            variable = df.iloc[:, variable_loc]
-        elif isinstance(variable_loc, (tuple, list)):
-            variable = df.iloc[:, variable_loc]
-        elif isinstance(variable_loc, pd.Series):
-            variable = variable_loc
-        else:
-            raise ValueError("The 'variable_loc' argument must be an integer, tuple, list, or pandas Series.")
-# =============================================================================
-#         # Drop missing values
-#         variable = variable.dropna()
-# =============================================================================
-
-        # Perform the Shapiro-Wilk test
-        statistic, p_value = shapiro(variable)
+            # Show Summary Statistics and statistical test results of dependent variable (y)
+            summary_statistics_df = create_summary_df(data = st.session_state.df_raw.iloc[:,1])
         
-        # Check if the p-value is less than or equal to the significance level
-        if p_value <= alpha:
-            # If the p-value is less than 0.001, use scientific notation with 2 decimal places
-            if p_value < 1e-3:
-                p_value_str = f"{p_value:.2e}"
-            # Otherwise, use regular decimal notation with 3 decimal places
+        # IMAGE
+        st.image('./images/summary.png')
+        
+    #######################################
+    # Quick Insights Results
+    #####################################
+    with tab2:
+        with st.expander('', expanded=True):   
+            # create in sidebar quick insights with custom function
+            eda_quick_insights(df=summary_statistics_df, my_string_column='Label', my_chart_color = my_chart_color)
+            
+            # have button available for user and if clicked it expands with the dataframe
+            col1, col2, col3 = st.columns([100,50,95])
+            with col2:        
+                placeholder = st.empty()
+                # create button (enabled to click e.g. disabled=false with unique key)
+                btn_insights = placeholder.button('Show Details', disabled=False, key = "insights_statistics_show_btn")
+                vertical_spacer(1)
+                
+            # if button is clicked run below code
+            if btn_insights == True:
+                # display button with text "click me again", with unique key
+                placeholder.button('Hide Details', disabled=False,  key = "insights_statistics_hide_btn")
+                st.dataframe(summary_statistics_df, use_container_width=True)
+                download_csv_button(summary_statistics_df, my_file="insights.csv", help_message='Download your Insights Dataframe to .CSV', my_key = "insights_download_btn")      
+        st.image('./images/insights2.png')
+
+    with tab3:
+        #############################################################################
+        # Call function for plotting Graphs of Seasonal Patterns D/W/M/Q/Y in Plotly Charts
+        #############################################################################
+        with st.expander('', expanded=True):
+            
+            # Update layout
+            my_text_header('Patterns')
+            
+            # show all graphs with patterns in streamlit
+            plot_overview(df = st.session_state.df_raw, 
+                          y = st.session_state.df_raw.columns[1])
+      
+            # radio button for user to select frequency of hist: absolute values or relative
+            col1, col2, col3 = st.columns([10,9,9])
+            with col2:
+                # Add radio button for frequency type of histogram
+                frequency_type = st.radio(label = "*Select histogram frequency type:*", 
+                                          options = ("Absolute", "Relative"), 
+                                          index = 1 if get_state("HIST", "histogram_freq_type") == "Relative" else 0,
+                                          on_change = hist_change_freq,
+                                          horizontal = True)
+                vertical_spacer(3)   
+    with tab4:
+        ################################################
+        st.image('./images/statistical_tests.png') 
+        
+        ###################################################################
+        # LJUNG-BOX STATISTICAL TEST FOR WHITE NOISE e.g. random residuals
+        ###################################################################
+        # Perform the Ljung-Box test on the residuals
+        with st.expander('White Noise', expanded=False):
+            my_text_header('White Noise')
+            my_text_paragraph('Ljung-Box')
+            col1, col2, col3 = st.columns([18,44,10])
+            with col2:
+                vertical_spacer(2)
+                
+                res, result_ljungbox = ljung_box_test(
+                                                       df = st.session_state.df_raw,
+                                                       variable_loc = 1, 
+                                                       lag = lag1_ljung_box,
+                                                       model_type = model_type
+                                                     )
+                vertical_spacer(1) 
+                
+            col1, col2, col3 = st.columns([89,40,80])
+            with col2:        
+                placeholder = st.empty()
+                
+                # create button (enabled to click e.g. disabled=false with unique key)
+                btn = placeholder.button('Show Plots', disabled=False)
+                
+                vertical_spacer(1)
+            # if button is clicked run below code
+            if btn == True:
+                
+                # display button with text "click me again", with unique key
+                placeholder.button('Hide Plots', disabled=False)
+    
+                ljung_box_plots(df = st.session_state.df_raw, 
+                                variable_loc = 1,
+                                lag = lag1_ljung_box,
+                                res = res,
+                                result_ljungbox = result_ljungbox,
+                                my_chart_color = my_chart_color)
             else:
-                p_value_str = f"{p_value:.3f}"
-            
-            # H0 and H1 hypotheses
-            h0 = r"❌$H_0$: The data is normally distributed."
-            h1 = r"✅$H_1$: The data is **not** normally distributed."
-            
-            # Conclusion when H0 is rejected
-            conclusion = f"**Conclusion:** The null hypothesis can be **:red[rejected]** with a p-value of **`{p_value_str}`**, which is smaller than or equal to the significance level of **`{alpha}`**. Therefore, the data is **not** normally distributed."
-        else:
-            # H0 and H1 hypotheses
-           h0 = r"✅$H_0$: The data is normally distributed."
-           h1 = r"$H_1$: The data is **not** normally distributed."
-            
-           # Conclusion when H0 is not rejected
-           conclusion = f"**Conclusion:** The null hypothesis cannot be rejected with a p-value of **`{p_value:.5f}`**, which is greater than the significance level of **`{alpha}`**. Therefore, the data is normally distributed."
-        
-        # Combine H0, H1, and conclusion
-        result = f"{h0}\n\n{h1}\n\n{conclusion}"
-        
-        return result
+                pass
     
-    with st.expander('Normality', expanded=False):
-        my_text_header('Normality')
-        my_text_paragraph('Shapiro')
-        shapiro_result = shapiro_test(st.session_state['df_raw'], 1, alpha = 0.05)
-        col1, col2, col3 = st.columns([18,40,10])
-        col2.write(shapiro_result)
-        vertical_spacer(2)
-        
-    ###################################################################
-    # AUTOCORRELATION PLOTS - Autocorrelation Plots (ACF & PACF) with optional Differencing applied
-    ###################################################################
-    with st.expander('Autocorrelation', expanded=False):     
-        my_text_header('Autocorrelation')
-        ############################## ACF & PACF ################################
-        # Display the original or data differenced Plot based on the user's selection
-        #my_text_paragraph(f'{selection}')
-        st.markdown(f'<p style="text-align:center; color: #707070"> {selection} </p>', unsafe_allow_html=True)
-        
-        # get the differenced dataframe and original figure
-        original_fig, df_select_diff = df_differencing(st.session_state.df_raw, selection, my_chart_color) 
-        st.plotly_chart(original_fig, use_container_width=True)
+        ###################################################################  
+        # AUGMENTED DICKEY-FULLER TEST
+        ###################################################################
+        # Show Augmented Dickey-Fuller Statistical Test Result with hypotheses
+        with st.expander('Stationarity', expanded=False):
+            my_text_header('Stationarity')
+            my_text_paragraph('Augmented Dickey Fuller')
+            # Augmented Dickey-Fuller (ADF) test results
+            adf_result = adf_test(st.session_state['df_raw'], 1)        
+            col1, col2, col3 = st.columns([18,40,10])
+            col2.write(adf_result)
+            vertical_spacer(2)
     
-        # set data equal to the second column e.g. expecting first column 'date' 
-        data = df_select_diff
-        # Plot ACF        
-        plot_acf(data, nlags=nlags_acf, my_chart_color=my_chart_color)
-        # Plot PACF
-        plot_pacf(data, my_chart_color = my_chart_color, nlags=nlags_pacf, method=method_pacf)              
-        # create 3 buttons, about ACF/PACF/Difference for more explanation on the ACF and PACF plots
-        acf_pacf_info()
+        ###################################################################  
+        # SHAPIRO TEST
+        ###################################################################
+        def shapiro_test(df, variable_loc, alpha=0.05):
+            """
+            Perform the Shapiro-Wilk test for normality on a dataset.
+        
+            Parameters
+            ----------
+            data : array-like
+                The data to test for normality.
+            alpha : float, optional
+                The significance level for the test. Defaults to 0.05.
+        
+            Returns
+            -------
+            result : str
+                A string containing the results of the Shapiro-Wilk test.
+            """
+            # Select the variable to test for stationarity
+            if isinstance(variable_loc, int):
+                variable = df.iloc[:, variable_loc]
+            elif isinstance(variable_loc, (tuple, list)):
+                variable = df.iloc[:, variable_loc]
+            elif isinstance(variable_loc, pd.Series):
+                variable = variable_loc
+            else:
+                raise ValueError("The 'variable_loc' argument must be an integer, tuple, list, or pandas Series.")
+    # =============================================================================
+    #         # Drop missing values
+    #         variable = variable.dropna()
+    # =============================================================================
+    
+            # Perform the Shapiro-Wilk test
+            statistic, p_value = shapiro(variable)
+            
+            # Check if the p-value is less than or equal to the significance level
+            if p_value <= alpha:
+                # If the p-value is less than 0.001, use scientific notation with 2 decimal places
+                if p_value < 1e-3:
+                    p_value_str = f"{p_value:.2e}"
+                # Otherwise, use regular decimal notation with 3 decimal places
+                else:
+                    p_value_str = f"{p_value:.3f}"
+                
+                # H0 and H1 hypotheses
+                h0 = r"❌$H_0$: The data is normally distributed."
+                h1 = r"✅$H_1$: The data is **not** normally distributed."
+                
+                # Conclusion when H0 is rejected
+                conclusion = f"**Conclusion:** The null hypothesis can be **:red[rejected]** with a p-value of **`{p_value_str}`**, which is smaller than or equal to the significance level of **`{alpha}`**. Therefore, the data is **not** normally distributed."
+            else:
+                # H0 and H1 hypotheses
+               h0 = r"✅$H_0$: The data is normally distributed."
+               h1 = r"$H_1$: The data is **not** normally distributed."
+                
+               # Conclusion when H0 is not rejected
+               conclusion = f"**Conclusion:** The null hypothesis cannot be rejected with a p-value of **`{p_value:.5f}`**, which is greater than the significance level of **`{alpha}`**. Therefore, the data is normally distributed."
+            
+            # Combine H0, H1, and conclusion
+            result = f"{h0}\n\n{h1}\n\n{conclusion}"
+            
+            return result
+        
+        with st.expander('Normality', expanded=False):
+            my_text_header('Normality')
+            my_text_paragraph('Shapiro')
+            shapiro_result = shapiro_test(st.session_state['df_raw'], 1, alpha = 0.05)
+            col1, col2, col3 = st.columns([18,40,10])
+            col2.write(shapiro_result)
+            vertical_spacer(2)
+
+    with tab5:    
+        ###################################################################
+        # AUTOCORRELATION PLOTS - Autocorrelation Plots (ACF & PACF) with optional Differencing applied
+        ###################################################################
+        with st.expander('Autocorrelation', expanded=True):     
+            my_text_header('Autocorrelation')
+            ############################## ACF & PACF ################################
+            # Display the original or data differenced Plot based on the user's selection
+            #my_text_paragraph(f'{selection}')
+            st.markdown(f'<p style="text-align:center; color: #707070"> {selection} </p>', unsafe_allow_html=True)
+            
+            # get the differenced dataframe and original figure
+            original_fig, df_select_diff = df_differencing(st.session_state.df_raw, selection, my_chart_color) 
+            st.plotly_chart(original_fig, use_container_width=True)
+        
+            # set data equal to the second column e.g. expecting first column 'date' 
+            data = df_select_diff
+            # Plot ACF        
+            plot_acf(data, nlags=nlags_acf, my_chart_color=my_chart_color)
+            # Plot PACF
+            plot_pacf(data, my_chart_color = my_chart_color, nlags=nlags_pacf, method=method_pacf)              
+            # create 3 buttons, about ACF/PACF/Difference for more explanation on the ACF and PACF plots
+            acf_pacf_info()
 
 # logging
 print('ForecastGenie Print: Ran Explore')
@@ -8092,22 +8216,10 @@ else:
                                                                             )
     except: 
         selected_cols_mifs = []
-# =============================================================================
-#     # =============================================================================
-#     # Combine Features from 3 Feature Selection Techniques   
-#     # =============================================================================
-#     
-#     # Find unique total_features            
-#     total_features = np.unique(selected_cols_rfe + selected_cols_pca + selected_cols_mifs)
-#    
-#     # convert to list
-#     total_features = total_features.tolist()
-# =============================================================================
-    
+
     # =============================================================================
     # Remove Highly Correlated Features >= threshold ( default = 80% pairwise-correlation)
-    # =============================================================================
-    
+    # =============================================================================    
     # Apply Function to analyse feature correlations and computes importance scores.             
     total_features, importance_scores, pairwise_features_in_total_features, df_pairwise = analyze_feature_correlations(   
                                                                                                                         selected_corr_model = get_state("SELECT_PAGE_CORR", "selected_corr_model"), 
@@ -8121,12 +8233,18 @@ else:
                                                                                                                                   },
                                                                                                                         corr_threshold = get_state("SELECT_PAGE_CORR", "corr_threshold")
                                                                                                                       )
+    #st.write('total features', total_features) #TEST
+    
     # NOTE: only remove one of highly correlated features based on importance score after plot is shown
     total_features_default = remove_lowest_importance_feature(
                                                               total_features, 
                                                               importance_scores, 
                                                               pairwise_features_in_total_features
-                                                             )          
+                                                             )      
+    
+    #st.write('total features default', total_features_default) # TEST
+    
+    #st.write('''get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")''', get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user"))
     
     # if user selected features, use those! else use the recommended features by feature selection methods 
     if "__SELECT_PAGE_USER_SELECTION-feature_selection_user__" in st.session_state and get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user") != []:
@@ -8134,8 +8252,9 @@ else:
     else:
         total_features = total_features_default 
 
-    X = X.loc[:, get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")] #TEST -> total_features if not user on page you want the feature_selection from user to propegate down
-    st.write('X outside after features selection:', X)  
+    #X = X.loc[:, get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")]
+    X = X.loc[:, total_features]
+    #st.write('X outside after features selection:', X)  
     y = y
     X_train = X[:(len(df)-st.session_state['insample_forecast_steps'])]
     X_test = X[(len(df)-st.session_state['insample_forecast_steps']):]
