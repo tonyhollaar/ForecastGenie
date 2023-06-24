@@ -404,7 +404,7 @@ def form_feature_selection_method_rfe():
              with col2:       
                  rfe_btn = st.form_submit_button("Submit", type="secondary", on_click=form_update, args=('SELECT_PAGE_RFE',))   
                  if rfe_btn:
-                     # delete session state with user preference feature selection
+                     # update session state with user preference feature selection
                      set_state("SELECT_PAGE_BTN_CLICKED", ('rfe_btn', True))
              return num_features_rfe, estimator_rfe, timeseriessplit_value_rfe, num_steps_rfe
     except:
@@ -2787,7 +2787,6 @@ def model_documentation(selected_model_info):
                                 <br>
                                 <br>
                                 ''', unsafe_allow_html=True)
-                return selected_model_info
             else:
                 pass   
             
@@ -5740,26 +5739,7 @@ if sidebar_menu_item == 'About':
                     with col2:
                         vertical_spacer(1)
                         st.image('./images/astronaut_helmet.png')
-        # =============================================================================
-        # Show your support 
-        # ============================================================================= 
-        if selected_about_page == 'Show your support':  
-            
-            with st.expander('', expanded=True):    
-                col1, col2, col3 = st.columns([2,4,2])
-                with col2:
-                    
-                    st.markdown('<h1 style="text-align:center; font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; font-weight: 200; font-size: 32px; line-height: 1.5;">Show your support {}</h1>'.format(balloon_heart_svg), unsafe_allow_html=True)
-                    vertical_spacer(2)
-                    my_text_paragraph('If you find this app useful, please consider supporting it by buying me a coffee. Your support helps me continue developing and maintaining this app. Thank you!')
-                
-                col1, col2, col3 = st.columns([2,2,2])
-                with col2:
-                    vertical_spacer(2)
-                    my_bubbles('')
-                    button(username="tonyhollaar", floating=False, width=221,  text = 'Buy me a coffee', bg_color = '#FFFFFF', font='Cookie', font_color='black', coffee_color='black')
-                
-                    vertical_spacer(14)
+                        
                 # scrolling/marquee text effect
                 space_quotes = """ "That's one small step for man, one giant leap for mankind." - Neil Armstrong, Apollo 11 astronaut, upon stepping onto the lunar surface in 1969  \
                                 | "The sky is not the limit; it's just the beginning." - Astronaut Kathy Sullivan, the first American woman to perform a spacewalk\
@@ -5784,6 +5764,27 @@ if sidebar_menu_item == 'About':
                     'animationDuration': '45s',
                 })
                 
+        # =============================================================================
+        # Show your support 
+        # ============================================================================= 
+        if selected_about_page == 'Show your support':  
+            
+            with st.expander('', expanded=True):    
+                col1, col2, col3 = st.columns([2,4,2])
+                with col2:
+                    
+                    st.markdown('<h1 style="text-align:center; font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; font-weight: 200; font-size: 32px; line-height: 1.5;">Show your support {}</h1>'.format(balloon_heart_svg), unsafe_allow_html=True)
+                    vertical_spacer(2)
+                    my_text_paragraph('If you find this app useful, please consider supporting it by buying me a coffee. Your support helps me continue developing and maintaining this app. Thank you!')
+                
+                col1, col2, col3 = st.columns([2,2,2])
+                with col2:
+                    vertical_spacer(2)
+                    my_bubbles('')
+                    button(username="tonyhollaar", floating=False, width=221,  text = 'Buy me a coffee', bg_color = '#FFFFFF', font='Cookie', font_color='black', coffee_color='black')
+                
+                    vertical_spacer(14)
+
                 
         # =============================================================================
         # Versioning 
@@ -5826,7 +5827,41 @@ if sidebar_menu_item == 'FAQ':
                                                 label_visibility='collapsed', 
                                                 index = 0,
                                              )
-    
+        # =============================================================================
+        # SOCIAL LINKS
+        # =============================================================================
+        vertical_spacer(30)
+        # Get the URL to link to
+        github_url = "https://github.com/tonyhollaar/ForecastGenie"  # Replace with your GitHub URL
+        medium_url = "https://medium.com/@thollaar"  # Replace with your Medium URL
+        logo_url = "https://tonyhollaar.com"  # Replace with the URL to your logo
+        twitter_url = "https://twitter.com/tonyhollaar"  # Replace with your Twitter URL
+        
+        # Generate the HTML code for the GitHub icon
+        github_code = f'<a href="{github_url}"><img src="https://raw.githubusercontent.com/tonyhollaar/ForecastGenie/main/images/github-mark.png" alt="GitHub" width="32"></a>'
+        
+        # Generate the HTML code for the Medium icon
+        medium_code = f'<a href="{medium_url}"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Medium_logo_Monogram.svg/512px-Medium_logo_Monogram.svg.png" alt="Medium" width="32"></a>'
+        
+        # Generate the HTML code for the logo
+        logo_code = f'<a href="{logo_url}"><img src="https://raw.githubusercontent.com/tonyhollaar/ForecastGenie/main/images/logo_website.png" alt="Logo" width="32"></a>'
+        
+        twitter_code = f'<a href="{twitter_url}"><img src="https://raw.githubusercontent.com/tonyhollaar/ForecastGenie/main/images/twitter_logo_black.png" alt="Logo" width="32"></a>'
+        # Render the icons using st.markdown()
+        col1, col2, col3, col4, col5, col6, col7, col8, col9 = st.columns([1, 2, 1, 2, 1, 2, 1, 2, 1])
+        with col2:
+            st.markdown(logo_code, unsafe_allow_html=True)
+           
+        with col4:
+            st.markdown(medium_code, unsafe_allow_html=True)
+            
+        with col6:
+            st.markdown(twitter_code, unsafe_allow_html=True)
+            
+        with col8:
+            st.markdown(github_code, unsafe_allow_html=True)
+
+        
     if selected_faq_page == '-':
         with st.expander('', expanded=True):
             st.image('./images/faq_page.png') # Tree Image     
@@ -5871,90 +5906,133 @@ if sidebar_menu_item == 'FAQ':
                                   my_text_align='justify')
                 vertical_spacer(20)
                 
-        my_text_paragraph('<b>Question:</b><i>What kind of metrics does ForecastGenie use to evaluate model performance?</i>', my_text_align='justify')
-        my_text_paragraph('<b>Answer:</b> ForecastGenie uses a range of business-standard evaluation metrics to assess the accuracy of forecasting models, including Mean Absolute Error (MAE), Mean Squared Error (MSE), Root Mean Squared Error (RMSE), and more. These metrics provide users with a reliable and objective measure of their model\'s performance.')
-        vertical_spacer(1)
-        my_text_paragraph('<b>Is ForecastGenie really free? </b>', add_border=True)
-        my_text_paragraph('Yes! ForecastGenie is completely free and open-source. If you find the application useful and would like to show your support, you can choose to "buy the creator a coffee" using the link provided on the app. However, this is entirely optional, and there are no hidden fees or costs associated with using ForecastGenie.')
-        vertical_spacer(1)
-        my_text_paragraph('<b>Is ForecastGenie suitable for non-technical users? </b>', add_border=True)
-        my_text_paragraph('Yes! ForecastGenie is designed to be user-friendly and intuitive, even for users with little or no technical experience. The application includes automated data cleaning and feature engineering, making it easy to prepare your data for forecasting. Additionally, the user interface is simple and easy to navigate, with clear instructions and prompts throughout the process.')
-        
-        #### Flashcard front / back
-        st.write('')
-        col1, col2, col3 = st.columns([1,30,1])
-        with col2:
-            st.write('')
-            my_code = """<div class="flashcard_faq">
-                          <div class="front_faq">
-                            <h2><center>Other Questions?</center></h2>
-                          </div>
-                          <div class="back_faq">
-                            <h2><center>info@forecastgenie.com</center></h2>
-                          </div>
-                        </div>
-                        <style>
-                        .flashcard_faq {
-                          position: relative;
-                          width: 400px;
-                          height: 150px;
-                          background-color: white;
-                          border-radius: 10px;
-                          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-                          perspective: 1000px;
-                        }
-                        
-                        .front_faq, .back_faq {
-                          position: absolute;
-                          top: 0;
-                          left: 0;
-                          width: 100%;
-                          height: 100%;
-                          border-radius: 10px;
-                          backface-visibility: hidden;
-                          font-family: Arial;
-                        }
-                        
-                        .front_faq {
-                          background: linear-gradient(to bottom, #45B8AC , #3690c0);
-                          color: white;
-                          transform: rotateY(0deg);
-                        }
-                        
-                        .back_faq {
-                          background:linear-gradient(to bottom, #45B8AC , #3690c0);
-                          color: black;
-                          transform: rotateY(180deg);
-                        }
-                        
-                        .flashcard_faq:hover .front_faq {
-                          transform: rotateY(180deg);
-                        }
-                        
-                        .flashcard_faq:hover .back_faq {
-                          transform: rotateY(0deg);
-                        }
-                        .front_faq h2, .back_faq h2 {
-                            color: white;
-                            text-align: center;
-                            margin-top: 10%;
-                            transform: translateY(-10%);
-                            font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
-                        }
-                        .front_faq h2 {
-                                    font-size: 26px;
-                                    line-height: 1.5;
-                                    }
-                        .back_faq h2 {
-                                    font-size: 22px;
-                                    line-height: 2;
-                                    }
-                        </style>"""
-            # show flashcard in streamlit                    
-            st.markdown(my_code, unsafe_allow_html=True)
-            # vertical spacers
-            vertical_spacer(5)
-  
+    # =============================================================================
+    # What metrics does ForecastGenie use?             
+    # =============================================================================            
+    if selected_faq_page == 'What metrics does ForecastGenie use?':  
+        with st.expander('', expanded=True):
+            col1, col2, col3 = st.columns([2,8,2])
+            with col2:
+                vertical_spacer(10)
+                my_text_paragraph('<b>Question: </b><i>What metrics does ForecastGenie use?</i>', my_text_align='justify')
+                my_text_paragraph('<b>Answer: </b> ForecastGenie uses a range of business-standard evaluation metrics to assess the accuracy of forecasting models, including Mean Absolute Error (MAE), Mean Squared Error (MSE), Root Mean Squared Error (RMSE), and more. These metrics provide users with a reliable and objective measure of their model\'s performance.',
+                                  my_text_align='justify')
+                vertical_spacer(20)
+    
+    # =============================================================================
+    # Is ForecastGenie really free?            
+    # =============================================================================
+    if selected_faq_page == 'Is ForecastGenie really free?':
+        with st.expander('', expanded=True):
+            col1, col2, col3 = st.columns([2,8,2])
+            with col2:
+                vertical_spacer(10)
+                my_text_paragraph('<b>Question: </b><i>Is ForecastGenie really free?</i>',  my_text_align='justify')
+                my_text_paragraph('<b>Answer:</b> Yes! ForecastGenie is completely free and open-source.',
+                                  my_text_align='justify')
+                vertical_spacer(20)
+                
+
+    # =============================================================================
+    # Is ForecastGenie suitable for non-technical users?         
+    # =============================================================================
+    if selected_faq_page == 'Is ForecastGenie suitable for non-technical users?':
+        with st.expander('', expanded=True):
+            col1, col2, col3 = st.columns([2,8,2])
+            with col2:
+                vertical_spacer(10)           
+                my_text_paragraph('<b>Question:</b><i> Is ForecastGenie suitable for non-technical users?</i>',  my_text_align='justify')
+                my_text_paragraph('<b>Answer:</b> Yes! ForecastGenie is designed to be user-friendly and intuitive, even for users with little or no technical experience. The application includes automated data cleaning and feature engineering, making it easy to prepare your data for forecasting. Additionally, the user interface is simple and easy to navigate, with clear instructions and prompts throughout the process.',
+                                  my_text_align='justify')
+                vertical_spacer(20)
+    # =============================================================================
+    # Is ForecastGenie suitable for non-technical users?         
+    # =============================================================================
+    if selected_faq_page == 'Other Questions?':
+        with st.expander('', expanded=True):    
+            
+            vertical_spacer(8)
+            
+            #### Flashcard front / back
+            col1, col2, col3 = st.columns([4, 12, 4])
+            with col2:
+                my_code = """<div class="flashcard_faq">
+              <div class="front_faq">
+                <div class="content">
+                  <h2>Other Questions?</h2>
+                </div>
+              </div>
+              <div class="back_faq">
+                <div class="content">
+                  <h2>info@forecastgenie.com</h2>
+                </div>
+              </div>
+            </div>
+            <style>
+            .flashcard_faq {
+              position: relative;
+              width: 400px;
+              height: 400px;
+              background-color: white;
+              border-radius: 10px;
+              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+              perspective: 1000px;
+              transition: transform 0.6s;
+              transform-style: preserve-3d;
+            }
+            
+            .front_faq, .back_faq {
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              border-radius: 10px;
+              backface-visibility: hidden;
+              font-family: "Roboto", Arial, sans-serif; 
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              text-align: center;
+            }
+            
+            .front_faq {
+              background: linear-gradient(to top, #f74996 , #3690c0);
+              color: white;
+              transform: rotateY(0deg);
+            }
+            
+            .back_faq {
+              background:linear-gradient(to top, #f74996 , #3690c0);
+              transform: rotateY(180deg);
+            }
+            
+            .flashcard_faq:hover .front_faq {
+              transform: rotateY(180deg);
+            }
+            
+            .flashcard_faq:hover .back_faq {
+              transform: rotateY(0deg);
+            }
+            
+            .content h2 {
+              margin: 0;
+              font-size: 26px;
+              line-height: 1.5;
+            }
+            
+            .back_faq h2 {
+              color: white;  /* Add this line to set text color to white */
+            }
+            .front_faq h2 {
+              color: white;  /* Add this line to set text color to white */
+            }
+            </style>"""
+
+
+                # show flashcard in streamlit                    
+                st.markdown(my_code, unsafe_allow_html=True)
+                vertical_spacer(10)
 # LOGGING
 print('ForecastGenie Print: Loaded FAQ Page')
 
@@ -5967,9 +6045,7 @@ print('ForecastGenie Print: Loaded FAQ Page')
 #  |_____/ \____/ \_____|
 #                        
 # =============================================================================  
-
-
-# Documentation                                                                                       
+# Documentation
 if sidebar_menu_item == 'Doc':
     with st.sidebar:
         vertical_spacer(2)
@@ -5979,40 +6055,35 @@ if sidebar_menu_item == 'Doc':
         
         with col2:
             selected_doc_page = st.selectbox(
-                                                 label = "*Select Page*:", 
-                                                 options = ['-',
-                                                            'Step 1: Load Dataset', 
-                                                            'Step 2: Explore Dataset', 
-                                                            'Step 3: Clean Dataset', 
-                                                            'Step 4: Engineer Features',
-                                                            'Step 5: Prepare Dataset',
-                                                            'Step 6: Select Features',
-                                                            'Step 7: Train Models',
-                                                            'Step 8: Evaluate Models',
-                                                            'Step 9: Tune Models',
-                                                            'Step 10: Forecast'], 
-                                                label_visibility='collapsed', 
-                                                index = 0,
-                                             )
-       
-       
-
-        
+                                             label = "*Select Page*:", 
+                                             options = ['-',
+                                                        'Step 1: Load Dataset', 
+                                                        'Step 2: Explore Dataset', 
+                                                        'Step 3: Clean Dataset', 
+                                                        'Step 4: Engineer Features',
+                                                        'Step 5: Prepare Dataset',
+                                                        'Step 6: Select Features',
+                                                        'Step 7: Train Models',
+                                                        'Step 8: Evaluate Models',
+                                                        'Step 9: Tune Models',
+                                                        'Step 10: Forecast'], 
+                                            label_visibility='collapsed', 
+                                            index = 0,
+                                            )
     with st.expander('', expanded=True):
-
-
-
         # DOC: FRONT PAGE
         ################################
         if selected_doc_page == '-':
-            # SHOW FRONT PAGE IMAGE
             st.image('./images/documentation.png')
        
         # DOC: LOAD
         ################################
         if selected_doc_page == 'Step 1: Load Dataset':   
+            
             my_text_header('<b> Step 1: </b> <br> Load Dataset')
+            
             show_lottie_animation(url="./images/116206-rocket-fly-out-the-laptop.json", key="rocket_fly_out_of_laptop", height=200, width=200, speed = 1, loop=True, quality='high', col_sizes = [4,4,4])
+            
             col1, col2, col3 = st.columns([2,8,2])    
             with col2:
                my_text_paragraph('''The <i> ForecastGenie </i> application provides users with a convenient way to upload data files from the sidebar menu. The application supports common file formats such as .csv and .xls. \
@@ -6027,9 +6098,17 @@ if sidebar_menu_item == 'Doc':
         # DOC: EDA
         ################################      
         if selected_doc_page == 'Step 2: Explore Dataset':
+            
             my_text_header('<b> Step 2: </b> <br> Explore Dataset')
-            show_lottie_animation(url="./images/58666-sputnik-mission-launch.json", key='test', width=150, height=150,
-                                  speed=1, col_sizes=[45, 40, 40], margin_before=1)
+            
+            show_lottie_animation(url = "./images/58666-sputnik-mission-launch.json", 
+                                  key = 'test', 
+                                  width = 150, 
+                                  height = 150,
+                                  speed = 1, 
+                                  col_sizes = [45, 40, 40], 
+                                  margin_before = 1)
+            
             col1, col2, col3 = st.columns([2,8,2])    
             with col2:
                 my_text_paragraph('''
@@ -6039,14 +6118,17 @@ if sidebar_menu_item == 'Doc':
                                   <br> The <i> Patterns </i> section allows users to visually explore underlying patterns and relationships within the data. Users can select different histogram frequency types to visualize data distribution. The Ljung-Box test is available to assess the presence of white noise. The Augmented Dickey-Fuller (ADF) test can be used to determine stationarity, indicating whether the data exhibits time-dependent patterns. 
                                   Additionally, users can analyze autocorrelation using the ACF/PACF to understand how data point relates to previous data points.
                                   <br> Do not skip exploratory data analysis, because you don't want to end up finding yourself lost in a black hole!
-                                  ''', my_text_align='justify')
+                                  ''', my_text_align = 'justify')
                 vertical_spacer(2)
         
         # DOC: Clean
         ################################ 
         if selected_doc_page == 'Step 3: Clean Dataset':                   
+            
             my_text_header('<b> Step 3: </b> <br> Clean Dataset')
+            
             show_lottie_animation(url="./images/88404-loading-bubbles.json", key="loading_bubbles", width=200, height=200, col_sizes=[2,2,2])
+            
             col1, col2, col3 = st.columns([2,8,2])   
             with col2:
                 my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
@@ -6054,8 +6136,11 @@ if sidebar_menu_item == 'Doc':
         # DOC: Engineer
         ################################ 
         if selected_doc_page == 'Step 4: Engineer Features':
+            
             my_text_header('<b> Step 4: </b> <br> Engineer Features')
+            
             show_lottie_animation(url="./images/141844-shapes-changing-preloader.json", key='shapes_changing_preloader', width=200, height=200, col_sizes=[2,2,2])
+            
             col1, col2, col3 = st.columns([2,8,2])   
             with col2:
                 my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
@@ -6063,8 +6148,11 @@ if sidebar_menu_item == 'Doc':
         # DOC: Prepare
         ################################    
         if selected_doc_page == 'Step 5: Prepare Dataset':
+            
             my_text_header('<b> Step 5: </b> <br> Prepare Dataset')
+            
             show_lottie_animation(url="./images/141560-loader-v25.json", key='prepare', width=200, height=200, col_sizes=[20,20,20])
+            
             col1, col2, col3 = st.columns([2,8,2])   
             with col2:
                 my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
@@ -6072,8 +6160,11 @@ if sidebar_menu_item == 'Doc':
         # DOC: Select
         ################################   
         if selected_doc_page == 'Step 6: Select Features':
+            
             my_text_header('<b> Step 6: </b> <br> Select Features')
+            
             show_lottie_animation(url="./images/102149-square-loader.json", key='square_loader', width=200, height=200, col_sizes = [4,4,4])
+            
             col1, col2, col3 = st.columns([2,8,2])   
             with col2:
                 my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
@@ -6081,8 +6172,11 @@ if sidebar_menu_item == 'Doc':
         # DOC: Train
         ################################   
         if selected_doc_page == 'Step 7: Train Models':
+           
             my_text_header('<b> Step 7: </b> <br> Train Models')
+            
             show_lottie_animation(url="./images/100037-rubiks-cube.json", key='rubiks_cube', width=200, height=200, col_sizes = [4,4,4])
+            
             col1, col2, col3 = st.columns([2,8,2])   
             with col2:
                 my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
@@ -6090,8 +6184,11 @@ if sidebar_menu_item == 'Doc':
         # DOC: Evaluate
         ################################    
         if selected_doc_page == 'Step 8: Evaluate Models':
+            
             my_text_header('<b> Step 8: </b> <br> Evaluate Models')
+            
             show_lottie_animation(url="./images/70114-blue-stars.json", key='blue-stars', width=200, height=200, col_sizes = [4,4,4], speed = 1)
+            
             col1, col2, col3 = st.columns([2,8,2])   
             with col2:
                 my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
@@ -6099,8 +6196,11 @@ if sidebar_menu_item == 'Doc':
         # DOC: Tune
         ################################    
         if selected_doc_page == 'Step 9: Tune Models':
+            
             my_text_header('<b> Step 9: </b> <br> Tune Models')
+            
             show_lottie_animation(url="./images/95733-loading-20.json", key='tune_sliders', width=150, height=150, col_sizes = [5,4,4], speed = 1)
+            
             col1, col2, col3 = st.columns([2,8,2])   
             with col2:
                 my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
@@ -6108,13 +6208,14 @@ if sidebar_menu_item == 'Doc':
         # DOC: Forecast
         ################################   
         if selected_doc_page == 'Step 10: Forecast':
+            
             my_text_header('<b> Step 10: </b> <br> Forecast')
+            
             show_lottie_animation(url="./images/55298-data-forecast-loading.json", key='forecast', width=200, height=200, col_sizes = [4,4,4], speed = 1)
+            
             col1, col2, col3 = st.columns([2,8,2])   
             with col2:
                 my_text_paragraph('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam pretium nisl vel mauris congue, non feugiat neque lobortis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed ullamcorper massa ut ligula sagittis tristique. Donec rutrum magna vitae felis finibus, vitae eleifend nibh commodo. Aliquam fringilla dui a tellus interdum vestibulum. Vestibulum pharetra, velit et cursus commodo, erat enim eleifend massa, ac pellentesque velit turpis nec ex. Fusce scelerisque, velit non lacinia iaculis, tortor neque viverra turpis, in consectetur diam dui a urna. Quisque in velit malesuada, scelerisque tortor vel, dictum massa. Quisque in malesuada libero.', my_text_align='justify')
-
-
 # LOGGING
 print('Forecastgenie Print: Loaded Documentation Page')
 
@@ -8271,42 +8372,274 @@ else:
 #                                        
 # =============================================================================
 # TRAIN MODELS
+
+# =============================================================================
+# Save user selected models to session state
+# =============================================================================
+key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
+key11_train, key12_train, key13_train, key14_train, key15_train, key16_train, key17_train, key18_train, key19_train, key20_train, \
+key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train = create_store("TRAIN_PAGE", [
+                                                                                ("my_conf_interval", 80),               #key1_train
+                                                                                ("naive_checkbox",  False),             #key2_train
+                                                                                ("linreg_checkbox",  False),            #key3_train
+                                                                                ("sarimax_checkbox", False),            #key4_train
+                                                                                ("prophet_checkbox", False),            #key5_train
+                                                                                ("selected_models", []),                #key6_train
+                                                                                ("lag", 'Week'),                        #key7_train
+                                                                                ("custom_lag_value", 5),                #key8_train
+                                                                                ("p", 1),                               #key9_train
+                                                                                ("d", 1),                               #key10_train
+                                                                                ("q", 1),                               #key11_train
+                                                                                ("P", 1),                               #key12_train
+                                                                                ("D", 1),                               #key13_train
+                                                                                ("Q", 1),                               #key14_train
+                                                                                ("s", 7),                               #key15_train
+                                                                                ("enforce_stationarity",  True),        #key16_train
+                                                                                ("enforce_invertibility", True),        #key17_train
+                                                                                ("horizon_option", 30),                 #key18_train
+                                                                                ("changepoint_prior_scale", 0.05),     #key19_train
+                                                                                ("seasonality_mode", "multiplicative"), #key20_train
+                                                                                ("seasonality_prior_scale", 1.0),       #key21_train
+                                                                                ("holidays_prior_scale", 1.0),          #key22_train
+                                                                                ("yearly_seasonality", True),           #key23_train
+                                                                                ("weekly_seasonality", True),           #key24_train
+                                                                                ("daily_seasonality", True),            #key25_train
+                                                                                ("results_df", pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])), #key26_train
+                                                                                ("run", 0)                              #key27_train
+                                                                                ])
+
 if menu_item == 'Train' and sidebar_menu_item == 'Home':
     ################################################
-    # Create a User Form to Select Model(s) to train
+    # MODEL INFORMATION USER SELECTBOX IN SIDEBAR
     ################################################
     with st.sidebar:
         my_title(f"{train_icon}", "#3b3b3b")
         with st.expander('', expanded=True):
+            
             my_text_paragraph('Model Information')
+            
             vertical_spacer(1)
+            
             col1, col2, col3 = st.columns([1,1,1])
-            selected_model_info = col2.selectbox(
-                                                 label = "*Select model*:", 
-                                                 options = ['-', 'Naive Model', 'Linear Regression', 'SARIMAX', 'Prophet'], 
-                                                 label_visibility='collapsed'
-                                                )
+            with col2:
+                selected_model_info = st.selectbox(
+                                                     label = "*Select model*:", 
+                                                     options = ['-', 'Naive Model', 'Linear Regression', 'SARIMAX', 'Prophet'], 
+                                                     label_visibility='collapsed'
+                                                  )
             vertical_spacer(2)
             
         # update session state
         st.session_state['selected_model_info'] = selected_model_info
-     
+    
+    # =============================================================================
+    # USER FORM: TRAIN MODELS (MODEL CHECKBOXES, PARAMETERS AND HYPERPARAMETERS)
+    # =============================================================================
     with st.sidebar.form('model_train_form'):
         vertical_spacer(1)
+       
         my_text_paragraph('Model Selection')
-        # generic graph settings
+        
+        # Generic Graph Settings
         my_conf_interval = st.slider(
                                      label = "*Set Confidence Interval (%)*", 
-                                     min_value=1, 
-                                     max_value=99, 
-                                     value=80, 
-                                     step=1, 
-                                     help='A **`confidence interval`** is a range of values around a sample statistic, such as a mean or proportion, which is likely to contain the true population parameter with a certain degree of confidence.\
-                                           The level of confidence is typically expressed as a percentage, such as 95%, and represents the probability that the true parameter lies within the interval.\
-                                           A wider interval will generally have a higher level of confidence, while a narrower interval will have a lower level of confidence.'
+                                     min_value = 1, 
+                                     max_value = 99, 
+                                     #value=80, 
+                                     step = 1,
+                                     key = key1_train,
+                                     help = 'A **`confidence interval`** is a range of values around a sample statistic, such as a mean or proportion, which is likely to contain the true population parameter with a certain degree of confidence.\
+                                            The level of confidence is typically expressed as a percentage, such as 95%, and represents the probability that the true parameter lies within the interval.\
+                                            A wider interval will generally have a higher level of confidence, while a narrower interval will have a lower level of confidence.'
                                     )
         
-        # define all models you want user to choose from
+        # *****************************************************************************
+        # 1. NAIVE MODEL         
+        # *****************************************************************************
+        naive_model_checkbox = st.checkbox(label = 'Naive Model', 
+                                           key = key2_train)
+        
+        # *****************************************************************************
+        # 1.1 NAIVE MODEL PARAMETERS        
+        # *****************************************************************************  
+        custom_lag_value = None
+        with st.expander('◾'):
+            lag = st.selectbox(label = '*Select seasonal **lag** for the Naive Model:*', 
+                               options = ['Day', 'Week', 'Month', 'Year', 'Custom'],
+                               key = key7_train)
+            lag = lag.lower()
+            
+            if lag == 'custom':
+                custom_lag_value = st.number_input(label = "*If seasonal **lag** set to Custom, please set lag value (in days):*", 
+                                                   step = 1,
+                                                   key = key8_train)
+                
+                custom_lag_value = custom_lag_value if custom_lag_value is not None else None
+
+        # *****************************************************************************
+        # 2. LINEAR REGRESSION MODEL        
+        # *****************************************************************************
+        linreg_checkbox = st.checkbox('Linear Regression', 
+                                      key = key3_train)
+        
+        # *****************************************************************************
+        # 3. SARIMAX MODEL        
+        # *****************************************************************************
+        sarimax_checkbox = st.checkbox('SARIMAX', 
+                                       key = key4_train)
+        
+        # *****************************************************************************
+        # 3.1 SARIMAX MODEL PARAMETERS         
+        # *****************************************************************************
+        with st.expander('◾', expanded=False):
+            
+            col1, col2, col3 = st.columns([5,1,5])
+            with col1:
+                p = st.number_input(label = "Autoregressive Order (p):", 
+                                    #value = 1, 
+                                    min_value = 0, 
+                                    max_value = 10,
+                                    key = key9_train)
+                
+                d = st.number_input(label = "Differencing (d):", 
+                                    #value = 1, 
+                                    min_value = 0, 
+                                    max_value = 10,
+                                    key = key10_train)
+                
+                q = st.number_input(label = "Moving Average (q):", 
+                                    #value = 1, 
+                                    min_value = 0, 
+                                    max_value = 10,
+                                    key = key11_train)   
+            with col3:
+                P = st.number_input(label = "Seasonal Autoregressive Order (P):", 
+                                    #value=1, 
+                                    min_value = 0, 
+                                    max_value = 10,
+                                    key = key12_train)
+                
+                D = st.number_input(label = "Seasonal Differencing (D):", 
+                                    #value=1, 
+                                    min_value = 0, 
+                                    max_value = 10,
+                                    key = key13_train)
+                
+                Q = st.number_input(label = "Seasonal Moving Average (Q):", 
+                                    #value=1, 
+                                    min_value = 0, 
+                                    max_value = 10,
+                                    key = key14_train)
+                
+                s = st.number_input(label = "Seasonal Periodicity (s):", 
+                                    value = 7, 
+                                    min_value = 1, 
+                                    key = key15_train,
+                                    help = '`Seasonal periodicity` i.e. **$s$** in **SARIMAX** refers to the **number of observations per season**.\
+                                           \n\nFor example, if we have daily data with a weekly seasonal pattern, **s** would be 7 because there are 7 days in a week.\
+                                           Similarly, for monthly data with an annual seasonal pattern, **s** would be 12 because there are 12 months in a year.\
+                                           Here are some common values for **$s$**:\
+                                           \n- **Daily data** with **weekly** seasonality: **$s=7$** \
+                                           \n- **Monthly data** with **quarterly** seasonality: **$s=3$**\
+                                           \n- **Monthly data** with **yearly** seasonality: **$s=12$**\
+                                           \n- **Quarterly data** with **yearly** seasonality: **$s=4$**')
+
+            col1, col2, col3 = st.columns([5,1,5])
+            with col1:
+                # Add a selectbox for selecting enforce_stationarity
+                enforce_stationarity = st.selectbox(label = 'Enforce Stationarity', 
+                                                    options = [True, False], 
+                                                    #index = 0,
+                                                    key =  key16_train)
+            with col3:
+                # Add a selectbox for selecting enforce_invertibility
+                enforce_invertibility = st.selectbox(label = 'Enforce Invertibility', 
+                                                     options = [True, False], 
+                                                     #index = 0
+                                                     key = key17_train)
+        
+        # *****************************************************************************
+        # 4 PROPHET MODEL
+        # *****************************************************************************
+        prophet_checkbox = st.checkbox('Prophet', 
+                                       key = key5_train)    
+        
+        # *****************************************************************************
+        # 4.1 PROPHET MODEL PARAMETERS
+        # *****************************************************************************
+        with st.expander('◾', expanded = False):
+            # used to have int(st.slider) -> not needed? # TEST
+            horizon_option = st.slider(label = 'Set Forecast Horizon (default = 30 Days):', 
+                                       min_value = 1, 
+                                       max_value = 365, 
+                                       step = 1, 
+                                       #value = 30,
+                                       key = key18_train,
+                                       help = 'The horizon for a Prophet model is typically set to the number of time periods that you want to forecast into the future. This is also known as the forecasting horizon or prediction horizon.'
+                                      )
+                    
+            changepoint_prior_scale = st.slider(label = "changepoint_prior_scale", 
+                                                min_value = 0.001, 
+                                                max_value = 1.0, 
+                                                #value = 0.05, 
+                                                step = 0.01, 
+                                                key = key19_train,
+                                                help = 'This is probably the most impactful parameter. It determines the flexibility of the trend, and in particular how much the trend changes at the trend changepoints. As described in this documentation, if it is too small, the trend will be underfit and variance that should have been modeled with trend changes will instead end up being handled with the noise term. If it is too large, the trend will overfit and in the most extreme case you can end up with the trend capturing yearly seasonality. The default of 0.05 works for many time series, but this could be tuned; a range of [0.001, 0.5] would likely be about right. Parameters like this (regularization penalties; this is effectively a lasso penalty) are often tuned on a log scale.'
+                                               )
+            
+            # used to be str(selectbox) -> not needed? # TEST
+            seasonality_mode = st.selectbox(label = "seasonality_mode", 
+                                            options = ["additive", "multiplicative"], 
+                                            #index = 1,
+                                            key = key20_train)
+            
+            seasonality_prior_scale = st.slider(label = "seasonality_prior_scale", 
+                                                min_value = 0.010, 
+                                                max_value = 10.0, 
+                                                #value = 1.0, 
+                                                step = 0.1,
+                                                key = key21_train)
+            
+            holidays_prior_scale = st.slider(label = "holidays_prior_scale", 
+                                             min_value = 0.010, 
+                                             max_value = 10.0, 
+                                             #value = 1.0, 
+                                             step = 0.1,
+                                             key = key22_train)
+            
+            yearly_seasonality = st.selectbox(label = "yearly_seasonality", 
+                                              options = [True, False], 
+                                              #index = 0,
+                                              key = key23_train)
+            
+            weekly_seasonality = st.selectbox(label = "weekly_seasonality", 
+                                              options = [True, False], 
+                                              #index = 0,
+                                              key = key24_train)
+            
+            daily_seasonality = st.selectbox(label = "daily_seasonality", 
+                                             options = [True, False], 
+                                             #index = 0,
+                                             key = key25_train)
+
+            interval_width = int(my_conf_interval/100)
+        
+
+        col1, col2, col3 = st.columns([4,4,4])
+        with col2: 
+            # submit button of user form for training models and updating session states on click utilizing custom package fire-state
+            train_models_btn = st.form_submit_button(label = "Submit", 
+                                                     type = "secondary", 
+                                                     on_click = form_update, 
+                                                     args=('TRAIN_PAGE',)
+                                                     )
+            # update session_state 
+            st.session_state['train_models_btn'] = train_models_btn
+     
+        # *****************************************************************************
+        # ALL MODELS
+        # *****************************************************************************
+        # Define all models you want user to choose from (<model_name>, <actual model to be called when fitting the model>)
         models = [
                   ('Naive Model', None),
                   ('Linear Regression', LinearRegression(fit_intercept=True)), 
@@ -8314,96 +8647,41 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                   ('Prophet', Prophet())
                  ]
       
-        # create a checkbox for each model
+        # initiate empty list to hold user's checked model names and models from selectboxes
         selected_models = []
-        
-        # iterate over each model in list
+
+        # Iterate over each model in list and add to selected models variable
         for model_name, model in models:
-            if st.checkbox(model_name):
+
+            # Add model name and model if checkbox of model is checked into a list
+            if model_name == 'Naive Model' and naive_model_checkbox == True:
+               selected_models.append((model_name, model))
+               
+            # Add model name and model if checkbox of model is checked into a list
+            if model_name == 'Linear Regression' and linreg_checkbox == True:
                 selected_models.append((model_name, model))
-            if model_name == "Naive Model":
-                custom_lag_value = None
-                with st.expander('◾'):
-                    lag = st.selectbox(label = '*Select seasonal **lag** for the Naive Model:*', 
-                                       options = ['Day', 'Week', 'Month', 'Year', 'Custom'],
-                                       index = get_state("TRAIN_PARAMS", "naive_model_seasonal_lag_index")
-                                       )
-                    if lag == 'Custom':
-                        lag = lag.lower()
-                        custom_lag_value = st.number_input(label = "*If seasonal **lag** set to Custom, please set lag value (in days):*", 
-                                                           value=5)
-                        if custom_lag_value != "":
-                            custom_lag_value = int(custom_lag_value)
-                        else:
-                            custom_lag_value = None
-                    else:
-                        # lag is lowercase string of selection from user in selectbox
-                        lag = lag.lower()
-                    # update the lag index to user set option of lag e.g. Day/Week/Month/Year/Custom
-                    set_state("TRAIN_PARAMS", ("naive_model_seasonal_lag_index", ['day', 'week', 'month', 'year', 'custom'].index(lag.lower())))
-            
-            if model_name == "SARIMAX":
-                with st.expander('◾', expanded=False):
-                    col1, col2, col3 = st.columns([5,1,5])
-                    with col1:
-                        p = st.number_input("Autoregressive Order (p):", value=1, min_value=0, max_value=10)
-                        d = st.number_input("Differencing (d):", value=1, min_value=0, max_value=10)
-                        q = st.number_input("Moving Average (q):", value=1, min_value=0, max_value=10)   
-                    with col3:
-                        P = st.number_input("Seasonal Autoregressive Order (P):", value=1, min_value=0, max_value=10)
-                        D = st.number_input("Seasonal Differencing (D):", value=1, min_value=0, max_value=10)
-                        Q = st.number_input("Seasonal Moving Average (Q):", value=1, min_value=0, max_value=10)
-                        s = st.number_input("Seasonal Periodicity (s):", value=7, min_value=1, help='`Seasonal periodicity` i.e. **$s$** in **SARIMAX** refers to the **number of observations per season**.\
-                                                                                                     \n\nFor example, if we have daily data with a weekly seasonal pattern, **s** would be 7 because there are 7 days in a week.\
-                                                                                                     Similarly, for monthly data with an annual seasonal pattern, **s** would be 12 because there are 12 months in a year.\
-                                                                                                     Here are some common values for **$s$**:\
-                                                                                                     \n- **Daily data** with **weekly** seasonality: **$s=7$** \
-                                                                                                     \n- **Monthly data** with **quarterly** seasonality: **$s=3$**\
-                                                                                                     \n- **Monthly data** with **yearly** seasonality: **$s=12$**\
-                                                                                                     \n- **Quarterly data** with **yearly** seasonality: **$s=4$**')                   
-                    col1, col2, col3 = st.columns([5,1,5])
-                    with col1:
-                        # Add a selectbox for selecting enforce_stationarity
-                        enforce_stationarity = st.selectbox('Enforce Stationarity', [True, False], index=0 )
-                    with col3:
-                        # Add a selectbox for selecting enforce_invertibility
-                        enforce_invertibility = st.selectbox('Enforce Invertibility', [True, False], index=0)
-                        
-            if model_name == "Prophet":
-                with st.expander('◾', expanded=False):
-                    horizon_option = int(st.slider('Set Forecast Horizon (default = 30 Days):', min_value=1, max_value=365, step=1, value=30, help='The horizon for a Prophet model is typically set to the number of time periods that you want to forecast into the future. This is also known as the forecasting horizon or prediction horizon.'))
-                    changepoint_prior_scale = st.slider("changepoint_prior_scale", min_value=0.001, max_value=1.0, value=0.05, step=0.01, help='This is probably the most impactful parameter. It determines the flexibility of the trend, and in particular how much the trend changes at the trend changepoints. As described in this documentation, if it is too small, the trend will be underfit and variance that should have been modeled with trend changes will instead end up being handled with the noise term. If it is too large, the trend will overfit and in the most extreme case you can end up with the trend capturing yearly seasonality. The default of 0.05 works for many time series, but this could be tuned; a range of [0.001, 0.5] would likely be about right. Parameters like this (regularization penalties; this is effectively a lasso penalty) are often tuned on a log scale.')
-                    seasonality_mode = str(st.selectbox("seasonality_mode", ["additive", "multiplicative"], index=1))
-                    seasonality_prior_scale = st.slider("seasonality_prior_scale", min_value=0.010, max_value=10.0, value=1.0, step=0.1)
-                    holidays_prior_scale = st.slider("holidays_prior_scale", min_value=0.010, max_value=10.0, value=1.0, step=0.1)
-                    yearly_seasonality = st.selectbox("yearly_seasonality", [True, False], index=0)
-                    weekly_seasonality = st.selectbox("weekly_seasonality", [True, False], index=0)
-                    daily_seasonality = st.selectbox("daily_seasonality", [True, False], index=0)
-                    interval_width = int(my_conf_interval/100)
-            else:
-                st.sidebar.empty()
+                
+            # add model name and model if checkbox of model is checked into a list
+            if model_name == 'SARIMAX' and sarimax_checkbox == True:
+                selected_models.append((model_name, model))
+                
+            # add model name and model if checkbox of model is checked into a list
+            if model_name == 'Prophet' and prophet_checkbox == True:
+                selected_models.append((model_name, model))   
+    
+    # add the user selected trained models to the session state
+    set_state("TRAIN_PAGE", ("selected_models", selected_models))
         
-        col1, col2, col3 = st.columns([4,4,4])
-        with col2: 
-            # submit button of user form for training models
-            train_models_btn = st.form_submit_button("Submit", type="secondary")
-            # update session_state 
-            st.session_state['train_models_btn'] = train_models_btn
-     
-    # =============================================================================
-    # IF USER HASNT SELECTED ANY MODELS AND HASNT STARTED TRAINING SHOW INFO MESSAGE            
-    # =============================================================================
-    #my_title(f"{train_icon} Train Models", "#0072B2", gradient_colors="#1A2980, #0072B2, #FEBD2E")       
-       
     # SHOW MODEL DOCUMENTATION AFTER MODELS RUN
-    selected_model_info = model_documentation(st.session_state['selected_model_info'])
+    model_documentation(st.session_state['selected_model_info'])
    
     # show page with models listed on flashcards if:
-    # user did not select any model information from drop-down
-    # user did not train any models
+    # if user did not select any model information from drop-down
+    # if user did not train any models
     # if user did train models before and page has to reload to show related dataframe below graph with button click also do not show
     if st.session_state['selected_model_info'] == '-' and not train_models_btn and not selected_models:
         with st.expander('', expanded=True):
+            
             col1, col2, col3 = st.columns([1,3,1])
             with col2:
                     # define the font family to display the text of paragraph
@@ -8421,7 +8699,6 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
         with st.expander('', expanded=True):
             col1, col2, col3 = st.columns([1,3,1])
             with col2:
-                
                 # define the font family to display the text of paragraph
                 train_models_carousel(my_title= 'Select your models to train in the sidebar!')
 
@@ -8433,16 +8710,24 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
         #st.info("You can always retrain your models and adjust hyperparameters!")
         # iterate over all models and if user selected checkbox for model the model(s) is/are trained
         for model_name, model in selected_models:
+            
             try:
                 if model_name == "Naive Model":
                     with st.expander('📈' + model_name, expanded=True):
                         
-                        df_preds = evaluate_regression_model(model, X_train, y_train, X_test, y_test, lag=lag, custom_lag_value=custom_lag_value)
+                        df_preds = evaluate_regression_model(model, 
+                                                             X_train, 
+                                                             y_train, 
+                                                             X_test, 
+                                                             y_test, 
+                                                             lag=lag, 
+                                                             custom_lag_value=custom_lag_value)
                         
                         display_my_metrics(df_preds, "Naive Model")
                        
                         # plot graph with actual versus insample predictions
-                        plot_actual_vs_predicted(df_preds, my_conf_interval)
+                        plot_actual_vs_predicted(df_preds, 
+                                                 my_conf_interval)
                            
                         # =============================================================================
                         #  Show/Hide Button to download dataframe                   
@@ -8454,7 +8739,9 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                             placeholder = st.empty()
                             
                             # create button (enabled to click e.g. disabled=false with unique key)
-                            btn = placeholder.button('Show Details', disabled=False,  key = "show_naive_trained_model_btn")
+                            btn = placeholder.button('Show Details', 
+                                                     disabled=False,
+                                                     key = "show_naive_trained_model_btn")
                        
                         # if button is clicked run below code
                         if btn == True:                       
@@ -8470,7 +8757,9 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                                  my_key = 'naive_trained_model_download_btn')
                         vertical_spacer(1)
     
-                        mape, rmse, r2 = my_metrics(df_preds, model_name=model_name)
+                        mape, rmse, r2 = my_metrics(df_preds, 
+                                                    model_name = model_name)
+                        
                         # add test-results to sidebar Model Test Results dataframe
                         new_row = {'model_name': 'Naive Model',
                                    'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
@@ -8478,9 +8767,14 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                    'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
                                    'features':features_str}
                         
+                        # =============================================================================
+                        # RESULTS_DF: NAIVE MODEL                        
+                        # =============================================================================
                         results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+                        set_state("TRAIN_PAGE", ("results_df", results_df))
             except:
                 st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
+            
             try:
                 if model_name == "Linear Regression":                 
                      # create card with model insample prediction with linear regression model
@@ -8539,38 +8833,44 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                        'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
                                        'features':features_str,
                                        'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}
+                            
                             # get the maximum index of the current results dataframe
                             results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+                            set_state("TRAIN_PAGE", ("results_df", results_df))
             except:
                 st.warning(f'SARIMAX failed to train, please contact administrator!')       
+            
             if model_name == "Prophet": 
                 with st.expander('📈' + model_name, expanded=True):
                     # use custom fucntion that creates in-sample prediction and return a dataframe with 'Actual', 'Predicted', 'Percentage_Diff', 'MAPE' 
                     preds_df_prophet = predict_prophet(y_train,
                                                        y_test, 
-                                                       changepoint_prior_scale=changepoint_prior_scale,
-                                                       seasonality_mode=seasonality_mode,
-                                                       seasonality_prior_scale=seasonality_prior_scale,
-                                                       holidays_prior_scale=holidays_prior_scale,
-                                                       yearly_seasonality=yearly_seasonality,
-                                                       weekly_seasonality=weekly_seasonality,
-                                                       daily_seasonality=daily_seasonality,
-                                                       interval_width=interval_width)
+                                                       changepoint_prior_scale = changepoint_prior_scale,
+                                                       seasonality_mode = seasonality_mode,
+                                                       seasonality_prior_scale = seasonality_prior_scale,
+                                                       holidays_prior_scale = holidays_prior_scale,
+                                                       yearly_seasonality = yearly_seasonality,
+                                                       weekly_seasonality = weekly_seasonality,
+                                                       daily_seasonality = daily_seasonality,
+                                                       interval_width = interval_width)
                     
                     display_my_metrics(preds_df_prophet, "Prophet")
                     # plot graph with actual versus insample predictions
-                    plot_actual_vs_predicted(preds_df_prophet, my_conf_interval)
+                    plot_actual_vs_predicted(preds_df_prophet, 
+                                             my_conf_interval)
                     # show the dataframe
                     st.dataframe(preds_df_prophet.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), 
                                  use_container_width=True)
                     
                     # create download button for forecast results to .csv
                     download_csv_button(preds_df_prophet, 
-                                        my_file="insample_forecast_prophet_results.csv", 
-                                        help_message="Download your **Prophet** model results to .CSV",
+                                        my_file = "insample_forecast_prophet_results.csv", 
+                                        help_message = "Download your **Prophet** model results to .CSV",
                                         my_key = 'download_btn_prophet_df_preds')
-                    # define metrics for sarimax model
+                    
+                    # define metrics for prophet model
                     mape, rmse, r2 = my_metrics(preds_df_prophet, model_name=model_name)
+                    
                     # display evaluation results on sidebar of streamlit_model_card
                     new_row = {'model_name': 'Prophet', 
                                'mape': '{:.2%}'.format(metrics_dict['Prophet']['mape']),
@@ -8580,7 +8880,8 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                'model settings': f' changepoint_prior_scale: {changepoint_prior_scale}, seasonality_prior_scale: {seasonality_prior_scale}, holidays_prior_scale: {holidays_prior_scale}, yearly_seasonality: {yearly_seasonality}, weekly_seasonality: {weekly_seasonality}, daily_seasonality: {daily_seasonality}, interval_width: {interval_width}'}
                     
                     results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-
+                    set_state("TRAIN_PAGE", ("results_df", results_df))
+                    
      
 # =============================================================================
 #   ________      __     _     _    _      _______ ______ 
@@ -8605,49 +8906,62 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
 # #lag = st.selectbox('*Select seasonal **lag** for the Naive Model:*', ['None', 'Day', 'Week', 'Month', 'Year', 'Custom'])
 # lag = 'Week'
 # custom_lag_value = None
-# lag = lag.lower()
-# my_conf_interval = 80
 # 
 # ############## TEST 
 # =============================================================================
 
 if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
-    ###################################################################################################################
-    # Add results_df to session state
-    ###################################################################################################################
+    # =============================================================================
+    # SIDEBAR EVALUATE    
+    # =============================================================================
     with st.sidebar:
-        my_title(f"{evaluate_icon}", "#2CB8A1")
+        
+        my_title(f"{evaluate_icon}", "#000000")
+        
         with st.expander('', expanded=True):
-            # table 1: latest run results of model performance
-            my_subheader('Latest Model Test Results', my_size=4, my_style='#2CB8A1')
+
+            my_subheader(my_string = 'Latest Model Test Results', 
+                         my_size = 4, 
+                         my_style = '#2CB8A1')
+           
             if 'results_df' not in st.session_state:
-                st.session_state.results_df = results_df
+                st.session_state['results_df'] = results_df
             else:
-                st.session_state.results_df = pd.concat([st.session_state.results_df, results_df], ignore_index=True)
-            # Show the results dataframe in the sidebar if there is at least one model selected
-            if len(selected_models) > 0:
-                st.dataframe(results_df)
-            # table 2: ranking
+                st.session_state.results_df = pd.concat([st.session_state['results_df'], 
+                                                        get_state("TRAIN_PAGE", "results_df")], 
+                                                        ignore_index=True)
+
+            # if user selected any models on train page then run code
+            if len(get_state("TRAIN_PAGE", "selected_models")) > 0:
+                # SHOW LATEST TEST RESULTS IN TABLE 1
+                st.dataframe(get_state("TRAIN_PAGE", "results_df"))
+            
             my_subheader('Top 3 Ranking All Test Results', my_size=4, my_style='#2CB8A1')
+           
             # It converts the 'mape' column to floats, removes duplicates based on the 'model_name' and 'mape' columns, sorts the unique DataFrame by ascending 'mape' values, selects the top 3 rows, and displays the resulting DataFrame in Streamlit.
-            test_df = st.session_state.results_df.assign(mape=st.session_state.results_df['mape'].str.rstrip('%').astype(float)).drop_duplicates(subset=['model_name', 'mape']).sort_values(by='mape', ascending=True).iloc[:3]
-            st.write(test_df)
+            test_df = st.session_state['results_df'].assign(mape = st.session_state.results_df['mape'].str.rstrip('%').astype(float)).drop_duplicates(subset=['model_name', 'mape']).sort_values(by='mape', ascending=True).iloc[:3]
+            
+            # SHOW TOP 3 TEST RESULTS IN TABLE 2
+            st.dataframe(test_df, use_container_width=True)
     
-    # show on streamlit page the scoring results
-    my_title(f"{evaluate_icon} Evaluate Model Performance", "#2CB8A1")
+    # =============================================================================
+    # PAGE EVALUATE
+    # =============================================================================    
     # if the results dataframe is created already then you can continue code
     if 'results_df' in globals():
-        with st.expander('ℹ️ Test Results', expanded=True):
+        with st.expander('', expanded=True):
             my_header(my_string='Modeling Test Results', my_style="#2CB8A1")
-            # create some empty newlines - for space between title and dataframe
-            st.write("")
-            st.write("")
+            
+            vertical_spacer(2)
+            
             # show the dataframe with all the historical results stored from 
             # prior runs the cache e.g. called session_state in streamlit
             # from all train/test results with models selected by user
             st.dataframe(st.session_state.results_df, use_container_width=True)
+            
             # download button
             download_csv_button(results_df, my_file="Modeling Test Results.csv", help_message="Download your Modeling Test Results to .CSV")
+    
     # if results_df is not created yet just tell user to train models first
     else:
         st.info('Please select models to train first from sidebar menu and press **"Submit"**')
