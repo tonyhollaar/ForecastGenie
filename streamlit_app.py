@@ -12,8 +12,8 @@ _____ _____ _____ _____ _____ _____ _____ _____ _____ _____
 Streamlit App: ForecastGenie
 Forecast y based on X timeseries data
 @author: Tony Hollaar
-Date: 06/19/2023
-Version 1.4
+Date: 06/30/2023
+Version 2.0
 source ASCII ART: http://patorjk.com/software/taag/#p=display&f=Graffiti&t=Type%20Something%20
 """
 # =============================================================================
@@ -138,12 +138,10 @@ from pandas.tseries.holiday import(
 #                                                                                                                                    
 # =============================================================================
 # SET PAGE CONFIGURATIONS STREAMLIT
-st.set_page_config(
-                   page_title = "ForecastGenie™️", 
+st.set_page_config(page_title = "ForecastGenie™️", 
                    layout = "centered", # "centered" or "wide"
                    page_icon = "🌀", 
-                   initial_sidebar_state = "expanded"
-                   ) # "auto" or "expanded" or "collapsed"
+                   initial_sidebar_state = "expanded") # "auto" or "expanded" or "collapsed"
 
 # =============================================================================
 #   _____   ____   ____  _____  _      ______  _____ 
@@ -295,6 +293,146 @@ st.set_page_config(
 #  |_|     \____/|_| \_|\_____|  |_|  |_____\____/|_| \_|_____/ 
 #                                                               
 # =============================================================================
+def clear_test_results():
+    """
+    Clears the user test results from memory.
+    
+    This function deletes both the latest user test results and the historical test results from memory.
+    It updates the 'results_df' entry in the Streamlit session state with an empty DataFrame,
+    resetting it to the initial state with the specified column names.
+    
+    Note:
+        This function assumes that the Streamlit session state is being used and the 'results_df' key exists.
+    
+    Example usage:
+        clear_test_results()
+    """
+    # Delete latest user test results from memory
+    del st.session_state['results_df']
+   
+    # Delete historical test results from memory
+    set_state("TRAIN_PAGE", ("results_df", pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])))
+    
+    # do you want to remove checkboxes when user presses clear? if so add below codeblock for each model checkbox on page train sidebar
+    # =============================================================================
+    #                 set_state("TRAIN_PAGE", ("naive_checkbox", False))
+    #                 set_state("TRAIN_PAGE", ("linreg_checkbox", False))
+    #                 set_state("TRAIN_PAGE", ("sarimax_checkbox", False))
+    #                 set_state("TRAIN_PAGE", ("prophet_checkbox", False))
+    # =============================================================================
+def plot_model_performance(df, my_metric):
+    """
+    Plots a bar chart showing the models with the lowest error or highest R2 score.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing the model data.
+        selected_metric (str): The metric to display and compare for the models. It can be one of the following:
+                               - 'mape' (mean absolute percentage error)
+                               - 'rmse' (root mean squared error)
+                               - 'r2' (coefficient of determination)
+
+    Note:
+        The function assumes that the 'mape', 'mse', 'rmse', and 'r2' columns exist in the DataFrame.
+
+    Example usage:
+        df = pd.DataFrame(...)
+        plot_lowest_metric(df, 'mape')
+    """
+    try:
+        # convert the metric name from user selection to metric abbreviation used in results dataframe
+        metric_dict = {'Mean Absolute Percentage Error': 'mape', 'Root Mean Square Error':'rmse', 'R-squared':'r2'}    
+        selected_metric = metric_dict[my_metric]
+        
+        # Create a copy of the DataFrame to avoid modifying the original
+        df_copy = df.copy()
+    
+        # Remove percentage sign from 'mape' column and convert to float
+        df_copy['mape'] = df_copy['mape'].str.replace('%', '').astype(float)
+    
+        # Convert the selected metric column to numeric data type
+        df_copy[selected_metric] = pd.to_numeric(df_copy[selected_metric], errors='coerce')
+    
+        # Group the dataframe by 'model_name' and find the row with the lowest score for each model and selected metric
+        lowest_score_rows = df_copy.groupby('model_name')[selected_metric].idxmin()
+    
+        # Filter the dataframe to keep only the rows with the lowest scores for each model and selected metric
+        filtered_df = df_copy.loc[lowest_score_rows, ['model_name', selected_metric]]
+    
+        # Extract the unique model names from the filtered dataframe
+        model_names = filtered_df['model_name'].unique()
+    
+        # Create a color mapping dictionary for consistent colors based on model names
+        color_schema = px.colors.qualitative.Plotly
+        color_mapping = {model_name: color_schema[i % len(color_schema)] for i, model_name in enumerate(model_names)}
+    
+        # Sort the filtered dataframe based on the selected metric in ascending or descending order
+        ascending_order = selected_metric != 'r2'  # Set ascending order unless 'r2' is selected
+        filtered_df = filtered_df.sort_values(by=selected_metric, ascending=ascending_order)
+    
+        # Create the bar chart using Plotly Express
+        fig = px.bar(
+            filtered_df,
+            x='model_name',
+            y=selected_metric,
+            color='model_name',
+            color_discrete_map=color_mapping,  # Use the custom color mapping
+            category_orders={'model_name': filtered_df['model_name'].tolist()},  # Set the order of model names
+            text=filtered_df[selected_metric].round(2),  # Add labels to the bars with rounded metric values
+        )
+    
+        fig.update_layout(
+            xaxis_title='Model',
+            yaxis_title=selected_metric.upper(),
+            barmode='stack',
+            showlegend=True,
+            legend=dict(x=1, y=1),  # Adjust the position of the legend
+        )
+    
+        fig.update_traces(textposition='inside', textfont=dict(color='white'), insidetextfont=dict(color='white'))  # Adjust the position and color of the labels
+    
+        # Display the chart in Streamlit
+        st.plotly_chart(fig, use_container_width=True)
+    except:
+        st.error('FORECASTGENIE ERROR: Could not plot model performance. Please contact an administrator.')
+    
+def social_media_links(margin_before = 30):
+    vertical_spacer(margin_before)
+    # Get the URL to link to
+    github_url = "https://github.com/tonyhollaar/ForecastGenie"  # Replace with your GitHub URL
+    medium_url = "https://medium.com/@thollaar"  # Replace with your Medium URL
+    logo_url = "https://tonyhollaar.com"  # Replace with the URL to your Website logo
+    twitter_url = "https://twitter.com/tonyhollaar"  # Replace with your Twitter URL
+    buymeacoffee_url = "https://www.buymeacoffee.com/tonyhollaar"  # Replace with your BuyMeACoffee URL
+    
+    # Generate the HTML code for the GitHub icon
+    github_code = f'<a href="{github_url}"><img src="https://raw.githubusercontent.com/tonyhollaar/ForecastGenie/main/images/github-mark.png" alt="GitHub" width="32"></a>'
+    
+    # Generate the HTML code for the Medium icon
+    medium_code = f'<a href="{medium_url}"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Medium_logo_Monogram.svg/512px-Medium_logo_Monogram.svg.png" alt="Medium" width="32"></a>'
+    
+    # Generate the HTML code for the logo
+    logo_code = f'<a href="{logo_url}"><img src="https://raw.githubusercontent.com/tonyhollaar/ForecastGenie/main/images/logo_website.png" alt="Logo" width="32"></a>'
+    
+    twitter_code = f'<a href="{twitter_url}"><img src="https://raw.githubusercontent.com/tonyhollaar/ForecastGenie/main/images/twitter_logo_black.png" alt="Logo" width="32"></a>'
+    
+    buymeacoffee_code = f'<a href="{buymeacoffee_url}"><img src="https://raw.githubusercontent.com/tonyhollaar/ForecastGenie/main/images/buymeacoffee_logo.png" alt="buymeacoffee" height="32"></a>'
+    # Render the icons using st.markdown()
+    col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11 = st.columns([1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1])
+    with col2:
+        st.markdown(logo_code, unsafe_allow_html=True)
+       
+    with col4:
+        st.markdown(medium_code, unsafe_allow_html=True)
+        
+    with col6:
+        st.markdown(twitter_code, unsafe_allow_html=True)
+        
+    with col8:
+        st.markdown(github_code, unsafe_allow_html=True)
+
+    with col10:
+        st.markdown(buymeacoffee_code, unsafe_allow_html=True)
+
 def form_feature_selection_method_mifs():
     try:
         with st.form('mifs'):
@@ -1914,7 +2052,7 @@ def adf_test(df, variable_loc, max_diffs=3):
             vertical_spacer(1) # newline vertical space
             h0 = st.markdown(r'$H_0$: The time series has a unit root, meaning it is **non-stationary**. It has some time dependent structure.')
             vertical_spacer(1)
-            h1 = st.markdown(r'$H_1$: The time series does **not** have a unit root, meaning it is **stationary**. It does not have time-dependent structure.')
+            h1 = st.markdown(r'✅$H_1$: The time series does **not** have a unit root, meaning it is **stationary**. It does not have time-dependent structure.')
             vertical_spacer(1)
             result = f'**Conclusion:**\
                       The null hypothesis can be :red[**rejected**] with a p-value of **`{p_value:.5f}`**, which is smaller than the 95% confidence interval (p-value = `0.05`).'
@@ -1937,12 +2075,12 @@ def adf_test(df, variable_loc, max_diffs=3):
                 # If the differenced time series is stationary, return the result
                 with col2:
                     vertical_spacer(1)
-                    h0 = st.markdown(f'$H_0$: The time series has a unit root, meaning it is :red[**non-stationary**]. It has some time dependent structure.')
+                    h0 = st.markdown(f'❌$H_0$: The time series has a unit root, meaning it is :red[**non-stationary**]. It has some time dependent structure.')
                     vertical_spacer(1)
-                    h1 = st.markdown(f'$H_1$: The time series does **not** have a unit root, meaning it is :green[**stationary**]. It does not have time-dependent structure.')
+                    h1 = st.markdown(f'✅$H_1$: The time series does **not** have a unit root, meaning it is :green[**stationary**]. It does not have time-dependent structure.')
                     vertical_spacer(1)
                     result = f'**Conclusion:**\
-                              The null hypothesis can be :red[**rejected**] with a p-value of **`{p_value_str}`**, which is smaller than `0.05` after differencing the time series **`{i}`** time(s).'
+                              After *differencing* the time series **`{i}`** time(s), the null hypothesis can be :red[**rejected**] with a p-value of **`{p_value_str}`**, which is smaller than `0.05`.'
                 break
             else:
                # If the time series remains non-stationary after max_diffs differencings, return the non-stationary result
@@ -3075,24 +3213,22 @@ def train_test_split_slider(df):
    """
     # update the session state of the form and make it persistent when switching pages
     def form_callback():
-     st.session_state['percentage'] = st.session_state['percentage']
-     st.session_state['steps'] = st.session_state['steps']
+        st.session_state['percentage'] = st.session_state['percentage']
+        st.session_state['steps'] = st.session_state['steps']
     
     with st.sidebar:
         with st.form('train/test split'):
             my_text_paragraph('Train/Test Split')
             col1, col2 = st.columns(2)
             with col1:
-                split_type = st.radio(
-                                      label = "*Select split type:*", 
+                split_type = st.radio(label = "*Select split type:*", 
                                       options = ("Steps", "Percentage"), 
                                       index = 1,
                                       help = """
                                              Set your preference for how you want to **split** the training data and test data:
                                              \n- as a `percentage` (between 1% and 99%)  \
                                              \n- in `steps` (for example number of days with daily data, number of weeks with weekly data, etc.)
-                                             """
-                                      )
+                                             """)
                
                 if split_type == "Steps":
                     with col2:
@@ -3100,8 +3236,8 @@ def train_test_split_slider(df):
                                                             min_value=1, 
                                                             max_value=len(df)-1, 
                                                             step=1, 
-                                                            key='steps',
-                                                            )
+                                                            key='steps')
+                        
                         insample_forecast_perc =  st.session_state['percentage']
                 else:
                     with col2:
@@ -5065,36 +5201,6 @@ def handle_outliers(data, method, outlier_threshold, q1, q3, outlier_replacement
             data[col].fillna(first_non_nan, inplace=True)
     return data, outliers 
 
-def handle_click_wo_button():
-    """
-    This function handles the click event without a button. It saves the session state of the user in-memory.
-    If the key of the radio button, 'data_choice', exists in the session state, the function assigns the value of 'data_choice' to a new variable, 'my_data_choice'.
-    """
-    # =============================================================================
-    # TEST
-    # =============================================================================
-    # reset session states to default -> initiate global variables
-    metrics_dict, random_state, results_df, custom_fill_value, \
-    key1_load, \
-    key1_explore, key2_explore, key3_explore, key4_explore, \
-    key1_missing, key2_missing, key3_missing, \
-    key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, \
-    key1_engineer, key2_engineer, key3_engineer, key4_engineer, key5_engineer, key6_engineer, key7_engineer, \
-    key1_prepare_normalization, key2_prepare_standardization, \
-    key1_select_page_user_selection, \
-    key1_select_page_pca, \
-    key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, \
-    key1_select_page_mifs, \
-    key1_select_page_corr, key2_select_page_corr = initiate_global_variables()
-
-    # if key of radio button exists
-    if st.session_state['data_choice']:
-        # this new variable my_data_choice set it equal to information collected from the user
-        # via the radio button called "data_option"
-        st.session_state['my_data_choice'] = st.session_state['data_choice']
-        
-    
-
 # =============================================================================
 #  __      __     _____  _____          ____  _      ______  _____ 
 #  \ \    / /\   |  __ \|_   _|   /\   |  _ \| |    |  ____|/ ____|
@@ -5113,7 +5219,7 @@ def initiate_global_variables():
         ("run", 0)
     ])
     
-    # ================================ LOAD =======================================
+    # ================================ LOAD PAGE =======================================
     if "df_raw" not in st.session_state:
         st.session_state["df_raw"] = pd.DataFrame()
         st.session_state.df_raw = generate_demo_data()
@@ -5136,24 +5242,24 @@ def initiate_global_variables():
 
     # Save the Data Choice of User
     key1_load, key1_load = create_store("LOAD_PAGE", [
-                                                      ("my_data_choice", "Demo Data"),  #key1_load,
-                                                      ("user_data_uploaded", False) #key2_load,
+                                                      ("my_data_choice", "Demo Data"), #key1_load,
+                                                      ("user_data_uploaded", False)    #key2_load,
                                                      ]
-                                                )
+                                       )
     
-    # ================================ EXPLORE ====================================
+    # ================================ EXPLORE PAGE ====================================
     key1_explore, key2_explore, key3_explore, key4_explore, key5_explore = create_store("EXPLORE_PAGE", [
-        ("lags_acf", min(30, int((len(st.session_state.df_raw)-1)))), #key1_explore
+        ("lags_acf", min(30, int((len(st.session_state.df_raw)-1)))),    #key1_explore
         ("lags_pacf", min(30, int((len(st.session_state.df_raw)-2)/2))), #key2_explore
-        ("default_pacf_method", "yw"), #key3_explore
-        ("order_of_differencing_series", "Original Series"), #key4_explore
-        ("run", 0) #key5_explore
+        ("default_pacf_method", "yw"),                                   #key3_explore
+        ("order_of_differencing_series", "Original Series"),             #key4_explore
+        ("run", 0)                                                       #key5_explore
     ])
     
     # HISTOGRAM PARAMETER FOR STORING RADIO_BUTTON USER PREFERENCE
     key_hist = create_store("HIST", [("histogram_freq_type", "Absolute"),  ("run", 0)])
     
-    # ================================ CLEAN ======================================
+    # ================================ CLEAN PAGE ======================================
     # set the random state
     random_state = 10
     
@@ -5171,24 +5277,24 @@ def initiate_global_variables():
     key1_missing, key2_missing, key3_missing, key4_missing = create_store("CLEAN_PAGE_MISSING", 
                                                                           [
                                                                             ("missing_fill_method", "Backfill"), #key1
-                                                                            ("missing_custom_fill_value", "1"), #key2
-                                                                            ("data_frequency", 'Daily'), #key3
-                                                                            ("run", 0) #key4
+                                                                            ("missing_custom_fill_value", "1"),  #key2
+                                                                            ("data_frequency", 'Daily'),         #key3
+                                                                            ("run", 0)                           #key4
                                                                           ]
                                                                          )
     
     key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, key8_outlier = create_store("CLEAN_PAGE", 
                                                                                                                                   [
-                                                                                                                                    ("outlier_detection_method", "None"), # key1
+                                                                                                                                    ("outlier_detection_method", "None"),            #key1
                                                                                                                                     ("outlier_isolationforest_contamination", 0.01), #key2
-                                                                                                                                    ("outlier_zscore_threshold", 3.0), #key3
-                                                                                                                                    ("outlier_iqr_q1", 25.0), #key4
-                                                                                                                                    ("outlier_iqr_q3", 75.0), #key5
-                                                                                                                                    ("outlier_iqr_multiplier", 1.5), #key6
+                                                                                                                                    ("outlier_zscore_threshold", 3.0),               #key3
+                                                                                                                                    ("outlier_iqr_q1", 25.0),                        #key4
+                                                                                                                                    ("outlier_iqr_q3", 75.0),                        #key5
+                                                                                                                                    ("outlier_iqr_multiplier", 1.5),                 #key6
                                                                                                                                     ("outlier_replacement_method", "Interpolation"), #key7
-                                                                                                                                    ("run", 0)  #key8
+                                                                                                                                    ("run", 0)                                       #key8
                                                                                                                                   ])
-    # ================================ ENGINEER ===================================
+    # ================================ ENGINEER PAGE ===================================
     key1_engineer, key2_engineer, key3_engineer, key4_engineer, key5_engineer, key6_engineer, key7_engineer, key8_engineer = create_store("ENGINEER_PAGE",
                                                                                                               [
                                                                                                                 ("calendar_dummies_checkbox", True),          #key1_engineer
@@ -5223,23 +5329,23 @@ def initiate_global_variables():
                                                                                                               ("run", 0)                                    #key17_engineer_var
                                                                                                             ]
                                                                                                           )   
-    # ================================ PREPARE ====================================
+    # ================================ PREPARE PAGE ====================================
     # define my_insample_forecast_steps used for train/test split
     if 'percentage' not in st.session_state:
         st.session_state['percentage'] = 20
         
     if 'steps' not in st.session_state:
-        #st.session_state.days = int(max(len(df)*0.2, 1))
         st.session_state['steps'] = 1
         
-    # save user choice in session state of in sample test-size
+    # save user choice in session state of in sample test-size percentage
     if 'insample_forecast_perc' not in st.session_state:
         st.session_state['insample_forecast_perc'] = 20
         
-    # save user choice in session state of in sample test-size
+    # save user choice in session state of in sample test-size in steps (e.g. days if daily frequency data)
     if 'insample_forecast_steps' not in st.session_state:
         st.session_state['insample_forecast_steps'] = 1
-        
+    
+    # set default value for normalization method to 'None'
     if 'normalization_choice' not in st.session_state:
         st.session_state['normalization_choice'] = 'None'
     
@@ -5249,25 +5355,13 @@ def initiate_global_variables():
         ("standardization_choice", "None"),  #key2_prepare_standardization
         ("run", 0)])                         #key3_prepare
     
-    # ================================ SELECT ====================================
-    # TESTING LOGIC
-    ########
-    # 1 state to keep all features possible e.g. X column names
-    # 1 state to keep user selected features, which has default value of recommended features if user does not update
-    # 1 state to keep the recommended features, which will be used if user skips the page
-    # logic: if selected features by user then use user preference, else use pipeline recommended features
-    # if file is switched delete the session state of old data feature preference
-    ########
-    # set session states for SELECTING FEATURES
-    
+    # ================================ SELECT PAGE ====================================
     # TO DEAL WITH EITHER FEATURE SELECTION METHODS FEATURES OR TO REVERT TO USER SELECTION
     create_store("SELECT_PAGE_BTN_CLICKED", [
                                             ("rfe_btn", False),
                                             ("mifs_btn", False), 
                                             ("pca_btn", False)
-                                            ]
-                )
-    
+                                            ])
     # FEATURE SELECTION BY USER
     key1_select_page_user_selection, key2_select_page_user_selection = create_store("SELECT_PAGE_USER_SELECTION", [
                                 ("feature_selection_user", []), #key1_select_page_user_selection
@@ -5275,10 +5369,9 @@ def initiate_global_variables():
                                 ])
     # PCA
     key1_select_page_pca, key2_select_page_pca = create_store("SELECT_PAGE_PCA", [
-                            # default of PCA features set to minimum of either 5 or the number of independent features in the dataframe
-                            ("num_features_pca", 5), #key1_select_page_pca # 
-                            ("run", 0) #key2_select_page_pca
-                            ])
+                                ("num_features_pca", 5), #key1_select_page_pca # default of PCA features set to minimum of either 5 or the number of independent features in the dataframe
+                                ("run", 0) #key2_select_page_pca
+                                ])
     # RFE
     key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, key5_select_page_rfe = create_store("SELECT_PAGE_RFE", [
                                 ("num_features_rfe", 5),                #key1_select_page_rfe
@@ -5294,24 +5387,19 @@ def initiate_global_variables():
                                 ])
     # CORR
     key1_select_page_corr, key2_select_page_corr, key3_select_page_corr = create_store("SELECT_PAGE_CORR", [
-                                                                ("corr_threshold", 0.8),                      #key1_select_page_corr 
-                                                                ("selected_corr_model", 'Linear Regression'), #key2_select_page_corr
-                                                                ("run", 0)                                    #key3_select_page_corr
-                                                                ])
-    # ================================ TRAIN ===================================  
+                                ("corr_threshold", 0.8),                      #key1_select_page_corr 
+                                ("selected_corr_model", 'Linear Regression'), #key2_select_page_corr
+                                ("run", 0)                                    #key3_select_page_corr
+                                ])
+
+    # ================================ TRAIN PAGE ===================================  
     # TRAIN MENU TEST
     if 'train_models_btn' not in st.session_state:
         st.session_state['train_models_btn'] = False
      
     if 'selected_model_info' not in st.session_state:
         st.session_state['selected_model_info'] = '-'
-        
-    # save user choice in session state
-    # of naive model lag for sidebar 'Select Seasonal lag for the Naive Model'
-    # standard value = 'week'
-    create_store("TRAIN_PARAMS", [
-        ("naive_model_seasonal_lag_index", 1)])
-    
+
     # set session states for the TRAIN Page buttons when models are trained, 
     # to expand dataframe below graph
     create_store("TRAIN", [
@@ -5320,24 +5408,72 @@ def initiate_global_variables():
                             ("linreg_model_btn_show", False),
                             ("sarimax_model_btn_show", False),
                             ("prophet_model_btn_show", False)
-                          ]
-                 )       
-    # ================================ EVALUATE ===================================
+                          ])
+    
+    # =============================================================================
+    # Save user selected models to session state
+    # =============================================================================
+    key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
+    key11_train, key12_train, key13_train, key14_train, key15_train, key16_train, key17_train, key18_train, key19_train, key20_train, \
+    key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train = create_store("TRAIN_PAGE", [
+                                                                                    ("my_conf_interval", 80),               #key1_train
+                                                                                    ("naive_checkbox",  False),             #key2_train
+                                                                                    ("linreg_checkbox",  False),            #key3_train
+                                                                                    ("sarimax_checkbox", False),            #key4_train
+                                                                                    ("prophet_checkbox", False),            #key5_train
+                                                                                    ("selected_models", []),                #key6_train
+                                                                                    ("lag", 'Week'),                        #key7_train
+                                                                                    ("custom_lag_value", 5),                #key8_train
+                                                                                    ("p", 1),                               #key9_train
+                                                                                    ("d", 1),                               #key10_train
+                                                                                    ("q", 1),                               #key11_train
+                                                                                    ("P", 1),                               #key12_train
+                                                                                    ("D", 1),                               #key13_train
+                                                                                    ("Q", 1),                               #key14_train
+                                                                                    ("s", 7),                               #key15_train
+                                                                                    ("enforce_stationarity",  True),        #key16_train
+                                                                                    ("enforce_invertibility", True),        #key17_train
+                                                                                    ("horizon_option", 30),                 #key18_train
+                                                                                    ("changepoint_prior_scale", 0.05),      #key19_train
+                                                                                    ("seasonality_mode", "multiplicative"), #key20_train
+                                                                                    ("seasonality_prior_scale", 1.0),       #key21_train
+                                                                                    ("holidays_prior_scale", 1.0),          #key22_train
+                                                                                    ("yearly_seasonality", True),           #key23_train
+                                                                                    ("weekly_seasonality", True),           #key24_train
+                                                                                    ("daily_seasonality", True),            #key25_train
+                                                                                    ("results_df", pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])), #key26_train
+                                                                                    ("run", 0)                              #key27_train
+                                                                                    ])
+    
+    
+    # ================================ EVALUATE PAGE ===================================
     # create an empty dictionary to store the results of the models
     # that I call after I train the models to display on sidebar under hedaer "Evaluate Models"
     metrics_dict = {}
-    
+        
     # Initialize results_df in global scope that has model test evaluation results 
     results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
     
     if 'results_df' not in st.session_state:
         st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
-        
+              
+    # save user's chosen metric in persistent session state - initiate default metric (MAPE)
+    create_store("EVALUATE_PAGE", [("selected_metric_index", 0)])
+    
+    
+    # ================================ TUNE PAGE ===================================
+    #
+    
+    
+    # ================================ FORECAST PAGE ===================================
+    #
+    
+    
     #///////////////////////////////////////////////////////////////////
     # SHOW IN STREAMLIT DICTIONARY OF VARIABLES IN SESSION STATE
     #///////////////////////////////////////////////////////////////////
     # show in streamlit the session state variables that are stored cache for the user session
-    #st.write(st.session_state)
+    st.write(st.session_state)
     #///////////////////////////////////////////////////////////////////
     
     # Logging
@@ -5354,7 +5490,10 @@ def initiate_global_variables():
     key1_select_page_pca, \
     key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, \
     key1_select_page_mifs, \
-    key1_select_page_corr, key2_select_page_corr
+    key1_select_page_corr, key2_select_page_corr, \
+    key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
+    key11_train, key12_train, key13_train, key14_train, key15_train, key16_train, key17_train, key18_train, key19_train, key20_train, \
+    key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train
     
 # =============================================================================
 #   _____ _   _ _____ _______ _____       _______ ______ 
@@ -5377,7 +5516,10 @@ key1_select_page_user_selection, \
 key1_select_page_pca, \
 key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, \
 key1_select_page_mifs, \
-key1_select_page_corr, key2_select_page_corr = initiate_global_variables()
+key1_select_page_corr, key2_select_page_corr, \
+key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
+key11_train, key12_train, key13_train, key14_train, key15_train, key16_train, key17_train, key18_train, key19_train, key20_train, \
+key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train = initiate_global_variables()
 
 # =============================================================================
 #   _____ _____ ____  _   _  _____ 
@@ -5388,94 +5530,109 @@ key1_select_page_corr, key2_select_page_corr = initiate_global_variables()
 #  |_____\_____\____/|_| \_|_____/ 
 #                                  
 # =============================================================================
-# svg image of open book used for text on docs page
-book_icon = """<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-book" viewBox="0 0 16 16">
-               <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"/>
-             </svg>
-            """
-# svg image of heart used for text on about page
-balloon_heart_svg = """
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-balloon-heart" viewBox="0 0 16 16">
-                      <path fill-rule="evenodd" d="m8 2.42-.717-.737c-1.13-1.161-3.243-.777-4.01.72-.35.685-.451 1.707.236 3.062C4.16 6.753 5.52 8.32 8 10.042c2.479-1.723 3.839-3.29 4.491-4.577.687-1.355.587-2.377.236-3.061-.767-1.498-2.88-1.882-4.01-.721L8 2.42Zm-.49 8.5c-10.78-7.44-3-13.155.359-10.063.045.041.089.084.132.129.043-.045.087-.088.132-.129 3.36-3.092 11.137 2.624.357 10.063l.235.468a.25.25 0 1 1-.448.224l-.008-.017c.008.11.02.202.037.29.054.27.161.488.419 1.003.288.578.235 1.15.076 1.629-.157.469-.422.867-.588 1.115l-.004.007a.25.25 0 1 1-.416-.278c.168-.252.4-.6.533-1.003.133-.396.163-.824-.049-1.246l-.013-.028c-.24-.48-.38-.758-.448-1.102a3.177 3.177 0 0 1-.052-.45l-.04.08a.25.25 0 1 1-.447-.224l.235-.468ZM6.013 2.06c-.649-.18-1.483.083-1.85.798-.131.258-.245.689-.08 1.335.063.244.414.198.487-.043.21-.697.627-1.447 1.359-1.692.217-.073.304-.337.084-.398Z"/>
-                    </svg>
-                    """
-                    
-paint_bucket_icon = """<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-paint-bucket" viewBox="0 0 16 16">
-  <path d="M6.192 2.78c-.458-.677-.927-1.248-1.35-1.643a2.972 2.972 0 0 0-.71-.515c-.217-.104-.56-.205-.882-.02-.367.213-.427.63-.43.896-.003.304.064.664.173 1.044.196.687.556 1.528 1.035 2.402L.752 8.22c-.277.277-.269.656-.218.918.055.283.187.593.36.903.348.627.92 1.361 1.626 2.068.707.707 1.441 1.278 2.068 1.626.31.173.62.305.903.36.262.05.64.059.918-.218l5.615-5.615c.118.257.092.512.05.939-.03.292-.068.665-.073 1.176v.123h.003a1 1 0 0 0 1.993 0H14v-.057a1.01 1.01 0 0 0-.004-.117c-.055-1.25-.7-2.738-1.86-3.494a4.322 4.322 0 0 0-.211-.434c-.349-.626-.92-1.36-1.627-2.067-.707-.707-1.441-1.279-2.068-1.627-.31-.172-.62-.304-.903-.36-.262-.05-.64-.058-.918.219l-.217.216zM4.16 1.867c.381.356.844.922 1.311 1.632l-.704.705c-.382-.727-.66-1.402-.813-1.938a3.283 3.283 0 0 1-.131-.673c.091.061.204.15.337.274zm.394 3.965c.54.852 1.107 1.567 1.607 2.033a.5.5 0 1 0 .682-.732c-.453-.422-1.017-1.136-1.564-2.027l1.088-1.088c.054.12.115.243.183.365.349.627.92 1.361 1.627 2.068.706.707 1.44 1.278 2.068 1.626.122.068.244.13.365.183l-4.861 4.862a.571.571 0 0 1-.068-.01c-.137-.027-.342-.104-.608-.252-.524-.292-1.186-.8-1.846-1.46-.66-.66-1.168-1.32-1.46-1.846-.147-.265-.225-.47-.251-.607a.573.573 0 0 1-.01-.068l3.048-3.047zm2.87-1.935a2.44 2.44 0 0 1-.241-.561c.135.033.324.11.562.241.524.292 1.186.8 1.846 1.46.45.45.83.901 1.118 1.31a3.497 3.497 0 0 0-1.066.091 11.27 11.27 0 0 1-.76-.694c-.66-.66-1.167-1.322-1.458-1.847z"/>
-</svg>
-"""
+def load_icons():
+    # svg image of open book used for text on docs page
+    book_icon = """<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-book" viewBox="0 0 16 16">
+                   <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"/>
+                 </svg>
+                """
+    # svg image of heart used for text on about page
+    balloon_heart_svg = """
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-balloon-heart" viewBox="0 0 16 16">
+                          <path fill-rule="evenodd" d="m8 2.42-.717-.737c-1.13-1.161-3.243-.777-4.01.72-.35.685-.451 1.707.236 3.062C4.16 6.753 5.52 8.32 8 10.042c2.479-1.723 3.839-3.29 4.491-4.577.687-1.355.587-2.377.236-3.061-.767-1.498-2.88-1.882-4.01-.721L8 2.42Zm-.49 8.5c-10.78-7.44-3-13.155.359-10.063.045.041.089.084.132.129.043-.045.087-.088.132-.129 3.36-3.092 11.137 2.624.357 10.063l.235.468a.25.25 0 1 1-.448.224l-.008-.017c.008.11.02.202.037.29.054.27.161.488.419 1.003.288.578.235 1.15.076 1.629-.157.469-.422.867-.588 1.115l-.004.007a.25.25 0 1 1-.416-.278c.168-.252.4-.6.533-1.003.133-.396.163-.824-.049-1.246l-.013-.028c-.24-.48-.38-.758-.448-1.102a3.177 3.177 0 0 1-.052-.45l-.04.08a.25.25 0 1 1-.447-.224l.235-.468ZM6.013 2.06c-.649-.18-1.483.083-1.85.798-.131.258-.245.689-.08 1.335.063.244.414.198.487-.043.21-.697.627-1.447 1.359-1.692.217-.073.304-.337.084-.398Z"/>
+                        </svg>
+                        """
+                        
+    paint_bucket_icon = """<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-paint-bucket" viewBox="0 0 16 16">
+      <path d="M6.192 2.78c-.458-.677-.927-1.248-1.35-1.643a2.972 2.972 0 0 0-.71-.515c-.217-.104-.56-.205-.882-.02-.367.213-.427.63-.43.896-.003.304.064.664.173 1.044.196.687.556 1.528 1.035 2.402L.752 8.22c-.277.277-.269.656-.218.918.055.283.187.593.36.903.348.627.92 1.361 1.626 2.068.707.707 1.441 1.278 2.068 1.626.31.173.62.305.903.36.262.05.64.059.918-.218l5.615-5.615c.118.257.092.512.05.939-.03.292-.068.665-.073 1.176v.123h.003a1 1 0 0 0 1.993 0H14v-.057a1.01 1.01 0 0 0-.004-.117c-.055-1.25-.7-2.738-1.86-3.494a4.322 4.322 0 0 0-.211-.434c-.349-.626-.92-1.36-1.627-2.067-.707-.707-1.441-1.279-2.068-1.627-.31-.172-.62-.304-.903-.36-.262-.05-.64-.058-.918.219l-.217.216zM4.16 1.867c.381.356.844.922 1.311 1.632l-.704.705c-.382-.727-.66-1.402-.813-1.938a3.283 3.283 0 0 1-.131-.673c.091.061.204.15.337.274zm.394 3.965c.54.852 1.107 1.567 1.607 2.033a.5.5 0 1 0 .682-.732c-.453-.422-1.017-1.136-1.564-2.027l1.088-1.088c.054.12.115.243.183.365.349.627.92 1.361 1.627 2.068.706.707 1.44 1.278 2.068 1.626.122.068.244.13.365.183l-4.861 4.862a.571.571 0 0 1-.068-.01c-.137-.027-.342-.104-.608-.252-.524-.292-1.186-.8-1.846-1.46-.66-.66-1.168-1.32-1.46-1.846-.147-.265-.225-.47-.251-.607a.573.573 0 0 1-.01-.068l3.048-3.047zm2.87-1.935a2.44 2.44 0 0 1-.241-.561c.135.033.324.11.562.241.524.292 1.186.8 1.846 1.46.45.45.83.901 1.118 1.31a3.497 3.497 0 0 0-1.066.091 11.27 11.27 0 0 1-.76-.694c-.66-.66-1.167-1.322-1.458-1.847z"/>
+    </svg>
+    """
+    
+    load_icon = """
+     <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-cloud-arrow-up" viewBox="0 0 16 16">
+       <path fill-rule="evenodd" d="M7.646 5.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 6.707V10.5a.5.5 0 0 1-1 0V6.707L6.354 7.854a.5.5 0 1 1-.708-.708l2-2z"/>
+       <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383zm.653.757c-.757.653-1.153 1.44-1.153 2.056v.448l-.445.049C2.064 6.805 1 7.952 1 9.318 1 10.785 2.23 12 3.781 12h8.906C13.98 12 15 10.988 15 9.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 4.825 10.328 3 8 3a4.53 4.53 0 0 0-2.941 1.1z"/>
+     </svg>
+    """
+    
+    explore_icon = """
+    <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-search" viewBox="0 0 16 16">
+      <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+    </svg>
+    """
+    
+    clean_icon = """
+    <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-bezier2" viewBox="0 0 16 16">
+      <path fill-rule="evenodd" d="M1 2.5A1.5 1.5 0 0 1 2.5 1h1A1.5 1.5 0 0 1 5 2.5h4.134a1 1 0 1 1 0 1h-2.01c.18.18.34.381.484.605.638.992.892 2.354.892 3.895 0 1.993.257 3.092.713 3.7.356.476.895.721 1.787.784A1.5 1.5 0 0 1 12.5 11h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 1-1.5-1.5H6.866a1 1 0 1 1 0-1h1.711a2.839 2.839 0 0 1-.165-.2C7.743 11.407 7.5 10.007 7.5 8c0-1.46-.246-2.597-.733-3.355-.39-.605-.952-1-1.767-1.112A1.5 1.5 0 0 1 3.5 5h-1A1.5 1.5 0 0 1 1 3.5v-1zM2.5 2a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1zm10 10a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1z"/>
+    </svg>
+    """
+    
+    engineer_icon = """
+    <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-gear" viewBox="0 0 16 16">
+      <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
+      <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
+    </svg>
+    """
+    
+    prepare_icon = """
+    <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-shuffle" viewBox="0 0 16 16">
+      <path fill-rule="evenodd" d="M0 3.5A.5.5 0 0 1 .5 3H1c2.202 0 3.827 1.24 4.874 2.418.49.552.865 1.102 1.126 1.532.26-.43.636-.98 1.126-1.532C9.173 4.24 10.798 3 13 3v1c-1.798 0-3.173 1.01-4.126 2.082A9.624 9.624 0 0 0 7.556 8a9.624 9.624 0 0 0 1.317 1.918C9.828 10.99 11.204 12 13 12v1c-2.202 0-3.827-1.24-4.874-2.418A10.595 10.595 0 0 1 7 9.05c-.26.43-.636.98-1.126 1.532C4.827 11.76 3.202 13 1 13H.5a.5.5 0 0 1 0-1H1c1.798 0 3.173-1.01 4.126-2.082A9.624 9.624 0 0 0 6.444 8a9.624 9.624 0 0 0-1.317-1.918C4.172 5.01 2.796 4 1 4H.5a.5.5 0 0 1-.5-.5z"/>
+      <path d="M13 5.466V1.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384l-2.36 1.966a.25.25 0 0 1-.41-.192zm0 9v-3.932a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384l-2.36 1.966a.25.25 0 0 1-.41-.192z"/>
+    </svg>
+    """
+    
+    select_icon = """
+    <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-sort-down" viewBox="0 0 16 16">
+      <path d="M3.5 2.5a.5.5 0 0 0-1 0v8.793l-1.146-1.147a.5.5 0 0 0-.708.708l2 1.999.007.007a.497.497 0 0 0 .7-.006l2-2a.5.5 0 0 0-.707-.708L3.5 11.293V2.5zm3.5 1a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zM7.5 6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5zm0 3a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3zm0 3a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1h-1z"/>
+    </svg>
+    """
+    
+    train_icon = """
+    <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-cpu" viewBox="0 0 16 16">
+      <path d="M5 0a.5.5 0 0 1 .5.5V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2A2.5 2.5 0 0 1 14 4.5h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14a2.5 2.5 0 0 1-2.5 2.5v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14A2.5 2.5 0 0 1 2 11.5H.5a.5.5 0 0 1 0-1H2v-1H.5a.5.5 0 0 1 0-1H2v-1H.5a.5.5 0 0 1 0-1H2v-1H.5a.5.5 0 0 1 0-1H2A2.5 2.5 0 0 1 4.5 2V.5A.5.5 0 0 1 5 0zm-.5 3A1.5 1.5 0 0 0 3 4.5v7A1.5 1.5 0 0 0 4.5 13h7a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 11.5 3h-7zM5 6.5A1.5 1.5 0 0 1 6.5 5h3A1.5 1.5 0 0 1 11 6.5v3A1.5 1.5 0 0 1 9.5 11h-3A1.5 1.5 0 0 1 5 9.5v-3zM6.5 6a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"/>
+    </svg>
+    """
+    
+    evaluate_icon = """
+    <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-clipboard-check" viewBox="0 0 16 16">
+      <path fill-rule="evenodd" d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
+      <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+      <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+    </svg>
+    """
+    
+    tune_icon = """
+    <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-sliders" viewBox="0 0 16 16">
+      <path fill-rule="evenodd" d="M11.5 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM9.05 3a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0V3h9.05zM4.5 7a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM2.05 8a2.5 2.5 0 0 1 4.9 0H16v1H6.95a2.5 2.5 0 0 1-4.9 0H0V8h2.05zm9.45 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm-2.45 1a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0v-1h9.05z"/>
+    </svg>
+    """
+    
+    forecast_icon = """
+    <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="3b3b3b" class="bi bi-graph-up-arrow" viewBox="0 0 16 16">
+      <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0Zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5Z"/>
+    </svg>
+    """
+    
+    arrow_down_icon = """
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-down-circle" viewBox="0 0 16 16">
+      <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v5.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V4.5z"/>
+    </svg>
+    """
+    # show arrow which is a bootstrap icon from source: https://icons.getbootstrap.com/icons/arrow-right/
+    arrow_right_icon = '''<svg xmlns="http://www.w3.org/2000/svg" width="25" height="20" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">'
+                '<path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>'
+                '</svg>'''
+                        
+    print('ForecastGenie Print: Loaded SVG ICONS')
+    
+    return book_icon, balloon_heart_svg, paint_bucket_icon, load_icon, explore_icon, clean_icon, engineer_icon, \
+    prepare_icon, select_icon, train_icon, evaluate_icon, tune_icon, forecast_icon, arrow_down_icon, arrow_right_icon
 
-load_icon = """
- <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-cloud-arrow-up" viewBox="0 0 16 16">
-   <path fill-rule="evenodd" d="M7.646 5.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 6.707V10.5a.5.5 0 0 1-1 0V6.707L6.354 7.854a.5.5 0 1 1-.708-.708l2-2z"/>
-   <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383zm.653.757c-.757.653-1.153 1.44-1.153 2.056v.448l-.445.049C2.064 6.805 1 7.952 1 9.318 1 10.785 2.23 12 3.781 12h8.906C13.98 12 15 10.988 15 9.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 4.825 10.328 3 8 3a4.53 4.53 0 0 0-2.941 1.1z"/>
- </svg>
-"""
-
-explore_icon = """
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-search" viewBox="0 0 16 16">
-  <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-</svg>
-"""
-
-clean_icon = """
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-bezier2" viewBox="0 0 16 16">
-  <path fill-rule="evenodd" d="M1 2.5A1.5 1.5 0 0 1 2.5 1h1A1.5 1.5 0 0 1 5 2.5h4.134a1 1 0 1 1 0 1h-2.01c.18.18.34.381.484.605.638.992.892 2.354.892 3.895 0 1.993.257 3.092.713 3.7.356.476.895.721 1.787.784A1.5 1.5 0 0 1 12.5 11h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 1-1.5-1.5H6.866a1 1 0 1 1 0-1h1.711a2.839 2.839 0 0 1-.165-.2C7.743 11.407 7.5 10.007 7.5 8c0-1.46-.246-2.597-.733-3.355-.39-.605-.952-1-1.767-1.112A1.5 1.5 0 0 1 3.5 5h-1A1.5 1.5 0 0 1 1 3.5v-1zM2.5 2a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1zm10 10a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1z"/>
-</svg>
-"""
-
-engineer_icon = """
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-gear" viewBox="0 0 16 16">
-  <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
-  <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
-</svg>
-"""
-
-prepare_icon = """
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-shuffle" viewBox="0 0 16 16">
-  <path fill-rule="evenodd" d="M0 3.5A.5.5 0 0 1 .5 3H1c2.202 0 3.827 1.24 4.874 2.418.49.552.865 1.102 1.126 1.532.26-.43.636-.98 1.126-1.532C9.173 4.24 10.798 3 13 3v1c-1.798 0-3.173 1.01-4.126 2.082A9.624 9.624 0 0 0 7.556 8a9.624 9.624 0 0 0 1.317 1.918C9.828 10.99 11.204 12 13 12v1c-2.202 0-3.827-1.24-4.874-2.418A10.595 10.595 0 0 1 7 9.05c-.26.43-.636.98-1.126 1.532C4.827 11.76 3.202 13 1 13H.5a.5.5 0 0 1 0-1H1c1.798 0 3.173-1.01 4.126-2.082A9.624 9.624 0 0 0 6.444 8a9.624 9.624 0 0 0-1.317-1.918C4.172 5.01 2.796 4 1 4H.5a.5.5 0 0 1-.5-.5z"/>
-  <path d="M13 5.466V1.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384l-2.36 1.966a.25.25 0 0 1-.41-.192zm0 9v-3.932a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384l-2.36 1.966a.25.25 0 0 1-.41-.192z"/>
-</svg>
-"""
-
-select_icon = """
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-sort-down" viewBox="0 0 16 16">
-  <path d="M3.5 2.5a.5.5 0 0 0-1 0v8.793l-1.146-1.147a.5.5 0 0 0-.708.708l2 1.999.007.007a.497.497 0 0 0 .7-.006l2-2a.5.5 0 0 0-.707-.708L3.5 11.293V2.5zm3.5 1a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zM7.5 6a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5zm0 3a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3zm0 3a.5.5 0 0 0 0 1h1a.5.5 0 0 0 0-1h-1z"/>
-</svg>
-"""
-
-train_icon = """
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-cpu" viewBox="0 0 16 16">
-  <path d="M5 0a.5.5 0 0 1 .5.5V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2h1V.5a.5.5 0 0 1 1 0V2A2.5 2.5 0 0 1 14 4.5h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14v1h1.5a.5.5 0 0 1 0 1H14a2.5 2.5 0 0 1-2.5 2.5v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14h-1v1.5a.5.5 0 0 1-1 0V14A2.5 2.5 0 0 1 2 11.5H.5a.5.5 0 0 1 0-1H2v-1H.5a.5.5 0 0 1 0-1H2v-1H.5a.5.5 0 0 1 0-1H2v-1H.5a.5.5 0 0 1 0-1H2A2.5 2.5 0 0 1 4.5 2V.5A.5.5 0 0 1 5 0zm-.5 3A1.5 1.5 0 0 0 3 4.5v7A1.5 1.5 0 0 0 4.5 13h7a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 11.5 3h-7zM5 6.5A1.5 1.5 0 0 1 6.5 5h3A1.5 1.5 0 0 1 11 6.5v3A1.5 1.5 0 0 1 9.5 11h-3A1.5 1.5 0 0 1 5 9.5v-3zM6.5 6a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"/>
-</svg>
-"""
-
-evaluate_icon = """
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-clipboard-check" viewBox="0 0 16 16">
-  <path fill-rule="evenodd" d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
-  <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
-  <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
-</svg>
-"""
-
-tune_icon = """
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#3b3b3b" class="bi bi-sliders" viewBox="0 0 16 16">
-  <path fill-rule="evenodd" d="M11.5 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM9.05 3a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0V3h9.05zM4.5 7a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM2.05 8a2.5 2.5 0 0 1 4.9 0H16v1H6.95a2.5 2.5 0 0 1-4.9 0H0V8h2.05zm9.45 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm-2.45 1a2.5 2.5 0 0 1 4.9 0H16v1h-2.05a2.5 2.5 0 0 1-4.9 0H0v-1h9.05z"/>
-</svg>
-"""
-
-forecast_icon = """
-<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="3b3b3b" class="bi bi-graph-up-arrow" viewBox="0 0 16 16">
-  <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0Zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5Z"/>
-</svg>
-"""
-
-arrow_down_icon = """
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-down-circle" viewBox="0 0 16 16">
-  <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v5.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V4.5z"/>
-</svg>
-"""
-print('ForecastGenie Print: Loaded SVG ICONS')
+# load svg icons which are used in moreover menu's and some headers
+book_icon, balloon_heart_svg, paint_bucket_icon, \
+load_icon, explore_icon, clean_icon, engineer_icon, prepare_icon, select_icon, \
+train_icon, evaluate_icon, tune_icon, forecast_icon, arrow_down_icon, arrow_right_icon = load_icons()
+    
 # =============================================================================
 
 # =============================================================================
@@ -5487,11 +5644,9 @@ print('ForecastGenie Print: Loaded SVG ICONS')
 #     |_|  |_____|  |_|  |______|______|
 #                                       
 # =============================================================================
-# Create title with bubbles floating around
 with st.sidebar:
-    #my_text_header("ForecastGenie")
     st.image('./images/forecastgenie_logo.png')
-#my_forecastgenie_title('')
+
 # =============================================================================
 #    _____ _____ _____  ______ ____          _____    __  __ ______ _   _ _    _ 
 #   / ____|_   _|  __ \|  ____|  _ \   /\   |  __ \  |  \/  |  ____| \ | | |  | |
@@ -5611,6 +5766,7 @@ menu_item = option_menu(menu_title = None,
 #  /_/    \_\____/ \____/ \____/   |_|    |_| /_/    \_\_____|______|
 #                                                                    
 # =============================================================================
+# ABOUT PAGE
 if sidebar_menu_item == 'About':
     try:
         with st.sidebar:
@@ -5618,7 +5774,7 @@ if sidebar_menu_item == 'About':
             
             my_text_paragraph(f'{book_icon}')
             
-            col1, col2, col3 = st.columns([2,3,2])
+            col1, col2, col3 = st.columns([2,14,2])
             with col2:
                 selected_about_page = st.selectbox(
                                                      label = "*Select Page*:", 
@@ -5632,9 +5788,11 @@ if sidebar_menu_item == 'About':
                                                     label_visibility='collapsed', 
                                                     index = 0,
                                                  )
+            # show social media links    
+            social_media_links(margin_before=30)
                 
         # =============================================================================
-        # Front About Page            
+        # Front Cover        
         # =============================================================================   
         if selected_about_page == '-':   
             with st.expander('', expanded=True):
@@ -5815,8 +5973,8 @@ if sidebar_menu_item == 'FAQ':
         col1, col2, col3 = st.columns([2,14,2])
         with col2:
             selected_faq_page = st.selectbox(
-                                                 label = "*Select Page*:", 
-                                                 options = ['-',
+                                                label = "*Select Page*:", 
+                                                options = ['-',
                                                             'What is ForecastGenie?', 
                                                             'What data can I use with ForecastGenie?', 
                                                             'What forecasting models does ForecastGenie offer?', 
@@ -5827,41 +5985,9 @@ if sidebar_menu_item == 'FAQ':
                                                 label_visibility='collapsed', 
                                                 index = 0,
                                              )
-        # =============================================================================
-        # SOCIAL LINKS
-        # =============================================================================
-        vertical_spacer(30)
-        # Get the URL to link to
-        github_url = "https://github.com/tonyhollaar/ForecastGenie"  # Replace with your GitHub URL
-        medium_url = "https://medium.com/@thollaar"  # Replace with your Medium URL
-        logo_url = "https://tonyhollaar.com"  # Replace with the URL to your logo
-        twitter_url = "https://twitter.com/tonyhollaar"  # Replace with your Twitter URL
-        
-        # Generate the HTML code for the GitHub icon
-        github_code = f'<a href="{github_url}"><img src="https://raw.githubusercontent.com/tonyhollaar/ForecastGenie/main/images/github-mark.png" alt="GitHub" width="32"></a>'
-        
-        # Generate the HTML code for the Medium icon
-        medium_code = f'<a href="{medium_url}"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Medium_logo_Monogram.svg/512px-Medium_logo_Monogram.svg.png" alt="Medium" width="32"></a>'
-        
-        # Generate the HTML code for the logo
-        logo_code = f'<a href="{logo_url}"><img src="https://raw.githubusercontent.com/tonyhollaar/ForecastGenie/main/images/logo_website.png" alt="Logo" width="32"></a>'
-        
-        twitter_code = f'<a href="{twitter_url}"><img src="https://raw.githubusercontent.com/tonyhollaar/ForecastGenie/main/images/twitter_logo_black.png" alt="Logo" width="32"></a>'
-        # Render the icons using st.markdown()
-        col1, col2, col3, col4, col5, col6, col7, col8, col9 = st.columns([1, 2, 1, 2, 1, 2, 1, 2, 1])
-        with col2:
-            st.markdown(logo_code, unsafe_allow_html=True)
-           
-        with col4:
-            st.markdown(medium_code, unsafe_allow_html=True)
-            
-        with col6:
-            st.markdown(twitter_code, unsafe_allow_html=True)
-            
-        with col8:
-            st.markdown(github_code, unsafe_allow_html=True)
+        social_media_links(margin_before=30)
 
-        
+
     if selected_faq_page == '-':
         with st.expander('', expanded=True):
             st.image('./images/faq_page.png') # Tree Image     
@@ -6051,7 +6177,7 @@ if sidebar_menu_item == 'Doc':
         vertical_spacer(2)
     
         my_text_paragraph(f'{book_icon}')
-        col1, col2, col3 = st.columns([2,3,2])
+        col1, col2, col3 = st.columns([2,14,2])
         
         with col2:
             selected_doc_page = st.selectbox(
@@ -6070,6 +6196,9 @@ if sidebar_menu_item == 'Doc':
                                             label_visibility='collapsed', 
                                             index = 0,
                                             )
+        # show social media links    
+        social_media_links(margin_before=30)
+            
     with st.expander('', expanded=True):
         # DOC: FRONT PAGE
         ################################
@@ -6227,10 +6356,7 @@ print('Forecastgenie Print: Loaded Documentation Page')
 #  | |___| |__| / ____ \| |__| |
 #  |______\____/_/    \_\_____/ 
 #                               
-# =============================================================================   
-# =============================================================================
-# FUNCTION DELETE SESSION STATES WHEN SWITCHING FILES 
-# =============================================================================         
+# =============================================================================          
 def reset_session_states():
     """
     Resets the session states for variables by deleting all items in Session state, except for 'data_choice' and 'my_data_choice'.
@@ -6267,19 +6393,37 @@ def reset_session_states():
     key1_select_page_pca, \
     key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, \
     key1_select_page_mifs, \
-    key1_select_page_corr, key2_select_page_corr = initiate_global_variables()
+    key1_select_page_corr, key2_select_page_corr, \
+    key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
+    key11_train, key12_train, key13_train, key14_train, key15_train, key16_train, key17_train, key18_train, key19_train, key20_train, \
+    key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train = initiate_global_variables()
     
 def load_change():
+    """
+    Updates the in-memory value for a radio button representing the choice of data source.
+
+    The function updates the value of the radio button based on the current selection. If the current selection is
+    "Demo Data", the radio button value is changed to "Upload Data". If the current selection is "Upload Data", the
+    radio button value is changed to "Demo Data".
+
+    Raises:
+        Exception: If an error occurs while updating the radio button value, it is caught and the radio button value is
+                   set to "Demo Data" as a fallback.
+
+    Note:
+        This function assumes the use of a global state management system, such as Streamlit's `set_state()` function,
+        to store and update the state of the radio button value.
+
+    Example usage:
+        load_change()
+    """
     try:
-        # update in memory value for radio button / save user choice of histogram freq
         index_data_option = ("Upload Data" if data_option == "Demo Data" else "Demo Data")
         set_state("LOAD_PAGE", ("my_data_choice", index_data_option))
     except:
         set_state("LOAD_PAGE", ("my_data_choice", "Demo Data"))
-# =============================================================================
-
+        
 if menu_item == 'Load' and sidebar_menu_item == 'Home':    
-    
     # =============================================================================
     # SIDEBAR OF LOAD PAGE
     # =============================================================================
@@ -6315,10 +6459,8 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
                                                  on_change = reset_session_states)
               
     # =============================================================================
-    # LOAD MAIN PAGE
+    # MAIN PAGE OF LOAD PAGE
     # =============================================================================
-    #my_title(f"{load_icon} Load Dataset ", "#45B8AC")
-    
     if get_state('LOAD_PAGE', "my_data_choice") == "Demo Data":
        
         # update session state that user uploaded a file
@@ -6352,8 +6494,7 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
             # short message about dataframe that has been loaded with shape (# rows, # columns)
             col2.markdown(f"<center>Your <b>dataframe</b> has <b><font color='#555555'>{st.session_state.df_raw.shape[0]}</b></font> \
                            rows and <b><font color='#555555'>{st.session_state.df_raw.shape[1]}</b></font> columns <br> with date range: \
-                           <b><font color='#555555'>{df_min}</b></font> to <b><font color='#555555'>{df_max}</font></b>.</center>", 
-                           unsafe_allow_html=True)
+                           <b><font color='#555555'>{df_min}</b></font> to <b><font color='#555555'>{df_max}</font></b>.</center>", unsafe_allow_html=True)
                 
             # create deepcopy of dataframe which will be manipulated for graphs
             df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
@@ -6371,14 +6512,11 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
             
             # download csv button
             download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
+            
             vertical_spacer(1)
             
     # check if data is uploaded in file_uploader, if so -> use the function load_data to load file into a dataframe 
     if get_state('LOAD_PAGE', "my_data_choice") == "Upload Data" and uploaded_file is not None:
-
-        # =============================================================================
-        #         # WHEN NEW FILE IS UPLOADED -> UPDATE THE FOLLOWING SESSION STATE(S):
-        # =============================================================================
         # define dataframe from custom function to read from uploaded read_csv file
         st.session_state['df_raw'] = load_data()
         
@@ -6390,6 +6528,7 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
 
     # for multi-page app if user previously uploaded data uploaded_file will return to None but then get the persistent session state stored
     if get_state('LOAD_PAGE', "my_data_choice") == "Upload Data" and ((uploaded_file is not None) or (get_state("LOAD_PAGE", "user_data_uploaded") == True)) and 'demo_data' not in st.session_state['df_raw'].columns:
+        
         # define dataframe copy used for graphs
         df_graph = st.session_state['df_raw'].copy(deep=True)
         # set minimum date
@@ -6407,10 +6546,9 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
                                                  label_visibility = 'collapsed')    
                 
                 set_state("COLORS", ("chart_color", my_chart_color))
+            
             with col1:    
                 my_text_header('Uploaded Data')
-                 
-            #show_lottie_animation("./images/16938-asteroid.json", key='rocket_launch', speed=1, height=200, width=200, col_sizes=[4,4,4])
                  
             # create 3 columns for spacing
             col1, col2, col3 = st.columns([1,3,1])
@@ -6418,8 +6556,7 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
             # display df shape and date range min/max for user
             col2.markdown(f"<center>Your <b>dataframe</b> has <b><font color='#555555'>{st.session_state.df_raw.shape[0]}</b></font> \
                           rows and <b><font color='#555555'>{st.session_state.df_raw.shape[1]}</b></font> columns <br> with date range: \
-                          <b><font color='#555555'>{df_min}</b></font> to <b><font color='#555555'>{df_max}</font></b>.</center>", 
-                          unsafe_allow_html=True)
+                          <b><font color='#555555'>{df_min}</b></font> to <b><font color='#555555'>{df_max}</font></b>.</center>", unsafe_allow_html=True)
                 
             vertical_spacer(1)
             
@@ -6430,22 +6567,27 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
             # display/plot graph of dataframe
             display_dataframe_graph(df=df_graph, key=2, my_chart_color = my_chart_color)
             
-            # show dataframe below graph        
+
             try:
+                # show dataframe below graph
                 df_explore = dataframe_explorer(st.session_state['df_raw'])
                 st.dataframe(df_explore, use_container_width=True)
             except:
                 st.dataframe(df_graph, use_container_width=True)
+            
             # download csv button
             download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
             
-        
-            
     elif get_state('LOAD_PAGE', "my_data_choice") == "Upload Data" and ((uploaded_file is None) or (get_state("LOAD_PAGE", "user_data_uploaded") == False)):
-        # inform user what template to upload
+        # =============================================================================
+        # Inform user what template to upload
+        # =============================================================================
         with st.expander("", expanded=True):
+            
             my_text_header("Instructions")
+            
             vertical_spacer(2)
+            
             col1, col2, col3 = st.columns([1,8,1])
             with col2:
                 my_text_paragraph('''👈 Please upload a file with your <b><span style="color:#000000">dates</span></b> and <b><span style="color:#000000">values</span></b> in below order:<br><br>
@@ -6454,16 +6596,12 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
                          - supported frequencies: Daily/Weekly/Monthly/Quarterly/Yearly <br>
                          - supported file extensions: .CSV, .XLS, .XLSX, .XLSM, .XLSB
                          ''', my_font_weight=300, my_text_align='left')
+                
                 vertical_spacer(2)
+                       
+            # Display Doodle image of Load 
+            st.image("./images/load.png", caption="", use_column_width=True)
             
-            # Load Doodle        
-            ###############
-            # Load the canva image from subfolder images
-            image = Image.open("./images/load2.png")
-            # Display the image in Streamlit
-            st.image(image, caption="", use_column_width=True)
-            
-
 # =============================================================================
 #   ________   _______  _      ____  _____  ______ 
 #  |  ____\ \ / /  __ \| |    / __ \|  __ \|  ____|
@@ -6906,60 +7044,57 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
 
         col1, col2, col3, col4, col5 = st.columns([2, 0.5, 2, 0.5, 2])
         with col1:
-            # show original dataframe unchanged but with highlighted yellow missing NaN values
-# =============================================================================
-#             df_graph = copy_df_date_index(my_df = df_graph, 
-#                                           datetime_to_date = True, 
-#                                           date_to_index = True)
-# =============================================================================
             df_graph = copy_df_date_index(my_df = st.session_state['df_raw'], 
                                           datetime_to_date = True, 
                                           date_to_index = True)
             
             highlighted_df = df_graph.style.highlight_null(color='yellow').format(precision = 2)
+            
             my_subheader('Original DataFrame', my_style="#333333", my_size=6)
+            
             st.dataframe(highlighted_df, use_container_width=True)
+        
         with col2:
-            # show arrow which is a bootstrap icon from source: https://icons.getbootstrap.com/icons/arrow-right/
-            st.markdown('<svg xmlns="http://www.w3.org/2000/svg" width="25" height="20" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">'
-                        '<path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>'
-                        '</svg>', unsafe_allow_html=True)
+            st.markdown(arrow_right_icon, unsafe_allow_html=True)
+        
         with col3:
             my_subheader('Skipped Dates', my_style="#333333", my_size=6)
+            
             # Convert the DatetimeIndex to a dataframe with a single column named 'Date'
             df_missing_dates = pd.DataFrame({'Skipped Dates': missing_dates})
+            
             # change datetime to date
             df_missing_dates['Skipped Dates'] = df_missing_dates['Skipped Dates'].dt.date
+            
             # show missing dates
-            st.write(df_missing_dates)
+            st.dataframe(df_missing_dates, use_container_width=True)
 
             # Display the dates and the number of missing values associated with them
             my_subheader('Missing Values', my_style="#333333", my_size=6)            
             # Filter the DataFrame to include only rows with missing values
             missing_df = copy_df_date_index(st.session_state.df_raw.loc[st.session_state.df_raw.iloc[:,1].isna(), st.session_state.df_raw.columns], datetime_to_date=True, date_to_index=True)
             st.write(missing_df)
+        
         with col4:
-            # show arrow which is a bootstrap icon from source: https://icons.getbootstrap.com/icons/arrow-right/
-            st.markdown('<svg xmlns="http://www.w3.org/2000/svg" width="25" height="20" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">'
-                        '<path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>'
-                        '</svg>', unsafe_allow_html=True)
-        # Display cleaned Dataframe in Streamlit
+            st.markdown(arrow_right_icon, unsafe_allow_html = True)
+
         with col5:
             my_subheader('Cleaned Dataframe', my_style="#333333", my_size=6)
+            
             # Show the cleaned dataframe with if needed dates inserted if skipped to NaN and then the values inserted with impute method user selected backfill/forward fill/mean/median
-            st.write(df_clean_show)
-        # create and show download button in streamlit to user to download the dataframe with imputations performed to missing values
+            st.dataframe(df_clean_show, use_container_width=True)
+        
+        # Create and show download button in streamlit to user to download the dataframe with imputations performed to missing values
         download_csv_button(df_clean_show, my_file="df_imputed_missing_values.csv", set_index=True, help_message='Download cleaned dataframe to .CSV')
     
     #########################################################
     # Handling Outliers
     #########################################################
     with st.sidebar:
-        # call the function to get the outlier form in streamlit 'Handling Outliers'
+        # call the function to get the outlier form in Streamlit 'Handling Outliers'
         outlier_form()
         
     with st.expander('Outliers', expanded= True):
-        #st.write(get_store("CLEAN_PAGE")) # also possible to get dictionary of the entire slot e.g. in memory outlier form user form
         outlier_detection_method = get_state("CLEAN_PAGE", "outlier_detection_method")
         outlier_zscore_threshold = get_state("CLEAN_PAGE", "outlier_zscore_threshold")
         outlier_iqr_q1 = get_state("CLEAN_PAGE", "outlier_iqr_q1")
@@ -6970,7 +7105,8 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
                                                          
         # Set page subheader with custum function
         my_text_header('Handling outliers')
-        # Define function to generate form and sliders for outlier detection and handling
+        
+        # Create form and sliders for outlier detection and handling
         ##############################################################################       
         df_cleaned_outliers, outliers = handle_outliers(df_clean_show, 
                                                         outlier_detection_method,
@@ -6982,8 +7118,11 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
                                                         random_state, 
                                                         outlier_iqr_multiplier)
         if outliers is not None and any(outliers):
+            
             outliers_df = copy_df_date_index(df_clean[outliers], datetime_to_date=True, date_to_index=True).add_suffix('_outliers')
+            
             df_cleaned_outliers = df_cleaned_outliers.add_suffix('_outliers_replaced')
+            
             # inner join two dataframes
             outliers_df = outliers_df.join(df_cleaned_outliers, how='inner', rsuffix='_outliers_replaced')
             
@@ -7022,12 +7161,15 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
 
             # show the outlier plot
             st.session_state['fig_outliers'] = fig_outliers
-            # TEST IF STATEMENT ? st.session_state['fig_outliers'] else fig_outliers
+            
             st.plotly_chart(fig_outliers, use_container_width=True)
+            
             #  show the dataframe of outliers
             st.info(f'ℹ️ You replaced **{len(outliers_df)} outlier(s)** with their respective **{outlier_replacement_method}(s)** utilizing **{outlier_detection_method}**.')
+            
             # Apply the color scheme to the dataframe, round values by 2 decimals and display it in streamlit using full size of expander window
             st.dataframe(outliers_df.style.format("{:.2f}").apply(highlight_cols, axis=0), use_container_width=True)
+            
             # add download button for user to be able to download outliers
             download_csv_button(outliers_df, my_file="df_outliers.csv", set_index=True, help_message='Download outlier dataframe to .CSV', my_key='df_outliers')
        
@@ -7035,15 +7177,14 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
         # ... run code... 
         # show scatterplot data without outliers
         else:
-            # show the outlier plot 
-            ## OUTLIER FIGURE CODE
             vertical_spacer(1)
             fig_no_outliers = go.Figure()
-            fig_no_outliers.add_trace(go.Scatter(x=df_clean['date'], 
-                                     y=df_clean.iloc[:,1], 
-                                     mode='markers', 
-                                     name='Before',
-                          marker=dict(color='#440154'),  opacity = 0.5))
+            fig_no_outliers.add_trace(go.Scatter(x = df_clean['date'], 
+                                     y = df_clean.iloc[:,1], 
+                                     mode = 'markers', 
+                                     name = 'Before',
+                          marker=dict(color = '#440154'),  opacity = 0.5))
+            
             st.plotly_chart(fig_no_outliers, use_container_width=True)
             my_text_paragraph(f'No <b> outlier detection </b> or <b> outlier replacement </b> method selected.', my_font_size='14px')
 else:
@@ -7052,6 +7193,7 @@ else:
     ##################################################################################################################################
     # Retrieve the date frequency of the timeseries    
     freq_dict = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
+    
     # Infer and return the original data frequency e.g. 'M' and name e.g. 'Monthly'
     original_freq, original_freq_name = determine_df_frequency(st.session_state['df_raw'], column_name='date')
 
@@ -7081,7 +7223,7 @@ else:
                                                     outlier_threshold = get_state('CLEAN_PAGE', 'outlier_zscore_threshold'),
                                                     q1 = get_state('CLEAN_PAGE', 'outlier_iqr_q1'),
                                                     q3 = get_state('CLEAN_PAGE', 'outlier_iqr_q3'),
-                                                    outlier_replacement_method =  get_state('CLEAN_PAGE', 'outlier_replacement_method'),
+                                                    outlier_replacement_method = get_state('CLEAN_PAGE', 'outlier_replacement_method'),
                                                     contamination = get_state('CLEAN_PAGE', 'outlier_isolationforest_contamination'), 
                                                     random_state = random_state,  # defined variable random_state top of script e.g. 10
                                                     iqr_multiplier = get_state('CLEAN_PAGE', 'outlier_iqr_multiplier')
@@ -7112,19 +7254,16 @@ else:
 # =============================================================================
 # FEATURE ENGINEERING
 if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
-    #st.write('session state df_cleaned_outliers_with_index', st.session_state['df_cleaned_outliers_with_index']) # TEST IF IMPUTATIONS FROM CLEAN PAGE AREA PROPEGATED CORRECTLY
     
-    # set title of engineer page
-    #my_title(f"{engineer_icon} Feature Engineering", "#FF6F61", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
-
     with st.sidebar:
-        # set title in sidebar for engineer page
         my_title(f"{engineer_icon}", "#3b3b3b", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
         
     with st.sidebar.form('feature engineering sidebar'):
+        
         my_text_paragraph('Features')
-        # create empty newline
+
         vertical_spacer(1)
+        
         # show checkboxes in middle of sidebar to select all features or none
         col1, col2, col3 = st.columns([0.1,8,3])
         with col3:
@@ -7454,26 +7593,25 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
     #################################################################
     # ALL FEATURES COMBINED INTO A DATAFRAME
     #################################################################
-    # Show dataframe
     with st.expander('', expanded=True):
         my_text_header('Engineered Features')
 
         # Retrieve number of features to show on page
-        # -2 because of datetime index and target variable
+        # -2 -> because of datetime index and target variable
         num_features_df = len(df.columns)-2
         my_text_paragraph(f'{num_features_df}')
         
-        # Show animation
         show_lottie_animation(url="./images/features_round.json", key="features_round", width=400, height=400)
         
         # Show dataframe in streamlit
-        st.dataframe(copy_df_date_index(my_df=df, datetime_to_date=True, date_to_index=True), use_container_width=True)
+        st.dataframe(copy_df_date_index(my_df = df, datetime_to_date = True, date_to_index = True), use_container_width = True)
         
         # add download button
-        download_csv_button(df, my_file="dataframe_incl_features.csv", help_message="Download your dataset incl. features to .CSV")
+        download_csv_button(df, my_file = "dataframe_incl_features.csv", help_message = "Download your dataset incl. features to .CSV")
+        
+# Else e.g. if user is not within menu_item == 'Engineer' and sidebar_menu_item is not 'Home':
 else:
-    # Else e.g. if user is not within menu_item == 'Engineer' and sidebar_menu_item is not 'Home':
-    # execute code below...
+    # set dataframe equal to the cleaned dataframe
     df = st.session_state['df_cleaned_outliers_with_index']
     
     # Check if checkboxes are True or False for feature engineering options
@@ -7485,15 +7623,18 @@ else:
     # if feature engineering option is checked for holidays, add features:
     if calendar_holidays_checkbox:
         df = create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'], slider = False)
+    
     # if feature engineering option is checked for special calendar days (e.g. black friday etc.), add features
     if special_calendar_days_checkbox:
         df = create_calendar_special_days(df)
+    
     # if featue engineering option is checked for the year/month/day dummy variables, add features
     if calendar_dummies_checkbox:
         df = create_date_features(df, 
                                   year_dummies = get_state("ENGINEER_PAGE_VARS", "year_dummies_checkbox"), 
                                   month_dummies = get_state("ENGINEER_PAGE_VARS", "month_dummies_checkbox"), 
                                   day_dummies = get_state("ENGINEER_PAGE_VARS", "day_dummies_checkbox"))
+    
     # =============================================================================
     #     # TEST OUTSIDE FUNCTION TO RUN WAVELET FUNCTION
     #     # df = <insert wavelet function code>
@@ -7501,7 +7642,7 @@ else:
     #         df = 
     # =============================================================================    
     
-    # add the date column but only as numeric feature
+    # Add the date column but only as numeric feature
     df['date_numeric'] = (df['date'] - df['date'].min()).dt.days
     # TIMESTAMP NUMERIC Unix gives same result
     #df['date_numeric'] = (df['date'] - pd.Timestamp("1970-01-01")) // pd.Timedelta('1s')
@@ -7519,16 +7660,16 @@ else:
         #st.write('no features engineered') # TEST
         pass
 
-###############################################
-# update dataframe's session state with transformations: 
-# - Added calendar days
-# - Date dummy variables
-# - Wavelet features 
-# - Datatypes updated
-###############################################
+# =============================================================================
+# # update dataframe's session state with transformations: 
+# # - Added calendar days
+# # - Date dummy variables
+# # - Wavelet features 
+# # - Datatypes updated
+# =============================================================================
 st.session_state['df'] = df     
 
-# assumption date column and y column are at index 0 and index 1 so start from column 3 e.g. index 2 to count potential numerical_features
+# Assumption: date column and y column are at index 0 and index 1 so start from column 3 e.g. index 2 to count potential numerical_features
 # e.g. changed float64 to float to include other floats such as float32 and float16 data types
 numerical_features = list(st.session_state['df'].iloc[:, 2:].select_dtypes(include=['float', 'int']).columns)
 
@@ -7547,8 +7688,6 @@ local_df = st.session_state['df'].copy(deep=True)
 # PREPARE DATASET (REMOVE OBJECT DTYPE FEATURES, TRAIN/TEST SPLIT, NORMALIZE, STANDARDIZE)
 if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
     
-    #my_title(f'{prepare_icon} Prepare Data', "#FF9F00", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
-    
     with st.sidebar:
         
         my_title(f'{prepare_icon}', "#3b3b3b", gradient_colors="#1A2980, #FF9F00, #FEBD2E")
@@ -7560,6 +7699,7 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
     
     # if not an empty list e.g. only show if there are variables removed with dtype = object
     if obj_cols:
+        
         # show user which descriptive variables are removed, that just had the purpose to inform user what dummy was from e.g. holiday days such as Martin Luther King Day
         with st.expander('', expanded=True):
             my_text_header('Preprocess')
@@ -7606,7 +7746,6 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
         my_text_header('Train/Test Split')
        
         # create sliders for user insample test-size (/train-size automatically as well)
-        # st.write('session state df', st.session_state['df']) # TEST
         my_insample_forecast_steps, my_insample_forecast_perc = train_test_split_slider(df = st.session_state['df'])
         
         # update the session_state with train/test split chosen by user from sidebar slider
@@ -7685,11 +7824,13 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
         
     # if user did not select normalization (yet) then show user message to select normalization method in sidebar
     if normalization_choice == "None":
-        # on page create expander
         with st.expander('Normalization ',expanded=True):
             my_text_header('Normalization') 
+            
             show_lottie_animation(url="./images/monster-2.json", key="rocket_night_day", width=200, height=200, col_sizes=[6,6,6])
+            
             my_text_paragraph(f'Method: {normalization_choice}')
+            
             st.info('👈 Please choose in the sidebar your normalization method for numerical columns. Note: columns with booleans will be excluded.')
 
     # else show user the dataframe with the features that were normalized
@@ -7697,6 +7838,7 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
         with st.expander('Normalization',expanded=True):
            
             my_text_header('Normalized Features') 
+            
             my_text_paragraph(f'Method: {normalization_choice}')
             
             # need original (unnormalized) X_train as well for figure in order to show before/after normalization
@@ -7706,6 +7848,7 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
             plot_scaling_before_after(X_unscaled_train, X_train, numerical_features)
             
             st.success(f'🎉 Good job! **{len(numerical_features)}** numerical feature(s) are normalized with **{normalization_choice}**!')
+            
             st.dataframe(X[numerical_features].assign(date=X.index.date).reset_index(drop=True).set_index('date'), use_container_width=True) # TEST
            
             # create download button for user, to download the standardized features dataframe with dates as index i.e. first column
@@ -7735,8 +7878,9 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
                                                               The resulting data will have a mean of zero and a standard deviation of one.\
                                                               The distribution of the data is changed by centering and scaling the values, which can make the data more interpretable and easier to compare across different features' )
             else:
-                # if no numerical features show user a message to inform
+               # if no numerical features show user a message to inform
                st.warning("No numerical features to standardize, you can try adding features!")
+               
                # set normalization_choice to None
                standardization_choice = "None"
             
@@ -7756,15 +7900,21 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
     if standardization_choice == "None":
         # on page create expander
         with st.expander('Standardization ',expanded=True):
+            
             my_text_header('Standardization') 
+            
             show_lottie_animation(url="./images/2833-green-monster.json", key="green-monster", width=200, height=200, col_sizes=[6,6,6], speed=0.8)
+            
             my_text_paragraph(f'Method: {standardization_choice}')
+            
             st.info('👈 Please choose in the sidebar your Standardization method for numerical columns. Note: columns with booleans will be excluded.')
             
     # ELSE show user the dataframe with the features that were normalized
     else:
         with st.expander('Standardization',expanded=True):
+            
             my_text_header('Standardization') 
+            
             my_text_paragraph(f'Method: {standardization_choice}')
             
             # need original (unnormalized) X_train as well for figure in order to show before/after Standardization
@@ -7787,8 +7937,8 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
 
 else:
     # =============================================================================
-    # if user not in prepare screen then update the dataframe with preselected choices e.g. 80/20 split
-    # do not normalize and do not standardize
+    # - if user not in prepare screen then update the dataframe with preselected choices e.g. 80/20 split
+    # - do not normalize and do not standardize
     # =============================================================================
     
     #################################
@@ -7815,55 +7965,37 @@ else:
                                                                                   st.session_state['insample_forecast_steps'], 
                                                                                   st.session_state['normalization_choice'], 
                                                                                   numerical_features=numerical_features)
-# Update Session States
+        
+# =============================================================================
+# Update Session States of dataset including: Target variable (y), independent features (X) for both train & test-set
+# =============================================================================
 st.session_state['X'] = X
 st.session_state['y'] = y
 st.session_state['X_train'] = X_train
 st.session_state['X_test'] = X_test
 st.session_state['y_train'] = y_train
 st.session_state['y_test'] = y_test
-#st.session_state['scaler'] = scaler
-
-# ================================ SELECT ===================================  
-# Set Default values for Feature Selection
-# NOTE: did not put at start of notebook as variable input is needed of session state of X
-
 
 # =============================================================================
-# *****************************************************************************
-# IDEA: set initial variables not dependable on X and then update value with set_state here
-# as you can have less then 5 features in X -> then error, that's why you need to know number of columns in X
-# *****************************************************************************
+# # If user changes engineered features to lower number than default e.g. 5, 
+# # then check the number of features in X_train and also check if a user did not set slider to lower number than maximum of e.g. 3 features:
 # =============================================================================
-
-###############
-# DEFINE LOGIC: 
-###############
-# SITUATIONS IT NEEDS TO RESET THE VALUES OF SLIDERS TO DEFAULT:
-# 0. WHEN APP STARTS FIRST TIME (HOWEVER ALSO RADIO BUTTON DEFAULTS TO DEMO BUT DO NOT WANT TO MAKE IT DEPENDENT ON THAT)    
-# 1. IF NEW FILE IS UPLOADED
-# 2. IF SWITCHING RADIO BUTTON
-
-##############################################
-# SITUATION TO SAVE IN MEMORY THE USER CHOICE:
-##############################################
-# IF USER CHANGES SLIDER AND PRESSED SUBMIT
-# IF USER SWITCHES PAGE AND COMES BACK TO SELECT PAGE
-# 
-
-
-# if user changes engineered features to lower number than default e.g. 5, 
-# then check the number of features in X_train and also check if a user did not set slider to lower number than maximum of e.g. 3 features:
 if st.session_state['X_train'].shape[1] < 5:
     st.write('number of features in X_train is smaller than default value of 5')
+    
+    # =============================================================================
     # PCA
+    # =============================================================================
     # if user changed slider set it to that value
     if get_state("SELECT_PAGE_PCA", "num_features_pca") < st.session_state['X_train'].shape[1]:
         st.write('number of features is smaller than X_train for pca')
     else:    
         # PCA UPDATE SESSION STATE
         set_state("SELECT_PAGE_PCA", ("num_features_pca", min(5, st.session_state['X_train'].shape[1])))
+    
+    # =============================================================================
     # RFE   
+    # =============================================================================
     if get_state("SELECT_PAGE_RFE", "num_features_rfe") < st.session_state['X_train'].shape[1]:    
         st.write('number of features is smaller than X_train for rfe')
     else:
@@ -7874,7 +8006,10 @@ if st.session_state['X_train'].shape[1] < 5:
         # set_state("SELECT_PAGE_RFE", ("timeseriessplit_value_rfe", 5))
         # set_state("SELECT_PAGE_RFE", ("num_steps_rfe", 1))
         # =============================================================================
+    
+    # =============================================================================
     # MIFS
+    # =============================================================================
     if get_state("SELECT_PAGE_MIFS", "num_features_mifs") < st.session_state['X_train'].shape[1]:    
         st.write('number of features is smaller than X_train for mifs')
     else:
@@ -7882,41 +8017,8 @@ if st.session_state['X_train'].shape[1] < 5:
         set_state("SELECT_PAGE_MIFS", ("num_features_mifs", min(5, st.session_state['X_train'].shape[1])))
 
 # =============================================================================
+# IF USER UPLOADS NEW FILE THEN RESET THE FEATURE SELECTION LIST TO EMPTY LIST
 # =============================================================================
-# 
-# # MOVED CODE TO TOP
-# # PCA
-# key1_select_page_pca, key2_select_page_pca = create_store("SELECT_PAGE_PCA", [
-#                             # default of PCA features set to minimum of either 5 or the number of independent features in the dataframe
-#                             ("num_features_pca", min(5, st.session_state['X_train'].shape[1])), #key1_select_page_pca # 
-#                             ("run", 0) #key2_select_page_pca
-#                             ])
-# # RFE
-# key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, key5_select_page_rfe = create_store("SELECT_PAGE_RFE", [
-#                             ("num_features_rfe", min(5, st.session_state['X_train'].shape[1])), #key1_select_page_rfe
-#                             ("estimator_rfe", "Linear Regression"), #key2_select_page_rfe
-#                             ("timeseriessplit_value_rfe", 5),   #key3_select_page_rfe
-#                             ("num_steps_rfe", 1), #key4_select_page_rfe
-#                             ("run", 0) #key5_select_page_rfe
-#                             ])
-# 
-# # MIFS
-# key1_select_page_mifs, key2_select_page_mifs = create_store("SELECT_PAGE_MIFS", [
-#                             ("num_features_mifs", min(5, st.session_state['X'].shape[1])), #key1_select_page_mifs # 
-#                             ("run", 0) #key2_select_page_mifs
-#                             ])
-# # CORR
-# key1_select_page_corr, key2_select_page_corr, key3_select_page_corr = create_store("SELECT_PAGE_CORR", [
-#                                                             ("corr_threshold", 0.8), #key1_select_page_corr 
-#                                                             ("selected_corr_model", 'Linear Regression'), #key2_select_page_corr
-#                                                             ("run", 0) #key3_select_page_corr
-#                                                             ])
-# =============================================================================
-
-# If you uploaded a new file then reset the previous feature selection of user to an empty list
-#if st.session_state["df_raw"].columns[1] != 'demo_data' and get_state("DATA_OPTION", "upload_data") == True:
-
-#st.write('upload_new_data', get_state("DATA_OPTION", "upload_new_data"))
 if get_state("DATA_OPTION", "upload_new_data") == True:
     # set equal to empty list again if user uploads new file
     set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", []))
@@ -7932,44 +8034,28 @@ if get_state("DATA_OPTION", "upload_new_data") == True:
 # =============================================================================
 # FEATURE SELECTION OF INDEPENDENT FEATURES / EXOGENOUS VARIABLES
 if menu_item == 'Select' and sidebar_menu_item == 'Home':    
-    
-    # SHOW TITLE
-    #my_title(f'{select_icon} Feature Selection', "#7B52AB", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
-    
-    # SHOW INFORMATION CARD ABOUT FEATURE SELECTION METHODS
-    show_card_feature_selection_methods()
-    
-    # SHOW USER FORMS FOR PARAMETERS OF FEATURE SELECTION METHODS
-    with st.sidebar:
-        # USER FORM: Recursive Feature Elimination (RFE)
-        num_features_rfe, estimator_rfe, timeseriessplit_value_rfe, num_steps_rfe = form_feature_selection_method_rfe()
-        
-        # USER FORM: Principal Component Analysis (PCA)
-        num_features_pca = form_feature_selection_method_pca()
-        
-        # USER FORM: MUTUAL INFORMATION FEATURE SELECTION (MIFS)
-        num_features_mifs = form_feature_selection_method_mifs()
-
     # =============================================================================
-    # RFE Feature Selection - PAGE RESULTS
+    # SHOW USER FORMS FOR PARAMETERS OF FEATURE SELECTION METHODS
+    # =============================================================================
+    with st.sidebar:
+        num_features_rfe, estimator_rfe, timeseriessplit_value_rfe, num_steps_rfe = form_feature_selection_method_rfe()
+        num_features_pca = form_feature_selection_method_pca()
+        num_features_mifs = form_feature_selection_method_mifs()
+    
+    # =============================================================================
+    # SHOW INFORMATION CARD ABOUT FEATURE SELECTION METHODS
+    # =============================================================================
+    try:
+        show_card_feature_selection_methods()
+    except:
+        pass
+         
+    # =============================================================================
+    # RFE Feature Selection
     # =============================================================================
     try:
         with st.expander('🎨 RFECV', expanded=True):
-            ####################
-            # RFE ANALYSIS
-            ####################
-            # Perform Recursive Feature Elimination with Cross-Validation
-            selected_cols_rfe, selected_features, rfecv = perform_rfe(
-                                                                       X_train = st.session_state['X_train'], 
-                                                                       y_train = st.session_state['y_train'], 
-                                                                       estimator_rfe = estimator_rfe, 
-                                                                       num_steps_rfe = num_steps_rfe, 
-                                                                       num_features_rfe = num_features_rfe, 
-                                                                       timeseriessplit_value_rfe = timeseriessplit_value_rfe
-                                                                     )
-            ####################
-            # RFE RESULTS
-            ####################
+            selected_cols_rfe, selected_features, rfecv = perform_rfe(X_train = st.session_state['X_train'], y_train = st.session_state['y_train'], estimator_rfe = estimator_rfe, num_steps_rfe = num_steps_rfe, num_features_rfe = num_features_rfe, timeseriessplit_value_rfe = timeseriessplit_value_rfe)
             show_rfe_plot(rfecv, selected_features)
     except:
         selected_cols_rfe= []
@@ -7980,21 +8066,8 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
     # =============================================================================          
     try:
         with st.expander('🧮 PCA', expanded=True):        
-            ####################
-            # PCA ANALYSIS
-            ####################
-            # Perform Principal Component Analysis on the Training Dataset
-            sorted_features, pca, sorted_idx, selected_cols_pca = perform_pca(X_train = X_train, 
-                                                                              num_features_pca = num_features_pca)
-            ####################
-            # PCA RESULTS
-            ####################
-            # Show in Streamlit a Title, Subtitle and Plot of Top Features with Principal Component Analysis
-            # Additionally show button when clicked shows additional explanation of PCA Plot
-            show_pca_plot(sorted_features = sorted_features, 
-                          pca = pca, 
-                          sorted_idx = sorted_idx, 
-                          selected_cols_pca = selected_cols_pca)
+            sorted_features, pca, sorted_idx, selected_cols_pca = perform_pca(X_train = X_train, num_features_pca = num_features_pca)
+            show_pca_plot(sorted_features = sorted_features, pca = pca, sorted_idx = sorted_idx, selected_cols_pca = selected_cols_pca)
     except:
         # IF PCA could not execute show user error
         selected_cols_pca = []
@@ -8005,38 +8078,23 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
     # =============================================================================
     try:             
         with st.expander('🎏 MIFS', expanded=True):
-            ####################
-            # MIFS ANALYSIS
-            ####################
             mutual_info, selected_features_mi, selected_cols_mifs = perform_mifs(X_train, y_train, num_features_mifs)
-            
-            ####################
-            # MIFS RESULTS
-            ####################
-            show_mifs_plot(
-                           mutual_info = mutual_info, 
-                           selected_features_mi = selected_features_mi, 
-                           num_features_mifs = num_features_mifs
-                          )
+            show_mifs_plot(mutual_info = mutual_info, selected_features_mi = selected_features_mi, num_features_mifs = num_features_mifs)
     except: 
         selected_cols_mifs = []
         st.warning(':red[**ERROR**: Mutual Information Feature Selection could not execute...please adjust your selection criteria]')
     
     # =============================================================================
-    # Correlation Analysis
-    # Remove Highly Correlated Features
+    # Removing Highly Correlated Independent Features
     # =============================================================================
     try: 
         with st.sidebar:
             with st.form('correlation analysis'):
-                # set subheader of form
                 my_text_paragraph('Correlation Analysis')
                 
-                # set slider threshold for correlation strength
                 corr_threshold = st.slider("*Select Correlation Threshold*", 
                                            min_value=0.0, 
                                            max_value=1.0, 
-                                           #value=0.8, 
                                            key = key1_select_page_corr,
                                            step=0.05, 
                                            help='Set `Correlation Threshold` to determine which pair(s) of variables in the dataset are strongly correlated e.g. no correlation = 0, perfect correlation = 1')
@@ -8045,15 +8103,12 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                 models = {'Linear Regression': LinearRegression(), 'Random Forest Regressor': RandomForestRegressor(n_estimators=100)}
                 
                 # provide user option to select model (default = Linear Regression)
-                selected_corr_model = st.selectbox(
-                                                   label = '*Select **model** for computing **importance scores** for highly correlated feature pairs, to drop the **least important** feature of each pair which is highly correlated*:', 
+                selected_corr_model = st.selectbox(label = '*Select **model** for computing **importance scores** for highly correlated feature pairs, to drop the **least important** feature of each pair which is highly correlated*:', 
                                                    options = list(models.keys()),
-                                                   key = key2_select_page_corr
-                                                  )
+                                                   key = key2_select_page_corr)
                 
                 col1, col2, col3 = st.columns([4,4,4])
                 with col2:   
-                    # SHOW SUBMIT BUTTON OF USER FORM
                     corr_btn = st.form_submit_button("Submit", type="secondary", on_click=form_update, args=('SELECT_PAGE_CORR',))
                     
         with st.expander('🍻 Correlation Analysis', expanded=True):
@@ -8072,54 +8127,37 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
             correlation_heatmap(X_train, correlation_threshold=corr_threshold)
             
             # Apply Function to analyse feature correlations and computes importance scores.             
-            total_features, importance_scores, pairwise_features_in_total_features, df_pairwise = analyze_feature_correlations(   
-                                                                                                                                selected_corr_model, 
-                                                                                                                                X_train, 
-                                                                                                                                y_train, 
-                                                                                                                                selected_cols_rfe, 
-                                                                                                                                selected_cols_pca, 
-                                                                                                                                selected_cols_mifs, 
-                                                                                                                                corr_threshold, 
-                                                                                                                                models
-                                                                                                                              )
+            total_features, importance_scores, pairwise_features_in_total_features, df_pairwise = analyze_feature_correlations(selected_corr_model, 
+                                                                                                                               X_train, 
+                                                                                                                               y_train, 
+                                                                                                                               selected_cols_rfe, 
+                                                                                                                               selected_cols_pca, 
+                                                                                                                               selected_cols_mifs, 
+                                                                                                                               corr_threshold, 
+                                                                                                                               models)
             # Display message with pairs in total_features
             if df_pairwise.empty:
                 st.info(f'There are no **pairwise combinations** in the selected features with a **correlation** larger than or equal to the user defined threshold of **{corr_threshold*100:.0f}%**')
                 vertical_spacer(1)
             else:
                 st.markdown(f' <center> The following pairwise combinations of features have a correlation >= threshold: </center>', unsafe_allow_html=True)      
-                
                 vertical_spacer(1)
                 
                 # show dataframe with pairwise features
                 st.dataframe(df_pairwise, use_container_width=True)
                 
                 # download button for dataframe of pairwise correlation
-                download_csv_button(
-                                    df_pairwise, 
-                                    my_file="pairwise_correlation.csv", 
-                                    help_message='Download pairwise correlation to .CSV', 
-                                    set_index=False
-                                   )
+                download_csv_button(df_pairwise, my_file="pairwise_correlation.csv", help_message='Download pairwise correlation to .CSV', set_index=False)
                 
                 # insert divider line
                 st.markdown('---')
             
             # SHOW CORRELATION CHART
-            altair_correlation_chart(
-                                     total_features, 
-                                     importance_scores, 
-                                     pairwise_features_in_total_features, 
-                                     corr_threshold
-                                     )
+            altair_correlation_chart(total_features, importance_scores, pairwise_features_in_total_features, corr_threshold)
             
             # Remove features with lowest importance scores from each pair
             # note: only remove one of highly correlated features based on importance score after plot is shown
-            total_features_default = remove_lowest_importance_feature(
-                                                                      total_features, 
-                                                                      importance_scores, 
-                                                                      pairwise_features_in_total_features
-                                                                     )
+            total_features_default = remove_lowest_importance_feature(total_features, importance_scores, pairwise_features_in_total_features)
     except:
         st.warning(':red[**ERROR**: Error with Correlation Analysis...please adjust your selection criteria]')
 
@@ -8130,7 +8168,6 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         with st.form('top_features'):
             my_text_paragraph('Selected Features')
             
-
             #if rfe pca or mifs submitted button is pressed, set total_features equal again to recommended/calculated total_features from feature selection methods:
             # if user changes one of the selection method parameters -> reset to feature selection method selection and remove user feature selection preference 
             if get_state("SELECT_PAGE_BTN_CLICKED", "rfe_btn") == True or get_state("SELECT_PAGE_BTN_CLICKED", "pca_btn") == True or get_state("SELECT_PAGE_BTN_CLICKED", "mifs_btn") == True:
@@ -8145,7 +8182,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                 del st.session_state["__SELECT_PAGE_BTN_CLICKED-pca_btn__"]
                 del st.session_state["__SELECT_PAGE_BTN_CLICKED-mifs_btn__"]
                 
-                st.write('option 1') #TEST1
+                #st.write('option 1') #TEST1
                 
                 st.write('rfe_btn', get_state("SELECT_PAGE_BTN_CLICKED", "rfe_btn"))   # TEST1
                 st.write('pca_btn', get_state("SELECT_PAGE_BTN_CLICKED", "pca_btn"))   # TEST1
@@ -8159,37 +8196,23 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
             
             # if user selected features, use those! else use the recommended features by feature selection methods 
             elif "__SELECT_PAGE_USER_SELECTION-feature_selection_user__" in st.session_state and get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user") != []:
-# =============================================================================
-#                 # issue when switching from demo to new file and making user selection -> change to new file -> mismatch X and selection, selection is old still and not reset properly
-#                 st.write('option 2') # TEST
-#                 st.write('feature selection user:', get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")) # TEST
-#                 st.write(' X_train.columns',  X_train.columns) # TEST
-#                 st.write('my_data_choice - old variable', st.session_state['my_data_choice'])
-#                 # fixed issue with load data screen code conditional: set_state("DATA_OPTION", ("upload_new_data", True)) 
-# =============================================================================
+                #st.write('option 2') # TEST
                 total_features = get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")
                 
             else:
-                st.write('option 3') # TEST
-                
-                # set feature selection to default (based on 3 feature selection methods)
+                #st.write('option 3') # TEST
+                # set feature selection to default based result of 3 feature selection methods)
                 total_features = total_features_default 
                 total_features = set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", total_features))
 
-            # combine 3 feature selection methods and show to user in multi-selectbox to adjust as needed
-            #st.write('these are all options from X train columns:', X_train.columns)    # TEST
-            #st.write(get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")) # TEST
             
-            feature_selection_user = st.multiselect(
-                                                    label = "favorite features", 
+            feature_selection_user = st.multiselect(label = "favorite features", 
                                                     options = X_train.columns,
                                                     key = key1_select_page_user_selection,
-                                                    label_visibility = "collapsed"
-                                                   )
+                                                    label_visibility = "collapsed")
 
             col1, col2, col3 = st.columns([4,4,4])
-            with col2:       
-                # SHOW SUBMIT BUTTON OF USER FORM
+            with col2:
                 top_features_btn = st.form_submit_button("Submit", type="secondary",  on_click=form_update, args=("SELECT_PAGE_USER_SELECTION",))
 
     # IS THIS CODE REDUNDANT? I CAN DEFINE IT OUTSIDE OF SELECT PAGE WITH SESSION STATES               
@@ -8220,12 +8243,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                              )
         
         # create dataframe from list of features and specify column header
-        # NOTE: updated below code from 'total_features' to 'feature_selection_user' to only show features that are in sidebar selected
-        # instead of all that are outputed from feature selection techniques
-        df_total_features = pd.DataFrame(
-                                         feature_selection_user, 
-                                         columns = ['Top Features']
-                                        )
+        df_total_features = pd.DataFrame(feature_selection_user, columns = ['Top Features'])
         
         # =============================================================================      
         # THIS CODE RETRIEVES DIFFERENCE WHAT WAS RECOMMENDED BY FEATURE SELECTION METHODS
@@ -8270,9 +8288,11 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         # TEST - set session state variable 'upload_new_data' back to False
         set_state("DATA_OPTION", ("upload_new_data", False))
 else:
-    # ELSE WHEN USER IS NOT ON SELECT PAGE 
+    # =============================================================================
+    # ELSE WHEN USER IS NOT ON SELECT PAGE:
     # 0. RUN THE FEATURE SELECTION TO SELECT TOP FEATURES
     # 1. REMOVE FROM HIGHLY CORRELATED INDEPENDENT FEATURES PAIRS THE ONE WITH LOWEST IMPORTANCE SCORES
+    # =============================================================================
     
     # =============================================================================
     # Apply 3 Feature Selection Techniques
@@ -8295,10 +8315,6 @@ else:
     ################
     # 2. PCA
     ################
-    #st.write('getstate session state num_features_pca', get_state("SELECT_PAGE_PCA", "num_features_pca"))
-    #st.write('outside func X_train', X_train)
-    
-    # Perform Principal Component Analysis on the Training Dataset
     try:
         sorted_features, pca, sorted_idx, selected_cols_pca = perform_pca(
                                                                           X_train = st.session_state['X_train'], 
@@ -8320,8 +8336,8 @@ else:
 
     # =============================================================================
     # Remove Highly Correlated Features >= threshold ( default = 80% pairwise-correlation)
-    # =============================================================================    
-    # Apply Function to analyse feature correlations and computes importance scores.             
+    # remove one of each pair based on importance scores
+    # =============================================================================            
     total_features, importance_scores, pairwise_features_in_total_features, df_pairwise = analyze_feature_correlations(   
                                                                                                                         selected_corr_model = get_state("SELECT_PAGE_CORR", "selected_corr_model"), 
                                                                                                                         X_train = X_train, 
@@ -8334,18 +8350,8 @@ else:
                                                                                                                                   },
                                                                                                                         corr_threshold = get_state("SELECT_PAGE_CORR", "corr_threshold")
                                                                                                                       )
-    #st.write('total features', total_features) #TEST
-    
     # NOTE: only remove one of highly correlated features based on importance score after plot is shown
-    total_features_default = remove_lowest_importance_feature(
-                                                              total_features, 
-                                                              importance_scores, 
-                                                              pairwise_features_in_total_features
-                                                             )      
-    
-    #st.write('total features default', total_features_default) # TEST
-    
-    #st.write('''get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")''', get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user"))
+    total_features_default = remove_lowest_importance_feature(total_features, importance_scores, pairwise_features_in_total_features)      
     
     # if user selected features, use those! else use the recommended features by feature selection methods 
     if "__SELECT_PAGE_USER_SELECTION-feature_selection_user__" in st.session_state and get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user") != []:
@@ -8353,9 +8359,7 @@ else:
     else:
         total_features = total_features_default 
 
-    #X = X.loc[:, get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")]
     X = X.loc[:, total_features]
-    #st.write('X outside after features selection:', X)  
     y = y
     X_train = X[:(len(df)-st.session_state['insample_forecast_steps'])]
     X_test = X[(len(df)-st.session_state['insample_forecast_steps']):]
@@ -8372,42 +8376,6 @@ else:
 #                                        
 # =============================================================================
 # TRAIN MODELS
-
-# =============================================================================
-# Save user selected models to session state
-# =============================================================================
-key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
-key11_train, key12_train, key13_train, key14_train, key15_train, key16_train, key17_train, key18_train, key19_train, key20_train, \
-key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train = create_store("TRAIN_PAGE", [
-                                                                                ("my_conf_interval", 80),               #key1_train
-                                                                                ("naive_checkbox",  False),             #key2_train
-                                                                                ("linreg_checkbox",  False),            #key3_train
-                                                                                ("sarimax_checkbox", False),            #key4_train
-                                                                                ("prophet_checkbox", False),            #key5_train
-                                                                                ("selected_models", []),                #key6_train
-                                                                                ("lag", 'Week'),                        #key7_train
-                                                                                ("custom_lag_value", 5),                #key8_train
-                                                                                ("p", 1),                               #key9_train
-                                                                                ("d", 1),                               #key10_train
-                                                                                ("q", 1),                               #key11_train
-                                                                                ("P", 1),                               #key12_train
-                                                                                ("D", 1),                               #key13_train
-                                                                                ("Q", 1),                               #key14_train
-                                                                                ("s", 7),                               #key15_train
-                                                                                ("enforce_stationarity",  True),        #key16_train
-                                                                                ("enforce_invertibility", True),        #key17_train
-                                                                                ("horizon_option", 30),                 #key18_train
-                                                                                ("changepoint_prior_scale", 0.05),     #key19_train
-                                                                                ("seasonality_mode", "multiplicative"), #key20_train
-                                                                                ("seasonality_prior_scale", 1.0),       #key21_train
-                                                                                ("holidays_prior_scale", 1.0),          #key22_train
-                                                                                ("yearly_seasonality", True),           #key23_train
-                                                                                ("weekly_seasonality", True),           #key24_train
-                                                                                ("daily_seasonality", True),            #key25_train
-                                                                                ("results_df", pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])), #key26_train
-                                                                                ("run", 0)                              #key27_train
-                                                                                ])
-
 if menu_item == 'Train' and sidebar_menu_item == 'Home':
     ################################################
     # MODEL INFORMATION USER SELECTBOX IN SIDEBAR
@@ -8681,7 +8649,6 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
     # if user did train models before and page has to reload to show related dataframe below graph with button click also do not show
     if st.session_state['selected_model_info'] == '-' and not train_models_btn and not selected_models:
         with st.expander('', expanded=True):
-            
             col1, col2, col3 = st.columns([1,3,1])
             with col2:
                     # define the font family to display the text of paragraph
@@ -8795,6 +8762,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                      
                      # add the results of the model train/test to dataframe
                      results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+                     set_state("TRAIN_PAGE", ("results_df", results_df))
             except:
                 st.warning(f'Linear Regression failed to train, please contact your administrator!')
             try:
@@ -8892,80 +8860,95 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
 #  |______|   \/_/    \_\______\____/_/    \_\_|  |______|
 #                                                         
 # =============================================================================
-
-
-# =============================================================================
-# ############## TEST ADD BASIC VARIABLES TO GET PAGE TO WORK BEFORE ADDING SESSION STATES
-# train_models_btn = st.session_state['train_models_btn'] # TEST
-# 
-# selected_models = [('Naive Model', None),
-#                   ('Linear Regression', LinearRegression(fit_intercept=True)), 
-#                   ('SARIMAX', SARIMAX(y_train)),
-#                   ('Prophet', Prophet())]
-# 
-# #lag = st.selectbox('*Select seasonal **lag** for the Naive Model:*', ['None', 'Day', 'Week', 'Month', 'Year', 'Custom'])
-# lag = 'Week'
-# custom_lag_value = None
-# 
-# ############## TEST 
-# =============================================================================
-
+#EVALUATE
 if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
     # =============================================================================
-    # SIDEBAR EVALUATE    
+    # SIDEBAR OF EVALUATE PAGE
     # =============================================================================
     with st.sidebar:
         
         my_title(f"{evaluate_icon}", "#000000")
         
         with st.expander('', expanded=True):
+            # Select metric using the dropdown
+            my_text_paragraph('Plot')
+            col1, col2, col3 = st.columns([2,8,2])
+            with col2:
+                
+                # define list of metrics user can choose from in drop-down selectbox                
+                metrics_list = ['Mean Absolute Percentage Error', 'Root Mean Square Error', 'R-squared']
+                 
+                selected_metric = st.selectbox(label = "*Select evaluation metric to sort top model scores:*", 
+                                               options = metrics_list,
+                                               index = get_state("EVALUATE_PAGE", "selected_metric_index"),
+                                               help = '''Choose which evaluation metric is used to sort the top score of each model by:  
+                                                \n- `Mean Absolute Percentage Error` (MAPE):  
+                                                \nThe Mean Absolute Percentage Error measures the average absolute percentage difference between the predicted values and the actual values. It provides a relative measure of the accuracy of a forecasting model. A lower MAPE indicates better accuracy.
+                                                \n- `Root Mean Square Error` (RMSE):
+                                                \n The Root Mean Square Error is a commonly used metric to evaluate the accuracy of a prediction model. It calculates the square root of the average of the squared differences between the predicted values and the actual values. RMSE is sensitive to outliers and penalizes larger errors.
+                                                \n- `R-squared` (R2):
+                                                \nR-squared is a statistical measure that represents the proportion of the variance in the dependent variable that is predictable from the independent variables. It ranges from 0 to 1, where 1 indicates a perfect fit. R-squared measures how well the predicted values fit the actual values and is commonly used to assess the goodness of fit of a regression model.
+                                                ''')
+                                                
+                # update session state with user choice
+                set_state("EVALUATE_PAGE", ("selected_metric_index", metrics_list.index(selected_metric)))
 
-            my_subheader(my_string = 'Latest Model Test Results', 
-                         my_size = 4, 
-                         my_style = '#2CB8A1')
-           
-            if 'results_df' not in st.session_state:
-                st.session_state['results_df'] = results_df
-            else:
-                st.session_state.results_df = pd.concat([st.session_state['results_df'], 
-                                                        get_state("TRAIN_PAGE", "results_df")], 
-                                                        ignore_index=True)
-
-            # if user selected any models on train page then run code
-            if len(get_state("TRAIN_PAGE", "selected_models")) > 0:
-                # SHOW LATEST TEST RESULTS IN TABLE 1
-                st.dataframe(get_state("TRAIN_PAGE", "results_df"))
+        with st.expander('', expanded=True):
+            my_text_paragraph('Latest Test Results')
             
-            my_subheader('Top 3 Ranking All Test Results', my_size=4, my_style='#2CB8A1')
+            if 'results_df' not in st.session_state:
+                st.session_state['results_df'] = results_df  
+            else:
+                # if user just reloads the page - do not add the same results to the dataframe (e.g. avoid adding duplicates)
+                # by checking if the values of the dataframes are the same
+                if get_state("TRAIN_PAGE", "results_df").equals(st.session_state['results_df']):
+                    pass
+                else:
+                    # add new test results to results dataframe
+                    st.session_state['results_df'] = pd.concat([st.session_state['results_df'], 
+                                                                get_state("TRAIN_PAGE", "results_df")], 
+                                                                ignore_index=True)
+            # =============================================================================
+            # 1. Show Last Test Run Results in a Dataframe                    
+            # =============================================================================
+            st.dataframe(get_state("TRAIN_PAGE", "results_df"))
            
-            # It converts the 'mape' column to floats, removes duplicates based on the 'model_name' and 'mape' columns, sorts the unique DataFrame by ascending 'mape' values, selects the top 3 rows, and displays the resulting DataFrame in Streamlit.
+            my_text_paragraph('Top 3 Test Results')
+            
+            # Convert the 'mape' column to floats, removes duplicates based on the 'model_name' and 'mape' columns, sorts the unique DataFrame by ascending 'mape' values, selects the top 3 rows, and displays the resulting DataFrame in Streamlit.
             test_df = st.session_state['results_df'].assign(mape = st.session_state.results_df['mape'].str.rstrip('%').astype(float)).drop_duplicates(subset=['model_name', 'mape']).sort_values(by='mape', ascending=True).iloc[:3]
             
-            # SHOW TOP 3 TEST RESULTS IN TABLE 2
+            # =============================================================================
+            # 2. Show Top 3 test Results in Dataframe
+            # =============================================================================
             st.dataframe(test_df, use_container_width=True)
     
     # =============================================================================
-    # PAGE EVALUATE
+    # MAIN PAGE OF EVALUATE PAGE
     # =============================================================================    
-    # if the results dataframe is created already then you can continue code
-    if 'results_df' in globals():
-        with st.expander('', expanded=True):
-            my_header(my_string='Modeling Test Results', my_style="#2CB8A1")
+    with st.expander('', expanded=True):
+        col0, col1, col2, col3 = st.columns([10, 90, 8, 5]) 
+        with col1:
+            my_text_header('Model Performance')
+            my_text_paragraph(f'{selected_metric}')
             
-            vertical_spacer(2)
+        # Plot for each model the expirement run with the lowest error (MAPE or RMSE) or highest r2 based on user's chosen metric
+        plot_model_performance(st.session_state['results_df'], my_metric = selected_metric)
+        
+        with col2:
+            # Clear session state results_df button to remove prior test results and start fresh
+            clear_results_df = st.button(label = '🗑️', on_click = clear_test_results, help = 'Clear Results') # on click run function to clear results
             
-            # show the dataframe with all the historical results stored from 
-            # prior runs the cache e.g. called session_state in streamlit
-            # from all train/test results with models selected by user
-            st.dataframe(st.session_state.results_df, use_container_width=True)
+        # =============================================================================
+        # 3. Show Historical Test Runs Dataframe
+        # =============================================================================
+        st.dataframe(st.session_state['results_df'], use_container_width=True)
+        
+        # Download Button for test results to .csv
+        download_csv_button(my_df = st.session_state['results_df'], 
+                            my_file = "Modeling Test Results.csv", 
+                            help_message = "Download your Modeling Test Results to .CSV")
             
-            # download button
-            download_csv_button(results_df, my_file="Modeling Test Results.csv", help_message="Download your Modeling Test Results to .CSV")
-    
-    # if results_df is not created yet just tell user to train models first
-    else:
-        st.info('Please select models to train first from sidebar menu and press **"Submit"**')
-
 # =============================================================================
 #   _______ _    _ _   _ ______ 
 #  |__   __| |  | | \ | |  ____|
@@ -8978,7 +8961,8 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
 # 9. Hyper-parameter tuning
 if menu_item == 'Tune' and sidebar_menu_item == 'Home':
     my_title(f'{tune_icon} Hyperparameter Tuning', "#88466D", gradient_colors="#1A2980, #88466D, #FEBD2E")
-    # set variables needed
+    
+    # Set Variables Needed
     ######################
     # set initial start time before hyper-parameter tuning is kicked-off
     start_time = time.time()
@@ -8987,7 +8971,7 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
     # initialize variable for sarimax model parameters P,D,Q,s
     param_seasonal_mini = None
 
-    # sidebar hyperparameter tuning
+    # SIDEBAR Hyperparameter Tuning
     ################################
     with st.sidebar:
          my_title(f'{tune_icon}', "#88466D")                    
@@ -9003,6 +8987,7 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                                    help='**`AIC`** (**Akaike Information Criterion**): A measure of the quality of a statistical model, taking into account the goodness of fit and the complexity of the model. A lower AIC indicates a better model fit. \
                                    \n**`BIC`** (**Bayesian Information Criterion**): Similar to AIC, but places a stronger penalty on models with many parameters. A lower BIC indicates a better model fit.  \
                                    \n**`RMSE`** (**Root Mean Squared Error**): A measure of the differences between predicted and observed values in a regression model. It is the square root of the mean of the squared differences between predicted and observed values. A lower RMSE indicates a better model fit.')
+             
              # Note that we set best_metric to -np.inf instead of np.inf since we want to maximize the R2 metric. 
              if metric in ['AIC', 'BIC', 'RMSE']:
                  mini = float('+inf')
