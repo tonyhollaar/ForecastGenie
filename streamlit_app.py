@@ -449,8 +449,7 @@ def form_feature_selection_method_mifs():
                                          )
             
             col1, col2, col3 = st.columns([4,4,4])
-            with col2:       
-                
+            with col2:
                 mifs_btn = st.form_submit_button("Submit", type="secondary", on_click=form_update, args=('SELECT_PAGE_MIFS',))
                 
                 # keep track of changes if mifs_btn is pressed
@@ -463,9 +462,9 @@ def form_feature_selection_method_mifs():
 def form_feature_selection_method_pca():
     try:
         with st.form('pca'):
-            
+
             my_text_paragraph('Principal Component Analysis')
-            
+
             # Add a slider to select the number of features to be selected by the PCA algorithm
             num_features_pca = st.slider(
                                          label = '*Select number of top features to include:*', 
@@ -473,7 +472,7 @@ def form_feature_selection_method_pca():
                                          max_value = len(X_train.columns), 
                                          key = key1_select_page_pca
                                         )
-            
+
             col1, col2, col3 = st.columns([4,4,4])
             with col2:       
                 pca_btn = st.form_submit_button(label = "Submit", type = "secondary", on_click=form_update, args=('SELECT_PAGE_PCA',))  
@@ -482,12 +481,12 @@ def form_feature_selection_method_pca():
             return num_features_pca
     except:
         st.error('the user form for feature selection method \'Principal Component Analaysis\' could not execute')
-            
+
 def form_feature_selection_method_rfe():
     try:
         # show Title in sidebar 'Feature Selection' with purple background
         my_title(f'{select_icon}', "#3b3b3b", gradient_colors="#1A2980, #7B52AB, #FEBD2E")
-        
+
         # =============================================================================
         # RFE Feature Selection - SIDEBAR FORM
         # =============================================================================
@@ -504,7 +503,7 @@ def form_feature_selection_method_rfe():
                                                   \nThis can happen when the features are highly correlated or provide very similar information to the model.\
                                                   \nIn such cases, the algorithm may not be able to distinguish between them and assign the same rank to multiple features.'
                                           )
-             
+
              # set the options for the rfe (recursive feature elimination)
              with st.expander('◾', expanded=False):
                  
@@ -518,7 +517,7 @@ def form_feature_selection_method_rfe():
                                                      The estimator is essentially the algorithm used to fit the data and make predictions.
                                                      '''
                                               )
-                                                                      
+
                  # Add a slider to select the number of n_splits for the RFE method
                  timeseriessplit_value_rfe = st.slider(label = '*Set number of splits for Cross-Validation:*', 
                                                        min_value = 2, 
@@ -537,7 +536,7 @@ def form_feature_selection_method_rfe():
                                            value = 1, 
                                            key = key4_select_page_rfe,
                                            help = 'The `step` parameter controls the **number of features** to remove at each iteration of the RFE process.')
-             
+
              col1, col2, col3 = st.columns([4,4,4])
              with col2:       
                  rfe_btn = st.form_submit_button("Submit", type="secondary", on_click=form_update, args=('SELECT_PAGE_RFE',))   
@@ -828,7 +827,9 @@ def show_mifs_plot(mutual_info, selected_features_mi, num_features_mifs):
             'y': 0.95,
             'xanchor': 'center',
             'yanchor': 'top'
-        }
+        }, margin=dict(t=0, b=0),
+        xaxis_title='Mutual Information Values',
+        yaxis_title='Feature Name'
     )
     
     # Display plot in Streamlit
@@ -920,6 +921,7 @@ def show_pca_plot(sorted_features, pca, sorted_idx, selected_cols_pca):
             'xanchor': 'center',
             'yanchor': 'top'
         },
+        margin=dict(t=0, b=0), 
         xaxis_title='Explained Variance Ratio',
         yaxis_title='Feature Name'
     )
@@ -2443,7 +2445,9 @@ def altair_correlation_chart(total_features, importance_scores, pairwise_feature
                 row_charts.append(charts[idx])
         if row_charts:
             grid_charts.append(alt.hconcat(*row_charts))
+    
     grid_chart = alt.vconcat(*grid_charts, spacing=10)
+    
     # create a streamlit container with a title and caption
     my_text_paragraph("Removing Highly Correlated Features", my_font_size='26px')
     
@@ -2750,9 +2754,9 @@ def correlation_heatmap(X, correlation_threshold=0.8):
     fig.update_xaxes(tickangle=-45, showticklabels=True)
     fig.update_yaxes(tickangle=0, showticklabels=True)
     # adjust heatmap size and margins
-    fig.update_layout(width=800,
-                      height=800,
-                      margin=dict(l=200, r=200, t=100, b=100))
+    fig.update_layout(width=400,
+                      height=400,
+                      margin=dict(l=200, r=200, t=0, b=0))
     
     # show plotly figure in streamlit
     st.plotly_chart(fig, use_container_width=True)
@@ -2767,166 +2771,167 @@ def model_documentation(selected_model_info):
         - SARIMAX
         - Prophet
     '''
-    if selected_model_info != '-':
-        with st.expander('', expanded=True):
-            col1, col2, col3 = st.columns([2, 8, 2])
-            if selected_model_info == 'Naive Model':
-                with col2:
-                    my_text_header('Naive Model')
-                    vertical_spacer(1)
-                    st.markdown('''
-                    <p style="text-align: justify;">
-                    The <strong>Naive Model</strong> is one of the simplest forecasting models in time series analysis. 
-                    It assumes that the value of a variable at any given time is equal to the value of the variable at the previous time period. 
-                    This means that this model is a special case of an <strong>A</strong>uto<strong>R</strong>egressive model of order 1, also known as <b> AR(1)</b>.
-                    </p>
-                    
-                    <p style="text-align: justify;">
-                    The Naive Model is useful as a baseline model to compare more complex forecasting models, such as ARIMA, exponential smoothing, or machine learning algorithms. 
-                    It is also useful when the underlying data generating process is highly unstable or unpredictable, and when there is no trend, seasonality, or other patterns to capture.
-                    The Naive Model can be expressed as a simple equation: 
-                    </p>
-                             
-                    &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; $\hat{y}_{t} = y_{t-1}$
-        
-                    <p style="text-align: justify;">
-                    where:
-                    </p>
-        
-                    - $y_t$ is the value of the variable at time $t$
-                    <br> 
-                    - $y_{t-1}$ is the value of the variable at time $_{t-1}$
-                    
-                    <br>
-                    
-                    <p style="text-align: justify;">
-                    The Naive Model can be extended to incorporate seasonal effects, by introducing a lag period corresponding to the length of the seasonal cycle. 
-                    For example, if the time series has a weekly seasonality, the Naive Model with a lag of one week is equivalent to the model with a lag of seven days, and is given by:
-                    </p>
-                    
-                    &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;$\hat{y}_{t} = y_{t-7}$
-                    
-                    <p style="text-align: justify;">
-                    where:
-                    </p>
-                    
-                    - $y_t$ is the value of the variable at time $t$
-                    <br>
-                    - $y_{t-7}$ is the value of the variable at time $_{t-7}$
-        
-                    <br>
-                    <p style="text-align: justify;">
-                    In general, the lag value for the seasonal Naive Model should be determined based on the length of the seasonal cycle in the data, and can be estimated using visual inspection, autocorrelation analysis, or domain knowledge.
-                    </p>
-                    ''', unsafe_allow_html=True)
+    with st.expander('', expanded=True):
+        col1, col2, col3 = st.columns([2, 8, 2])
+        if selected_model_info == '-':
+            st.image('./images/train_info.png')
+        elif selected_model_info == 'Naive Model':
+            with col2:
+                my_text_header('Naive Model')
+                vertical_spacer(1)
+                st.markdown('''
+                <p style="text-align: justify;">
+                The <strong>Naive Model</strong> is one of the simplest forecasting models in time series analysis. 
+                It assumes that the value of a variable at any given time is equal to the value of the variable at the previous time period. 
+                This means that this model is a special case of an <strong>A</strong>uto<strong>R</strong>egressive model of order 1, also known as <b> AR(1)</b>.
+                </p>
                 
-            if selected_model_info == 'Linear Regression':
-                with col2:
-                    my_text_header('Linear Regression')
-                    vertical_spacer(1)
-                    st.markdown('''
-                                <p style="text-align: justify;"> 
-                                <strong> The Linear Regression Model </strong> is used to analyze the relationship between a dependent variable and one or more independent variables. 
-                                It involves finding a line or curve that best fits the data and can be used to make predictions. 
-                                The method assumes that the relationship between the variables is linear and that errors are uncorrelated.
-                     
-                                
-                                To find this line, we use a technique called least squares regression, which involves finding the line that minimizes the sum of the squared differences between the predicted values and the actual values. 
-                                The line is described by the equation:
-                                </p>                           
-                                
-                                &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; $$Y = β₀ + β₁ X$$
+                <p style="text-align: justify;">
+                The Naive Model is useful as a baseline model to compare more complex forecasting models, such as ARIMA, exponential smoothing, or machine learning algorithms. 
+                It is also useful when the underlying data generating process is highly unstable or unpredictable, and when there is no trend, seasonality, or other patterns to capture.
+                The Naive Model can be expressed as a simple equation: 
+                </p>
+                         
+                &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; $\hat{y}_{t} = y_{t-1}$
+    
+                <p style="text-align: justify;">
+                where:
+                </p>
+    
+                - $y_t$ is the value of the variable at time $t$
+                <br> 
+                - $y_{t-1}$ is the value of the variable at time $_{t-1}$
+                
+                <br>
+                
+                <p style="text-align: justify;">
+                The Naive Model can be extended to incorporate seasonal effects, by introducing a lag period corresponding to the length of the seasonal cycle. 
+                For example, if the time series has a weekly seasonality, the Naive Model with a lag of one week is equivalent to the model with a lag of seven days, and is given by:
+                </p>
+                
+                &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;$\hat{y}_{t} = y_{t-7}$
+                
+                <p style="text-align: justify;">
+                where:
+                </p>
+                
+                - $y_t$ is the value of the variable at time $t$
+                <br>
+                - $y_{t-7}$ is the value of the variable at time $_{t-7}$
+    
+                <br>
+                <p style="text-align: justify;">
+                In general, the lag value for the seasonal Naive Model should be determined based on the length of the seasonal cycle in the data, and can be estimated using visual inspection, autocorrelation analysis, or domain knowledge.
+                </p>
+                ''', unsafe_allow_html=True)
+            
+        elif selected_model_info == 'Linear Regression':
+            with col2:
+                my_text_header('Linear Regression')
+                vertical_spacer(1)
+                st.markdown('''
+                            <p style="text-align: justify;"> 
+                            <strong> The Linear Regression Model </strong> is used to analyze the relationship between a dependent variable and one or more independent variables. 
+                            It involves finding a line or curve that best fits the data and can be used to make predictions. 
+                            The method assumes that the relationship between the variables is linear and that errors are uncorrelated.
+                 
                             
-                                where:
-                                - $Y$ is the dependent variable</li>
-                                - $X$ is the independent variable</li>
-                                - $β₀$ is the intercept &rarr; the value of $Y$ when $X = 0$
-                                - $β₁$ is the slope &rarr; the change in $Y$ for a unit change in $X$
-                                <br>
-                                ''', unsafe_allow_html=True)
-            if selected_model_info == 'SARIMAX':
-                with col2:
-                    my_text_header('SARIMAX')
-                    vertical_spacer(1)
-                    st.markdown('''
-                                <p style="text-align: justify;">
-                                <strong>SARIMAX</strong>, or <b>S</b>easonal <b>A</b>utoregressive <b>I</b>ntegrated <b>M</b>oving <b>A</b>verage with e<b>X</b>ogenous variables, is a popular time series forecasting model.
-                                The ARIMA model is a time series forecasting model that uses past values of a variable to predict future values. 
-                                SARIMAX extends ARIMA by incorporating seasonal patterns and adding exogenous variables <b>X</b> that can impact the variable being forecasted. The model can be represented as follows:
-                                <br>
-                                <br>
-                                &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <strong> SARIMA(p, d, q)(P, D, Q)s </strong>
-                                
-                                Non-Seasonal Terms    
-                                - <b>p </b> &emsp;The order of the autoregressive (AR) term, which refers to the number of lagged observations of the dependent variable in the model. A higher value of p means the model is considering more past values of the dependent variable.
-                                <br>
-                                - <b>d</b> &emsp;The order of the differencing (I) term, which refers to the number of times the data needs to be differenced to make it stationary. Stationarity is a property of time series data where the statistical properties, such as the mean and variance, are constant over time.
-                                <br>
-                                - <b>q</b> &emsp;The order of the moving average (MA) term, which refers to the number of lagged forecast errors in the model. A higher value of q means the model is considering more past forecast errors.
-                                <br>
-                                
-                                <br>Seasonal Terms:
-                                - <b>P</b> &emsp;The seasonal order of the autoregressive term, which refers to the number of seasonal lags in the model.
-                                <br>
-                                - <b>D</b> &emsp;The seasonal order of differencing, which refers to the number of times the data needs to be differenced at the seasonal lag to make it stationary.
-                                <br>
-                                - <b>Q</b> &emsp;The seasonal order of the moving average term, which refers to the number of seasonal lags of the forecast errors in the model.
-                                <br>
-                                - <b>s:</b> &emsp;The length of the seasonal cycle, which is the number of time steps in each season. For example, if the data is monthly and the seasonality is yearly, s would be 12. The parameter s is used to determine the number of seasonal lags in the model.
-                                <br>
-                                <br>Exogenous Variables:
-                                <br>
-                                - <b>X</b>  &emsp; These are external factors that can impact the variable being forecasted. They are included in the model as additional inputs.  
-                                </p>
-                                ''', unsafe_allow_html=True)
-            if selected_model_info == 'Prophet':
-                with col2:
-                    my_text_header('Prophet')
-                    vertical_spacer(1)
-                    st.markdown('''
-                                The Facebook <strong> Prophet </strong> model is a popular open-source library for time series forecasting developed by Facebook's Core Data Science team.
-                                It is designed to handle time series data with strong seasonal effects and other external factors.
-                                It uses a combination of historical data and user-defined inputs to generate forecasts for future time periods.  
-                                <br>
-                                <center><h6>Variables in the Prophet Model</h6></center>
-                                The main variables in the Prophet model are:
-                                <br> 
-                                - <b>Trend</b>: This is the underlying pattern in the data that represents the long-term direction of the series. It can be linear or non-linear and is modeled using a piecewise linear function.
-                                <br> 
-                                - <b>Seasonality</b>: This is the periodic pattern in the data that repeats over fixed time intervals. It can be daily, weekly, monthly, or yearly, and is modeled using Fourier series.
-                                <br> 
-                                - <b>Holidays</b>: These are user-defined events or time periods that are known to affect the time series. The model includes them as additional regressors in the forecasting equation.
-                                <br> 
-                                - <b>Regressors</b>: These are additional time-varying features that can affect the time series, such as weather, economic indicators, or other external factors.
-                                <br>                               
-                                <br>
-                                <center><h6>Math Behind the Prophet Model</h6></center>
-                                The math behind the Prophet model involves fitting a Bayesian additive regression model to the time series data. The model is formulated as follows:
-                                <br>
-                                <br>
-                                
-                                &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; $$y_t = g_t + s_t + h_t + e_t$$
-                                
-                                where:
-                                - $y_t$ is the observed value at time $t$
-                                - $g_t$ is the trend component
-                                - $s_t$ is the seasonality component
-                                - $h_t$ is the holiday component
-                                - $e_t$ is the error term. 
-                                
-                                <br>
-                                The <b>trend</b> component is modeled using a piecewise linear function, while the <b>seasonality component</b> is modeled using a Fourier series. The <b>holiday component</b> and any additional regressors are included as additional terms in the regression equation.
-                                <br>
-                                <br>
-                                The model is estimated using a Bayesian approach that incorporates prior information about the parameters and allows for uncertainty in the forecasts. The parameters are estimated using Markov Chain Monte Carlo (MCMC) sampling, which generates a large number of possible parameter values and uses them to estimate the posterior distribution of the parameters. The posterior distribution is then used to generate forecasts for future time periods.
-                                <br>
-                                <br>
-                                Overall, the Prophet model is a powerful tool for time series forecasting that can handle complex data patterns and external factors. Its flexible modeling approach and Bayesian framework make it a popular choice for many data scientists and analysts.
-                                <br>
-                                <br>
-                                ''', unsafe_allow_html=True)
-            else:
-                pass   
+                            To find this line, we use a technique called least squares regression, which involves finding the line that minimizes the sum of the squared differences between the predicted values and the actual values. 
+                            The line is described by the equation:
+                            </p>                           
+                            
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; $$Y = β₀ + β₁ X$$
+                        
+                            where:
+                            - $Y$ is the dependent variable</li>
+                            - $X$ is the independent variable</li>
+                            - $β₀$ is the intercept &rarr; the value of $Y$ when $X = 0$
+                            - $β₁$ is the slope &rarr; the change in $Y$ for a unit change in $X$
+                            <br>
+                            ''', unsafe_allow_html=True)
+        elif selected_model_info == 'SARIMAX':
+            with col2:
+                my_text_header('SARIMAX')
+                vertical_spacer(1)
+                st.markdown('''
+                            <p style="text-align: justify;">
+                            <strong>SARIMAX</strong>, or <b>S</b>easonal <b>A</b>utoregressive <b>I</b>ntegrated <b>M</b>oving <b>A</b>verage with e<b>X</b>ogenous variables, is a popular time series forecasting model.
+                            The ARIMA model is a time series forecasting model that uses past values of a variable to predict future values. 
+                            SARIMAX extends ARIMA by incorporating seasonal patterns and adding exogenous variables <b>X</b> that can impact the variable being forecasted. The model can be represented as follows:
+                            <br>
+                            <br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <strong> SARIMA(p, d, q)(P, D, Q)s </strong>
+                            
+                            Non-Seasonal Terms    
+                            - <b>p </b> &emsp;The order of the autoregressive (AR) term, which refers to the number of lagged observations of the dependent variable in the model. A higher value of p means the model is considering more past values of the dependent variable.
+                            <br>
+                            - <b>d</b> &emsp;The order of the differencing (I) term, which refers to the number of times the data needs to be differenced to make it stationary. Stationarity is a property of time series data where the statistical properties, such as the mean and variance, are constant over time.
+                            <br>
+                            - <b>q</b> &emsp;The order of the moving average (MA) term, which refers to the number of lagged forecast errors in the model. A higher value of q means the model is considering more past forecast errors.
+                            <br>
+                            
+                            <br>Seasonal Terms:
+                            - <b>P</b> &emsp;The seasonal order of the autoregressive term, which refers to the number of seasonal lags in the model.
+                            <br>
+                            - <b>D</b> &emsp;The seasonal order of differencing, which refers to the number of times the data needs to be differenced at the seasonal lag to make it stationary.
+                            <br>
+                            - <b>Q</b> &emsp;The seasonal order of the moving average term, which refers to the number of seasonal lags of the forecast errors in the model.
+                            <br>
+                            - <b>s:</b> &emsp;The length of the seasonal cycle, which is the number of time steps in each season. For example, if the data is monthly and the seasonality is yearly, s would be 12. The parameter s is used to determine the number of seasonal lags in the model.
+                            <br>
+                            <br>Exogenous Variables:
+                            <br>
+                            - <b>X</b>  &emsp; These are external factors that can impact the variable being forecasted. They are included in the model as additional inputs.  
+                            </p>
+                            ''', unsafe_allow_html=True)
+        elif selected_model_info == 'Prophet':
+            with col2:
+                my_text_header('Prophet')
+                vertical_spacer(1)
+                st.markdown('''
+                            The Facebook <strong> Prophet </strong> model is a popular open-source library for time series forecasting developed by Facebook's Core Data Science team.
+                            It is designed to handle time series data with strong seasonal effects and other external factors.
+                            It uses a combination of historical data and user-defined inputs to generate forecasts for future time periods.  
+                            <br>
+                            <center><h6>Variables in the Prophet Model</h6></center>
+                            The main variables in the Prophet model are:
+                            <br> 
+                            - <b>Trend</b>: This is the underlying pattern in the data that represents the long-term direction of the series. It can be linear or non-linear and is modeled using a piecewise linear function.
+                            <br> 
+                            - <b>Seasonality</b>: This is the periodic pattern in the data that repeats over fixed time intervals. It can be daily, weekly, monthly, or yearly, and is modeled using Fourier series.
+                            <br> 
+                            - <b>Holidays</b>: These are user-defined events or time periods that are known to affect the time series. The model includes them as additional regressors in the forecasting equation.
+                            <br> 
+                            - <b>Regressors</b>: These are additional time-varying features that can affect the time series, such as weather, economic indicators, or other external factors.
+                            <br>                               
+                            <br>
+                            <center><h6>Math Behind the Prophet Model</h6></center>
+                            The math behind the Prophet model involves fitting a Bayesian additive regression model to the time series data. The model is formulated as follows:
+                            <br>
+                            <br>
+                            
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; $$y_t = g_t + s_t + h_t + e_t$$
+                            
+                            where:
+                            - $y_t$ is the observed value at time $t$
+                            - $g_t$ is the trend component
+                            - $s_t$ is the seasonality component
+                            - $h_t$ is the holiday component
+                            - $e_t$ is the error term. 
+                            
+                            <br>
+                            The <b>trend</b> component is modeled using a piecewise linear function, while the <b>seasonality component</b> is modeled using a Fourier series. The <b>holiday component</b> and any additional regressors are included as additional terms in the regression equation.
+                            <br>
+                            <br>
+                            The model is estimated using a Bayesian approach that incorporates prior information about the parameters and allows for uncertainty in the forecasts. The parameters are estimated using Markov Chain Monte Carlo (MCMC) sampling, which generates a large number of possible parameter values and uses them to estimate the posterior distribution of the parameters. The posterior distribution is then used to generate forecasts for future time periods.
+                            <br>
+                            <br>
+                            Overall, the Prophet model is a powerful tool for time series forecasting that can handle complex data patterns and external factors. Its flexible modeling approach and Bayesian framework make it a popular choice for many data scientists and analysts.
+                            <br>
+                            <br>
+                            ''', unsafe_allow_html=True)
+        else:
+            pass   
             
 #******************************************************************************
 # OTHER FUNCTIONS
@@ -5360,7 +5365,8 @@ def initiate_global_variables():
     create_store("SELECT_PAGE_BTN_CLICKED", [
                                             ("rfe_btn", False),
                                             ("mifs_btn", False), 
-                                            ("pca_btn", False)
+                                            ("pca_btn", False),
+                                            ("correlation_btn", False)
                                             ])
     # FEATURE SELECTION BY USER
     key1_select_page_user_selection, key2_select_page_user_selection = create_store("SELECT_PAGE_USER_SELECTION", [
@@ -5400,7 +5406,7 @@ def initiate_global_variables():
     if 'selected_model_info' not in st.session_state:
         st.session_state['selected_model_info'] = '-'
 
-    # set session states for the TRAIN Page buttons when models are trained, 
+    # set session states for the buttons when models are trained, 
     # to expand dataframe below graph
     create_store("TRAIN", [
                             ("naive_model_btn_show", False),
@@ -5445,7 +5451,6 @@ def initiate_global_variables():
                                                                                     ("run", 0)                              #key27_train
                                                                                     ])
     
-    
     # ================================ EVALUATE PAGE ===================================
     # create an empty dictionary to store the results of the models
     # that I call after I train the models to display on sidebar under hedaer "Evaluate Models"
@@ -5458,7 +5463,10 @@ def initiate_global_variables():
         st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
               
     # save user's chosen metric in persistent session state - initiate default metric (MAPE)
-    create_store("EVALUATE_PAGE", [("selected_metric_index", 0)])
+    key1_evaluate, key2_evaluate = create_store("EVALUATE_PAGE", [
+                                            ("selected_metric", 'Mean Absolute Percentage Error'), #key1_evaluate 
+                                            ("run", 0)                                                   #key2_evaluate
+                                            ])                   
     
     
     # ================================ TUNE PAGE ===================================
@@ -5493,7 +5501,8 @@ def initiate_global_variables():
     key1_select_page_corr, key2_select_page_corr, \
     key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
     key11_train, key12_train, key13_train, key14_train, key15_train, key16_train, key17_train, key18_train, key19_train, key20_train, \
-    key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train
+    key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, \
+    key1_evaluate, key2_evaluate
     
 # =============================================================================
 #   _____ _   _ _____ _______ _____       _______ ______ 
@@ -5519,7 +5528,8 @@ key1_select_page_mifs, \
 key1_select_page_corr, key2_select_page_corr, \
 key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
 key11_train, key12_train, key13_train, key14_train, key15_train, key16_train, key17_train, key18_train, key19_train, key20_train, \
-key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train = initiate_global_variables()
+key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, \
+key1_evaluate, key2_evaluate = initiate_global_variables()
 
 # =============================================================================
 #   _____ _____ ____  _   _  _____ 
@@ -5987,7 +5997,6 @@ if sidebar_menu_item == 'FAQ':
                                              )
         social_media_links(margin_before=30)
 
-
     if selected_faq_page == '-':
         with st.expander('', expanded=True):
             st.image('./images/faq_page.png') # Tree Image     
@@ -6396,7 +6405,8 @@ def reset_session_states():
     key1_select_page_corr, key2_select_page_corr, \
     key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
     key11_train, key12_train, key13_train, key14_train, key15_train, key16_train, key17_train, key18_train, key19_train, key20_train, \
-    key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train = initiate_global_variables()
+    key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, \
+    key1_evaluate, key2_evaluate = initiate_global_variables()
     
 def load_change():
     """
@@ -8033,133 +8043,147 @@ if get_state("DATA_OPTION", "upload_new_data") == True:
 #                                             
 # =============================================================================
 # FEATURE SELECTION OF INDEPENDENT FEATURES / EXOGENOUS VARIABLES
-if menu_item == 'Select' and sidebar_menu_item == 'Home':    
+if menu_item == 'Select' and sidebar_menu_item == 'Home':
     # =============================================================================
     # SHOW USER FORMS FOR PARAMETERS OF FEATURE SELECTION METHODS
     # =============================================================================
     with st.sidebar:
         num_features_rfe, estimator_rfe, timeseriessplit_value_rfe, num_steps_rfe = form_feature_selection_method_rfe()
+       
         num_features_pca = form_feature_selection_method_pca()
+        
         num_features_mifs = form_feature_selection_method_mifs()
+    
+    # define user tabs to seperate SELECT PAGE sections
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["▫️Info", "▫️RFE", "▫️PCA", "▫️MI", "▫️Pairwise Correlation", "▫️Feature Selection"])
     
     # =============================================================================
     # SHOW INFORMATION CARD ABOUT FEATURE SELECTION METHODS
     # =============================================================================
-    try:
-        show_card_feature_selection_methods()
-    except:
-        pass
-         
+    with tab1: 
+        try:
+            show_card_feature_selection_methods()
+        except:
+            pass
+        
     # =============================================================================
     # RFE Feature Selection
     # =============================================================================
-    try:
-        with st.expander('🎨 RFECV', expanded=True):
-            selected_cols_rfe, selected_features, rfecv = perform_rfe(X_train = st.session_state['X_train'], y_train = st.session_state['y_train'], estimator_rfe = estimator_rfe, num_steps_rfe = num_steps_rfe, num_features_rfe = num_features_rfe, timeseriessplit_value_rfe = timeseriessplit_value_rfe)
-            show_rfe_plot(rfecv, selected_features)
-    except:
-        selected_cols_rfe= []
-        st.error('**ForecastGenie Error**: *Recursive Feature Elimination with Cross-Validation* could not execute. Need at least 2 features to be able to apply Feature Elimination. Please adjust your selection criteria.')
+    with tab2:   
+        try:
+            with st.expander('', expanded=True):
+                selected_cols_rfe, selected_features, rfecv = perform_rfe(X_train = st.session_state['X_train'], y_train = st.session_state['y_train'], estimator_rfe = estimator_rfe, num_steps_rfe = num_steps_rfe, num_features_rfe = num_features_rfe, timeseriessplit_value_rfe = timeseriessplit_value_rfe)
+                show_rfe_plot(rfecv, selected_features)
+        except:
+            selected_cols_rfe= []
+            st.error('**ForecastGenie Error**: *Recursive Feature Elimination with Cross-Validation* could not execute. Need at least 2 features to be able to apply Feature Elimination. Please adjust your selection criteria.')
 
     # =============================================================================        
     # PCA Feature Selection
     # =============================================================================          
-    try:
-        with st.expander('🧮 PCA', expanded=True):        
-            sorted_features, pca, sorted_idx, selected_cols_pca = perform_pca(X_train = X_train, num_features_pca = num_features_pca)
-            show_pca_plot(sorted_features = sorted_features, pca = pca, sorted_idx = sorted_idx, selected_cols_pca = selected_cols_pca)
-    except:
-        # IF PCA could not execute show user error
-        selected_cols_pca = []
-        st.error('**ForecastGenie Error**: *Principal Component Analysis* could not execute. Please adjust your selection criteria.')
+    with tab3: 
+        try:
+            with st.expander('', expanded=True):        
+                sorted_features, pca, sorted_idx, selected_cols_pca = perform_pca(X_train = X_train, num_features_pca = num_features_pca)
+                show_pca_plot(sorted_features = sorted_features, pca = pca, sorted_idx = sorted_idx, selected_cols_pca = selected_cols_pca)
+        except:
+            # IF PCA could not execute show user error
+            selected_cols_pca = []
+            st.error('**ForecastGenie Error**: *Principal Component Analysis* could not execute. Please adjust your selection criteria.')
     
     # =============================================================================
     # Mutual Information Feature Selection
     # =============================================================================
-    try:             
-        with st.expander('🎏 MIFS', expanded=True):
-            mutual_info, selected_features_mi, selected_cols_mifs = perform_mifs(X_train, y_train, num_features_mifs)
-            show_mifs_plot(mutual_info = mutual_info, selected_features_mi = selected_features_mi, num_features_mifs = num_features_mifs)
-    except: 
-        selected_cols_mifs = []
-        st.warning(':red[**ERROR**: Mutual Information Feature Selection could not execute...please adjust your selection criteria]')
+    with tab4:
+        try:             
+            with st.expander('', expanded=True):
+                mutual_info, selected_features_mi, selected_cols_mifs = perform_mifs(X_train, y_train, num_features_mifs)
+                show_mifs_plot(mutual_info = mutual_info, selected_features_mi = selected_features_mi, num_features_mifs = num_features_mifs)
+        except: 
+            selected_cols_mifs = []
+            st.warning(':red[**ERROR**: Mutual Information Feature Selection could not execute...please adjust your selection criteria]')
     
     # =============================================================================
     # Removing Highly Correlated Independent Features
     # =============================================================================
-    try: 
-        with st.sidebar:
-            with st.form('correlation analysis'):
-                my_text_paragraph('Correlation Analysis')
-                
-                corr_threshold = st.slider("*Select Correlation Threshold*", 
-                                           min_value=0.0, 
-                                           max_value=1.0, 
-                                           key = key1_select_page_corr,
-                                           step=0.05, 
-                                           help='Set `Correlation Threshold` to determine which pair(s) of variables in the dataset are strongly correlated e.g. no correlation = 0, perfect correlation = 1')
-                
-                # define models for computing importance scores of highly correlated independent features
-                models = {'Linear Regression': LinearRegression(), 'Random Forest Regressor': RandomForestRegressor(n_estimators=100)}
-                
-                # provide user option to select model (default = Linear Regression)
-                selected_corr_model = st.selectbox(label = '*Select **model** for computing **importance scores** for highly correlated feature pairs, to drop the **least important** feature of each pair which is highly correlated*:', 
-                                                   options = list(models.keys()),
-                                                   key = key2_select_page_corr)
-                
-                col1, col2, col3 = st.columns([4,4,4])
-                with col2:   
-                    corr_btn = st.form_submit_button("Submit", type="secondary", on_click=form_update, args=('SELECT_PAGE_CORR',))
+    with tab5:
+        try: 
+            with st.sidebar:
+                with st.form('correlation analysis'):
+                    my_text_paragraph('Correlation Analysis')
                     
-        with st.expander('🍻 Correlation Analysis', expanded=True):
-            vertical_spacer(1)
-            
-            my_text_paragraph('Pairwise Correlation', my_font_size='26px')
-            
-            col1,col2,col3 = st.columns([5,3,5])
-            with col2:
-                st.caption(f'with threshold >={corr_threshold*100:.0f}%')
-                
-            ################################################################
-            # PLOT HEATMAP WITH PAIRWISE CORRELATION OF INDEPENDENT FEATURES.
-            ################################################################
-            # Generate correlation heatmap for independent features based on threshold from slider set by user e.g. default to 0.8
-            correlation_heatmap(X_train, correlation_threshold=corr_threshold)
-            
-            # Apply Function to analyse feature correlations and computes importance scores.             
-            total_features, importance_scores, pairwise_features_in_total_features, df_pairwise = analyze_feature_correlations(selected_corr_model, 
-                                                                                                                               X_train, 
-                                                                                                                               y_train, 
-                                                                                                                               selected_cols_rfe, 
-                                                                                                                               selected_cols_pca, 
-                                                                                                                               selected_cols_mifs, 
-                                                                                                                               corr_threshold, 
-                                                                                                                               models)
-            # Display message with pairs in total_features
-            if df_pairwise.empty:
-                st.info(f'There are no **pairwise combinations** in the selected features with a **correlation** larger than or equal to the user defined threshold of **{corr_threshold*100:.0f}%**')
-                vertical_spacer(1)
-            else:
-                st.markdown(f' <center> The following pairwise combinations of features have a correlation >= threshold: </center>', unsafe_allow_html=True)      
+                    corr_threshold = st.slider("*Select Correlation Threshold*", 
+                                               min_value = 0.0, 
+                                               max_value = 1.0, 
+                                               key = key1_select_page_corr,
+                                               step = 0.05, 
+                                               help = 'Set `Correlation Threshold` to determine which pair(s) of variables in the dataset are strongly correlated e.g. no correlation = 0, perfect correlation = 1')
+
+                    # define models for computing importance scores of highly correlated independent features
+                    models = {'Linear Regression': LinearRegression(), 'Random Forest Regressor': RandomForestRegressor(n_estimators=100)}
+                    
+                    # provide user option to select model (default = Linear Regression)
+                    selected_corr_model = st.selectbox(label = '*Select **model** for computing **importance scores** for highly correlated feature pairs, to drop the **least important** feature of each pair which is highly correlated*:', 
+                                                       options = list(models.keys()),
+                                                       key = key2_select_page_corr)
+                    
+                    col1, col2, col3 = st.columns([4,4,4])
+                    with col2:   
+                        corr_btn = st.form_submit_button("Submit", type="secondary", on_click=form_update, args=('SELECT_PAGE_CORR',))
+                        
+                        # if button is pressed
+                        if corr_btn:
+                            set_state("SELECT_PAGE_BTN_CLICKED", ('correlation_btn', True))
+                        
+            with st.expander('', expanded=True):
                 vertical_spacer(1)
                 
-                # show dataframe with pairwise features
-                st.dataframe(df_pairwise, use_container_width=True)
+                my_text_paragraph('Pairwise Correlation', my_font_size='26px')
                 
-                # download button for dataframe of pairwise correlation
-                download_csv_button(df_pairwise, my_file="pairwise_correlation.csv", help_message='Download pairwise correlation to .CSV', set_index=False)
+                col1,col2,col3 = st.columns([5,3,5])
+                with col2:
+                    st.caption(f'with threshold >={corr_threshold*100:.0f}%')
+                    
+                ################################################################
+                # PLOT HEATMAP WITH PAIRWISE CORRELATION OF INDEPENDENT FEATURES.
+                ################################################################
+                # Generate correlation heatmap for independent features based on threshold from slider set by user e.g. default to 0.8
+                correlation_heatmap(X_train, correlation_threshold=corr_threshold)
                 
-                # insert divider line
-                st.markdown('---')
-            
-            # SHOW CORRELATION CHART
-            altair_correlation_chart(total_features, importance_scores, pairwise_features_in_total_features, corr_threshold)
-            
-            # Remove features with lowest importance scores from each pair
-            # note: only remove one of highly correlated features based on importance score after plot is shown
-            total_features_default = remove_lowest_importance_feature(total_features, importance_scores, pairwise_features_in_total_features)
-    except:
-        st.warning(':red[**ERROR**: Error with Correlation Analysis...please adjust your selection criteria]')
+                # Apply Function to analyse feature correlations and computes importance scores.             
+                total_features, importance_scores, pairwise_features_in_total_features, df_pairwise = analyze_feature_correlations(selected_corr_model, 
+                                                                                                                                   X_train, 
+                                                                                                                                   y_train, 
+                                                                                                                                   selected_cols_rfe, 
+                                                                                                                                   selected_cols_pca, 
+                                                                                                                                   selected_cols_mifs, 
+                                                                                                                                   corr_threshold, 
+                                                                                                                                   models)
+                # Display message with pairs in total_features
+                if df_pairwise.empty:
+                    st.info(f'There are no **pairwise combinations** in the selected features with a **correlation** larger than or equal to the user defined threshold of **{corr_threshold*100:.0f}%**')
+                    vertical_spacer(1)
+                else:
+                    st.markdown(f' <center> The following pairwise combinations of features have a correlation >= threshold: </center>', unsafe_allow_html=True)      
+                    vertical_spacer(1)
+                    
+                    # show dataframe with pairwise features
+                    st.dataframe(df_pairwise, use_container_width=True)
+                    
+                    # download button for dataframe of pairwise correlation
+                    download_csv_button(df_pairwise, my_file="pairwise_correlation.csv", help_message='Download pairwise correlation to .CSV', set_index=False)
+                    
+                    # insert divider line
+                    st.markdown('---')
+                
+                # SHOW CORRELATION CHART
+                altair_correlation_chart(total_features, importance_scores, pairwise_features_in_total_features, corr_threshold)
+                
+                # Remove features with lowest importance scores from each pair
+                # note: only remove one of highly correlated features based on importance score after plot is shown
+                total_features_default = remove_lowest_importance_feature(total_features, importance_scores, pairwise_features_in_total_features)
+        except:
+            st.warning(':red[**ERROR**: Error with Correlation Analysis...please adjust your selection criteria]')
 
     # =============================================================================
     # Top Features
@@ -8168,26 +8192,32 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         with st.form('top_features'):
             my_text_paragraph('Selected Features')
             
-            #if rfe pca or mifs submitted button is pressed, set total_features equal again to recommended/calculated total_features from feature selection methods:
+            #if rfe pca, mifs or correlation SUBMIT button is pressed, 
+            # set total_features equal again to recommended/calculated total_features from feature selection methods
             # if user changes one of the selection method parameters -> reset to feature selection method selection and remove user feature selection preference 
-            if get_state("SELECT_PAGE_BTN_CLICKED", "rfe_btn") == True or get_state("SELECT_PAGE_BTN_CLICKED", "pca_btn") == True or get_state("SELECT_PAGE_BTN_CLICKED", "mifs_btn") == True:
+            if get_state("SELECT_PAGE_BTN_CLICKED", "rfe_btn") == True or get_state("SELECT_PAGE_BTN_CLICKED", "pca_btn") == True or get_state("SELECT_PAGE_BTN_CLICKED", "mifs_btn") == True or get_state("SELECT_PAGE_BTN_CLICKED", "correlation_btn") == True:
+                st.write('option 1') #TEST1
                 
                 # reset state (back to False)
                 set_state("SELECT_PAGE_BTN_CLICKED", ("rfe_btn", False)) 
                 set_state("SELECT_PAGE_BTN_CLICKED", ("pca_btn", False))
                 set_state("SELECT_PAGE_BTN_CLICKED", ("mifs_btn", False))
+                set_state("SELECT_PAGE_BTN_CLICKED", ("correlation_btn", False))
                 
-                # delete session states as it still otherwise evaluates to True
-                del st.session_state["__SELECT_PAGE_BTN_CLICKED-rfe_btn__"]
-                del st.session_state["__SELECT_PAGE_BTN_CLICKED-pca_btn__"]
-                del st.session_state["__SELECT_PAGE_BTN_CLICKED-mifs_btn__"]
-                
-                #st.write('option 1') #TEST1
-                
+                # deleting states set with fire-state package doesn't work need to use set_state to my knowledge
+# =============================================================================
+#                 # delete session states as it still otherwise evaluates to True
+#                 del st.session_state["__SELECT_PAGE_BTN_CLICKED-rfe_btn__"]
+#                 del st.session_state["__SELECT_PAGE_BTN_CLICKED-pca_btn__"]
+#                 del st.session_state["__SELECT_PAGE_BTN_CLICKED-mifs_btn__"]
+#                 del st.session_state["__SELECT_PAGE_BTN_CLICKED-correlation_btn__"]
+# =============================================================================
+
                 st.write('rfe_btn', get_state("SELECT_PAGE_BTN_CLICKED", "rfe_btn"))   # TEST1
                 st.write('pca_btn', get_state("SELECT_PAGE_BTN_CLICKED", "pca_btn"))   # TEST1
                 st.write('mifs_btn', get_state("SELECT_PAGE_BTN_CLICKED", "mifs_btn")) # TEST1
-                
+                st.write('correlation_btn', get_state("SELECT_PAGE_BTN_CLICKED", "correlation_btn")) # TEST1
+
                 # set default feature selection
                 total_features = total_features_default 
                 
@@ -8196,11 +8226,11 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
             
             # if user selected features, use those! else use the recommended features by feature selection methods 
             elif "__SELECT_PAGE_USER_SELECTION-feature_selection_user__" in st.session_state and get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user") != []:
-                #st.write('option 2') # TEST
+                st.write('option 2') # TEST
                 total_features = get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")
                 
             else:
-                #st.write('option 3') # TEST
+                st.write('option 3') # TEST
                 # set feature selection to default based result of 3 feature selection methods)
                 total_features = total_features_default 
                 total_features = set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", total_features))
@@ -8228,65 +8258,74 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
     # set endogenous variable train/test split
     y_train = y[:(len(df)-st.session_state['insample_forecast_steps'])]
     y_test = y[(len(df)-st.session_state['insample_forecast_steps']):]        
-
-    with st.expander('🥇 Top Features Selected', expanded=True):
-        my_subheader('')
-        my_text_paragraph('Your Feature Selection', my_font_size='26px')
-        show_lottie_animation(
-                                url = "./images/astronaut_star_in_hand.json", 
-                                key = 'lottie_animation_austronaut_star', 
-                                width=200, 
-                                height=200, 
-                                col_sizes=[5,4,5], 
-                                margin_before=1, 
-                                margin_after=2
-                             )
-        
-        # create dataframe from list of features and specify column header
-        df_total_features = pd.DataFrame(feature_selection_user, columns = ['Top Features'])
-        
-        # =============================================================================      
-        # THIS CODE RETRIEVES DIFFERENCE WHAT WAS RECOMMENDED BY FEATURE SELECTION METHODS
-        # AND WHAT USER ADDS AS ADDITIONAL VARIABLES OUTSIDE OF RECOMMENDATION
-        # Note: first time app starts the total_features is None
-        # =============================================================================
-        if total_features != None:
-            difference_lsts = list(set(feature_selection_user) - set(total_features_default))
-        else:
-            # if no features chosen by user then return empty list -> no cells need to be highlighted yellow 
-            difference_lsts = []
-        
-        def highlight_cols_feature_selection(val):
-            """
-            A function that highlights the cells of a DataFrame based on their values.
+    
+    with tab6:
+        with st.expander('🥇 Top Features Selected', expanded=True):
+            my_text_paragraph('Your Feature Selection', my_font_size='26px')
             
-            Args:
-            val: The value of the cell.
+            show_lottie_animation(url = "./images/astronaut_star_in_hand.json", 
+                                  key = 'lottie_animation_austronaut_star', 
+                                  width=200, 
+                                  height=200, 
+                                  col_sizes=[5,4,5], 
+                                  margin_before=1, 
+                                  margin_after=2)
             
-            Returns:
-            str: The CSS style to be applied to the cell.
-            """
-            if val in difference_lsts:
-                return 'background-color: #ffda22' # yellow
-            return ''
-        
-        # define the styled dataframe with applying custom function to highlight cells that are in difference_lsts        
-        styled_df = df_total_features.style.applymap(highlight_cols_feature_selection)
-        
-        st.dataframe(styled_df, 
-                     use_container_width=True)
-        
-        # TEST IF CORRECT ALL FEATURES ARE DISPLAYED!
-        # Display the dataframe in Streamlit
-        st.dataframe(X, use_container_width=True)
+            # TEST - show recommended features from 3 selection methods 
+            #st.write(selected_cols_rfe, selected_cols_pca, selected_cols_mifs) # TEST1
+            
+            df_total_features = pd.DataFrame(feature_selection_user, columns = ['Top Features'])
+            
+            # Create the rating column and update it based on the presence in the lists
+            df_total_features['rating'] = df_total_features['Top Features'].apply(lambda feature: '⭐' * (int(feature in selected_cols_rfe) + int(feature in selected_cols_pca) + int(feature in selected_cols_mifs)) if any(feature in lst for lst in [selected_cols_rfe, selected_cols_pca, selected_cols_mifs]) else '-')
 
-        # Create download button for forecast results to .CSV
-        download_csv_button(X, my_file="features_dataframe.csv", 
-                            help_message="Download your **features** to .CSV", 
-                            my_key='features_df_download_btn')
-        
-        # TEST - set session state variable 'upload_new_data' back to False
-        set_state("DATA_OPTION", ("upload_new_data", False))
+            # Create boolean columns 'rfe', 'pca', and 'mi' based on the presence of features in each list
+            df_total_features['rfe'] = df_total_features['Top Features'].apply(lambda feature: feature in selected_cols_rfe)
+            df_total_features['pca'] = df_total_features['Top Features'].apply(lambda feature: feature in selected_cols_pca)
+            df_total_features['mi'] = df_total_features['Top Features'].apply(lambda feature: feature in selected_cols_mifs)
+
+            # =============================================================================      
+            # THIS CODE RETRIEVES DIFFERENCE WHAT WAS RECOMMENDED BY FEATURE SELECTION METHODS
+            # AND WHAT USER ADDS AS ADDITIONAL VARIABLES OUTSIDE OF RECOMMENDATION
+            # Note: first time app starts the total_features is None
+            # =============================================================================
+            if total_features != None:
+                difference_lsts = list(set(feature_selection_user) - set(total_features_default))
+            else:
+                # if no features chosen by user then return empty list -> no cells need to be highlighted yellow 
+                difference_lsts = []
+            
+            def highlight_cols_feature_selection(row):
+                """
+                A function that highlights the cells of a DataFrame based on their values.
+                
+                Args:
+                row: A pandas Series representing a row of the DataFrame.
+                
+                Returns:
+                list: A list of CSS styles to be applied to the row cells.
+                """
+                styles = ['background-color: #f0f6ff' if row['Top Features'] in difference_lsts else '' for _ in row]
+                return styles
+            
+            # Apply the custom function to highlight rows that have features in difference_lsts, including the 'rating' column
+            styled_df = df_total_features.style.apply(highlight_cols_feature_selection, axis=1)
+
+            # show dataframe with top features + user selection in Streamlit
+            st.dataframe(styled_df, use_container_width=True)
+            
+            ###
+            
+            # Display the dataframe with independent features (X) and values in Streamlit
+            st.dataframe(X, use_container_width=True)
+    
+            # Create download button for forecast results to .CSV
+            download_csv_button(X, my_file = "features_dataframe.csv", 
+                                help_message = "Download your **features** to .CSV", 
+                                my_key = 'features_df_download_btn')
+            
+    # Set session state variable 'upload_new_data' back to False
+    set_state("DATA_OPTION", ("upload_new_data", False))
 else:
     # =============================================================================
     # ELSE WHEN USER IS NOT ON SELECT PAGE:
@@ -8301,14 +8340,12 @@ else:
     # 1. RFE
     ################   
     try:
-        selected_cols_rfe, selected_features, rfecv = perform_rfe(
-                                                                    X_train = st.session_state['X_train'], 
-                                                                    y_train = st.session_state['y_train'], 
-                                                                    estimator_rfe = get_state("SELECT_PAGE_RFE", "estimator_rfe"), 
-                                                                    num_steps_rfe = get_state("SELECT_PAGE_RFE", "num_steps_rfe"),
-                                                                    num_features_rfe = get_state("SELECT_PAGE_RFE", "num_features_rfe"), 
-                                                                    timeseriessplit_value_rfe = get_state("SELECT_PAGE_RFE", "timeseriessplit_value_rfe")
-                                                                 )
+        selected_cols_rfe, selected_features, rfecv = perform_rfe(X_train = st.session_state['X_train'], 
+                                                                  y_train = st.session_state['y_train'], 
+                                                                  estimator_rfe = get_state("SELECT_PAGE_RFE", "estimator_rfe"), 
+                                                                  num_steps_rfe = get_state("SELECT_PAGE_RFE", "num_steps_rfe"),
+                                                                  num_features_rfe = get_state("SELECT_PAGE_RFE", "num_features_rfe"), 
+                                                                  timeseriessplit_value_rfe = get_state("SELECT_PAGE_RFE", "timeseriessplit_value_rfe"))
     except:
         selected_cols_rfe = []
         
@@ -8316,21 +8353,17 @@ else:
     # 2. PCA
     ################
     try:
-        sorted_features, pca, sorted_idx, selected_cols_pca = perform_pca(
-                                                                          X_train = st.session_state['X_train'], 
-                                                                          num_features_pca = get_state("SELECT_PAGE_PCA", "num_features_pca") 
-                                                                         )
+        sorted_features, pca, sorted_idx, selected_cols_pca = perform_pca(X_train = st.session_state['X_train'], 
+                                                                          num_features_pca = get_state("SELECT_PAGE_PCA", "num_features_pca"))
     except:
         selected_cols_pca = []
     ################
     # 3. MIFS
     ################
     try:  
-        mutual_info, selected_features_mi, selected_cols_mifs = perform_mifs(
-                                                                             X_train = st.session_state['X_train'], 
+        mutual_info, selected_features_mi, selected_cols_mifs = perform_mifs(X_train = st.session_state['X_train'], 
                                                                              y_train = st.session_state['y_train'], 
-                                                                             num_features_mifs = get_state("SELECT_PAGE_MIFS", "num_features_mifs")
-                                                                            )
+                                                                             num_features_mifs = get_state("SELECT_PAGE_MIFS", "num_features_mifs"))
     except: 
         selected_cols_mifs = []
 
@@ -8338,18 +8371,15 @@ else:
     # Remove Highly Correlated Features >= threshold ( default = 80% pairwise-correlation)
     # remove one of each pair based on importance scores
     # =============================================================================            
-    total_features, importance_scores, pairwise_features_in_total_features, df_pairwise = analyze_feature_correlations(   
-                                                                                                                        selected_corr_model = get_state("SELECT_PAGE_CORR", "selected_corr_model"), 
+    total_features, importance_scores, pairwise_features_in_total_features, df_pairwise = analyze_feature_correlations(selected_corr_model = get_state("SELECT_PAGE_CORR", "selected_corr_model"), 
                                                                                                                         X_train = X_train, 
                                                                                                                         y_train = y_train, 
                                                                                                                         selected_cols_rfe = selected_cols_rfe, 
                                                                                                                         selected_cols_pca = selected_cols_pca, 
                                                                                                                         selected_cols_mifs = selected_cols_mifs, 
                                                                                                                         models = {'Linear Regression': LinearRegression(), 
-                                                                                                                                  'Random Forest Regressor': RandomForestRegressor(n_estimators=100)
-                                                                                                                                  },
-                                                                                                                        corr_threshold = get_state("SELECT_PAGE_CORR", "corr_threshold")
-                                                                                                                      )
+                                                                                                                                  'Random Forest Regressor': RandomForestRegressor(n_estimators=100)},
+                                                                                                                        corr_threshold = get_state("SELECT_PAGE_CORR", "corr_threshold"))
     # NOTE: only remove one of highly correlated features based on importance score after plot is shown
     total_features_default = remove_lowest_importance_feature(total_features, importance_scores, pairwise_features_in_total_features)      
     
@@ -8377,233 +8407,237 @@ else:
 # =============================================================================
 # TRAIN MODELS
 if menu_item == 'Train' and sidebar_menu_item == 'Home':
-    ################################################
-    # MODEL INFORMATION USER SELECTBOX IN SIDEBAR
-    ################################################
-    with st.sidebar:
-        my_title(f"{train_icon}", "#3b3b3b")
-        with st.expander('', expanded=True):
-            
-            my_text_paragraph('Model Information')
-            
-            vertical_spacer(1)
-            
-            col1, col2, col3 = st.columns([1,1,1])
-            with col2:
-                selected_model_info = st.selectbox(
-                                                     label = "*Select model*:", 
-                                                     options = ['-', 'Naive Model', 'Linear Regression', 'SARIMAX', 'Prophet'], 
-                                                     label_visibility='collapsed'
-                                                  )
-            vertical_spacer(2)
-            
-        # update session state
-        st.session_state['selected_model_info'] = selected_model_info
+    
+
+
     
     # =============================================================================
     # USER FORM: TRAIN MODELS (MODEL CHECKBOXES, PARAMETERS AND HYPERPARAMETERS)
     # =============================================================================
-    with st.sidebar.form('model_train_form'):
-        vertical_spacer(1)
-       
-        my_text_paragraph('Model Selection')
-        
-        # Generic Graph Settings
-        my_conf_interval = st.slider(
-                                     label = "*Set Confidence Interval (%)*", 
-                                     min_value = 1, 
-                                     max_value = 99, 
-                                     #value=80, 
-                                     step = 1,
-                                     key = key1_train,
-                                     help = 'A **`confidence interval`** is a range of values around a sample statistic, such as a mean or proportion, which is likely to contain the true population parameter with a certain degree of confidence.\
-                                            The level of confidence is typically expressed as a percentage, such as 95%, and represents the probability that the true parameter lies within the interval.\
-                                            A wider interval will generally have a higher level of confidence, while a narrower interval will have a lower level of confidence.'
-                                    )
-        
-        # *****************************************************************************
-        # 1. NAIVE MODEL         
-        # *****************************************************************************
-        naive_model_checkbox = st.checkbox(label = 'Naive Model', 
-                                           key = key2_train)
-        
-        # *****************************************************************************
-        # 1.1 NAIVE MODEL PARAMETERS        
-        # *****************************************************************************  
-        custom_lag_value = None
-        with st.expander('◾'):
-            lag = st.selectbox(label = '*Select seasonal **lag** for the Naive Model:*', 
-                               options = ['Day', 'Week', 'Month', 'Year', 'Custom'],
-                               key = key7_train)
-            lag = lag.lower()
-            
-            if lag == 'custom':
-                custom_lag_value = st.number_input(label = "*If seasonal **lag** set to Custom, please set lag value (in days):*", 
-                                                   step = 1,
-                                                   key = key8_train)
-                
-                custom_lag_value = custom_lag_value if custom_lag_value is not None else None
 
-        # *****************************************************************************
-        # 2. LINEAR REGRESSION MODEL        
-        # *****************************************************************************
-        linreg_checkbox = st.checkbox('Linear Regression', 
-                                      key = key3_train)
+    with st.sidebar:
+        my_title(f"{train_icon}", "#3b3b3b")
+        with st.form('model_train_form'):
         
-        # *****************************************************************************
-        # 3. SARIMAX MODEL        
-        # *****************************************************************************
-        sarimax_checkbox = st.checkbox('SARIMAX', 
-                                       key = key4_train)
-        
-        # *****************************************************************************
-        # 3.1 SARIMAX MODEL PARAMETERS         
-        # *****************************************************************************
-        with st.expander('◾', expanded=False):
+            vertical_spacer(1)
+           
+            my_text_paragraph('Model Selection')
             
-            col1, col2, col3 = st.columns([5,1,5])
-            with col1:
-                p = st.number_input(label = "Autoregressive Order (p):", 
-                                    #value = 1, 
-                                    min_value = 0, 
-                                    max_value = 10,
-                                    key = key9_train)
+            # Generic Graph Settings
+            my_conf_interval = st.slider(
+                                         label = "*Set Confidence Interval (%)*", 
+                                         min_value = 1, 
+                                         max_value = 99, 
+                                         #value=80, 
+                                         step = 1,
+                                         key = key1_train,
+                                         help = 'A **`confidence interval`** is a range of values around a sample statistic, such as a mean or proportion, which is likely to contain the true population parameter with a certain degree of confidence.\
+                                                The level of confidence is typically expressed as a percentage, such as 95%, and represents the probability that the true parameter lies within the interval.\
+                                                A wider interval will generally have a higher level of confidence, while a narrower interval will have a lower level of confidence.'
+                                        )
+            
+            # *****************************************************************************
+            # 1. NAIVE MODEL         
+            # *****************************************************************************
+            naive_model_checkbox = st.checkbox(label = 'Naive Model', 
+                                               key = key2_train)
+            
+            # *****************************************************************************
+            # 1.1 NAIVE MODEL PARAMETERS        
+            # *****************************************************************************  
+            custom_lag_value = None
+            with st.expander('◾'):
+                lag = st.selectbox(label = '*Select seasonal **lag** for the Naive Model:*', 
+                                   options = ['Day', 'Week', 'Month', 'Year', 'Custom'],
+                                   key = key7_train)
+                lag = lag.lower()
                 
-                d = st.number_input(label = "Differencing (d):", 
-                                    #value = 1, 
-                                    min_value = 0, 
-                                    max_value = 10,
-                                    key = key10_train)
-                
-                q = st.number_input(label = "Moving Average (q):", 
-                                    #value = 1, 
-                                    min_value = 0, 
-                                    max_value = 10,
-                                    key = key11_train)   
-            with col3:
-                P = st.number_input(label = "Seasonal Autoregressive Order (P):", 
-                                    #value=1, 
-                                    min_value = 0, 
-                                    max_value = 10,
-                                    key = key12_train)
-                
-                D = st.number_input(label = "Seasonal Differencing (D):", 
-                                    #value=1, 
-                                    min_value = 0, 
-                                    max_value = 10,
-                                    key = key13_train)
-                
-                Q = st.number_input(label = "Seasonal Moving Average (Q):", 
-                                    #value=1, 
-                                    min_value = 0, 
-                                    max_value = 10,
-                                    key = key14_train)
-                
-                s = st.number_input(label = "Seasonal Periodicity (s):", 
-                                    value = 7, 
-                                    min_value = 1, 
-                                    key = key15_train,
-                                    help = '`Seasonal periodicity` i.e. **$s$** in **SARIMAX** refers to the **number of observations per season**.\
-                                           \n\nFor example, if we have daily data with a weekly seasonal pattern, **s** would be 7 because there are 7 days in a week.\
-                                           Similarly, for monthly data with an annual seasonal pattern, **s** would be 12 because there are 12 months in a year.\
-                                           Here are some common values for **$s$**:\
-                                           \n- **Daily data** with **weekly** seasonality: **$s=7$** \
-                                           \n- **Monthly data** with **quarterly** seasonality: **$s=3$**\
-                                           \n- **Monthly data** with **yearly** seasonality: **$s=12$**\
-                                           \n- **Quarterly data** with **yearly** seasonality: **$s=4$**')
-
-            col1, col2, col3 = st.columns([5,1,5])
-            with col1:
-                # Add a selectbox for selecting enforce_stationarity
-                enforce_stationarity = st.selectbox(label = 'Enforce Stationarity', 
-                                                    options = [True, False], 
-                                                    #index = 0,
-                                                    key =  key16_train)
-            with col3:
-                # Add a selectbox for selecting enforce_invertibility
-                enforce_invertibility = st.selectbox(label = 'Enforce Invertibility', 
-                                                     options = [True, False], 
-                                                     #index = 0
-                                                     key = key17_train)
-        
-        # *****************************************************************************
-        # 4 PROPHET MODEL
-        # *****************************************************************************
-        prophet_checkbox = st.checkbox('Prophet', 
-                                       key = key5_train)    
-        
-        # *****************************************************************************
-        # 4.1 PROPHET MODEL PARAMETERS
-        # *****************************************************************************
-        with st.expander('◾', expanded = False):
-            # used to have int(st.slider) -> not needed? # TEST
-            horizon_option = st.slider(label = 'Set Forecast Horizon (default = 30 Days):', 
-                                       min_value = 1, 
-                                       max_value = 365, 
-                                       step = 1, 
-                                       #value = 30,
-                                       key = key18_train,
-                                       help = 'The horizon for a Prophet model is typically set to the number of time periods that you want to forecast into the future. This is also known as the forecasting horizon or prediction horizon.'
-                                      )
+                if lag == 'custom':
+                    custom_lag_value = st.number_input(label = "*If seasonal **lag** set to Custom, please set lag value (in days):*", 
+                                                       step = 1,
+                                                       key = key8_train)
                     
-            changepoint_prior_scale = st.slider(label = "changepoint_prior_scale", 
-                                                min_value = 0.001, 
-                                                max_value = 1.0, 
-                                                #value = 0.05, 
-                                                step = 0.01, 
-                                                key = key19_train,
-                                                help = 'This is probably the most impactful parameter. It determines the flexibility of the trend, and in particular how much the trend changes at the trend changepoints. As described in this documentation, if it is too small, the trend will be underfit and variance that should have been modeled with trend changes will instead end up being handled with the noise term. If it is too large, the trend will overfit and in the most extreme case you can end up with the trend capturing yearly seasonality. The default of 0.05 works for many time series, but this could be tuned; a range of [0.001, 0.5] would likely be about right. Parameters like this (regularization penalties; this is effectively a lasso penalty) are often tuned on a log scale.'
-                                               )
+                    custom_lag_value = custom_lag_value if custom_lag_value is not None else None
+    
+            # *****************************************************************************
+            # 2. LINEAR REGRESSION MODEL        
+            # *****************************************************************************
+            linreg_checkbox = st.checkbox('Linear Regression', 
+                                          key = key3_train)
             
-            # used to be str(selectbox) -> not needed? # TEST
-            seasonality_mode = st.selectbox(label = "seasonality_mode", 
-                                            options = ["additive", "multiplicative"], 
-                                            #index = 1,
-                                            key = key20_train)
+            # *****************************************************************************
+            # 3. SARIMAX MODEL        
+            # *****************************************************************************
+            sarimax_checkbox = st.checkbox('SARIMAX', 
+                                           key = key4_train)
             
-            seasonality_prior_scale = st.slider(label = "seasonality_prior_scale", 
-                                                min_value = 0.010, 
-                                                max_value = 10.0, 
-                                                #value = 1.0, 
-                                                step = 0.1,
-                                                key = key21_train)
+            # *****************************************************************************
+            # 3.1 SARIMAX MODEL PARAMETERS         
+            # *****************************************************************************
+            with st.expander('◾', expanded=False):
+                
+                col1, col2, col3 = st.columns([5,1,5])
+                with col1:
+                    p = st.number_input(label = "Autoregressive Order (p):", 
+                                        #value = 1, 
+                                        min_value = 0, 
+                                        max_value = 10,
+                                        key = key9_train)
+                    
+                    d = st.number_input(label = "Differencing (d):", 
+                                        #value = 1, 
+                                        min_value = 0, 
+                                        max_value = 10,
+                                        key = key10_train)
+                    
+                    q = st.number_input(label = "Moving Average (q):", 
+                                        #value = 1, 
+                                        min_value = 0, 
+                                        max_value = 10,
+                                        key = key11_train)   
+                with col3:
+                    P = st.number_input(label = "Seasonal Autoregressive Order (P):", 
+                                        #value=1, 
+                                        min_value = 0, 
+                                        max_value = 10,
+                                        key = key12_train)
+                    
+                    D = st.number_input(label = "Seasonal Differencing (D):", 
+                                        #value=1, 
+                                        min_value = 0, 
+                                        max_value = 10,
+                                        key = key13_train)
+                    
+                    Q = st.number_input(label = "Seasonal Moving Average (Q):", 
+                                        #value=1, 
+                                        min_value = 0, 
+                                        max_value = 10,
+                                        key = key14_train)
+                    
+                    s = st.number_input(label = "Seasonal Periodicity (s):", 
+                                        value = 7, 
+                                        min_value = 1, 
+                                        key = key15_train,
+                                        help = '`Seasonal periodicity` i.e. **$s$** in **SARIMAX** refers to the **number of observations per season**.\
+                                               \n\nFor example, if we have daily data with a weekly seasonal pattern, **s** would be 7 because there are 7 days in a week.\
+                                               Similarly, for monthly data with an annual seasonal pattern, **s** would be 12 because there are 12 months in a year.\
+                                               Here are some common values for **$s$**:\
+                                               \n- **Daily data** with **weekly** seasonality: **$s=7$** \
+                                               \n- **Monthly data** with **quarterly** seasonality: **$s=3$**\
+                                               \n- **Monthly data** with **yearly** seasonality: **$s=12$**\
+                                               \n- **Quarterly data** with **yearly** seasonality: **$s=4$**')
+    
+                col1, col2, col3 = st.columns([5,1,5])
+                with col1:
+                    # Add a selectbox for selecting enforce_stationarity
+                    enforce_stationarity = st.selectbox(label = 'Enforce Stationarity', 
+                                                        options = [True, False], 
+                                                        #index = 0,
+                                                        key =  key16_train)
+                with col3:
+                    # Add a selectbox for selecting enforce_invertibility
+                    enforce_invertibility = st.selectbox(label = 'Enforce Invertibility', 
+                                                         options = [True, False], 
+                                                         #index = 0
+                                                         key = key17_train)
             
-            holidays_prior_scale = st.slider(label = "holidays_prior_scale", 
-                                             min_value = 0.010, 
-                                             max_value = 10.0, 
-                                             #value = 1.0, 
-                                             step = 0.1,
-                                             key = key22_train)
+            # *****************************************************************************
+            # 4 PROPHET MODEL
+            # *****************************************************************************
+            prophet_checkbox = st.checkbox('Prophet', 
+                                           key = key5_train)    
             
-            yearly_seasonality = st.selectbox(label = "yearly_seasonality", 
-                                              options = [True, False], 
-                                              #index = 0,
-                                              key = key23_train)
+            # *****************************************************************************
+            # 4.1 PROPHET MODEL PARAMETERS
+            # *****************************************************************************
+            with st.expander('◾', expanded = False):
+                # used to have int(st.slider) -> not needed? # TEST
+                horizon_option = st.slider(label = 'Set Forecast Horizon (default = 30 Days):', 
+                                           min_value = 1, 
+                                           max_value = 365, 
+                                           step = 1, 
+                                           #value = 30,
+                                           key = key18_train,
+                                           help = 'The horizon for a Prophet model is typically set to the number of time periods that you want to forecast into the future. This is also known as the forecasting horizon or prediction horizon.'
+                                          )
+                        
+                changepoint_prior_scale = st.slider(label = "changepoint_prior_scale", 
+                                                    min_value = 0.001, 
+                                                    max_value = 1.0, 
+                                                    #value = 0.05, 
+                                                    step = 0.01, 
+                                                    key = key19_train,
+                                                    help = 'This is probably the most impactful parameter. It determines the flexibility of the trend, and in particular how much the trend changes at the trend changepoints. As described in this documentation, if it is too small, the trend will be underfit and variance that should have been modeled with trend changes will instead end up being handled with the noise term. If it is too large, the trend will overfit and in the most extreme case you can end up with the trend capturing yearly seasonality. The default of 0.05 works for many time series, but this could be tuned; a range of [0.001, 0.5] would likely be about right. Parameters like this (regularization penalties; this is effectively a lasso penalty) are often tuned on a log scale.'
+                                                   )
+                
+                # used to be str(selectbox) -> not needed? # TEST
+                seasonality_mode = st.selectbox(label = "seasonality_mode", 
+                                                options = ["additive", "multiplicative"], 
+                                                #index = 1,
+                                                key = key20_train)
+                
+                seasonality_prior_scale = st.slider(label = "seasonality_prior_scale", 
+                                                    min_value = 0.010, 
+                                                    max_value = 10.0, 
+                                                    #value = 1.0, 
+                                                    step = 0.1,
+                                                    key = key21_train)
+                
+                holidays_prior_scale = st.slider(label = "holidays_prior_scale", 
+                                                 min_value = 0.010, 
+                                                 max_value = 10.0, 
+                                                 #value = 1.0, 
+                                                 step = 0.1,
+                                                 key = key22_train)
+                
+                yearly_seasonality = st.selectbox(label = "yearly_seasonality", 
+                                                  options = [True, False], 
+                                                  #index = 0,
+                                                  key = key23_train)
+                
+                weekly_seasonality = st.selectbox(label = "weekly_seasonality", 
+                                                  options = [True, False], 
+                                                  #index = 0,
+                                                  key = key24_train)
+                
+                daily_seasonality = st.selectbox(label = "daily_seasonality", 
+                                                 options = [True, False], 
+                                                 #index = 0,
+                                                 key = key25_train)
+    
+                interval_width = int(my_conf_interval/100)
             
-            weekly_seasonality = st.selectbox(label = "weekly_seasonality", 
-                                              options = [True, False], 
-                                              #index = 0,
-                                              key = key24_train)
-            
-            daily_seasonality = st.selectbox(label = "daily_seasonality", 
-                                             options = [True, False], 
-                                             #index = 0,
-                                             key = key25_train)
-
-            interval_width = int(my_conf_interval/100)
-        
-
-        col1, col2, col3 = st.columns([4,4,4])
-        with col2: 
-            # submit button of user form for training models and updating session states on click utilizing custom package fire-state
-            train_models_btn = st.form_submit_button(label = "Submit", 
-                                                     type = "secondary", 
-                                                     on_click = form_update, 
-                                                     args=('TRAIN_PAGE',)
-                                                     )
-            # update session_state 
-            st.session_state['train_models_btn'] = train_models_btn
-     
+    
+            col1, col2, col3 = st.columns([4,4,4])
+            with col2: 
+                # submit button of user form for training models and updating session states on click utilizing custom package fire-state
+                train_models_btn = st.form_submit_button(label = "Submit", 
+                                                         type = "secondary", 
+                                                         on_click = form_update, 
+                                                         args=('TRAIN_PAGE',)
+                                                         )
+                # update session_state 
+                st.session_state['train_models_btn'] = train_models_btn
+          
+        with st.sidebar:
+            with st.expander('', expanded=True):
+                
+                my_text_paragraph('Model Details')
+                
+                vertical_spacer(1)
+                
+                col1, col2, col3 = st.columns([1,1,1])
+                with col2:
+                    selected_model_info = st.selectbox(
+                                                         label = "*Select model*:", 
+                                                         options = ['-', 'Naive Model', 'Linear Regression', 'SARIMAX', 'Prophet'], 
+                                                         label_visibility='collapsed'
+                                                      )
+                vertical_spacer(2)
+                
+            # update session state
+            st.session_state['selected_model_info'] = selected_model_info
+       
         # *****************************************************************************
         # ALL MODELS
         # *****************************************************************************
@@ -8639,217 +8673,206 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
     
     # add the user selected trained models to the session state
     set_state("TRAIN_PAGE", ("selected_models", selected_models))
-        
-    # SHOW MODEL DOCUMENTATION AFTER MODELS RUN
-    model_documentation(st.session_state['selected_model_info'])
-   
-    # show page with models listed on flashcards if:
-    # if user did not select any model information from drop-down
-    # if user did not train any models
-    # if user did train models before and page has to reload to show related dataframe below graph with button click also do not show
-    if st.session_state['selected_model_info'] == '-' and not train_models_btn and not selected_models:
+     
+    # =============================================================================
+    # CREATE TABS    
+    # =============================================================================
+    tab1, tab2, tab3, tab4 = st.tabs(['▫️Info', '▫️Inputs', '▫️Outputs', '▫️Model Details'])
+
+    with tab1:
         with st.expander('', expanded=True):
             col1, col2, col3 = st.columns([1,3,1])
             with col2:
-                    # define the font family to display the text of paragraph
-                    train_models_carousel(my_title= 'Select your models to train in the sidebar!')
-
-        # =============================================================================
-        # Model Inputs Card
-        # =============================================================================
-        with st.expander('', expanded=True):
-            # Show buttons with Training Data/Test Data 
-            # if clicked user will get corresponding Train/Test dataframe displayed in streamlit
-            show_model_inputs()
-
-    elif st.session_state['selected_model_info'] == '-' and not selected_models:
-        with st.expander('', expanded=True):
-            col1, col2, col3 = st.columns([1,3,1])
-            with col2:
-                # define the font family to display the text of paragraph
                 train_models_carousel(my_title= 'Select your models to train in the sidebar!')
-
-    # create a list of independent variables selected by user prior used 
-    # for results dataframe when evaluating models which variables were included.
-    features_str = get_feature_list(X)
     
-    if selected_models:
-        #st.info("You can always retrain your models and adjust hyperparameters!")
-        # iterate over all models and if user selected checkbox for model the model(s) is/are trained
-        for model_name, model in selected_models:
-            
-            try:
-                if model_name == "Naive Model":
-                    with st.expander('📈' + model_name, expanded=True):
-                        
-                        df_preds = evaluate_regression_model(model, 
-                                                             X_train, 
-                                                             y_train, 
-                                                             X_test, 
-                                                             y_test, 
-                                                             lag=lag, 
-                                                             custom_lag_value=custom_lag_value)
-                        
-                        display_my_metrics(df_preds, "Naive Model")
-                       
-                        # plot graph with actual versus insample predictions
-                        plot_actual_vs_predicted(df_preds, 
-                                                 my_conf_interval)
+    with tab2:
+            with st.expander('', expanded=True):
+                # Show buttons with Training Data/Test Data 
+                show_model_inputs()
+                
+    with tab3:
+        if selected_models:
+            #st.info("You can always retrain your models and adjust hyperparameters!")
+            # iterate over all models and if user selected checkbox for model the model(s) is/are trained
+            for model_name, model in selected_models:
+                try:
+                    # create a list of independent variables selected by user prior used 
+                    # for results dataframe when evaluating models which variables were included.
+                    features_str = get_feature_list(X)
+                    
+                    if model_name == "Naive Model":
+                        with st.expander('📈' + model_name, expanded=True):
+                            
+                            df_preds = evaluate_regression_model(model, 
+                                                                 X_train, 
+                                                                 y_train, 
+                                                                 X_test, 
+                                                                 y_test, 
+                                                                 lag=lag, 
+                                                                 custom_lag_value=custom_lag_value)
+                            
+                            display_my_metrics(df_preds, "Naive Model")
                            
-                        # =============================================================================
-                        #  Show/Hide Button to download dataframe                   
-                        # =============================================================================
-                        # have button available for user and if clicked it expands with the dataframe
-                        col1, col2, col3 = st.columns([100,50,95])
-                        with col2:    
-                            # create empty placeholder for button show/hide
-                            placeholder = st.empty()
-                            
-                            # create button (enabled to click e.g. disabled=false with unique key)
-                            btn = placeholder.button('Show Details', 
-                                                     disabled=False,
-                                                     key = "show_naive_trained_model_btn")
-                       
-                        # if button is clicked run below code
-                        if btn == True:                       
-                            # display button with text "click me again", with unique key
-                            placeholder.button('Hide Details', disabled=False, key = "hide_naive_trained_model_btn")
-                            
-                            # show the dataframe
-                            st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
-                            
-                            # create download button for forecast results to .csv
-                            download_csv_button(df_preds, my_file="insample_forecast_naivemodel_results.csv", 
-                                                 help_message="Download your **Naive** model results to .CSV",
-                                                 my_key = 'naive_trained_model_download_btn')
-                        vertical_spacer(1)
-    
-                        mape, rmse, r2 = my_metrics(df_preds, 
-                                                    model_name = model_name)
-                        
-                        # add test-results to sidebar Model Test Results dataframe
-                        new_row = {'model_name': 'Naive Model',
-                                   'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
-                                   'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']),
-                                   'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
-                                   'features':features_str}
-                        
-                        # =============================================================================
-                        # RESULTS_DF: NAIVE MODEL                        
-                        # =============================================================================
-                        results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-                        set_state("TRAIN_PAGE", ("results_df", results_df))
-            except:
-                st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
-            
-            try:
-                if model_name == "Linear Regression":                 
-                     # create card with model insample prediction with linear regression model
-                     create_streamlit_model_card(X_train = X_train, 
-                                                 y_train = y_train, 
-                                                 X_test = X_test, 
-                                                 y_test = y_test, 
-                                                 results_df = results_df, 
-                                                 model = model, 
-                                                 model_name = model_name)
-                     
-                     # define new row of train/test results
-                     new_row = {'model_name': 'Linear Regression',
-                                'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
-                                'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
-                                'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
-                                'features':features_str}
-                     
-                     # add the results of the model train/test to dataframe
-                     results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-                     set_state("TRAIN_PAGE", ("results_df", results_df))
-            except:
-                st.warning(f'Linear Regression failed to train, please contact your administrator!')
-            try:
-                if model_name == "SARIMAX":
-                    with st.expander('📈' + model_name, expanded=True):
-                        with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):   
-                            
-                            # Assume df is your DataFrame with boolean columns - needed for SARIMAX model that does not handle boolean, but int instead
-                            bool_cols = X_train.select_dtypes(include=bool).columns
-                            X_train.loc[:, bool_cols] = X_train.loc[:, bool_cols].astype(int)
-                            bool_cols = X_test.select_dtypes(include=bool).columns
-                            X_test.loc[:, bool_cols] = X_test.loc[:, bool_cols].astype(int)
-                            
-                            # parameters have standard value but can be changed by user
-                            preds_df = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
-                            
-                            # show metric on streamlit page
-                            display_my_metrics(preds_df, "SARIMAX")
-                            
                             # plot graph with actual versus insample predictions
-                            plot_actual_vs_predicted(preds_df, my_conf_interval)
+                            plot_actual_vs_predicted(df_preds, 
+                                                     my_conf_interval)
+                               
+                            # =============================================================================
+                            #  Show/Hide Button to download dataframe                   
+                            # =============================================================================
+                            # have button available for user and if clicked it expands with the dataframe
+                            col1, col2, col3 = st.columns([100,50,95])
+                            with col2:    
+                                # create empty placeholder for button show/hide
+                                placeholder = st.empty()
+                                
+                                # create button (enabled to click e.g. disabled=false with unique key)
+                                btn = placeholder.button('Show Details', 
+                                                         disabled=False,
+                                                         key = "show_naive_trained_model_btn")
+                           
+                            # if button is clicked run below code
+                            if btn == True:                       
+                                # display button with text "click me again", with unique key
+                                placeholder.button('Hide Details', disabled=False, key = "hide_naive_trained_model_btn")
+                                
+                                # show the dataframe
+                                st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                                
+                                # create download button for forecast results to .csv
+                                download_csv_button(df_preds, my_file="insample_forecast_naivemodel_results.csv", 
+                                                     help_message="Download your **Naive** model results to .CSV",
+                                                     my_key = 'naive_trained_model_download_btn')
+                            vertical_spacer(1)
+        
+                            mape, rmse, r2 = my_metrics(df_preds, 
+                                                        model_name = model_name)
                             
-                            # show the dataframe
-                            st.dataframe(preds_df.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                            # add test-results to sidebar Model Test Results dataframe
+                            new_row = {'model_name': 'Naive Model',
+                                       'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
+                                       'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']),
+                                       'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
+                                       'features':features_str}
                             
-                            # create download button for forecast results to .csv
-                            download_csv_button(preds_df, my_file="insample_forecast_sarimax_results.csv", help_message="Download your **SARIMAX** model results to .CSV")
-                            
-                            # define metrics for sarimax model
-                            mape, rmse, r2 = my_metrics(preds_df, model_name=model_name)
-                            
-                            # display evaluation results on sidebar of streamlit_model_card
-                            new_row = {'model_name': 'SARIMAX', 
-                                       'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
-                                       'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
-                                       'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
-                                       'features':features_str,
-                                       'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}
-                            
-                            # get the maximum index of the current results dataframe
+                            # =============================================================================
+                            # RESULTS_DF: NAIVE MODEL                        
+                            # =============================================================================
                             results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
                             set_state("TRAIN_PAGE", ("results_df", results_df))
-            except:
-                st.warning(f'SARIMAX failed to train, please contact administrator!')       
-            
-            if model_name == "Prophet": 
-                with st.expander('📈' + model_name, expanded=True):
-                    # use custom fucntion that creates in-sample prediction and return a dataframe with 'Actual', 'Predicted', 'Percentage_Diff', 'MAPE' 
-                    preds_df_prophet = predict_prophet(y_train,
-                                                       y_test, 
-                                                       changepoint_prior_scale = changepoint_prior_scale,
-                                                       seasonality_mode = seasonality_mode,
-                                                       seasonality_prior_scale = seasonality_prior_scale,
-                                                       holidays_prior_scale = holidays_prior_scale,
-                                                       yearly_seasonality = yearly_seasonality,
-                                                       weekly_seasonality = weekly_seasonality,
-                                                       daily_seasonality = daily_seasonality,
-                                                       interval_width = interval_width)
-                    
-                    display_my_metrics(preds_df_prophet, "Prophet")
-                    # plot graph with actual versus insample predictions
-                    plot_actual_vs_predicted(preds_df_prophet, 
-                                             my_conf_interval)
-                    # show the dataframe
-                    st.dataframe(preds_df_prophet.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), 
-                                 use_container_width=True)
-                    
-                    # create download button for forecast results to .csv
-                    download_csv_button(preds_df_prophet, 
-                                        my_file = "insample_forecast_prophet_results.csv", 
-                                        help_message = "Download your **Prophet** model results to .CSV",
-                                        my_key = 'download_btn_prophet_df_preds')
-                    
-                    # define metrics for prophet model
-                    mape, rmse, r2 = my_metrics(preds_df_prophet, model_name=model_name)
-                    
-                    # display evaluation results on sidebar of streamlit_model_card
-                    new_row = {'model_name': 'Prophet', 
-                               'mape': '{:.2%}'.format(metrics_dict['Prophet']['mape']),
-                               'rmse': '{:.2f}'.format(metrics_dict['Prophet']['rmse']), 
-                               'r2': '{:.2f}'.format(metrics_dict['Prophet']['r2']),
-                               'features': features_str,
-                               'model settings': f' changepoint_prior_scale: {changepoint_prior_scale}, seasonality_prior_scale: {seasonality_prior_scale}, holidays_prior_scale: {holidays_prior_scale}, yearly_seasonality: {yearly_seasonality}, weekly_seasonality: {weekly_seasonality}, daily_seasonality: {daily_seasonality}, interval_width: {interval_width}'}
-                    
-                    results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
-                    set_state("TRAIN_PAGE", ("results_df", results_df))
-                    
+                except:
+                    st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
+                
+                try:
+                    if model_name == "Linear Regression":                 
+                         # create card with model insample prediction with linear regression model
+                         create_streamlit_model_card(X_train = X_train, 
+                                                     y_train = y_train, 
+                                                     X_test = X_test, 
+                                                     y_test = y_test, 
+                                                     results_df = results_df, 
+                                                     model = model, 
+                                                     model_name = model_name)
+                         
+                         # define new row of train/test results
+                         new_row = {'model_name': 'Linear Regression',
+                                    'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
+                                    'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
+                                    'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
+                                    'features':features_str}
+                         
+                         # add the results of the model train/test to dataframe
+                         results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+                         set_state("TRAIN_PAGE", ("results_df", results_df))
+                except:
+                    st.warning(f'Linear Regression failed to train, please contact your administrator!')
+                try:
+                    if model_name == "SARIMAX":
+                        with st.expander('📈' + model_name, expanded=True):
+                            with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):   
+                                
+                                # Assume DF is your DataFrame with boolean columns - needed for SARIMAX model that does not handle boolean, but integers (int) datatype instead
+                                bool_cols = X_train.select_dtypes(include=bool).columns
+                                X_train.loc[:, bool_cols] = X_train.loc[:, bool_cols].astype(int)
+                                bool_cols = X_test.select_dtypes(include=bool).columns
+                                X_test.loc[:, bool_cols] = X_test.loc[:, bool_cols].astype(int)
+                                
+                                # Parameters have standard value but can be changed by user
+                                preds_df_sarimax = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
+                                
+                                # show metric on streamlit page
+                                display_my_metrics(preds_df_sarimax, "SARIMAX")
+                                
+                                # plot graph with actual versus insample predictions
+                                plot_actual_vs_predicted(preds_df_sarimax, my_conf_interval)
+                                
+                                # show the dataframe
+                                st.dataframe(preds_df_sarimax.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                                
+                                # create download button for forecast results to .csv
+                                download_csv_button(preds_df_sarimax, my_file="insample_forecast_sarimax_results.csv", help_message="Download your **SARIMAX** model results to .CSV")
+                                
+                                # define metrics for sarimax model
+                                mape, rmse, r2 = my_metrics(preds_df_sarimax, model_name=model_name)
+                                
+                                # display evaluation results on sidebar of streamlit_model_card
+                                new_row = {'model_name': 'SARIMAX', 
+                                           'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
+                                           'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
+                                           'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
+                                           'features':features_str,
+                                           'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}
+                                
+                                # get the maximum index of the current results dataframe
+                                results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+                                set_state("TRAIN_PAGE", ("results_df", results_df))
+                except:
+                    st.warning(f'SARIMAX failed to train, please contact administrator!')       
+                
+                if model_name == "Prophet": 
+                    with st.expander('📈' + model_name, expanded=True):
+                        # use custom fucntion that creates in-sample prediction and return a dataframe with 'Actual', 'Predicted', 'Percentage_Diff', 'MAPE' 
+                        preds_df_prophet = predict_prophet(y_train,
+                                                           y_test, 
+                                                           changepoint_prior_scale = changepoint_prior_scale,
+                                                           seasonality_mode = seasonality_mode,
+                                                           seasonality_prior_scale = seasonality_prior_scale,
+                                                           holidays_prior_scale = holidays_prior_scale,
+                                                           yearly_seasonality = yearly_seasonality,
+                                                           weekly_seasonality = weekly_seasonality,
+                                                           daily_seasonality = daily_seasonality,
+                                                           interval_width = interval_width)
+                        
+                        display_my_metrics(preds_df_prophet, "Prophet")
+                        # plot graph with actual versus insample predictions
+                        plot_actual_vs_predicted(preds_df_prophet, 
+                                                 my_conf_interval)
+                        # show the dataframe
+                        st.dataframe(preds_df_prophet.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), 
+                                     use_container_width=True)
+                        
+                        # create download button for forecast results to .csv
+                        download_csv_button(preds_df_prophet, 
+                                            my_file = "insample_forecast_prophet_results.csv", 
+                                            help_message = "Download your **Prophet** model results to .CSV",
+                                            my_key = 'download_btn_prophet_df_preds')
+                        
+                        # define metrics for prophet model
+                        mape, rmse, r2 = my_metrics(preds_df_prophet, model_name=model_name)
+                        
+                        # display evaluation results on sidebar of streamlit_model_card
+                        new_row = {'model_name': 'Prophet', 
+                                   'mape': '{:.2%}'.format(metrics_dict['Prophet']['mape']),
+                                   'rmse': '{:.2f}'.format(metrics_dict['Prophet']['rmse']), 
+                                   'r2': '{:.2f}'.format(metrics_dict['Prophet']['r2']),
+                                   'features': features_str,
+                                   'model settings': f' changepoint_prior_scale: {changepoint_prior_scale}, seasonality_prior_scale: {seasonality_prior_scale}, holidays_prior_scale: {holidays_prior_scale}, yearly_seasonality: {yearly_seasonality}, weekly_seasonality: {weekly_seasonality}, daily_seasonality: {daily_seasonality}, interval_width: {interval_width}'}
+                        
+                        results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+                        set_state("TRAIN_PAGE", ("results_df", results_df))
+    with tab4:
+        # SHOW MODEL DETAILED DOCUMENTATION
+        model_documentation(st.session_state['selected_model_info'])
      
 # =============================================================================
 #   ________      __     _     _    _      _______ ______ 
@@ -8869,18 +8892,19 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
         
         my_title(f"{evaluate_icon}", "#000000")
         
-        with st.expander('', expanded=True):
-            # Select metric using the dropdown
+        with st.form('Plot Metric'):
+            
             my_text_paragraph('Plot')
+            
             col1, col2, col3 = st.columns([2,8,2])
             with col2:
                 
                 # define list of metrics user can choose from in drop-down selectbox                
                 metrics_list = ['Mean Absolute Percentage Error', 'Root Mean Square Error', 'R-squared']
-                 
+                
                 selected_metric = st.selectbox(label = "*Select evaluation metric to sort top model scores:*", 
                                                options = metrics_list,
-                                               index = get_state("EVALUATE_PAGE", "selected_metric_index"),
+                                               key = key1_evaluate,
                                                help = '''Choose which evaluation metric is used to sort the top score of each model by:  
                                                 \n- `Mean Absolute Percentage Error` (MAPE):  
                                                 \nThe Mean Absolute Percentage Error measures the average absolute percentage difference between the predicted values and the actual values. It provides a relative measure of the accuracy of a forecasting model. A lower MAPE indicates better accuracy.
@@ -8890,8 +8914,9 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
                                                 \nR-squared is a statistical measure that represents the proportion of the variance in the dependent variable that is predictable from the independent variables. It ranges from 0 to 1, where 1 indicates a perfect fit. R-squared measures how well the predicted values fit the actual values and is commonly used to assess the goodness of fit of a regression model.
                                                 ''')
                                                 
-                # update session state with user choice
-                set_state("EVALUATE_PAGE", ("selected_metric_index", metrics_list.index(selected_metric)))
+            col1, col2, col3 = st.columns([5,4,4])
+            with col2:
+                metric_btn = st.form_submit_button('Submit', type="secondary", on_click=form_update, args=('EVALUATE_PAGE',))
 
         with st.expander('', expanded=True):
             my_text_paragraph('Latest Test Results')
