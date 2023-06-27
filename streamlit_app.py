@@ -4063,72 +4063,78 @@ def predict_prophet(y_train, y_test, X, **kwargs):
             - Percentage_Diff: The percentage difference between actual and predicted values.
             - MAPE: The Mean Absolute Percentage Error (MAPE).
     """
+    # if user set selectbox: 'include feature selection' -> 'Yes' then include the additional explanatory variables/features
+    if get_state("TRAIN_PAGE", "include_feature_selection") == 'Yes':
+        
+        # Step 1: Add independent features/columns to dataframe of prophet you already have
+        #######################
+        X_train_prophet = preprocess_X_prophet(X_train)
+        y_train_prophet = preprocess_data_prophet(y_train)
+        joined_train_data = pd.merge(y_train_prophet, X_train_prophet, on = 'ds')
+        #st.write('joined train data', joined_train_data) #TEST
+        
+        X_test_prophet = preprocess_X_prophet(X_test)
+        y_test_prophet = preprocess_data_prophet(y_test)
+        joined_test_data = pd.merge(y_test_prophet, X_test_prophet, on = 'ds')
+        #st.write('joined test data', joined_test_data) # TEST
+        
+        # merge train and test data together in 1 dataframe
+        merged_data = joined_train_data.append(joined_test_data, ignore_index = True)
+        #st.write('merged data', merged_data) # TEST
+        
+        # Step 2: Define Model
+        #######################
+        # get the parameters from the settings either preset or adjusted by user and user pressed submit button
+        m = Prophet(changepoint_prior_scale=changepoint_prior_scale,
+                    seasonality_mode = seasonality_mode,
+                    seasonality_prior_scale = seasonality_prior_scale,
+                    holidays_prior_scale = holidays_prior_scale,
+                    yearly_seasonality = yearly_seasonality,
+                    weekly_seasonality = weekly_seasonality,
+                    daily_seasonality = daily_seasonality,
+                    interval_width = interval_width)
+        
+        # Step 3: Add independent features/regressors to model
+        #######################
+        try:
+            # ADD COUNTRY SPECIFIC HOLIDAYS IF AVAILABLE FOR SPECIFIC COUNTRY CODE AND USER HAS SELECTBOX SET TO TRUE FOR PROPHET HOLIDAYS
+            if get_state("TRAIN_PAGE", "prophet_holidays") == True:        
+                m.add_country_holidays(country_name = get_state("ENGINEER_PAGE_COUNTRY_HOLIDAY", "country_code"))
+        except:
+            st.warning('FORECASTGENIE WARNING: Could not add Prophet Holiday Features to Dataframe. Insample train/test will continue without these features and might lead to less accurate results.')
+        
+        # iterate over the names of features found from training dataset (X_train) and add them to prophet model as regressors
+        for column in X_train.columns:
+            m.add_regressor(column)
+          
+        # Step 4: Fit the model
+        #######################
+        # train the model on the data with set parameters
+        #m.fit(y_train_prophet)
+        m.fit(joined_train_data)
+        
+        # Step 5: Create current date range + future date range
+        #######################
+        # Predict on the test set
+        future = m.make_future_dataframe(periods=len(y_test_prophet), freq='D')
+        
+        # step 6: Add regressors to future
+        #######################
+        for column in merged_data.columns:
+            future[column] = merged_data[column]
+            
+        # step 7: forecast
+        #######################
+        forecast = m.predict(future)
+    else:
+        
+        
     
-    # Step 1: Add independent features/columns to dataframe of prophet you already have
-    #######################
-    X_train_prophet = preprocess_X_prophet(X_train)
-    y_train_prophet = preprocess_data_prophet(y_train)
-    joined_train_data = pd.merge(y_train_prophet, X_train_prophet, on='ds')
-    #st.write('joined train data', joined_train_data) #TEST
-    
-    X_test_prophet = preprocess_X_prophet(X_test)
-    y_test_prophet = preprocess_data_prophet(y_test)
-    joined_test_data = pd.merge(y_test_prophet, X_test_prophet, on='ds')
-    #st.write('joined test data', joined_test_data) # TEST
-    
-    # merge train and test data together in 1 dataframe
-    merged_data = joined_train_data.append(joined_test_data, ignore_index=True)
-    #st.write('merged data', merged_data) # TEST
-    
-    # Step 2: Define Model
-    #######################
-    # get the parameters from the settings either preset or adjusted by user and user pressed submit button
-    m = Prophet(changepoint_prior_scale=changepoint_prior_scale,
-                seasonality_mode = seasonality_mode,
-                seasonality_prior_scale = seasonality_prior_scale,
-                holidays_prior_scale = holidays_prior_scale,
-                yearly_seasonality = yearly_seasonality,
-                weekly_seasonality = weekly_seasonality,
-                daily_seasonality = daily_seasonality,
-                interval_width = interval_width)
+  
+
+  
     
    
-    # Step 3: Add independent features/regressors to model
-    #######################
-    # =============================================================================
-    # ADD COUNTRY SPECIFIC HOLIDAYS IF:
-    # AND AVAILABLE 
-    # AND USER HAS SELECTBOX SET TO TRUE (WHICH IS DEFAULT VALUE)
-    # =============================================================================
-    try:
-        # GET COUNTRY CODE FROM USER SELECTION ON ENGINEER PAGE OR DEFAULT = US
-        if get_state("TRAIN_PAGE", "prophet_holidays") == True:        
-            m.add_country_holidays(country_name = get_state("ENGINEER_PAGE_COUNTRY_HOLIDAY", "country_code"))
-    except:
-        st.warning('FORECASTGENIE WARNING: Could not add Prophet Holiday Features to Dataframe. Insample train/test will continue without these features and might lead to less accurate results.')
-
-    for column in X_train.columns:
-        m.add_regressor(column)
-
-    # Step 4: Fit the model
-    #######################
-    # train the model on the data with set parameters
-    #m.fit(y_train_prophet)
-    m.fit(joined_train_data)
-    
-    # Step 5: Create current date range + future date range
-    #######################
-    # Predict on the test set
-    future = m.make_future_dataframe(periods=len(y_test_prophet), freq='D')
-    
-    # step 6: Add regressors to future
-    #######################
-    for column in merged_data.columns:
-        future[column] = merged_data[column]
-    
-    # step 7: forecast
-    #######################
-    forecast = m.predict(future)
     #st.write('forecast variable', forecast) # TEST    
     #download_csv_button(forecast, "prophet_forecast.csv", set_index=False, my_key='prophet_df') # TEST
     
@@ -5507,7 +5513,7 @@ def initiate_global_variables():
     # =============================================================================
     key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
     key11_train, key12_train, key13_train, key14_train, key15_train, key16_train, key17_train, key18_train, key19_train, key20_train, \
-    key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, key28_train = create_store("TRAIN_PAGE", [
+    key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, key28_train, key29_train = create_store("TRAIN_PAGE", [
                                                                                     ("my_conf_interval", 80),               #key1_train
                                                                                     ("naive_checkbox",  False),             #key2_train
                                                                                     ("linreg_checkbox",  False),            #key3_train
@@ -5535,9 +5541,9 @@ def initiate_global_variables():
                                                                                     ("daily_seasonality", True),            #key25_train
                                                                                     ("results_df", pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])), #key26_train
                                                                                     ("prophet_holidays", True),             #key27_train
-                                                                                    ("run", 0)])                            #key28_train
+                                                                                    ("include_feature_selection", 'Yes'),       #key28_train  
+                                                                                    ("run", 0)])                            #key29_train
                                                                                     
-    
     # ================================ EVALUATE PAGE ===================================
     # create an empty dictionary to store the results of the models
     # that I call after I train the models to display on sidebar under hedaer "Evaluate Models"
@@ -5587,7 +5593,7 @@ def initiate_global_variables():
     key1_select_page_corr, key2_select_page_corr, \
     key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
     key11_train, key12_train, key13_train, key14_train, key15_train, key16_train, key17_train, key18_train, key19_train, key20_train, \
-    key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, key28_train, \
+    key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, key28_train, key29_train, \
     key1_evaluate, key2_evaluate
     
 # =============================================================================
@@ -5615,7 +5621,7 @@ key1_select_page_mifs, \
 key1_select_page_corr, key2_select_page_corr, \
 key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
 key11_train, key12_train, key13_train, key14_train, key15_train, key16_train, key17_train, key18_train, key19_train, key20_train, \
-key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, key28_train, \
+key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, key28_train, key29_train, \
 key1_evaluate, key2_evaluate = initiate_global_variables()
 
 # =============================================================================
@@ -5976,6 +5982,7 @@ if sidebar_menu_item == 'About':
                                          - <b>Weather Forecasting:</b> Generate short-term or long-term weather forecasts for personal planning, outdoor activities, or agricultural purposes.<br>
                                          - <b>Energy Consumption Forecasting:</b> Forecast your household or individual energy consumption patterns based on historical data, helping you optimize energy usage, identify potential savings opportunities, and make informed decisions about energy-efficient upgrades or renewable energy investments.''',
                                       my_text_align='left')
+                    
         # =============================================================================
         # About ForecastGenie    
         # ============================================================================= 
@@ -6101,6 +6108,7 @@ if sidebar_menu_item == 'FAQ':
                 my_text_paragraph('<b> Answer:</b> ForecastGenie is a free, open-source application that enables users to perform time-series forecasting on their data. The application offers a range of advanced features and models to help users generate accurate forecasts and gain insights into their data.', 
                                   my_text_align='justify')
                 vertical_spacer(20)
+                
     # =============================================================================
     # What data can I use with ForecastGenie?                    
     # =============================================================================
@@ -6153,7 +6161,6 @@ if sidebar_menu_item == 'FAQ':
                                   my_text_align='justify')
                 vertical_spacer(20)
                 
-
     # =============================================================================
     # Is ForecastGenie suitable for non-technical users?         
     # =============================================================================
@@ -6166,6 +6173,7 @@ if sidebar_menu_item == 'FAQ':
                 my_text_paragraph('<b>Answer:</b> Yes! ForecastGenie is designed to be user-friendly and intuitive, even for users with little or no technical experience. The application includes automated data cleaning and feature engineering, making it easy to prepare your data for forecasting. Additionally, the user interface is simple and easy to navigate, with clear instructions and prompts throughout the process.',
                                   my_text_align='justify')
                 vertical_spacer(20)
+                
     # =============================================================================
     # Is ForecastGenie suitable for non-technical users?         
     # =============================================================================
@@ -6178,82 +6186,81 @@ if sidebar_menu_item == 'FAQ':
             col1, col2, col3 = st.columns([4, 12, 4])
             with col2:
                 my_code = """<div class="flashcard_faq">
-              <div class="front_faq">
-                <div class="content">
-                  <h2>Other Questions?</h2>
-                </div>
-              </div>
-              <div class="back_faq">
-                <div class="content">
-                  <h2>info@forecastgenie.com</h2>
-                </div>
-              </div>
-            </div>
-            <style>
-            .flashcard_faq {
-              position: relative;
-              width: 400px;
-              height: 400px;
-              background-color: white;
-              border-radius: 10px;
-              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-              perspective: 1000px;
-              transition: transform 0.6s;
-              transform-style: preserve-3d;
-            }
-            
-            .front_faq, .back_faq {
-              position: absolute;
-              top: 0;
-              left: 0;
-              width: 100%;
-              height: 100%;
-              border-radius: 10px;
-              backface-visibility: hidden;
-              font-family: "Roboto", Arial, sans-serif; 
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              text-align: center;
-            }
-            
-            .front_faq {
-              background: linear-gradient(to top, #f74996 , #3690c0);
-              color: white;
-              transform: rotateY(0deg);
-            }
-            
-            .back_faq {
-              background:linear-gradient(to top, #f74996 , #3690c0);
-              transform: rotateY(180deg);
-            }
-            
-            .flashcard_faq:hover .front_faq {
-              transform: rotateY(180deg);
-            }
-            
-            .flashcard_faq:hover .back_faq {
-              transform: rotateY(0deg);
-            }
-            
-            .content h2 {
-              margin: 0;
-              font-size: 26px;
-              line-height: 1.5;
-            }
-            
-            .back_faq h2 {
-              color: white;  /* Add this line to set text color to white */
-            }
-            .front_faq h2 {
-              color: white;  /* Add this line to set text color to white */
-            }
-            </style>"""
+                              <div class="front_faq">
+                                <div class="content">
+                                  <h2>Other Questions?</h2>
+                                </div>
+                              </div>
+                              <div class="back_faq">
+                                <div class="content">
+                                  <h2>info@forecastgenie.com</h2>
+                                </div>
+                              </div>
+                            </div>
+                            <style>
+                            .flashcard_faq {
+                              position: relative;
+                              width: 400px;
+                              height: 400px;
+                              background-color: white;
+                              border-radius: 10px;
+                              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                              perspective: 1000px;
+                              transition: transform 0.6s;
+                              transform-style: preserve-3d;
+                            }
+                            
+                            .front_faq, .back_faq {
+                              position: absolute;
+                              top: 0;
+                              left: 0;
+                              width: 100%;
+                              height: 100%;
+                              border-radius: 10px;
+                              backface-visibility: hidden;
+                              font-family: "Roboto", Arial, sans-serif; 
+                              display: flex;
+                              justify-content: center;
+                              align-items: center;
+                              text-align: center;
+                            }
+                            
+                            .front_faq {
+                              background: linear-gradient(to top, #f74996 , #3690c0);
+                              color: white;
+                              transform: rotateY(0deg);
+                            }
+                            
+                            .back_faq {
+                              background:linear-gradient(to top, #f74996 , #3690c0);
+                              transform: rotateY(180deg);
+                            }
+                            
+                            .flashcard_faq:hover .front_faq {
+                              transform: rotateY(180deg);
+                            }
+                            
+                            .flashcard_faq:hover .back_faq {
+                              transform: rotateY(0deg);
+                            }
+                            
+                            .content h2 {
+                              margin: 0;
+                              font-size: 26px;
+                              line-height: 1.5;
+                            }
+                            
+                            .back_faq h2 {
+                              color: white;  /* Add this line to set text color to white */
+                            }
+                            .front_faq h2 {
+                              color: white;  /* Add this line to set text color to white */
+                            }
+                            </style>"""
 
-
-                # show flashcard in streamlit                    
-                st.markdown(my_code, unsafe_allow_html=True)
-                vertical_spacer(10)
+            # show flashcard in streamlit                    
+            st.markdown(my_code, unsafe_allow_html=True)
+            vertical_spacer(10)
 # LOGGING
 print('ForecastGenie Print: Loaded FAQ Page')
 
@@ -6473,7 +6480,6 @@ def reset_session_states():
         if key == 'data_choice' or key == 'my_data_choice' or key == "__LOAD_PAGE-my_data_choice__" or key == "__LOAD_PAGE-user_data_uploaded__":
             pass
         else:
-            #st.write(f'removing key: {key}') # TEST
             del st.session_state[key]
             
     # reset session states to default -> initiate global variables
@@ -6492,7 +6498,7 @@ def reset_session_states():
     key1_select_page_corr, key2_select_page_corr, \
     key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
     key11_train, key12_train, key13_train, key14_train, key15_train, key16_train, key17_train, key18_train, key19_train, key20_train, \
-    key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, key28_train, \
+    key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, key28_train,  key29_train, \
     key1_evaluate, key2_evaluate = initiate_global_variables()
 
 def load_change():
@@ -8540,20 +8546,29 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
         
             vertical_spacer(1)
            
-            my_text_paragraph('Model Selection')
+            my_text_paragraph('Settings')
+            vertical_spacer(2)
             
-            # Generic Graph Settings
-            my_conf_interval = st.slider(
-                                         label = "*Set Confidence Interval (%)*", 
-                                         min_value = 1, 
-                                         max_value = 99, 
-                                         #value=80, 
-                                         step = 1,
-                                         key = key1_train,
-                                         help = 'A **`confidence interval`** is a range of values around a sample statistic, such as a mean or proportion, which is likely to contain the true population parameter with a certain degree of confidence.\
-                                                The level of confidence is typically expressed as a percentage, such as 95%, and represents the probability that the true parameter lies within the interval.\
-                                                A wider interval will generally have a higher level of confidence, while a narrower interval will have a lower level of confidence.'
-                                        )
+            col1, col2, col3, col4, col5 = st.columns([1,4,1,4,1])
+            with col2:    
+                include_feature_selection = st.selectbox(label = '*include feature selection:*', 
+                                                         options = ['Yes', 'No'],
+                                                         key = key28_train,
+                                                         help = '''If `feature selection` is enabled, the explanatory variables or features will be incorporated as additional inputs during the model training process. These features can be either the default recommendations based on the feature selection process (refer to the Select Page for more details), or if you have made changes to the selection, it will reflect the features you have chosen to include.  
+                                                                   \nBy enabling feature selection, you allow the model to utilize these explanatory features to enhance its predictive capabilities with the goal to improve the overall performance of the model(s).''')
+            with col4:
+                # Generic Graph Settings
+                my_conf_interval = st.slider(label = "*confidence interval (%)*", 
+                                             min_value = 1, 
+                                             max_value = 99,
+                                             step = 1,
+                                             key = key1_train,
+                                             help = 'A **`confidence interval`** is a range of values around a sample statistic, such as a mean or proportion, which is likely to contain the true population parameter with a certain degree of confidence.\
+                                                    The level of confidence is typically expressed as a percentage, such as 95%, and represents the probability that the true parameter lies within the interval.\
+                                                    A wider interval will generally have a higher level of confidence, while a narrower interval will have a lower level of confidence.')
+            vertical_spacer(2)
+            
+            my_text_paragraph('Model Selection')
             
             # *****************************************************************************
             # 1. NAIVE MODEL         
@@ -8598,31 +8613,26 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                 col1, col2, col3 = st.columns([5,1,5])
                 with col1:
                     p = st.number_input(label = "Autoregressive Order (p):", 
-                                        #value = 1, 
                                         min_value = 0, 
                                         max_value = 10,
                                         key = key9_train)
                     
                     d = st.number_input(label = "Differencing (d):", 
-                                        #value = 1, 
                                         min_value = 0, 
                                         max_value = 10,
                                         key = key10_train)
                     
                     q = st.number_input(label = "Moving Average (q):", 
-                                        #value = 1, 
                                         min_value = 0, 
                                         max_value = 10,
                                         key = key11_train)   
                 with col3:
                     P = st.number_input(label = "Seasonal Autoregressive Order (P):", 
-                                        #value=1, 
                                         min_value = 0, 
                                         max_value = 10,
                                         key = key12_train)
                     
                     D = st.number_input(label = "Seasonal Differencing (D):", 
-                                        #value=1, 
                                         min_value = 0, 
                                         max_value = 10,
                                         key = key13_train)
@@ -8634,7 +8644,6 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                         key = key14_train)
                     
                     s = st.number_input(label = "Seasonal Periodicity (s):", 
-                                        value = 7, 
                                         min_value = 1, 
                                         key = key15_train,
                                         help = '`Seasonal periodicity` i.e. **$s$** in **SARIMAX** refers to the **number of observations per season**.\
@@ -8651,13 +8660,11 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                     # Add a selectbox for selecting enforce_stationarity
                     enforce_stationarity = st.selectbox(label = 'Enforce Stationarity', 
                                                         options = [True, False], 
-                                                        #index = 0,
                                                         key =  key16_train)
                 with col3:
                     # Add a selectbox for selecting enforce_invertibility
                     enforce_invertibility = st.selectbox(label = 'Enforce Invertibility', 
                                                          options = [True, False], 
-                                                         #index = 0
                                                          key = key17_train)
             
             # *****************************************************************************
