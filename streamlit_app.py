@@ -1391,6 +1391,7 @@ def create_carousel_cards(num_cards, header_list, paragraph_list, font_family, f
         }
         </style>
         """, unsafe_allow_html=True)
+        
 # this is the independent cards with purple gradient version
 def create_carousel_cards_v3(num_cards, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back):
     # note removing display: flex; inside the css code for .flashcard -> puts cards below eachother
@@ -3524,28 +3525,30 @@ def create_calendar_holidays(df, slider=True):
                         ]
         # retrieve index of default country e.g. 'United States of America'
         us_index = country_data.index(('United States of America', 'US'))
-        
-        if 'country_index' not in st.session_state:
-            # default value for selectbox set it equal to country e.g. USA
-            # set equal to the relative position e.g. index of country = United States in the list
-            st.session_state['country_index'] = us_index
-            
-        # add slider if user on the page with menu_item = 'Engineer' otherwise do not show slider
+
+        # add slider if user on the page with menu_item = 'Engineer' otherwise do not show selectbox
         if slider == True:
-            col1, col2, col3 = st.columns([1,2,1])
+            
+            col1, col2, col3 = st.columns([1,3,1])
             with col2:
-                # create selexbox in streamlit to show to user a drop-down menu to select a country
-                selected_country_name = st.selectbox(label = "Select a country", 
-                                                     options = [country[0] for country in country_data], 
-                                                     index = st.session_state['country_index'], 
-                                                     label_visibility='collapsed')
                 
-                # update session state to user's choice of country from drop-down list
-                st.session_state['country_index'] = next((i for i, (country, code) in enumerate(country_data) if country == selected_country_name), None)
-        
-        # else do not add slider
+                with st.form('country_holiday'):
+                    
+                    selected_country_name = st.selectbox(label = "Select a country", 
+                                                         options = [country[0] for country in country_data], 
+                                                         key = key1_engineer_page_country, 
+                                                         label_visibility = 'collapsed')
+                    
+                    col1, col2, col3 = st.columns([5,4,4])
+                    with col2:
+                       country_holiday_btn = st.form_submit_button('Apply', on_click = form_update, args = ("ENGINEER_PAGE_COUNTRY_HOLIDAY",))
+                                              
+                       # update country code as well in session state - which is used for prophet model holiday feature as well
+                       set_state("ENGINEER_PAGE_COUNTRY_HOLIDAY", ("country_code",  dict(country_data).get(selected_country_name)))
+
+        # else do not add selectbox in if function is called when user not on page
         else:
-            selected_country_name = country_data[st.session_state['country_index']][0]
+            selected_country_name = get_state("ENGINEER_PAGE_COUNTRY_HOLIDAY", "country_name")
             
         # create empty container for the calendar
         country_calendars = {}
@@ -3561,19 +3564,23 @@ def create_calendar_holidays(df, slider=True):
                 continue
         
         # Retrieve the country code for the selected country
-        #selected_country_code = dict(country_data).get(selected_country_name)
-        selected_country_code = country_data[st.session_state['country_index']][1] # TEST
+        selected_country_code = dict(country_data).get(get_state("ENGINEER_PAGE_COUNTRY_HOLIDAY", "country_name"))
+        #st.write(selected_country_code, selected_country_name) # TEST
         
         # Check if the selected country has a holiday calendar
         if selected_country_name in country_calendars.keys():
+            
           country_holidays = holidays.country_holidays(selected_country_code)
           # Set the start and end date for the date range
           range_of_dates = pd.date_range(start_date, end_date)
           
           # create a dataframe for the date range
           df_country_holidays = pd.DataFrame(index=range_of_dates)
+          # add boolean (1 if holiday date else 0)
           df_country_holidays['is_holiday'] = [1 if date in country_holidays else 0 for date in range_of_dates]
+          # add holiday description
           df_country_holidays['holiday_desc'] = [country_holidays.get(date, '') for date in range_of_dates]
+
           #st.write(df_country_holidays) # TEST IF TWO COLUMNS ARE CREATED CORRECTLY FOR COUNTRY HOLIDAYS
           
           # merge dataframe of index with dates, is_holiday, holiday_desc with original df
@@ -3997,7 +4004,23 @@ def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, mo
             
         vertical_spacer(1)
         ##############
-        
+ 
+def preprocess_X_prophet(X):
+    """
+    Preprocess the X dataframe for Prophet modeling.
+
+    Args:
+        X (pd.DataFrame): Dataset with date index and independent features.
+
+    Returns:
+        pd.DataFrame: Preprocessed X dataframe with 'ds' column and regressor columns.
+    """
+    if isinstance(X.index, pd.DatetimeIndex):
+        X = X.reset_index()
+
+    X_prophet = X.copy()
+    X_prophet = X_prophet.rename(columns={X_prophet.columns[0]: 'ds'})
+    return X_prophet
       
 def preprocess_data_prophet(y_data):
     """
@@ -4006,14 +4029,16 @@ def preprocess_data_prophet(y_data):
     # create a deep copy of dataframe e.g. completely new copy of the DataFrame is created with its own memory space
     # This means that any changes made to the new copy will not affect the original DataFrame.
     y_data_prophet = y_data.copy(deep=True)
+    
     # Check if the index is already a datetime index and revert it to a column if needed
     if isinstance(y_data_prophet.index, pd.DatetimeIndex):
         y_data_prophet.reset_index(inplace=True)
+        
     # REQUIREMENT PROPHET: CREATE DATAFRAME WITH DATE COLUMN 'DS' AND 'Y' column
     y_data_prophet = pd.DataFrame({"ds": y_data_prophet.iloc[:, 0], "y": y_data_prophet.iloc[:, 1]})
     return y_data_prophet
 
-def predict_prophet(y_train, y_test, **kwargs):
+def predict_prophet(y_train, y_test, X, **kwargs):
     """
     Predict future values using Prophet model.
 
@@ -4038,35 +4063,92 @@ def predict_prophet(y_train, y_test, **kwargs):
             - Percentage_Diff: The percentage difference between actual and predicted values.
             - MAPE: The Mean Absolute Percentage Error (MAPE).
     """
-    y_train_prophet = preprocess_data_prophet(y_train)
-    y_test_prophet = preprocess_data_prophet(y_test)
     
+    # Step 1: Add independent features/columns to dataframe of prophet you already have
+    #######################
+    X_train_prophet = preprocess_X_prophet(X_train)
+    y_train_prophet = preprocess_data_prophet(y_train)
+    joined_train_data = pd.merge(y_train_prophet, X_train_prophet, on='ds')
+    #st.write('joined train data', joined_train_data) #TEST
+    
+    X_test_prophet = preprocess_X_prophet(X_test)
+    y_test_prophet = preprocess_data_prophet(y_test)
+    joined_test_data = pd.merge(y_test_prophet, X_test_prophet, on='ds')
+    #st.write('joined test data', joined_test_data) # TEST
+    
+    # merge train and test data together in 1 dataframe
+    merged_data = joined_train_data.append(joined_test_data, ignore_index=True)
+    #st.write('merged data', merged_data) # TEST
+    
+    # Step 2: Define Model
+    #######################
     # get the parameters from the settings either preset or adjusted by user and user pressed submit button
     m = Prophet(changepoint_prior_scale=changepoint_prior_scale,
-                seasonality_mode=seasonality_mode,
-                seasonality_prior_scale=seasonality_prior_scale,
-                holidays_prior_scale=holidays_prior_scale,
-                yearly_seasonality=yearly_seasonality,
-                weekly_seasonality=weekly_seasonality,
-                daily_seasonality=daily_seasonality,
-                interval_width=interval_width)
+                seasonality_mode = seasonality_mode,
+                seasonality_prior_scale = seasonality_prior_scale,
+                holidays_prior_scale = holidays_prior_scale,
+                yearly_seasonality = yearly_seasonality,
+                weekly_seasonality = weekly_seasonality,
+                daily_seasonality = daily_seasonality,
+                interval_width = interval_width)
+    
+   
+    # Step 3: Add independent features/regressors to model
+    #######################
+    # =============================================================================
+    # ADD COUNTRY SPECIFIC HOLIDAYS IF:
+    # AND AVAILABLE 
+    # AND USER HAS SELECTBOX SET TO TRUE (WHICH IS DEFAULT VALUE)
+    # =============================================================================
+    try:
+        # GET COUNTRY CODE FROM USER SELECTION ON ENGINEER PAGE OR DEFAULT = US
+        if get_state("TRAIN_PAGE", "prophet_holidays") == True:        
+            m.add_country_holidays(country_name = get_state("ENGINEER_PAGE_COUNTRY_HOLIDAY", "country_code"))
+    except:
+        st.warning('FORECASTGENIE WARNING: Could not add Prophet Holiday Features to Dataframe. Insample train/test will continue without these features and might lead to less accurate results.')
+
+    for column in X_train.columns:
+        m.add_regressor(column)
+
+    # Step 4: Fit the model
+    #######################
     # train the model on the data with set parameters
-    m.fit(y_train_prophet)
+    #m.fit(y_train_prophet)
+    m.fit(joined_train_data)
+    
+    # Step 5: Create current date range + future date range
+    #######################
     # Predict on the test set
-    future = m.make_future_dataframe(periods=len(y_test), freq='D')
+    future = m.make_future_dataframe(periods=len(y_test_prophet), freq='D')
+    
+    # step 6: Add regressors to future
+    #######################
+    for column in merged_data.columns:
+        future[column] = merged_data[column]
+    
+    # step 7: forecast
+    #######################
     forecast = m.predict(future)
+    #st.write('forecast variable', forecast) # TEST    
+    #download_csv_button(forecast, "prophet_forecast.csv", set_index=False, my_key='prophet_df') # TEST
+    
     # slice the test-set of the forecast - exclude the forecast on the training set although prophet model does supply it
-    # Prophet model provides it to check for overfitting the model, however to prevent user from thinking it trained on whole dataset clearer to provide forecast of test set
+    # Prophet model provides it to check for overfitting the model, however to prevent user from thinking it trained on whole dataset clearer to provide forecast of test set only
     yhat_test = forecast['yhat'][-len(y_test):]
     preds_df_prophet = pd.DataFrame({'Actual': y_test_prophet['y'].values, 'Predicted': yhat_test.values}, index=y_test_prophet['ds'])
+    
     # create column date and set the datetime index to date without the time i.e. 00:00:00
     preds_df_prophet['date'] = preds_df_prophet.index.strftime('%Y-%m-%d')
+    
     # set the date column as index column
     preds_df_prophet = preds_df_prophet.set_index('date')
+    
     # Calculate percentage difference between actual and predicted values and add it as a new column
     preds_df_prophet = preds_df_prophet.assign(Percentage_Diff = ((preds_df_prophet['Predicted'] - preds_df_prophet['Actual']) / preds_df_prophet['Actual']))
+    
     # Calculate Mean Absolute Percentage Error (MAPE) and add it as a new column
     preds_df_prophet = preds_df_prophet.assign(MAPE = abs(preds_df_prophet['Percentage_Diff']))
+    
     return preds_df_prophet
 
 def load_data():
@@ -5246,12 +5328,9 @@ def initiate_global_variables():
     create_store("DATA_OPTION", [("upload_new_data", False)])
 
     # Save the Data Choice of User
-    key1_load, key1_load = create_store("LOAD_PAGE", [
-                                                      ("my_data_choice", "Demo Data"), #key1_load,
-                                                      ("user_data_uploaded", False)    #key2_load,
-                                                     ]
-                                       )
-    
+    key1_load, key1_load = create_store("LOAD_PAGE", [("my_data_choice", "Demo Data"), #key1_load,
+                                                      ("user_data_uploaded", False)])  #key2_load,
+                                                     
     # ================================ EXPLORE PAGE ====================================
     key1_explore, key2_explore, key3_explore, key4_explore, key5_explore = create_store("EXPLORE_PAGE", [
         ("lags_acf", min(30, int((len(st.session_state.df_raw)-1)))),    #key1_explore
@@ -5315,25 +5394,34 @@ def initiate_global_variables():
     
     key1_engineer_var, key2_engineer_var, key3_engineer_var, key4_engineer_var, key5_engineer_var, key6_engineer_var, key7_engineer_var, key8_engineer_var, key9_engineer_var, key10_engineer_var, \
     key11_engineer_var, key12_engineer_var, key13_engineer_var, key14_engineer_var, key15_engineer_var, key16_engineer_var, key17_engineer_var = create_store("ENGINEER_PAGE_VARS",
-                                                                                                              [("year_dummies_checkbox", True),             #key1_engineer_var 
-                                                                                                              ("month_dummies_checkbox", True),             #key2_engineer_var 
-                                                                                                              ("day_dummies_checkbox", True),               #key3_engineer_var 
-                                                                                                              ("jan_sales", True),                          #key4_engineer_var 
-                                                                                                              ("val_day_lod", True),                        #key5_engineer_var
-                                                                                                              ("val_day", True),                            #key6_engineer_var
-                                                                                                              ("mother_day_lod", True),                     #key7_engineer_var
-                                                                                                              ("mother_day", True),                         #key8_engineer_var
-                                                                                                              ("father_day_lod", True),                     #key9_engineer_var
-                                                                                                              ("pay_days", True),                           #key10_engineer_var
-                                                                                                              ("father_day", True),                         #key11_engineer_var
-                                                                                                              ("black_friday_lod", True),                   #key12_engineer_var
-                                                                                                              ("black_friday", True),                       #key13_engineer_var
-                                                                                                              ("cyber_monday", True),                       #key14_engineer_var
-                                                                                                              ("christmas_day", True),                      #key15_engineer_var
-                                                                                                              ("boxing_day", True),                         #key16_engineer_var
-                                                                                                              ("run", 0)                                    #key17_engineer_var
+                                                                                                              [("year_dummies_checkbox", True), #key1_engineer_var 
+                                                                                                              ("month_dummies_checkbox", True), #key2_engineer_var 
+                                                                                                              ("day_dummies_checkbox", True),   #key3_engineer_var 
+                                                                                                              ("jan_sales", True),              #key4_engineer_var 
+                                                                                                              ("val_day_lod", True),            #key5_engineer_var
+                                                                                                              ("val_day", True),                #key6_engineer_var
+                                                                                                              ("mother_day_lod", True),         #key7_engineer_var
+                                                                                                              ("mother_day", True),             #key8_engineer_var
+                                                                                                              ("father_day_lod", True),         #key9_engineer_var
+                                                                                                              ("pay_days", True),               #key10_engineer_var
+                                                                                                              ("father_day", True),             #key11_engineer_var
+                                                                                                              ("black_friday_lod", True),       #key12_engineer_var
+                                                                                                              ("black_friday", True),           #key13_engineer_var
+                                                                                                              ("cyber_monday", True),           #key14_engineer_var
+                                                                                                              ("christmas_day", True),          #key15_engineer_var
+                                                                                                              ("boxing_day", True),             #key16_engineer_var
+                                                                                                              ("run", 0)                        #key17_engineer_var
                                                                                                             ]
-                                                                                                          )   
+                                                                                                          )
+    # set initial country holidays to country_code US and country_name "United States of America"
+    key1_engineer_page_country, key2_engineer_page_country, key3_engineer_page_country = create_store("ENGINEER_PAGE_COUNTRY_HOLIDAY", [
+                                                                      ("country_name", "United States of America"), #key1_engineer_page_country
+                                                                      ("country_code", "US"),                       #key2_engineer_page_country
+                                                                      ("run", 0)])                                  #key3_engineer_page_country
+    
+    # THIS SESSION STATE IS USED TO DEAL WITH RESETTING DEFAULT FEATURE SELECTION OR TO KEEP USER SELECTION ON SELECT PAGE
+    create_store("ENGINEER_PAGE_FEATURES_BTN", [("engineering_form_submit_btn", False)])
+    
     # ================================ PREPARE PAGE ====================================
     # define my_insample_forecast_steps used for train/test split
     if 'percentage' not in st.session_state:
@@ -5362,41 +5450,40 @@ def initiate_global_variables():
     
     # ================================ SELECT PAGE ====================================
     # TO DEAL WITH EITHER FEATURE SELECTION METHODS FEATURES OR TO REVERT TO USER SELECTION
-    create_store("SELECT_PAGE_BTN_CLICKED", [
-                                            ("rfe_btn", False),
+    create_store("SELECT_PAGE_BTN_CLICKED", [("rfe_btn", False),
                                             ("mifs_btn", False), 
                                             ("pca_btn", False),
-                                            ("correlation_btn", False)
-                                            ])
+                                            ("correlation_btn", False)])
+                                            
     # FEATURE SELECTION BY USER
     key1_select_page_user_selection, key2_select_page_user_selection = create_store("SELECT_PAGE_USER_SELECTION", [
                                 ("feature_selection_user", []), #key1_select_page_user_selection
-                                ("run", 0)                      #key2_select_page_user_selection
-                                ])
+                                ("run", 0)])                    #key2_select_page_user_selection
+                                
     # PCA
     key1_select_page_pca, key2_select_page_pca = create_store("SELECT_PAGE_PCA", [
                                 ("num_features_pca", 5), #key1_select_page_pca # default of PCA features set to minimum of either 5 or the number of independent features in the dataframe
-                                ("run", 0) #key2_select_page_pca
-                                ])
+                                ("run", 0)])             #key2_select_page_pca
+                                
     # RFE
     key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, key5_select_page_rfe = create_store("SELECT_PAGE_RFE", [
                                 ("num_features_rfe", 5),                #key1_select_page_rfe
                                 ("estimator_rfe", "Linear Regression"), #key2_select_page_rfe
                                 ("timeseriessplit_value_rfe", 5),       #key3_select_page_rfe
                                 ("num_steps_rfe", 1),                   #key4_select_page_rfe
-                                ("run", 0)                              #key5_select_page_rfe
-                                ])
+                                ("run", 0)])                            #key5_select_page_rfe
+                                
     # MIFS
     key1_select_page_mifs, key2_select_page_mifs = create_store("SELECT_PAGE_MIFS", [
                                 ("num_features_mifs", 5), #key1_select_page_mifs
-                                ("run", 0)                #key2_select_page_mifs
-                                ])
+                                ("run", 0)])              #key2_select_page_mifs
+                                
     # CORR
     key1_select_page_corr, key2_select_page_corr, key3_select_page_corr = create_store("SELECT_PAGE_CORR", [
                                 ("corr_threshold", 0.8),                      #key1_select_page_corr 
                                 ("selected_corr_model", 'Linear Regression'), #key2_select_page_corr
-                                ("run", 0)                                    #key3_select_page_corr
-                                ])
+                                ("run", 0)])                                  #key3_select_page_corr
+                               
 
     # ================================ TRAIN PAGE ===================================  
     # TRAIN MENU TEST
@@ -5408,20 +5495,19 @@ def initiate_global_variables():
 
     # set session states for the buttons when models are trained, 
     # to expand dataframe below graph
-    create_store("TRAIN", [
-                            ("naive_model_btn_show", False),
-                            ("naive_model_btn_hide", False),
-                            ("linreg_model_btn_show", False),
-                            ("sarimax_model_btn_show", False),
-                            ("prophet_model_btn_show", False)
-                          ])
+    create_store("TRAIN", [("naive_model_btn_show", False),
+                           ("naive_model_btn_hide", False),
+                           ("linreg_model_btn_show", False),
+                           ("sarimax_model_btn_show", False),
+                           ("prophet_model_btn_show", False)])
+                          
     
     # =============================================================================
     # Save user selected models to session state
     # =============================================================================
     key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
     key11_train, key12_train, key13_train, key14_train, key15_train, key16_train, key17_train, key18_train, key19_train, key20_train, \
-    key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train = create_store("TRAIN_PAGE", [
+    key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, key28_train = create_store("TRAIN_PAGE", [
                                                                                     ("my_conf_interval", 80),               #key1_train
                                                                                     ("naive_checkbox",  False),             #key2_train
                                                                                     ("linreg_checkbox",  False),            #key3_train
@@ -5448,8 +5534,9 @@ def initiate_global_variables():
                                                                                     ("weekly_seasonality", True),           #key24_train
                                                                                     ("daily_seasonality", True),            #key25_train
                                                                                     ("results_df", pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])), #key26_train
-                                                                                    ("run", 0)                              #key27_train
-                                                                                    ])
+                                                                                    ("prophet_holidays", True),             #key27_train
+                                                                                    ("run", 0)])                            #key28_train
+                                                                                    
     
     # ================================ EVALUATE PAGE ===================================
     # create an empty dictionary to store the results of the models
@@ -5465,17 +5552,15 @@ def initiate_global_variables():
     # save user's chosen metric in persistent session state - initiate default metric (MAPE)
     key1_evaluate, key2_evaluate = create_store("EVALUATE_PAGE", [
                                             ("selected_metric", 'Mean Absolute Percentage Error'), #key1_evaluate 
-                                            ("run", 0)                                                   #key2_evaluate
-                                            ])                   
-    
-    
+                                            ("run", 0)])                                           #key2_evaluate
+
     # ================================ TUNE PAGE ===================================
     #
-    
+    #
     
     # ================================ FORECAST PAGE ===================================
     #
-    
+    #
     
     #///////////////////////////////////////////////////////////////////
     # SHOW IN STREAMLIT DICTIONARY OF VARIABLES IN SESSION STATE
@@ -5493,6 +5578,7 @@ def initiate_global_variables():
     key1_missing, key2_missing, key3_missing, \
     key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, \
     key1_engineer, key2_engineer, key3_engineer, key4_engineer, key5_engineer, key6_engineer, key7_engineer, \
+    key1_engineer_page_country, key2_engineer_page_country, key3_engineer_page_country, \
     key1_prepare_normalization, key2_prepare_standardization, \
     key1_select_page_user_selection, \
     key1_select_page_pca, \
@@ -5501,7 +5587,7 @@ def initiate_global_variables():
     key1_select_page_corr, key2_select_page_corr, \
     key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
     key11_train, key12_train, key13_train, key14_train, key15_train, key16_train, key17_train, key18_train, key19_train, key20_train, \
-    key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, \
+    key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, key28_train, \
     key1_evaluate, key2_evaluate
     
 # =============================================================================
@@ -5520,6 +5606,7 @@ key1_explore, key2_explore, key3_explore, key4_explore, \
 key1_missing, key2_missing, key3_missing, \
 key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, \
 key1_engineer, key2_engineer, key3_engineer, key4_engineer, key5_engineer, key6_engineer, key7_engineer, \
+key1_engineer_page_country, key2_engineer_page_country, key3_engineer_page_country, \
 key1_prepare_normalization, key2_prepare_standardization, \
 key1_select_page_user_selection, \
 key1_select_page_pca, \
@@ -5528,7 +5615,7 @@ key1_select_page_mifs, \
 key1_select_page_corr, key2_select_page_corr, \
 key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
 key11_train, key12_train, key13_train, key14_train, key15_train, key16_train, key17_train, key18_train, key19_train, key20_train, \
-key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, \
+key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, key28_train, \
 key1_evaluate, key2_evaluate = initiate_global_variables()
 
 # =============================================================================
@@ -5726,7 +5813,6 @@ with st.sidebar:
 # source for package: https://github.com/victoryhb/streamlit-option-menu
 # CREATE MAIN MENU BAR FOR APP WITH BUTTONS OF DATA PIPELINE
 # Horizontal menu with default on first tab e.g. default_index = 0
-
 menu_item = option_menu(menu_title = None, 
                         options = ["Load", "Explore", "Clean", "Engineer", "Prepare", "Select", "Train", "Evaluate", "Tune", "Forecast"], 
                         icons = ['cloud-arrow-up', 'search', 'bi-bezier2', 'gear', 'shuffle', 'bi-sort-down', "cpu", 'clipboard-check', 'sliders', 'graph-up-arrow'], 
@@ -6397,6 +6483,7 @@ def reset_session_states():
     key1_missing, key2_missing, key3_missing, \
     key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, \
     key1_engineer, key2_engineer, key3_engineer, key4_engineer, key5_engineer, key6_engineer, key7_engineer, \
+    key1_engineer_page_country, key2_engineer_page_country, key3_engineer_page_country, \
     key1_prepare_normalization, key2_prepare_standardization, \
     key1_select_page_user_selection, \
     key1_select_page_pca, \
@@ -6405,9 +6492,9 @@ def reset_session_states():
     key1_select_page_corr, key2_select_page_corr, \
     key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
     key11_train, key12_train, key13_train, key14_train, key15_train, key16_train, key17_train, key18_train, key19_train, key20_train, \
-    key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, \
+    key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, key28_train, \
     key1_evaluate, key2_evaluate = initiate_global_variables()
-    
+
 def load_change():
     """
     Updates the in-memory value for a radio button representing the choice of data source.
@@ -6501,12 +6588,13 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
                  
             # create 3 columns for spacing
             col1, col2, col3 = st.columns([1,3,1])
+            
             # short message about dataframe that has been loaded with shape (# rows, # columns)
             col2.markdown(f"<center>Your <b>dataframe</b> has <b><font color='#555555'>{st.session_state.df_raw.shape[0]}</b></font> \
                            rows and <b><font color='#555555'>{st.session_state.df_raw.shape[1]}</b></font> columns <br> with date range: \
                            <b><font color='#555555'>{df_min}</b></font> to <b><font color='#555555'>{df_max}</font></b>.</center>", unsafe_allow_html=True)
                 
-            # create deepcopy of dataframe which will be manipulated for graphs
+            # create aa deep copy of dataframe which will be manipulated for graphs
             df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
                         
             # Display Plotly Express figure in Streamlit
@@ -6577,7 +6665,6 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
             # display/plot graph of dataframe
             display_dataframe_graph(df=df_graph, key=2, my_chart_color = my_chart_color)
             
-
             try:
                 # show dataframe below graph
                 df_explore = dataframe_explorer(st.session_state['df_raw'])
@@ -7281,21 +7368,20 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
             calendar_dummies_checkbox = st.checkbox(label = ' ', 
                                                     label_visibility='visible', 
                                                     key = key1_engineer,
-                                                    help = 'Include independent features, namely create dummy variables for each `day` of the week, `month` and `year` whereby the leave-1-out principle is applied to not have `perfect multi-collinearity` i.e. the sum of the dummy variables for each observation will otherwise always be equal to one.'
-                                                    )
+                                                    help = 'Include independent features, namely create dummy variables for each `day` of the week, `month` and `year` whereby the leave-1-out principle is applied to not have `perfect multi-collinearity` i.e. the sum of the dummy variables for each observation will otherwise always be equal to one.')
             # create checkbox for country holidays
             calendar_holidays_checkbox = st.checkbox(label = ' ', 
                                                      label_visibility = 'visible', 
                                                      key = key2_engineer, 
                                                      help = 'Include **`official holidays`** of a specified country  \
-                                                          \n**(default = USA)**'
-                                                    )    
+                                                          \n**(default = USA)**')
+
             # create checkbox for all special calendar days
             special_calendar_days_checkbox = st.checkbox(label = ' ', 
                                                          label_visibility = 'visible', 
                                                          key = key3_engineer,
-                                                         help = 'Include independent features including: **`pay-days`** and significant **`sales`** dates.'
-                                                         )
+                                                         help = 'Include independent features including: **`pay-days`** and significant **`sales`** dates.')
+
             # create checkbox for Discrete Wavelet Transform features which automatically is checked
             dwt_features_checkbox = st.checkbox(label = ' ', 
                                                 label_visibility = 'visible', 
@@ -7339,16 +7425,19 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
                                                 label_visibility = 'visible',
                                                 min_value = 1, 
                                                 max_value = 30, 
-                                                key = key7_engineer
-                                                )
-                                             )
+                                                key = key7_engineer))
             
         col1, col2, col3 = st.columns([4,4,4])
         with col2:
             # add submit button to form, when user presses it it updates the selection criteria
-            submitted = st.form_submit_button('Submit',  on_click=form_update, args=("ENGINEER_PAGE",))
+            engineering_form_submit_btn = st.form_submit_button('Submit',  on_click=form_update, args=("ENGINEER_PAGE",))
+            # if user presses the button on ENGINEER PAGE in sidebar
+            if engineering_form_submit_btn:
+                # update session state to True -> which is used to determine if default feature selection is chosen or user selection in SELECT PAGE
+                set_state("ENGINEER_PAGE_FEATURES_BTN", ('engineering_form_submit_btn', True))
     
     with st.expander("", expanded=True):
+        
         show_lottie_animation(url="./images/aJ7Ra5vpQB.json", key="robot_engineering", width=350, height=350, speed=1, col_sizes= [1,3,1])
         
         ##############################
@@ -7442,51 +7531,63 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
         with col1:               
             jan_sales = st.checkbox(label = 'January Sale', 
                                     value = get_state("ENGINEER_PAGE_VARS", "jan_sales"))
+            
             set_state("ENGINEER_PAGE_VARS", ("jan_sales", jan_sales))
                                    
             val_day_lod = st.checkbox(label = "Valentine's Day [last order date]", 
                                       value = get_state("ENGINEER_PAGE_VARS", "val_day_lod"))
+            
             set_state("ENGINEER_PAGE_VARS", ("val_day_lod", val_day_lod))
             
             val_day = st.checkbox(label = "Valentine's Day", 
                                   value = get_state("ENGINEER_PAGE_VARS", "val_day"))
+            
             set_state("ENGINEER_PAGE_VARS", ("val_day", val_day))
             
             mother_day_lod = st.checkbox(label = "Mother's Day [last order date]", 
                                          value = get_state("ENGINEER_PAGE_VARS", "mother_day_lod"))
+            
             set_state("ENGINEER_PAGE_VARS", ("mother_day_lod", mother_day_lod))
             
             mother_day = st.checkbox(label = "Mother's Day",
                                      value = get_state("ENGINEER_PAGE_VARS", "mother_day"))
+            
             set_state("ENGINEER_PAGE_VARS", ("mother_day", mother_day))
             
             father_day_lod = st.checkbox(label = "Father's Day [last order date]", 
                                          value = get_state("ENGINEER_PAGE_VARS", "father_day_lod"))
+            
             set_state("ENGINEER_PAGE_VARS", ("father_day_lod", father_day_lod))
                 
             pay_days = st.checkbox(label = 'Monthly Pay Days (4th Friday of month)', 
                                    value = get_state("ENGINEER_PAGE_VARS", "pay_days"))
+            
             set_state("ENGINEER_PAGE_VARS", ("pay_days", pay_days))
        
         with col2:
             father_day = st.checkbox(label = "Father's Day", 
                                      value = get_state("ENGINEER_PAGE_VARS", "father_day"))
+            
             set_state("ENGINEER_PAGE_VARS", ("father_day", father_day))
             
             black_friday_lod = st.checkbox(label = 'Black Friday [sale starts]', 
                                            value = get_state("ENGINEER_PAGE_VARS", "black_friday_lod"))
+            
             set_state("ENGINEER_PAGE_VARS", ("black_friday_lod", black_friday_lod))
             
             black_friday = st.checkbox(label = 'Black Friday', 
                                       value = get_state("ENGINEER_PAGE_VARS", "black_friday"))
+            
             set_state("ENGINEER_PAGE_VARS", ("black_friday", black_friday))
             
             cyber_monday = st.checkbox('Cyber Monday', 
                                        value = get_state("ENGINEER_PAGE_VARS", "cyber_monday"))
+            
             set_state("ENGINEER_PAGE_VARS", ("cyber_monday", cyber_monday))
             
             christmas_day = st.checkbox(label = 'Christmas Day [last order date]', 
                                         value = get_state("ENGINEER_PAGE_VARS", "christmas_day"))
+            
             set_state("ENGINEER_PAGE_VARS", ("christmas_day", christmas_day))
             
             boxing_day = st.checkbox(label = 'Boxing Day sale', 
@@ -7497,11 +7598,15 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
         
     # user checkmarked the box for all seasonal periods
     if special_calendar_days_checkbox:
+        
         # call very extensive function to create all days selected by users as features
         df = create_calendar_special_days(st.session_state['df_cleaned_outliers_with_index'])
+        
         # update the session_state
         st.session_state['df_cleaned_outliers_with_index'] = df
+        
     else:
+        
         df = st.session_state['df_cleaned_outliers_with_index']
     
     # user checkmarked the box for all seasonal periods
@@ -7576,12 +7681,15 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
             # create a dataframe again with the index set as the first column
             # assumption used: the 'date' column is the first column of the dataframe
             features_df_plot = pd.DataFrame(feature_vectors, columns=feature_cols, index=df.iloc[:,0])
+            
             fig = px.line(features_df_plot, 
                           x=features_df_plot.index, 
                           y=['approx_mean'] + [f'detail{i+1}_mean' for i in range(level)],
                           title='', 
                           labels={'value': 'Coefficient Mean', 'variable': 'Subband'})
+            
             fig.update_layout(xaxis_title='Date')
+            
             st.plotly_chart(fig, use_container_width=True)
             
             # SHOW WAVELETE FEATURES
@@ -8193,9 +8301,15 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
             my_text_paragraph('Selected Features')
             
             #if rfe pca, mifs or correlation SUBMIT button is pressed, 
+            # or if on ENGINEER PAGE button is pressed in sidebar (when e.g. features are removed or added)
             # set total_features equal again to recommended/calculated total_features from feature selection methods
             # if user changes one of the selection method parameters -> reset to feature selection method selection and remove user feature selection preference 
-            if get_state("SELECT_PAGE_BTN_CLICKED", "rfe_btn") == True or get_state("SELECT_PAGE_BTN_CLICKED", "pca_btn") == True or get_state("SELECT_PAGE_BTN_CLICKED", "mifs_btn") == True or get_state("SELECT_PAGE_BTN_CLICKED", "correlation_btn") == True:
+            if get_state("SELECT_PAGE_BTN_CLICKED", "rfe_btn") == True \
+            or get_state("SELECT_PAGE_BTN_CLICKED", "pca_btn") == True \
+            or get_state("SELECT_PAGE_BTN_CLICKED", "mifs_btn") == True \
+            or get_state("SELECT_PAGE_BTN_CLICKED", "correlation_btn") == True \
+            or get_state("ENGINEER_PAGE_FEATURES_BTN", "engineering_form_submit_btn") == True:
+                
                 st.write('option 1') #TEST1
                 
                 # reset state (back to False)
@@ -8203,6 +8317,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                 set_state("SELECT_PAGE_BTN_CLICKED", ("pca_btn", False))
                 set_state("SELECT_PAGE_BTN_CLICKED", ("mifs_btn", False))
                 set_state("SELECT_PAGE_BTN_CLICKED", ("correlation_btn", False))
+                set_state("ENGINEER_PAGE_FEATURES_BTN", ("engineering_form_submit_btn", False))
                 
                 # deleting states set with fire-state package doesn't work need to use set_state to my knowledge
 # =============================================================================
@@ -8213,10 +8328,12 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
 #                 del st.session_state["__SELECT_PAGE_BTN_CLICKED-correlation_btn__"]
 # =============================================================================
 
-                st.write('rfe_btn', get_state("SELECT_PAGE_BTN_CLICKED", "rfe_btn"))   # TEST1
-                st.write('pca_btn', get_state("SELECT_PAGE_BTN_CLICKED", "pca_btn"))   # TEST1
-                st.write('mifs_btn', get_state("SELECT_PAGE_BTN_CLICKED", "mifs_btn")) # TEST1
-                st.write('correlation_btn', get_state("SELECT_PAGE_BTN_CLICKED", "correlation_btn")) # TEST1
+# =============================================================================
+#                 st.write('rfe_btn', get_state("SELECT_PAGE_BTN_CLICKED", "rfe_btn"))   # TEST1
+#                 st.write('pca_btn', get_state("SELECT_PAGE_BTN_CLICKED", "pca_btn"))   # TEST1
+#                 st.write('mifs_btn', get_state("SELECT_PAGE_BTN_CLICKED", "mifs_btn")) # TEST1
+#                 st.write('correlation_btn', get_state("SELECT_PAGE_BTN_CLICKED", "correlation_btn")) # TEST1
+# =============================================================================
 
                 # set default feature selection
                 total_features = total_features_default 
@@ -8388,13 +8505,15 @@ else:
         total_features = get_state("SELECT_PAGE_USER_SELECTION", "feature_selection_user")
     else:
         total_features = total_features_default 
-
+        
     X = X.loc[:, total_features]
     y = y
     X_train = X[:(len(df)-st.session_state['insample_forecast_steps'])]
     X_test = X[(len(df)-st.session_state['insample_forecast_steps']):]
     y_train = y[:(len(df)-st.session_state['insample_forecast_steps'])]
     y_test = y[(len(df)-st.session_state['insample_forecast_steps']):]    
+    
+    
     
 # =============================================================================
 #   _______ _____            _____ _   _ 
@@ -8558,8 +8677,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                            step = 1, 
                                            #value = 30,
                                            key = key18_train,
-                                           help = 'The horizon for a Prophet model is typically set to the number of time periods that you want to forecast into the future. This is also known as the forecasting horizon or prediction horizon.'
-                                          )
+                                           help = 'The horizon for a Prophet model is typically set to the number of time periods that you want to forecast into the future. This is also known as the forecasting horizon or prediction horizon.')
                         
                 changepoint_prior_scale = st.slider(label = "changepoint_prior_scale", 
                                                     min_value = 0.001, 
@@ -8567,8 +8685,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                                     #value = 0.05, 
                                                     step = 0.01, 
                                                     key = key19_train,
-                                                    help = 'This is probably the most impactful parameter. It determines the flexibility of the trend, and in particular how much the trend changes at the trend changepoints. As described in this documentation, if it is too small, the trend will be underfit and variance that should have been modeled with trend changes will instead end up being handled with the noise term. If it is too large, the trend will overfit and in the most extreme case you can end up with the trend capturing yearly seasonality. The default of 0.05 works for many time series, but this could be tuned; a range of [0.001, 0.5] would likely be about right. Parameters like this (regularization penalties; this is effectively a lasso penalty) are often tuned on a log scale.'
-                                                   )
+                                                    help = 'This is probably the most impactful parameter. It determines the flexibility of the trend, and in particular how much the trend changes at the trend changepoints. As described in this documentation, if it is too small, the trend will be underfit and variance that should have been modeled with trend changes will instead end up being handled with the noise term. If it is too large, the trend will overfit and in the most extreme case you can end up with the trend capturing yearly seasonality. The default of 0.05 works for many time series, but this could be tuned; a range of [0.001, 0.5] would likely be about right. Parameters like this (regularization penalties; this is effectively a lasso penalty) are often tuned on a log scale.')
                 
                 # used to be str(selectbox) -> not needed? # TEST
                 seasonality_mode = st.selectbox(label = "seasonality_mode", 
@@ -8582,6 +8699,12 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                                     #value = 1.0, 
                                                     step = 0.1,
                                                     key = key21_train)
+                
+                # retrieve from the session state the country code to display to user what country holidays are currently added to Prophet Model if set to TRUE
+                country_holidays = st.selectbox(label = f'country_holidays ({get_state("ENGINEER_PAGE_COUNTRY_HOLIDAY", "country_code")})', 
+                                                options = [True, False],
+                                                key = key27_train,
+                                                help = """Setting this to `True` adds Country Specific Holidays - whereby Prophet assigns each holiday a specific weight""")
                 
                 holidays_prior_scale = st.slider(label = "holidays_prior_scale", 
                                                  min_value = 0.010, 
@@ -8626,7 +8749,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                 
                 vertical_spacer(1)
                 
-                col1, col2, col3 = st.columns([1,1,1])
+                col1, col2, col3 = st.columns([10,13,10])
                 with col2:
                     selected_model_info = st.selectbox(
                                                          label = "*Select model*:", 
@@ -8684,7 +8807,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
             col1, col2, col3 = st.columns([1,3,1])
             with col2:
                 train_models_carousel(my_title= 'Select your models to train in the sidebar!')
-    
+                
     with tab2:
             with st.expander('', expanded=True):
                 # Show buttons with Training Data/Test Data 
@@ -8714,8 +8837,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                             display_my_metrics(df_preds, "Naive Model")
                            
                             # plot graph with actual versus insample predictions
-                            plot_actual_vs_predicted(df_preds, 
-                                                     my_conf_interval)
+                            plot_actual_vs_predicted(df_preds, my_conf_interval)
                                
                             # =============================================================================
                             #  Show/Hide Button to download dataframe                   
@@ -8745,15 +8867,17 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                                      my_key = 'naive_trained_model_download_btn')
                             vertical_spacer(1)
         
-                            mape, rmse, r2 = my_metrics(df_preds, 
-                                                        model_name = model_name)
+                            mape, rmse, r2 = my_metrics(df_preds, model_name = model_name)
+                                                        
+                            lag_int = {'day': '1', 'week': '7', 'month': '30', 'year': '-365'}.get(lag)
+                            naive_model_feature_str = f"t-{custom_lag_value}" if custom_lag_value else f"t-{lag_int}"
                             
                             # add test-results to sidebar Model Test Results dataframe
                             new_row = {'model_name': 'Naive Model',
                                        'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
                                        'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']),
                                        'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
-                                       'features':features_str}
+                                       'features': naive_model_feature_str}
                             
                             # =============================================================================
                             # RESULTS_DF: NAIVE MODEL                        
@@ -8829,9 +8953,9 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                 except:
                     st.warning(f'SARIMAX failed to train, please contact administrator!')       
                 
-                if model_name == "Prophet": 
+                if model_name == "Prophet":
                     with st.expander('📈' + model_name, expanded=True):
-                        # use custom fucntion that creates in-sample prediction and return a dataframe with 'Actual', 'Predicted', 'Percentage_Diff', 'MAPE' 
+                        # use custom function that creates in-sample prediction and return a dataframe with 'Actual', 'Predicted', 'Percentage_Diff', 'MAPE' 
                         preds_df_prophet = predict_prophet(y_train,
                                                            y_test, 
                                                            changepoint_prior_scale = changepoint_prior_scale,
@@ -8841,8 +8965,10 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                                            yearly_seasonality = yearly_seasonality,
                                                            weekly_seasonality = weekly_seasonality,
                                                            daily_seasonality = daily_seasonality,
-                                                           interval_width = interval_width)
-                        
+                                                           interval_width = interval_width,
+                                                           X = X) #TO EXTRACT FEUATURE(S) AND HOLIDAYS BASED ON USER FEATURE SELECTOIN TRUE/FALSE
+                                                           
+                                                           
                         display_my_metrics(preds_df_prophet, "Prophet")
                         # plot graph with actual versus insample predictions
                         plot_actual_vs_predicted(preds_df_prophet, 
@@ -8866,7 +8992,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                    'rmse': '{:.2f}'.format(metrics_dict['Prophet']['rmse']), 
                                    'r2': '{:.2f}'.format(metrics_dict['Prophet']['r2']),
                                    'features': features_str,
-                                   'model settings': f' changepoint_prior_scale: {changepoint_prior_scale}, seasonality_prior_scale: {seasonality_prior_scale}, holidays_prior_scale: {holidays_prior_scale}, yearly_seasonality: {yearly_seasonality}, weekly_seasonality: {weekly_seasonality}, daily_seasonality: {daily_seasonality}, interval_width: {interval_width}'}
+                                   'model settings': f' changepoint_prior_scale: {changepoint_prior_scale}, seasonality_prior_scale: {seasonality_prior_scale}, country_holidays: {country_holidays}, holidays_prior_scale: {holidays_prior_scale}, yearly_seasonality: {yearly_seasonality}, weekly_seasonality: {weekly_seasonality}, daily_seasonality: {daily_seasonality}, interval_width: {interval_width}'}
                         
                         results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
                         set_state("TRAIN_PAGE", ("results_df", results_df))
@@ -9443,9 +9569,13 @@ if menu_item == 'Forecast':
                 
                 # train the model on the entire dataset with set parameters
                 m.fit(y_prophet)
-                # Predict on the test set
+                
+                
                 future = m.make_future_dataframe(periods=len(future_dates), freq='D')
+               
+                # Predict on the test set
                 forecast_prophet = m.predict(future)
+                
                 # change name of yhat to forecast in df
                 forecast_prophet['forecast'] = forecast_prophet['yhat'].round(0)
                 #forecast_prophet['date'] = forecast_prophet['ds']
