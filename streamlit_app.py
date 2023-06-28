@@ -73,11 +73,12 @@ import time
 # Math package
 #**************************
 import math
+import sympy as sp
 
 #**************************
 # Image Processing 
 #**************************
-from PIL import Image
+#from PIL import Image
 
 #***********************************
 # Data Visualization 
@@ -197,60 +198,58 @@ st.set_page_config(page_title = "ForecastGenie™️",
             
 
 # left / right arrow you can create with click event from st-click-detector package
-# =============================================================================
-# button_container2 = """
-# <style>
-# .arrow-container {
-#     display: flex;
-#     justify-content: center;
-#     align-items: center;
-# }
-# 
-# .arrow {
-#     width: 30px;
-#     height: 30px;
-#     border-radius: 50%;
-#     background-color: black;
-#     display: flex;
-#     justify-content: center;
-#     align-items: center;
-#     cursor: pointer;
-# }
-# 
-# .left-arrow {
-#     margin-right: 10px;
-# }
-# 
-# .right-arrow {
-#     margin-left: 10px;
-# }
-# 
-# .arrow-icon {
-#     width: 10px;
-#     height: 10px;
-#     border-top: 2px solid white;
-#     border-right: 2px solid white;
-#     transform: rotate(225deg);
-# }
-# .rarrow-icon {
-#     width: 10px;
-#     height: 10px;
-#     border-top: 2px solid white;
-#     border-right: 2px solid white;
-#     transform: rotate(45deg);
-# }
-# </style>
-# 
-# <div class="arrow-container">
-#     <a href="#" id="left-arrow" class="arrow left-arrow" onclick="handleClick('left-arrow')">
-#         <span class="arrow-icon"></span>
-#     </a>
-#     <a href="#" id="right-arrow" class="arrow right-arrow" onclick="handleClick('right-arrow')">
-#         <span class="rarrow-icon"></span>
-#     </a>
-# </div>
-# """
-# =============================================================================
+button_container2 = """
+<style>
+.arrow-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.arrow {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.left-arrow {
+    margin-right: 10px;
+}
+
+.right-arrow {
+    margin-left: 10px;
+}
+
+.arrow-icon {
+    width: 10px;
+    height: 10px;
+    border-top: 2px solid white;
+    border-right: 2px solid white;
+    transform: rotate(225deg);
+}
+.rarrow-icon {
+    width: 10px;
+    height: 10px;
+    border-top: 2px solid white;
+    border-right: 2px solid white;
+    transform: rotate(45deg);
+}
+</style>
+
+<div class="arrow-container">
+    <a href="#" id="left-arrow" class="arrow left-arrow" onclick="handleClick('left-arrow')">
+        <span class="arrow-icon"></span>
+    </a>
+    <a href="#" id="right-arrow" class="arrow right-arrow" onclick="handleClick('right-arrow')">
+        <span class="rarrow-icon"></span>
+    </a>
+</div>
+"""
 
 # =============================================================================
 #             title = '\"Hi 👋 Welcome to the ForecastGenie app!\"'
@@ -2772,11 +2771,144 @@ def model_documentation(selected_model_info):
         - SARIMAX
         - Prophet
     '''
+    vertical_spacer(2)
+    # List of model names
+    model_names = ['Home', 'Naive Model', 'Linear Regression', 'SARIMAX', 'Prophet']
+    
+    button_colors = [
+        'radial-gradient(circle at 50% 50%, #000000)', 
+       'conic-gradient(from 180deg at 50% 50%, #F5F5F5 0deg 180deg, #000000 180deg)', 
+       'radial-gradient(circle at 50% 50%, #000000)', 
+       'conic-gradient(from 180deg at 50% 50%, #000000 0deg 180deg, #F5F5F5 180deg)'
+    ]
+    # Define the HTML and CSS code for the button menu
+    button_container = """
+    <style>
+        .button-container {{
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            margin-top: -30px;
+        }}
+    
+        .button {{
+            width: 70px;
+            height: 70px;
+            background: #292929;
+            border-radius: 50%;
+            margin: 0 10px;
+            position: relative;
+            perspective: 1000px;
+            transform-style: preserve-3d;
+            overflow: hidden;
+        }}
+    
+        .button:before {{
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 120%;
+            height: 120%;
+            border-radius: 50%;
+            background: transparent;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transform-style: preserve-3d;
+            transform: translate(-50%, -50%) rotateY(-90deg);
+            animation: planet-ring-rotation 8s linear infinite reverse;
+            z-index: -1;
+        }}
+    
+        .button a {{
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+            color: white;
+            text-transform: uppercase;
+            font-size: 14px;
+            white-space: nowrap;
+            animation: text-rotation 10s linear infinite reverse;
+            transform-style: preserve-3d;
+        }}
+    
+    @keyframes planet-ring-rotation {{
+        0% {{
+            transform: translate(100%, -50%) rotateY(0deg);
+            clip-path: polygon(50%  0%, 0% 0%, 0% 0%, 0% 100%);
+        }}
+        50% {{
+            transform: translate(-70%, -50%) rotateY(-180deg);
+            clip-path: polygon(50%  0%, 100% 0%, 100% 100%, 50% 100%);
+        }}
+        100% {{
+            transform: translate(-50%, -50%) rotateY(-360deg);
+            clip-path: polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%);
+        }}
+    }}
+        
+        @keyframes text-rotation {{
+            0% {{
+                transform: translateX(-100%) scale(0.5);
+                opacity: 0;
+            }}
+            10% {{
+                transform: translateX(-70%) scale(0.7);
+                opacity: 1;
+            }}
+            90% {{
+                transform: translateX(70%) scale(0.7);
+                opacity: 1;
+            }}
+            100% {{
+                transform: translateX(100%) scale(0.5);
+                opacity: 0;
+            }}
+        }}
+    </style>
+    <div class="button-container">
+        {buttons_html}
+    </div>
+    """
+    
+    # Define the HTML code for a single button
+    button_template = """
+    <div class="button" style="background: {color};">
+        <a href="#" id="{id}">
+            {name}
+        </a>
+    </div>
+    """
+    
+    # Generate the HTML code for the buttons
+    buttons_html = ""
+    for i, model_name in enumerate(model_names):
+        button_html = button_template.format(
+            id=model_name.lower().replace(" ", "_"),
+            name=model_name,
+            color=button_colors[i % len(button_colors)]
+        )
+        buttons_html += button_html
+    
+    # Combine the buttons HTML with the container HTML
+    full_html = button_container.format(buttons_html=buttons_html)
+    
+    clicked_model_btn = click_detector(full_html)
+    
+    #st.write(clicked_model_btn)
+    
     with st.expander('', expanded=True):
         col1, col2, col3 = st.columns([2, 8, 2])
-        if selected_model_info == '-':
+        if clicked_model_btn == 'home':
             st.image('./images/train_info.png')
-        elif selected_model_info == 'Naive Model':
+        elif clicked_model_btn == 'naive_model':
             with col2:
                 my_text_header('Naive Model')
                 vertical_spacer(1)
@@ -2826,7 +2958,7 @@ def model_documentation(selected_model_info):
                 </p>
                 ''', unsafe_allow_html=True)
             
-        elif selected_model_info == 'Linear Regression':
+        elif clicked_model_btn == 'linear_regression':
             with col2:
                 my_text_header('Linear Regression')
                 vertical_spacer(1)
@@ -2850,7 +2982,7 @@ def model_documentation(selected_model_info):
                             - $β₁$ is the slope &rarr; the change in $Y$ for a unit change in $X$
                             <br>
                             ''', unsafe_allow_html=True)
-        elif selected_model_info == 'SARIMAX':
+        elif clicked_model_btn == 'sarimax':
             with col2:
                 my_text_header('SARIMAX')
                 vertical_spacer(1)
@@ -2885,7 +3017,7 @@ def model_documentation(selected_model_info):
                             - <b>X</b>  &emsp; These are external factors that can impact the variable being forecasted. They are included in the model as additional inputs.  
                             </p>
                             ''', unsafe_allow_html=True)
-        elif selected_model_info == 'Prophet':
+        elif clicked_model_btn == 'prophet':
             with col2:
                 my_text_header('Prophet')
                 vertical_spacer(1)
@@ -2932,7 +3064,7 @@ def model_documentation(selected_model_info):
                             <br>
                             ''', unsafe_allow_html=True)
         else:
-            pass   
+            st.image('./images/train_info.png')   
             
 #******************************************************************************
 # OTHER FUNCTIONS
@@ -3765,18 +3897,36 @@ def display_my_metrics(my_df, model_name=""):
     None
     """
     # put all metrics and graph in expander for linear regression e.g. benchmark model
-    st.markdown(f'<h2 style="text-align:center">{model_name}</h2></p>', unsafe_allow_html=True)
+    #st.markdown(f'<h2 style="text-align:center">{model_name}</h2></p>', unsafe_allow_html=True)
+    my_text_header(f'{model_name}')
+    
+    vertical_spacer(2)
     
     # define vertical spacings
     col0, col1, col2, col3, col4 = st.columns([2, 3, 3, 3, 1])
-    # Display the evaluation metrics
+    
+    # Get the evaluation metrics for your model
     mape, rmse, r2 = my_metrics(my_df, model_name)
+    
+    # define the font size of the st.metric
+    st.markdown(
+    """
+    <style>
+    [data-testid="stMetricValue"] {
+        font-size: 18px;
+    }
+    </style>
+    """,
+        unsafe_allow_html=True,
+    )
+    
+    # Show the evaluation metrics on Model Card
     with col1:  
-        st.metric(':red[**MAPE:**]', value = "{:.2%}".format(mape))
+        st.metric(':red[MAPE:]', value = "{:.2%}".format(mape))
     with col2:
-        st.metric(':red[**RMSE:**]', value = round(rmse,2))
+        st.metric(':red[RMSE:]', value = round(rmse,2))
     with col3: 
-        st.metric(':green[**R-squared:**]',  value= round(r2, 2))
+        st.metric(':green[R-squared:]',  value= round(r2, 2))
 
 def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs):
     """
@@ -3797,6 +3947,9 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
     # this is for the baseline Naive Model to get a sense of how the model will perform for y_t-1 just having lag of itself 
     # e.g. a day, a week or a month
     # if user did not select an option e.g. None then do nothing/stop function
+    #################################
+    # NAIVE MODEL     
+    #################################
     if 'lag' in kwargs and kwargs['lag'] is not None:
         lag = kwargs['lag']
         if lag == 'day':
@@ -3811,19 +3964,33 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
             y_pred = y_test.shift(custom_lag_value)
         else:
             raise ValueError('Invalid value for "lag". Must be "day", "week", "month", or "year".')
+            
         # Create dataframe for insample predictions versus actual
         df_preds = pd.DataFrame({'Actual': y_test.squeeze(), 'Predicted': y_pred.squeeze()})
+        
         # set the index to just the date portion of the datetime index
         df_preds.index = df_preds.index.date
+        
         # Drop rows with N/A values
         df_preds.dropna(inplace=True)
+        
         # Calculate percentage difference between actual and predicted values and add it as a new column
         df_preds = df_preds.assign(Percentage_Diff = ((df_preds['Predicted'] - df_preds['Actual']) / df_preds['Actual']))
+        
         # Calculate MAPE and add it as a new column
         df_preds = df_preds.assign(MAPE = abs(df_preds['Percentage_Diff']))   
         return df_preds
+    
     else:
-        # Train the model using the training sets
+        # Train the model using the training/test sets if selectbox equal to 'Yes' to include features (default option)
+        # if not then only use the target feature and the date column converted to numeric        
+        if get_state("TRAIN_PAGE", "include_feature_selection") == 'No':
+            # create numeric date values e.g. 0,1,2,3 through N of your data (whereby X_test (e.g. first value = 101) continues counting from last value of X_train (e.g. last value = 100))
+            X_train = pd.DataFrame(range(len(X_train)), index=X_train.index, columns=['date_numeric'])
+            X_test = pd.DataFrame(range(len(X_train), len(X_train) + len(X_test)), index=X_test.index, columns=['date_numeric'])
+        else:
+            pass
+        
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
         
@@ -3833,20 +4000,21 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
         # Extract the coefficient values and feature names
         coefficients = model.coef_
         #st.write(coefficients) # TEST
+        
         intercept = model.intercept_
         #st.write(intercept) # TEST
+        
         feature_names = X_train.columns.tolist()
         #st.write(feature_names) # TEST
+        
         # Create a table to display the coefficients and intercept
         coefficients_table = pd.DataFrame({'Feature': ['Intercept'] + feature_names, 'Coefficient': np.insert(coefficients, 0, intercept)})
         # show coefficients table
         #st.write(coefficients_table)
-        # =============================================================================
         
         # =============================================================================
         # LINEAR REGRESSION EQUATION
         # =============================================================================
-        import sympy as sp
         # Get the intercept and coefficients from the table
         intercept = coefficients_table.loc[0, 'Coefficient'].round(2)
         weights = coefficients_table.loc[1:, 'Coefficient'].round(2)
@@ -3871,22 +4039,22 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
         # Substitute the coefficient symbols in the equation expression
         for symbol, value in subs_dict.items():
             equation_str = equation_str.replace(str(symbol), str(value))
-        
-        # Display the equation expression in Streamlit
-        #st.write("Linear Regression Equation:")
-        #st.write(equation_str)
-        # =============================================================================
 
         # Create dataframe for insample predictions versus actual
         df_preds = pd.DataFrame({'Actual': y_test.squeeze(), 'Predicted': y_pred.squeeze()})
+        
         # set the index to just the date portion of the datetime index
         df_preds.index = df_preds.index.date
+        
         # Drop rows with N/A values
         df_preds.dropna(inplace=True)
+        
         # Calculate percentage difference between actual and predicted values and add it as a new column
         df_preds = df_preds.assign(Percentage_Diff = ((df_preds['Predicted'] - df_preds['Actual']) / df_preds['Actual']))
+        
         # Calculate MAPE and add it as a new column
         df_preds = df_preds.assign(MAPE = abs(df_preds['Percentage_Diff']))   
+        
         return df_preds, coefficients_table, equation_str
 
 def evaluate_sarimax_model(order, seasonal_order, exog_train, exog_test, endog_train, endog_test):
@@ -3904,20 +4072,39 @@ def evaluate_sarimax_model(order, seasonal_order, exog_train, exog_test, endog_t
     Returns:
         preds_df (pd.DataFrame): DataFrame of predicted and actual values on test data.
     """
-    # Fit the model
-    model = sm.tsa.statespace.SARIMAX(endog=endog_train, exog=exog_train, order=order, seasonal_order=seasonal_order)
-    print('model')
+    # Step 0: check if user wants to include feature selection and if not create a date_numeric for X_train and X_test (exogenous variable)
+    if get_state("TRAIN_PAGE", "include_feature_selection") == 'No':
+        # create numeric date values e.g. 0,1,2,3 through N of your data (whereby X_test (e.g. first value = 101) continues counting from last value of X_train (e.g. last value = 100))
+        exog_train = pd.DataFrame(range(len(exog_train)), index = exog_train.index, columns=['date_numeric'])
+        exog_test = pd.DataFrame(range(len(exog_train), len(exog_train) + len(exog_test)), index = exog_test.index, columns=['date_numeric'])
+    else:
+        pass
+    
+    # Step 1: Define the Model
+    model = sm.tsa.statespace.SARIMAX(endog = endog_train, 
+                                      exog = exog_train, 
+                                      order = order, 
+                                      seasonal_order = seasonal_order)
+
+    # Step 2: Fit the model e.g. Train the model
     results = model.fit()
-    print('fit model')
-    # Generate predictions
-    y_pred = results.predict(start=endog_test.index[0], end=endog_test.index[-1], exog=exog_test)
-    print('define y_pred')
-    preds_df = pd.DataFrame({'Actual': endog_test.squeeze(), 'Predicted': y_pred.squeeze()}, index=endog_test.index)
-    print('preds_df')
+
+    # Step 3: Generate predictions
+    y_pred = results.predict(start = endog_test.index[0], 
+                             end = endog_test.index[-1], 
+                             exog = exog_test)
+
+    # Step 4: Combine Actual values and Prediction in a single dataframe
+    preds_df = pd.DataFrame({'Actual': endog_test.squeeze(), 
+                             'Predicted': y_pred.squeeze()}, 
+                             index = endog_test.index)
+
+    # Step 5: Calculate Difference
     # Calculate percentage difference between actual and predicted values and add it as a new column
     preds_df = preds_df.assign(Percentage_Diff = ((preds_df['Predicted'] - preds_df['Actual']) / preds_df['Actual']))
-    print(preds_df)
-    # Calculate MAPE and add it as a new column
+
+    # Step 6: Calculate metric: 
+    # Calculate MAPE and add it as a new column to the existing dataframe
     preds_df = preds_df.assign(MAPE = abs(preds_df['Percentage_Diff']))   
     return preds_df 
 
@@ -3957,8 +4144,8 @@ def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, mo
         
         # plot graph with actual versus insample predictions
         plot_actual_vs_predicted(df_preds, 
-                                 my_conf_interval
-                                 )
+                                 my_conf_interval)
+        
         # =============================================================================
         #  Show/Hide Button to download dataframe                   
         # =============================================================================
@@ -3999,11 +4186,10 @@ def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, mo
             my_text_paragraph('Regression Equation', my_font_size='24px')
             vertical_spacer(1)
             st.write(equation_str)
-            # INTERCEPT ROUNDING?
-            
-            
+            # INTERCEPT ROUNDING SEEMS OFF?
+
         vertical_spacer(1)
-        ##############
+    return df_preds
  
 def preprocess_X_prophet(X):
     """
@@ -4066,7 +4252,7 @@ def predict_prophet(y_train, y_test, X, **kwargs):
     # if user set selectbox: 'include feature selection' -> 'Yes' then include the additional explanatory variables/features
     if get_state("TRAIN_PAGE", "include_feature_selection") == 'Yes':
         
-        # Step 1: Add independent features/columns to dataframe of prophet you already have
+        # Step 1: Preprocess Data for Prophet (required are at least 'ds' column and 'y' column)
         #######################
         X_train_prophet = preprocess_X_prophet(X_train)
         y_train_prophet = preprocess_data_prophet(y_train)
@@ -4126,18 +4312,52 @@ def predict_prophet(y_train, y_test, X, **kwargs):
         # step 7: forecast
         #######################
         forecast = m.predict(future)
-    else:
         
+    elif get_state("TRAIN_PAGE", "include_feature_selection") == 'No':
         
+        # Step 1: Preprocess Data for Prophet (required are at least 'ds' column and 'y' column)
+        #######################
+        y_train_prophet = preprocess_data_prophet(y_train)
+        y_test_prophet = preprocess_data_prophet(y_test)
+        
+        # Step 2: Define Model
+        # Note: get the parameters from the settings either preset or adjusted by user and user pressed submit button
+        #######################
+        m = Prophet(changepoint_prior_scale = changepoint_prior_scale,
+                    seasonality_mode = seasonality_mode,
+                    seasonality_prior_scale = seasonality_prior_scale,
+                    holidays_prior_scale = holidays_prior_scale,
+                    yearly_seasonality = yearly_seasonality,
+                    weekly_seasonality = weekly_seasonality,
+                    daily_seasonality = daily_seasonality,
+                    interval_width = interval_width)
+        
+        # Step 3: Add Prophet Holiday if User set to True
+        #######################
+        try:
+            # ADD COUNTRY SPECIFIC HOLIDAYS IF AVAILABLE FOR SPECIFIC COUNTRY CODE AND USER HAS SELECTBOX SET TO TRUE FOR PROPHET HOLIDAYS
+            if get_state("TRAIN_PAGE", "prophet_holidays") == True:        
+                m.add_country_holidays(country_name = get_state("ENGINEER_PAGE_COUNTRY_HOLIDAY", "country_code"))
+        except:
+            st.warning('FORECASTGENIE WARNING: Could not add Prophet Holiday Features to Dataframe. Insample train/test will continue without these features and might lead to less accurate results.')
+        
+        # Step 4: Fit the model/Train the model on the data with set parameters
+        #######################
+        m.fit(y_train_prophet)
+        
+        # Step 5: Create (current date range + future date range_
+        # Note: Prophet model needs entire date range (train+test) versus just test date range used in others models
+        #######################
+        future = m.make_future_dataframe(periods=len(y_test), freq='D')
+        
+        # step 6: Add additional regressors to future
+        #######################
+        # not performed when 'include feature selection' == False
     
-  
-
-  
-    
-   
-    #st.write('forecast variable', forecast) # TEST    
-    #download_csv_button(forecast, "prophet_forecast.csv", set_index=False, my_key='prophet_df') # TEST
-    
+        # step 7: forecast
+        #######################
+        forecast = m.predict(future)
+                
     # slice the test-set of the forecast - exclude the forecast on the training set although prophet model does supply it
     # Prophet model provides it to check for overfitting the model, however to prevent user from thinking it trained on whole dataset clearer to provide forecast of test set only
     yhat_test = forecast['yhat'][-len(y_test):]
@@ -5507,10 +5727,7 @@ def initiate_global_variables():
                            ("sarimax_model_btn_show", False),
                            ("prophet_model_btn_show", False)])
                           
-    
-    # =============================================================================
-    # Save user selected models to session state
-    # =============================================================================
+    # model parameters
     key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
     key11_train, key12_train, key13_train, key14_train, key15_train, key16_train, key17_train, key18_train, key19_train, key20_train, \
     key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, key28_train, key29_train = create_store("TRAIN_PAGE", [
@@ -5541,7 +5758,7 @@ def initiate_global_variables():
                                                                                     ("daily_seasonality", True),            #key25_train
                                                                                     ("results_df", pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])), #key26_train
                                                                                     ("prophet_holidays", True),             #key27_train
-                                                                                    ("include_feature_selection", 'Yes'),       #key28_train  
+                                                                                    ("include_feature_selection", 'Yes'),   #key28_train
                                                                                     ("run", 0)])                            #key29_train
                                                                                     
     # ================================ EVALUATE PAGE ===================================
@@ -5550,12 +5767,13 @@ def initiate_global_variables():
     metrics_dict = {}
         
     # Initialize results_df in global scope that has model test evaluation results 
-    results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
+    results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model_settings', 'prediction'])
     
+
     if 'results_df' not in st.session_state:
-        st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])
-              
-    # save user's chosen metric in persistent session state - initiate default metric (MAPE)
+        st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model_settings', 'prediction'])  
+   
+                                                      # save user's chosen metric in persistent session state - initiate default metric (MAPE)
     key1_evaluate, key2_evaluate = create_store("EVALUATE_PAGE", [
                                             ("selected_metric", 'Mean Absolute Percentage Error'), #key1_evaluate 
                                             ("run", 0)])                                           #key2_evaluate
@@ -7774,7 +7992,8 @@ else:
     # =============================================================================
     # FIX DATA TYPES FOR ENGINEERED FEATURES
     # =============================================================================
-    columns_to_convert = {'holiday': 'uint8', 'calendar_event': 'uint8', 'pay_day': 'uint8', 'year': 'int32', 'is_holiday': 'uint8'}
+    #columns_to_convert = {'holiday': 'uint8', 'calendar_event': 'uint8', 'pay_day': 'uint8', 'year': 'int32', 'is_holiday': 'uint8'}
+    columns_to_convert = {'holiday': 'uint8', 'calendar_event': 'uint8', 'pay_day': 'uint8', 'year': 'str', 'is_holiday': 'uint8'}
     for column, data_type in columns_to_convert.items():
         if column in df:
             df[column] = df[column].astype(data_type)
@@ -8519,8 +8738,6 @@ else:
     y_train = y[:(len(df)-st.session_state['insample_forecast_steps'])]
     y_test = y[(len(df)-st.session_state['insample_forecast_steps']):]    
     
-    
-    
 # =============================================================================
 #   _______ _____            _____ _   _ 
 #  |__   __|  __ \     /\   |_   _| \ | |
@@ -8532,14 +8749,9 @@ else:
 # =============================================================================
 # TRAIN MODELS
 if menu_item == 'Train' and sidebar_menu_item == 'Home':
-    
-
-
-    
     # =============================================================================
     # USER FORM: TRAIN MODELS (MODEL CHECKBOXES, PARAMETERS AND HYPERPARAMETERS)
     # =============================================================================
-
     with st.sidebar:
         my_title(f"{train_icon}", "#3b3b3b")
         with st.form('model_train_form'):
@@ -8555,7 +8767,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                                          options = ['Yes', 'No'],
                                                          key = key28_train,
                                                          help = '''If `feature selection` is enabled, the explanatory variables or features will be incorporated as additional inputs during the model training process. These features can be either the default recommendations based on the feature selection process (refer to the Select Page for more details), or if you have made changes to the selection, it will reflect the features you have chosen to include.  
-                                                                   \nBy enabling feature selection, you allow the model to utilize these explanatory features to enhance its predictive capabilities with the goal to improve the overall performance of the model(s).''')
+                                                                   \nBy enabling feature selection, you allow the model to utilize these explanatory features with the goal to enhance its predictive capabilities to improve the overall performance of the model(s).''')
             with col4:
                 # Generic Graph Settings
                 my_conf_interval = st.slider(label = "*confidence interval (%)*", 
@@ -8822,14 +9034,24 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                 
     with tab3:
         if selected_models:
-            #st.info("You can always retrain your models and adjust hyperparameters!")
             # iterate over all models and if user selected checkbox for model the model(s) is/are trained
             for model_name, model in selected_models:
-                try:
-                    # create a list of independent variables selected by user prior used 
-                    # for results dataframe when evaluating models which variables were included.
+                
+                # =============================================================================
+                # FOR RESULTS DATAFRAME - CHECK WHICH FEATURES ARE USED
+                # IF NO FEATURES ARE USED THE DATE AS NUMERIC VALUES (INTEGERS 1,2,3 ... N are used)
+                # =============================================================================
+                # create a list of independent variables selected by user prior used 
+                # for results dataframe when evaluating models which variables were included.
+                if get_state("TRAIN_PAGE", "include_feature_selection") == "Yes":
                     features_str = get_feature_list(X)
-                    
+                elif get_state("TRAIN_PAGE", "include_feature_selection") == "No":
+                    features_str = 'date_numeric'
+
+                # =============================================================================
+                #  NAIVE MODEL                   
+                # =============================================================================
+                try:         
                     if model_name == "Naive Model":
                         with st.expander('📈' + model_name, expanded=True):
                             
@@ -8861,7 +9083,8 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                                          key = "show_naive_trained_model_btn")
                            
                             # if button is clicked run below code
-                            if btn == True:                       
+                            if btn == True:  
+                                
                                 # display button with text "click me again", with unique key
                                 placeholder.button('Hide Details', disabled=False, key = "hide_naive_trained_model_btn")
                                 
@@ -8873,55 +9096,86 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                                      help_message="Download your **Naive** model results to .CSV",
                                                      my_key = 'naive_trained_model_download_btn')
                             vertical_spacer(1)
-        
+                            
+                            # =============================================================================
+                            # SAVE TEST RESULTS FOR EVALUATION PAGE BY ADDING ROW TO RESULTS_DF                
+                            # =============================================================================
                             mape, rmse, r2 = my_metrics(df_preds, model_name = model_name)
-                                                        
+                            
+                            # retrieve the feature for Naive Model for results_df 'features' column
                             lag_int = {'day': '1', 'week': '7', 'month': '30', 'year': '-365'}.get(lag)
                             naive_model_feature_str = f"t-{custom_lag_value}" if custom_lag_value else f"t-{lag_int}"
                             
-                            # add test-results to sidebar Model Test Results dataframe
+                            # create new row with test result details
                             new_row = {'model_name': 'Naive Model',
                                        'mape': '{:.2%}'.format(metrics_dict['Naive Model']['mape']),
                                        'rmse': '{:.2f}'.format(metrics_dict['Naive Model']['rmse']),
                                        'r2': '{:.2f}'.format(metrics_dict['Naive Model']['r2']),
-                                       'features': naive_model_feature_str}
+                                       'features': naive_model_feature_str,
+                                       'model_settings': f"lag: {lag}",
+                                       'prediction':  np.ravel(df_preds['Predicted'])
+                                      }
                             
-                            # =============================================================================
-                            # RESULTS_DF: NAIVE MODEL                        
-                            # =============================================================================
-                            results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+                            # turn new row into a dataframe
+                            new_row_df = pd.DataFrame([new_row])
+                            
+                            # Concatenate new row DataFrame with results_df
+                            results_df = pd.concat([results_df, new_row_df], ignore_index=True)
+                            
+                            # update session state with latest results with new row added
                             set_state("TRAIN_PAGE", ("results_df", results_df))
                 except:
                     st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
                 
                 try:
+                    # =============================================================================
+                    # LINEAR REGRESSION MODEL
+                    # =============================================================================
                     if model_name == "Linear Regression":                 
                          # create card with model insample prediction with linear regression model
-                         create_streamlit_model_card(X_train = X_train, 
-                                                     y_train = y_train, 
-                                                     X_test = X_test, 
-                                                     y_test = y_test, 
-                                                     results_df = results_df, 
-                                                     model = model, 
-                                                     model_name = model_name)
+                         df_preds_linreg = create_streamlit_model_card(X_train = X_train, 
+                                                                       y_train = y_train, 
+                                                                       X_test = X_test, 
+                                                                       y_test = y_test, 
+                                                                       results_df = results_df, 
+                                                                       model = model, 
+                                                                       model_name = model_name)
                          
-                         # define new row of train/test results
+                        # =============================================================================
+                        # SAVE TEST RESULTS FOR EVALUATION PAGE BY ADDING ROW TO RESULTS_DF                
+                        # =============================================================================
+                         # Define new row of train/test results
                          new_row = {'model_name': 'Linear Regression',
                                     'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
                                     'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
+                                    'features': features_str,
+                                    'model_settings': '-',
                                     'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
-                                    'features':features_str}
+                                    'prediction':  np.ravel(df_preds_linreg['Predicted']),
+                                    }
                          
-                         # add the results of the model train/test to dataframe
-                         results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+                         # Turn new row into a dataframe
+                         new_row_df = pd.DataFrame([new_row])
+                        
+                         # Concatenate new row DataFrame with results_df
+                         results_df = pd.concat([results_df, new_row_df], ignore_index=True)
+                        
+                         # Update session state with latest results with new row added
                          set_state("TRAIN_PAGE", ("results_df", results_df))
                 except:
                     st.warning(f'Linear Regression failed to train, please contact your administrator!')
+
+                # =============================================================================
+                # SARIMAX MODEL
+                # =============================================================================
                 try:
                     if model_name == "SARIMAX":
                         with st.expander('📈' + model_name, expanded=True):
                             with st.spinner('This model might require some time to train... you can grab a coffee ☕ or tea 🍵'):   
                                 
+                                # =============================================================================
+                                # PREPROCESS                                
+                                # =============================================================================
                                 # Assume DF is your DataFrame with boolean columns - needed for SARIMAX model that does not handle boolean, but integers (int) datatype instead
                                 bool_cols = X_train.select_dtypes(include=bool).columns
                                 X_train.loc[:, bool_cols] = X_train.loc[:, bool_cols].astype(int)
@@ -8929,40 +9183,57 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                 X_test.loc[:, bool_cols] = X_test.loc[:, bool_cols].astype(int)
                                 
                                 # Parameters have standard value but can be changed by user
-                                preds_df_sarimax = evaluate_sarimax_model(order=(p,d,q), seasonal_order=(P,D,Q,s), exog_train=X_train, exog_test=X_test, endog_train=y_train, endog_test=y_test)
+                                preds_df_sarimax = evaluate_sarimax_model(order=(p,d,q), 
+                                                                          seasonal_order = (P,D,Q,s), 
+                                                                          exog_train = X_train, 
+                                                                          exog_test = X_test, 
+                                                                          endog_train = y_train, 
+                                                                          endog_test = y_test)
                                 
-                                # show metric on streamlit page
+                                # Show metrics on Model Card
                                 display_my_metrics(preds_df_sarimax, "SARIMAX")
                                 
-                                # plot graph with actual versus insample predictions
+                                # Plot graph with actual versus insample predictions on Model Card
                                 plot_actual_vs_predicted(preds_df_sarimax, my_conf_interval)
                                 
-                                # show the dataframe
+                                # Show the dataframe on Model Card
                                 st.dataframe(preds_df_sarimax.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
                                 
-                                # create download button for forecast results to .csv
+                                # Create download button for forecast results to .csv
                                 download_csv_button(preds_df_sarimax, my_file="insample_forecast_sarimax_results.csv", help_message="Download your **SARIMAX** model results to .CSV")
                                 
-                                # define metrics for sarimax model
+                                # =============================================================================
+                                # SAVE TEST RESULTS FOR EVALUATION PAGE BY ADDING ROW TO RESULTS_DF                
+                                # =============================================================================
+                                # Define metrics for sarimax model
                                 mape, rmse, r2 = my_metrics(preds_df_sarimax, model_name=model_name)
                                 
-                                # display evaluation results on sidebar of streamlit_model_card
+                                # Create new row
                                 new_row = {'model_name': 'SARIMAX', 
                                            'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
                                            'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
                                            'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
-                                           'features':features_str,
-                                           'model settings': f'({p},{d},{q})({P},{D},{Q},{s})'}
+                                           'features': features_str,
+                                           'model_settings': f'({p},{d},{q})({P},{D},{Q},{s})',
+                                           'prediction':  np.ravel(preds_df_sarimax['Predicted'])}
                                 
-                                # get the maximum index of the current results dataframe
-                                results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+                                # turn new row into a dataframe
+                                new_row_df = pd.DataFrame([new_row])
+                                
+                                # Concatenate new row DataFrame with results_df
+                                results_df = pd.concat([results_df, new_row_df], ignore_index=True)
+
+                                # Update session state with latest results with new row added
                                 set_state("TRAIN_PAGE", ("results_df", results_df))
                 except:
-                    st.warning(f'SARIMAX failed to train, please contact administrator!')       
-                
+                    st.warning(f'SARIMAX failed to train, please contact administrator!')     
+                    
+                # =============================================================================
+                # PROPHET MODEL                
+                # =============================================================================
                 if model_name == "Prophet":
                     with st.expander('📈' + model_name, expanded=True):
-                        # use custom function that creates in-sample prediction and return a dataframe with 'Actual', 'Predicted', 'Percentage_Diff', 'MAPE' 
+                        # Use custom function that creates in-sample prediction and return a dataframe with 'Actual', 'Predicted', 'Percentage_Diff', 'MAPE' 
                         preds_df_prophet = predict_prophet(y_train,
                                                            y_test, 
                                                            changepoint_prior_scale = changepoint_prior_scale,
@@ -8975,21 +9246,23 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                                            interval_width = interval_width,
                                                            X = X) #TO EXTRACT FEUATURE(S) AND HOLIDAYS BASED ON USER FEATURE SELECTOIN TRUE/FALSE
                                                            
-                                                           
                         display_my_metrics(preds_df_prophet, "Prophet")
-                        # plot graph with actual versus insample predictions
-                        plot_actual_vs_predicted(preds_df_prophet, 
-                                                 my_conf_interval)
-                        # show the dataframe
+                        
+                        # Plot graph with actual versus insample predictions
+                        plot_actual_vs_predicted(preds_df_prophet, my_conf_interval)
+                        # Show the dataframe
                         st.dataframe(preds_df_prophet.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), 
                                      use_container_width=True)
                         
-                        # create download button for forecast results to .csv
+                        # Create download button for forecast results to .csv
                         download_csv_button(preds_df_prophet, 
                                             my_file = "insample_forecast_prophet_results.csv", 
                                             help_message = "Download your **Prophet** model results to .CSV",
                                             my_key = 'download_btn_prophet_df_preds')
                         
+                        # =============================================================================
+                        # SAVE TEST RESULTS FOR EVALUATION PAGE BY ADDING ROW TO RESULTS_DF                
+                        # =============================================================================
                         # define metrics for prophet model
                         mape, rmse, r2 = my_metrics(preds_df_prophet, model_name=model_name)
                         
@@ -8999,9 +9272,16 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                    'rmse': '{:.2f}'.format(metrics_dict['Prophet']['rmse']), 
                                    'r2': '{:.2f}'.format(metrics_dict['Prophet']['r2']),
                                    'features': features_str,
-                                   'model settings': f' changepoint_prior_scale: {changepoint_prior_scale}, seasonality_prior_scale: {seasonality_prior_scale}, country_holidays: {country_holidays}, holidays_prior_scale: {holidays_prior_scale}, yearly_seasonality: {yearly_seasonality}, weekly_seasonality: {weekly_seasonality}, daily_seasonality: {daily_seasonality}, interval_width: {interval_width}'}
+                                   'prediction':  np.ravel(preds_df_prophet['Predicted']),
+                                   'model_settings': f' changepoint_prior_scale: {changepoint_prior_scale}, seasonality_prior_scale: {seasonality_prior_scale}, country_holidays: {country_holidays}, holidays_prior_scale: {holidays_prior_scale}, yearly_seasonality: {yearly_seasonality}, weekly_seasonality: {weekly_seasonality}, daily_seasonality: {daily_seasonality}, interval_width: {interval_width}'}
                         
-                        results_df = pd.concat([results_df, pd.DataFrame(new_row, index=[0])], ignore_index=True)
+                        # turn new row into a dataframe
+                        new_row_df = pd.DataFrame([new_row])
+                        
+                        # Concatenate new row DataFrame with results_df
+                        results_df = pd.concat([results_df, new_row_df], ignore_index=True)
+                        
+                        # update session state with latest results with new row added
                         set_state("TRAIN_PAGE", ("results_df", results_df))
     with tab4:
         # SHOW MODEL DETAILED DOCUMENTATION
@@ -9100,7 +9380,20 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
         # =============================================================================
         # 3. Show Historical Test Runs Dataframe
         # =============================================================================
-        st.dataframe(st.session_state['results_df'], use_container_width=True)
+        
+        # see for line-chart: https://docs.streamlit.io/library/api-reference/data/st.column_config/st.column_config.linechartcolumn
+        st.dataframe(st.session_state['results_df'], 
+                     column_config={
+                                    "prediction": st.column_config.LineChartColumn(
+                                        "predicted",
+                                        width="medium",
+                                        help="The sales volume in the last 6 months",
+                                        y_min=None,
+                                        y_max=None,
+                                     ),
+                                  }, 
+                    hide_index=False, 
+                    use_container_width=True)
         
         # Download Button for test results to .csv
         download_csv_button(my_df = st.session_state['results_df'], 
