@@ -34,7 +34,7 @@ import streamlit as st
        
 import json
 import requests
-
+import base64
 #**************************
 # Streamlit add-on packages
 #**************************
@@ -383,7 +383,7 @@ def create_moon_clickable_btns(button_names = ['MY_BUTTON_TEXT']):
             border: 2px solid rgba(255, 255, 255, 0.3);
             transform-style: preserve-3d;
             transform: translate(-50%, -50%) rotateY(-90deg);
-            animation: planet-ring-rotation 9.5s linear infinite reverse;
+            animation: planet-ring-rotation 8s linear infinite reverse;
             z-index: -1;
         }}
     
@@ -411,9 +411,10 @@ def create_moon_clickable_btns(button_names = ['MY_BUTTON_TEXT']):
             text-decoration: 'none';
             color: #f5f5f5;
             text-transform: uppercase;
-            font-size: 14px;
+            font-size: 16px;
+            font-weight: bold;
             white-space: nowrap;
-            animation: text-rotation 10s linear infinite reverse;
+            animation: text-rotation 8s linear infinite reverse;
             transform-style: preserve-3d;
             perspective: 1000px;
         }}
@@ -1314,64 +1315,366 @@ def show_lottie_animation(url, key, reverse=False, height=400, width=400, speed=
 def vertical_spacer(n):
     for i in range(n):
         st.write("")
+# =============================================================================
+# 
+# def eda_quick_insights(df, my_string_column, my_chart_color):
+#     col1, col2, col3 = st.columns([20,40,20])
+#     with col2:
+#         my_text_header('Quick Insights')
+#         vertical_spacer(1)
+#         
+#     #col1, col2, col3 = st.columns([20, 80, 20])
+#     col1, col2, col3 = st.columns([5, 80, 5])
+#     with col2:
+#         # Filter out NaN and '-' values from 'Label' column
+#         label_values = df[my_string_column].dropna().apply(lambda x: x.strip()).replace('-', '').tolist()
+#         # Filter out any remaining '-' values from 'Label' column
+#         label_values = [value for value in label_values if value != '']
+#         # Create an HTML unordered list with each non-NaN and non-'-' value as a list item
+#         html_list = "<div class='my-list'>"
+#         for i, value in enumerate(label_values):
+#             html_list += f"<li><span class='my-number'>{i + 1}</span>{value}</li>"
+#         html_list += "</div>"
+#         # Display the HTML list using Streamlit
+#         st.markdown(
+#             f"""
+#             <style>
+#                 .my-list {{
+#                     font-size: 16px;
+#                     color: black; /* Add your desired font color here */
+#                     line-height: 1.4;
+#                     margin-bottom: 10px;
+#                     margin-left: 0px;
+#                     margin-right: 0px;
+#                     background-color: white;
+#                     border-radius: 10px;
+#                     box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.3);
+#                     padding: 20px;
+#                     
+#                 }}
+#                 .my-list li {{
+#                     margin: 10px 10px 10px 10px;
+#                     padding-left: 30px;
+#                     position: relative;
+#                 }}
+#                 .my-number {{
+#                     font-weight: bold;
+#                     color: white;
+#                     background-color: {my_chart_color};
+#                     border-radius: 50%;
+#                     text-align: center;
+#                     width: 20px;
+#                     height: 20px;
+#                     line-height: 20px;
+#                     display: inline-block;
+#                     position: absolute;
+#                     left: 0;
+#                     top: 0;
+#                 }}
+#             </style>
+#             {html_list}
+#             """,
+#             unsafe_allow_html=True
+#         )
+#         # vertical spacer
+#         vertical_spacer(1)
+# =============================================================================
 
-def eda_quick_insights(df, my_string_column, my_chart_color):
+# =============================================================================
+#         
+# =============================================================================
+def create_flipcard_quick_insights(num_cards, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back, image_path_front_card = None, df = None, my_string_column = 'Label', **kwargs):    
     col1, col2, col3 = st.columns([20,40,20])
     with col2:
         my_text_header('Quick Insights')
         vertical_spacer(1)
-    col1, col2, col3 = st.columns([20, 80, 20])
-    with col2:
-        # Filter out NaN and '-' values from 'Label' column
-        label_values = df[my_string_column].dropna().apply(lambda x: x.strip()).replace('-', '').tolist()
-        # Filter out any remaining '-' values from 'Label' column
-        label_values = [value for value in label_values if value != '']
-        # Create an HTML unordered list with each non-NaN and non-'-' value as a list item
-        html_list = "<div class='my-list'>"
-        for i, value in enumerate(label_values):
-            html_list += f"<li><span class='my-number'>{i + 1}</span>{value}</li>"
-        html_list += "</div>"
-        # Display the HTML list using Streamlit
-        st.markdown(
-            f"""
-            <style>
-                .my-list {{
-                    font-size: 16px;
-                    line-height: 1.4;
-                    margin-bottom: 10px;
-                    margin-left: 0px;
-                    margin-right: 0px;
-                    background-color: white;
-                    border-radius: 10px;
-                    box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.3);
-                    padding: 20px;
-                }}
-                .my-list li {{
-                    margin: 10px 10px 10px 10px;
-                    padding-left: 30px;
-                    position: relative;
-                }}
-                .my-number {{
-                    font-weight: bold;
-                    color: white;
-                    background-color: {my_chart_color};
-                    border-radius: 50%;
-                    text-align: center;
-                    width: 20px;
-                    height: 20px;
-                    line-height: 20px;
-                    display: inline-block;
-                    position: absolute;
-                    left: 0;
-                    top: 0;
-                }}
-            </style>
-            {html_list}
-            """,
-            unsafe_allow_html=True
-        )
-        # vertical spacer
-        vertical_spacer(1)
+    
+    # Filter out NaN and '-' values from 'Label' column
+    label_values = df[my_string_column].dropna().apply(lambda x: x.strip()).replace('-', '').tolist()
+    # Filter out any remaining '-' values from 'Label' column
+    label_values = [value for value in label_values if value != '']
+    # Create an HTML unordered list with each non-NaN and non-'-' value as a list item
+    html_list = "<div class='my-list'>"
+    for i, value in enumerate(label_values):
+        html_list += f"<li><span class='my-number'>{i + 1}</span>{value}</li>"
+    html_list += "</div>"
+    
+    # open the image for the front of the card
+    with open(image_path_front_card, 'rb') as file:
+        contents = file.read()
+        data_url = base64.b64encode(contents).decode("utf-8")
+    
+    # create empty list that will keep the html code needed for each card with header+text
+    card_html = []
+    
+    # iterate over cards specified by user and join the headers and text of the lists
+    for i in range(num_cards):
+        card_html.append(f"""<div class="flashcard">
+                                <div class='front'>
+                                    <img src="data:image/png;base64,{data_url}"style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
+                                    <h1 style='text-align:center;color:white; margin-bottom: 10px;padding: 35px;'>{header_list[i]}</h1>
+                                    <p style='text-align:center; font-family: {font_family}; font-size: {font_size_front};'>{paragraph_list_front[i]}</p>
+                                </div>
+                                <div class="back">
+                                    <h2>{header_list[i]}</h2>
+                                    {html_list}
+                                    <p style='text-align:center; font-family: {font_family}; font-size: {font_size_back};'>{paragraph_list_back[i]}</p>
+                                </div>
+                            </div>
+                            """)
+    # join all the html code for each card and join it into single html code with carousel wrapper
+    carousel_html = "<div class='carousel'>" + "".join(card_html) + "</div>"
+    # Display the carousel in streamlit
+    st.markdown(carousel_html, unsafe_allow_html=True)
+    # Create the CSS styling for the carousel
+    st.markdown(
+        f"""
+        <style>
+        /* back of card styling */
+        .my-list {{
+            font-size: 16px;
+            color: black; /* Add your desired font color here */
+            line-height: 1.4;
+            margin-bottom: 10px;
+            margin-left: 0px;
+            margin-right: 0px;
+            margin-bottom: 0px;
+            padding: 0px;
+            text-align: left;
+        }}
+        .my-list li {{
+            margin: 10px 10px 10px 10px;
+            padding-left: 50px;
+            position: relative;
+        }}
+        .my-number {{
+            font-weight: lighter;
+            color: white;
+            background-color: #48555e;
+            border-radius: 100%;
+            text-align: center;
+            width: 25px;
+            height: 25px;
+            line-height: 25px;
+            display: inline-block;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }}
+        
+        /* Carousel Styling */
+        .carousel {{
+          grid-gap: 10px;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          scroll-behavior: smooth;
+          -webkit-overflow-scrolling: touch;
+          width: 100%;
+          margin: auto;
+        }}
+       .flashcard {{
+          display: inline-block; /* Display cards inline */
+          width: 600px;
+          height: 600px;
+          background-color: white;
+          border-radius: 10px;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+          perspective: 100px;
+          margin-bottom: 0px; /* Add space between cards */
+          padding: 0px;
+          scroll-snap-align: center;
+        }}
+        .front, .back {{
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 600px;
+          height: 600px;
+          border-radius: 10px;
+          backface-visibility: hidden;
+          font-family: {font_family};
+          text-align: center;
+        }}
+        .front {{
+          background: linear-gradient(to bottom left, #4e3fce, #7a5dc7, #9b7cc2, #bb9bbd, #c2b1c4);
+          color: white;
+          transform: rotateY(0deg);
+        }}
+        .back {{
+          color: #333333;
+          background-color: #E9EBE1; /* Change the background color here */
+          transform: rotateY(180deg);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          flex-direction: column;
+        }}                                
+        .flashcard:hover .front {{
+          transform: rotateY(180deg);
+        }}
+        .flashcard:hover .back {{
+          transform: rotateY(0deg);
+        }}
+        .front h1 {{
+          padding-top: 10px;
+          line-height: 1.5;
+        }}
+        .back h2 {{
+          line-height: 2;
+        }}
+        .back p {{
+          margin: 20px; /* Add margin for paragraph text */
+        }}
+        /* Carousel Navigation Styling */
+        .carousel-nav {{
+          margin: 10px 0px;
+          text-align: center;
+        }}
+        </style>
+        """, unsafe_allow_html=True)        
+
+
+# =============================================================================
+# quick summary flipcard
+# =============================================================================
+def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back, image_path_front_card = None, **kwargs):    
+    # Compute and display the metrics for the first column
+    rows = st.session_state.df_raw.shape[0]
+    min_date = str(st.session_state.df_raw.iloc[:, 0].min().date())
+    percent_missing = "{:.2%}".format(round((st.session_state.df_raw.iloc[:, 1].isna().mean()), 2))
+    mean_val = np.round(st.session_state.df_raw.iloc[:, 1].mean(), 2)
+    min_val = np.round(st.session_state.df_raw.iloc[:, 1].min(skipna=True), 2)
+    std_val = np.round(np.nanstd(st.session_state.df_raw.iloc[:, 1], ddof=0), 2)
+    
+    # Compute and display the metrics for the second column
+    cols = st.session_state.df_raw.shape[1]
+    max_date = str(st.session_state.df_raw.iloc[:, 0].max().date())
+    dataframe_freq, dataframe_freq_name = determine_df_frequency(st.session_state.df_raw, column_name='date')
+    median_val = np.round(st.session_state.df_raw.iloc[:, 1].median(skipna=True), 2)
+    max_val = np.round(st.session_state.df_raw.iloc[:, 1].max(skipna=True), 2)
+    mode_val = st.session_state.df_raw.iloc[:, 1].dropna().mode().round(2).iloc[0]
+
+
+    # open the image for the front of the card
+    with open(image_path_front_card, 'rb') as file:
+        contents = file.read()
+        data_url = base64.b64encode(contents).decode("utf-8")
+    
+    # create empty list that will keep the html code needed for each card with header+text
+    card_html = []
+    
+    header_color = '#48555e'
+    
+    # iterate over cards specified by user and join the headers and text of the lists
+    for i in range(num_cards):
+        card_html.append(f"""<div class="flashcard">
+                                <div class='front_summary'>
+                                    <img src="data:image/png;base64,{data_url}"style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
+                                    <h1 style='text-align:center;color:#F5F5F5; margin-bottom: 10px;padding: 35px;'>{header_list[i]}</h1>
+                                    <p style='text-align:center; font-family: {font_family}; font-size: {font_size_front};'>{paragraph_list_front[i]}</p>
+                                </div>
+                                <div class="back_summary">
+                                    <h2>{header_list[i]}</h2>
+                                       <div style="display: flex; justify-content: space-between; margin-bottom: -20px;margin-left: 20px; margin-right: 0px; margin-top: -10px;">
+                                       <div style="text-align: center; margin-right: 50px;">
+                                       <div><b style="color: {header_color};">Rows</b></div><div>{rows}</div><br/>
+                                       <div><b style="color: {header_color};">Start Date</b></div><div>{min_date}</div><br/>
+                                       <div><b style="color: {header_color};">Missing</b></div><div>{percent_missing}</div><br/>
+                                       <div><b style="color: {header_color};">Mean</b></div><div>{mean_val}</div><br/>
+                                       <div><b style="color: {header_color};">Minimum</b></div><div>{min_val}</div><br/>
+                                       <div><b style="color: {header_color};">StDev</b></div><div>{std_val}</div><br/>
+                                       </div>
+                                       <div style="text-align: center;">
+                                       <div><b style="color: {header_color};">Columns</b></div><div>{cols}</div><br/>
+                                       <div><b style="color: {header_color};">End Date</b></div><div>{max_date}</div><br/>
+                                       <div><b style="color: {header_color};">Frequency</b></div><div>{dataframe_freq_name}</div><br/>
+                                       <div><b style="color: {header_color};">Median</b></div><div>{median_val}</div><br/>
+                                       <div><b style="color: {header_color};">Maximum</b></div><div>{max_val}</div><br/>
+                                       <div><b style="color: {header_color};">Mode</b></div><div>{mode_val}</div><br/>
+                                    <p style='text-align:center; font-family: {font_family}; font-size: {font_size_back};'>{paragraph_list_back[i]}</p>
+                                </div>
+                            </div>
+                            """)
+    # join all the html code for each card and join it into single html code with carousel wrapper
+    carousel_html = "<div class='carousel'>" + "".join(card_html) + "</div>"
+    # Display the carousel in streamlit
+    st.markdown(carousel_html, unsafe_allow_html=True)
+    # Create the CSS styling for the carousel
+    st.markdown(
+        f"""
+        <style>        
+        /* Carousel Styling */
+        .carousel {{
+          grid-gap: 20px;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          scroll-behavior: smooth;
+          -webkit-overflow-scrolling: touch;
+          width: 100%;
+          margin: auto;
+        }}
+       .flashcard {{
+          display: inline-block; /* Display cards inline */
+          width: 600px;
+          height: 600px;
+          background-color: #F5F5F5;
+          border-radius: 10px;
+          box-shadow: none; /* Remove the shadow */
+          perspective: 100px;
+          margin-bottom: 0px; /* Add space between cards */
+          padding: 0px;
+          scroll-snap-align: center;
+        }}
+        .front_summary, .back_summary {{
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 600px;
+          height: 600px;
+          border-radius: 10px;
+          backface-visibility: hidden;
+          font-family: {font_family};
+          text-align: center;
+        }}
+        .front_summary {{
+            background: linear-gradient(to bottom, #383e56, #383e56, #383e56, #383e56, #383e56, #383e56);
+            color: #F5F5F5;
+            transform: rotateY(0deg);
+        }}
+        .back_summary {{
+            border: 0px solid #48555e; /* Change the border color here */
+            background-color: #E9EBE1; /* Change the background color here */
+            color: black;
+            transform: rotateY(180deg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            box-shadow: none; /* Remove the shadow */
+        }}                       
+        .flashcard:hover .front_summary {{
+          transform: rotateY(180deg);
+        }}
+        .flashcard:hover .back_summary {{
+          transform: rotateY(0deg);
+        }}
+        .front_summary h1 {{
+          padding-top: 10px;
+          line-height: 1.5;
+        }}
+        .back_summary h2 {{
+          line-height: 2;
+        }}
+        .back_summary p {{
+          margin: 10px; /* Add margin for paragraph text */
+        }}
+        /* Carousel Navigation Styling */
+        .carousel-nav {{
+          margin: 10px 0px;
+          text-align: center;
+        }}
+        </style>
+        """, unsafe_allow_html=True)        
         
 #################################
 # FORMATTING DATAFRAMES FUNCTIONS
@@ -1957,6 +2260,8 @@ def create_summary_df(data):
     kurt = kurtosis(data)[0]
     kurtosis_label = kurtosis_label_function(data)
     skewness = skew(data)[0]
+   
+    
     # Define skewness labels
     if skewness < -1.0:
         skewness_type = "Highly negatively skewed"
@@ -1969,28 +2274,74 @@ def create_summary_df(data):
     else:
         skewness_type = "Highly positively skewed"                    
     
+    # =============================================================================
+    # White Noise - Ljung Box Test    
+    # =============================================================================
+              
+    def white_noise_label(white_noise, lag_value):
+        """
+        Description
+        ----------
+        Get descriptive label for white noise test the quick insights dataframe
+        
+        Parameters
+        ----------
+        white_noise: boolean
+            True or False
+        lag_value: int
+        """
+        # initiate empty string container
+        white_noise_label = ''
+        if white_noise == 'True':
+            white_noise_label = f'residuals independently distributed for lag={lag_value}' 
+        elif white_noise == 'False':
+            white_noise_label = f'residuals not independently distributed for lag={lag_value}'
+        else:
+            white_noise_label  = '-'
+        return white_noise_label
+            
     # define the model
-    model = sm.tsa.AutoReg(data, lags=[1], trend='c', old_names=False)
+    model_lag24 = sm.tsa.AutoReg(data, lags=24, trend='c', old_names=False)
     # train model on the residuals
-    res = model.fit()
-    # Perform Ljung-Box test on residuals with lag=24 and lag=48
-    try:
-        result_ljungbox = sm.stats.acorr_ljungbox(res.resid, lags=[24, 48], return_df=True)
-        test_statistic_ljungbox_24 = result_ljungbox.iloc[0]['lb_stat']
-        test_statistic_ljungbox_48 = result_ljungbox.iloc[1]['lb_stat']
-        p_value_ljungbox_24 = result_ljungbox.iloc[0]['lb_pvalue']
-        p_value_ljungbox_48 = result_ljungbox.iloc[1]['lb_pvalue']
-        white_noise_24 = "True" if p_value_ljungbox_24 > 0.05 else "False"
-        white_noise_48 = "True" if p_value_ljungbox_48 > 0.05 else "False"
-    except:
-        result_ljungbox = 0
-        test_statistic_ljungbox_24 = 0
-        test_statistic_ljungbox_48 = 0
-        p_value_ljungbox_24 = 0
-        p_value_ljungbox_48 = 0
-        white_noise_24 = 0
-        white_noise_48 = 0
-    # ?? END TEST ??
+    res_lag24 = model_lag24.fit()
+
+    # define the model
+    model_lag48 = sm.tsa.AutoReg(data, lags=48, trend='c', old_names=False)
+    # train model on the residuals
+    res_lag48 = model_lag48.fit()
+    
+# =============================================================================
+#     # Perform Ljung-Box test on residuals with lag=24 and lag=48
+#     try:
+# =============================================================================
+    result_ljungbox24 = sm.stats.acorr_ljungbox(res_lag24.resid, lags=[24], return_df=True)
+    result_ljungbox48 = sm.stats.acorr_ljungbox(res_lag48.resid, lags=[48], return_df=True)
+        
+    test_statistic_ljungbox_24 = result_ljungbox24.iloc[0]['lb_stat']
+    test_statistic_ljungbox_48 = result_ljungbox48.iloc[0]['lb_stat']
+    
+    p_value_ljungbox_24 = result_ljungbox24.iloc[0]['lb_pvalue']
+    p_value_ljungbox_48 = result_ljungbox48.iloc[0]['lb_pvalue']
+    
+    white_noise_24 = "True" if p_value_ljungbox_24 <= 0.05 else "False"
+    white_noise_48 = "True" if p_value_ljungbox_48 <= 0.05 else "False"
+    
+    white_noise_24_lbl = white_noise_label(white_noise_24, 24)
+    white_noise_48_lbl = white_noise_label(white_noise_48, 48)
+
+# =============================================================================
+#     except:
+#         result_ljungbox = np.nan
+#         test_statistic_ljungbox_24 = np.nan
+#         test_statistic_ljungbox_48 = np.nan
+#         p_value_ljungbox_24 = np.nan
+#         p_value_ljungbox_48 = np.nan
+#         white_noise_24 = np.nan
+#         white_noise_48 = np.nan
+#         white_noise_24_lbl = '-'
+#         white_noise_48_lbl = '-'
+# =============================================================================
+    # =============================================================================
     
     #******************************
     # Augmented Dickey-Fuller Test
@@ -2024,9 +2375,9 @@ def create_summary_df(data):
     summary_df.loc[8] = ['', '', 'Skewness', '-', round(skewness,2), skewness_type]
     summary_df.loc[9] = ['', '', '# Distinct Values', '-', num_distinct[0], distinct_label]
     summary_df.loc[10] = ['White Noise', 'Ljung-Box', 'Test Statistic', '24', round(test_statistic_ljungbox_24, 4), '-']
-    summary_df.loc[11] = ['', '', 'Test Statistic', '48', round(test_statistic_ljungbox_24, 4), '-']
-    summary_df.loc[12] = ['', '', 'p-value', '24', round(p_value_ljungbox_24, 4), '-']
-    summary_df.loc[13] = ['', '', '', '48', round(p_value_ljungbox_48, 4), '-']
+    summary_df.loc[11] = ['', '', 'Test Statistic', '48', round(test_statistic_ljungbox_48, 4), '-']
+    summary_df.loc[12] = ['', '', 'p-value', '24', round(p_value_ljungbox_24, 4), white_noise_24_lbl]
+    summary_df.loc[13] = ['', '', '', '48', round(p_value_ljungbox_48, 4), white_noise_48_lbl]
     summary_df.loc[14] = ['', '', 'White Noise', '24', white_noise_24, '-']
     summary_df.loc[15] = ['', '', '', '48', white_noise_48, '-']
     summary_df.loc[16] = ['Stationarity', 'ADF', 'Stationarity', '0.05', stationarity, '-']
@@ -2304,6 +2655,7 @@ def ljung_box_test(df, variable_loc, lag, model_type="AutoReg"):
     result : str
         A string containing the results of the Ljung-Box test.
     """
+    import statsmodels.api as sm
     # Select the variable to test for white noise
     if isinstance(variable_loc, int):
         variable = df.iloc[:, variable_loc]
@@ -2317,37 +2669,50 @@ def ljung_box_test(df, variable_loc, lag, model_type="AutoReg"):
     # Drop missing values
     variable = variable.dropna()
 
-    # Fit AutoReg model to the data
-    model = sm.tsa.AutoReg(variable, lags=[1], trend='c', old_names=False)
-    res = model.fit()
-
-    # Perform Ljung-Box test on residuals with the specified lag
     if model_type == "AutoReg":
+        # Fit AutoReg model to the data
+        model = sm.tsa.AutoReg(variable, lags=lag, trend='c', old_names=False)
+        res = model.fit()   
+        # Perform Ljung-Box test on residuals for all lags including up to lag integer
         result_ljungbox = sm.stats.acorr_ljungbox(res.resid, lags=lag, return_df=True)
-    elif model_type == "ARMA":
-        result_ljungbox = sm.stats.acorr_ljungbox(res.resid, lags=lag, model_df=1, return_df=True)
+
     else:
         raise ValueError("Invalid model type selected.")
         
-    test_statistic = result_ljungbox.iloc[0]['lb_stat']
-    p_value = result_ljungbox.iloc[0]['lb_pvalue']
-    white_noise = "True" if p_value > 0.05 else "False"
-    alpha = 0.05 #significance level
+    #test_statistic = result_ljungbox.iloc[0]['lb_stat']
+    #p_value = result_ljungbox.iloc[0]['lb_pvalue']
+    p_values = result_ljungbox['lb_pvalue']
     
+    #white_noise = "True" if p_value > 0.05 else "False"
+    
+    alpha = 0.05 #significance level
+    lag_with_autocorr = None
+    
+    # Check p-value for each lag
+    for i, p_value in enumerate(p_values):
+        lag_number = i + 1
+        if p_value <= alpha:
+            lag_with_autocorr = lag_number
+            break
+ 
     # if p value is less than or equal to significance level reject zero hypothesis
-    if p_value <= alpha: 
+    if lag_with_autocorr != None: 
         st.markdown(f'❌ $H_0$: The residuals have **:green[no autocorrelation]** for all lags up to a maximum lag of **{lag}**.') # h0
         st.markdown(f'✅ $H_1$: The residuals **:red[have autocorrelation]** for all lags up to a maximum lag of **{lag}**.') #h1
     else: 
         st.markdown(f'✅ $H_0$: The residuals have **:green[no autocorrelation]** for all lags up to a maximum lag of **{lag}**.') # h0
         st.markdown(f'❌ $H_1$: The residuals **:red[have autocorrelation]** for all lags up to a maximum lag of **{lag}**.') #h1
+   
     alpha = 0.05  # Significance level
     
-    if p_value > 0.05:
+    if lag_with_autocorr == None:
         st.markdown(f"**Conclusion:** The null hypothesis **cannot** be rejected for all lags up to maximum lag of **{lag}**. The residuals show **no significant autocorrelation.**")
         vertical_spacer(2)
     else:
-        st.markdown(f"**Conclusion:** The null hypothesis can be **rejected** for all lags up to a maximum lag of **{lag}** with a p-value of **`{p_value:.2e}`**, which is smaller than the significance level of **`{alpha:}`**. This provides strong evidence of significant autocorrelation in the residuals, suggesting the presence of serial dependence in the time series.")
+        st.markdown(f"**Conclusion:** The null hypothesis can be **rejected** for at least one lag up to a maximum lag of **{lag}** with a p-value of **`{p_value:.2e}`**, which is smaller than the significance level of **`{alpha:}`**. This suggests presence of serial dependence in the time series.")
+    
+    # show dataframe with test results
+    st.dataframe(result_ljungbox, use_container_width=True)
     
     return res, result_ljungbox
 
@@ -2361,7 +2726,7 @@ def ljung_box_plots(df, variable_loc, res, lag, result_ljungbox, my_chart_color)
     my_text_paragraph(f'Residuals of {column_name}')
     
     # Create the line plot with specified x, y, and labels
-    fig = px.line(x=df['date'][1:],
+    fig = px.line(x=df['date'][lag:],
                   y=res.resid, 
                   labels={"x": "Date", "y": "Residuals"})
     
@@ -5794,7 +6159,7 @@ def initiate_global_variables():
     # store color scheme for app
     create_store("COLORS", [
         ("chart_color", "#4715EF"),
-        ("chart_patterns", "#4715ef"),
+        ("chart_patterns", "#fc7e56"),
         ("run", 0)
     ])
     
@@ -5818,10 +6183,13 @@ def initiate_global_variables():
     
     # create session state for if demo data (default) or user uploaded a file
     create_store("DATA_OPTION", [("upload_new_data", False)])
-
+     
     # Save the Data Choice of User
-    key1_load, key1_load = create_store("LOAD_PAGE", [("my_data_choice", "Demo Data"), #key1_load,
-                                                      ("user_data_uploaded", False)])  #key2_load,
+    key1_load, key2_load, key3_load = create_store("LOAD_PAGE", [
+                                                      ("my_data_choice", "Demo Data"), #key1_load,
+                                                      ("user_data_uploaded", False),   #key2_load,  
+                                                      ("uploaded_file_name", None)     #key3_load
+                                                      ])  
                                                      
     # ================================ EXPLORE PAGE ====================================
     key1_explore, key2_explore, key3_explore, key4_explore, key5_explore = create_store("EXPLORE_PAGE", [
@@ -6069,7 +6437,7 @@ def initiate_global_variables():
     print('ForecastGenie Print: Loaded Global Variables')
     
     return metrics_dict, random_state, results_df, custom_fill_value, \
-    key1_load, \
+    key1_load, key2_load, key3_load, \
     key1_explore, key2_explore, key3_explore, key4_explore, \
     key1_missing, key2_missing, key3_missing, \
     key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, \
@@ -6097,7 +6465,7 @@ def initiate_global_variables():
 # =============================================================================
 # INITIATE GLOBAL VARIABLES
 metrics_dict, random_state, results_df, custom_fill_value, \
-key1_load, \
+key1_load, key2_load, key3_load, \
 key1_explore, key2_explore, key3_explore, key4_explore, \
 key1_missing, key2_missing, key3_missing, \
 key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, \
@@ -6536,7 +6904,6 @@ if sidebar_menu_item == 'About':
                 
                     vertical_spacer(14)
 
-                
         # =============================================================================
         # Versioning 
         # ============================================================================= 
@@ -6974,7 +7341,7 @@ def reset_session_states():
             
     # reset session states to default -> initiate global variables
     metrics_dict, random_state, results_df, custom_fill_value, \
-    key1_load, \
+    key1_load, key2_load, key3_load, \
     key1_explore, key2_explore, key3_explore, key4_explore, \
     key1_missing, key2_missing, key3_missing, \
     key1_outlier, key2_outlier, key3_outlier, key4_outlier, key5_outlier, key6_outlier, key7_outlier, \
@@ -7045,14 +7412,25 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
             # =============================================================================
             # STEP 2: IF UPLOADED FILE THEN SHOW FILE-UPLOADER WIDGET
             # =============================================================================
-            # WHEN CHANGES ARE PRESENT RESET SESSION STATES
+            # if user selects radio-button for 'Upload Data'
             if data_option == "Upload Data":
+               # show file-uploader widget from streamlit
                uploaded_file = st.file_uploader(label = "Upload your file", 
                                                  type = ["csv", "xls", "xlsx", "xlsm", "xlsb"], 
-                                                 accept_multiple_files = False, 
+                                                     accept_multiple_files = False, 
                                                  label_visibility = 'collapsed',
                                                  on_change = reset_session_states)
-              
+               # if a file is uploaded by user
+               if uploaded_file != None:
+                   # store the filename in session state
+                   set_state("LOAD_PAGE", ("uploaded_file_name", uploaded_file.name))
+               # if prior a file was uploaded by user (note: st.file_uploader after page refresh does not keep the object in it)
+               if get_state('LOAD_PAGE', "user_data_uploaded") == True:
+                   # retrieve filename from session state                    
+                   file_name = get_state("LOAD_PAGE", "uploaded_file_name")
+                   # show filename
+                   my_text_paragraph(f'{file_name}', my_font_weight=100, my_font_size='14px')
+                   
     # =============================================================================
     # MAIN PAGE OF LOAD PAGE
     # =============================================================================
@@ -7216,7 +7594,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                                             "Lag Analysis"])
     
     # set default color for charts / style in Explore page
-    set_state("COLORS", ("chart_patterns", "#4715ef"))
+    set_state("COLORS", ("chart_patterns", "#fe8153"))
     
     # If dataset is very small (less then 31 rows), then update the key1_explore and key2_explore
     if len(st.session_state['df_raw']) < 31:
@@ -7236,7 +7614,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
             
         with st.form('ljung-box'):
              my_text_paragraph('White Noise')
-             model_type = st.selectbox("Select Model Type", ["AutoReg", "ARMA"], index=0)             
+         
              lag1_ljung_box = st.number_input(label = '*Enter maximum lag:*', 
                                               min_value=1, 
                                               value = min(24, len(st.session_state.df_raw)-2), 
@@ -7249,6 +7627,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                 # create button in sidebar for the ACF and PACF Plot Parameters
                 vertical_spacer(1)
                 ljung_box_btn = st.form_submit_button("Submit", type="secondary")
+                
         # Autocorrelation parameters form     
         with st.form('autocorrelation'):
             # Create sliders in sidebar for the parameters of PACF Plot
@@ -7313,7 +7692,20 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                 my_text_header('Quick Summary')
             
             # show tile with the quick summary results on page    
-            eda_quick_summary(my_chart_color)
+            #eda_quick_summary(my_chart_color)
+            col1, col2, col3 = st.columns([10,120,1])
+            with col2:
+                vertical_spacer(1)
+                create_flipcard_quick_summary(num_cards = 1, 
+                                                header_list = [''],  
+                                                paragraph_list_front = [''], 
+                                                paragraph_list_back = [''], 
+                                                font_family = 'Arial', 
+                                                font_size_front ='12px', 
+                                                font_size_back ='12px', 
+                                                image_path_front_card = './images/quick_summary.png',
+                                                my_chart_color = '#FFFFFF')
+                
             
             # show button and if clicked, show dataframe
             col1, col2, col3 = st.columns([100,50,95])
@@ -7326,41 +7718,59 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
             if btn_summary_stats == True:
                 # display button with text "click me again", with unique key
                 placeholder.button('Hide Details', disabled=False, key = "summary_statistics_hide_btn")
+               
                 # Display summary statistics table
                 summary_stats_df = display_summary_statistics(st.session_state.df_raw)
+                
                 st.dataframe(summary_stats_df, use_container_width=True)
+                
                 download_csv_button(summary_stats_df, my_file="summary_statistics.csv", help_message='Download your Summary Statistics Dataframe to .CSV', my_key = "summary_statistics_download_btn")      
+            
             vertical_spacer(1)
             
             # Show Summary Statistics and statistical test results of dependent variable (y)
             summary_statistics_df = create_summary_df(data = st.session_state.df_raw.iloc[:,1])
-        
-        # IMAGE
-        st.image('./images/summary.png')
         
     #######################################
     # Quick Insights Results
     #####################################
     with tab2:
         with st.expander('', expanded=True):   
-            # create in sidebar quick insights with custom function
-            eda_quick_insights(df=summary_statistics_df, my_string_column='Label', my_chart_color = my_chart_color)
+            # old metrics card
+            #eda_quick_insights(df=summary_statistics_df, my_string_column='Label', my_chart_color = my_chart_color)
+            
+            col1, col2, col3 = st.columns([10,120,1])
+            with col2:  
+                create_flipcard_quick_insights(1, header_list = [''],  
+                                                paragraph_list_front = [''], 
+                                                paragraph_list_back = [''], 
+                                                font_family = 'Arial', 
+                                                font_size_front ='12px', 
+                                                font_size_back ='12px', 
+                                                image_path_front_card = './images/futuristic_city_robot.png',
+                                                df = summary_statistics_df, 
+                                                my_string_column='Label', 
+                                                my_chart_color = '#FFFFFF')
+               
             
             # have button available for user and if clicked it expands with the dataframe
             col1, col2, col3 = st.columns([100,50,95])
             with col2:        
                 placeholder = st.empty()
+                
                 # create button (enabled to click e.g. disabled=false with unique key)
                 btn_insights = placeholder.button('Show Details', disabled=False, key = "insights_statistics_show_btn")
+                
                 vertical_spacer(1)
                 
             # if button is clicked run below code
             if btn_insights == True:
                 # display button with text "click me again", with unique key
                 placeholder.button('Hide Details', disabled=False,  key = "insights_statistics_hide_btn")
+                
                 st.dataframe(summary_statistics_df, use_container_width=True)
+               
                 download_csv_button(summary_statistics_df, my_file="insights.csv", help_message='Download your Insights Dataframe to .CSV', my_key = "insights_download_btn")      
-        st.image('./images/insights2.png')
 
     with tab3:
         #############################################################################
@@ -7394,18 +7804,19 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         ###################################################################
         # Perform the Ljung-Box test on the residuals
         with st.expander('White Noise', expanded=False):
+            
             my_text_header('White Noise')
+            
             my_text_paragraph('Ljung-Box')
+            
             col1, col2, col3 = st.columns([18,44,10])
             with col2:
                 vertical_spacer(2)
                 
-                res, result_ljungbox = ljung_box_test(
-                                                       df = st.session_state.df_raw,
-                                                       variable_loc = 1, 
-                                                       lag = lag1_ljung_box,
-                                                       model_type = model_type
-                                                     )
+                res, result_ljungbox = ljung_box_test(df = st.session_state.df_raw,
+                                                      variable_loc = 1, 
+                                                      lag = lag1_ljung_box,
+                                                      model_type = "AutoReg")
                 vertical_spacer(1) 
                 
             col1, col2, col3 = st.columns([89,40,80])
@@ -7416,13 +7827,15 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                 btn = placeholder.button('Show Plots', disabled=False)
                 
                 vertical_spacer(1)
+            
             # if button is clicked run below code
             if btn == True:
                 
+                
                 # display button with text "click me again", with unique key
                 placeholder.button('Hide Plots', disabled=False)
-    
-                ljung_box_plots(df = st.session_state.df_raw, 
+                
+                ljung_box_plots(df = st.session_state['df_raw'], 
                                 variable_loc = 1,
                                 lag = lag1_ljung_box,
                                 res = res,
@@ -7430,18 +7843,26 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                                 my_chart_color = my_chart_color)
             else:
                 pass
-    
+            
+             
+                
+
+            
         ###################################################################  
         # AUGMENTED DICKEY-FULLER TEST
         ###################################################################
         # Show Augmented Dickey-Fuller Statistical Test Result with hypotheses
         with st.expander('Stationarity', expanded=False):
+            
             my_text_header('Stationarity')
             my_text_paragraph('Augmented Dickey Fuller')
+            
             # Augmented Dickey-Fuller (ADF) test results
             adf_result = adf_test(st.session_state['df_raw'], 1)        
+            
             col1, col2, col3 = st.columns([18,40,10])
             col2.write(adf_result)
+            
             vertical_spacer(2)
     
         ###################################################################  
@@ -7821,9 +8242,8 @@ else:
                                                     outlier_replacement_method = get_state('CLEAN_PAGE', 'outlier_replacement_method'),
                                                     contamination = get_state('CLEAN_PAGE', 'outlier_isolationforest_contamination'), 
                                                     random_state = random_state,  # defined variable random_state top of script e.g. 10
-                                                    iqr_multiplier = get_state('CLEAN_PAGE', 'outlier_iqr_multiplier')
-                                                    )
-    
+                                                    iqr_multiplier = get_state('CLEAN_PAGE', 'outlier_iqr_multiplier'))
+                                                    
     df_cleaned_outliers_with_index = df_cleaned_outliers.copy(deep=True)
     
     # reset the index again to have index instead of date column as index for further processing
@@ -7919,11 +8339,12 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
                                                              \nThe choice of the level of decomposition depends on the specific application and the desired balance between accuracy and computational efficiency.')
             
             # add slider or text input to choose window size
-            wavelet_window_size_slider = int(st.slider(label = '*Select Window Size (in days)*', 
-                                                label_visibility = 'visible',
-                                                min_value = 1, 
-                                                max_value = 30, 
-                                                key = key7_engineer))
+            wavelet_window_size_slider = st.slider(label = '*Select Window Size (in days)*', 
+                                                       label_visibility = 'visible',
+                                                       min_value = 1, 
+                                                       max_value = 30,
+                                                       step = 1,
+                                                       key = key7_engineer)
             
         col1, col2, col3 = st.columns([4,4,4])
         with col2:
