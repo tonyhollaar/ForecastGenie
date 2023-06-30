@@ -33,7 +33,7 @@ import numpy as np
 import streamlit as st
        
 import json
-import requests
+
 import base64
 #**************************
 # Streamlit add-on packages
@@ -143,6 +143,17 @@ st.set_page_config(page_title = "ForecastGenie™️",
                    layout = "centered", # "centered" or "wide"
                    page_icon = "🌀", 
                    initial_sidebar_state = "expanded") # "auto" or "expanded" or "collapsed"
+# SET FONT STYLE
+# SOURCE: https://fonts.google.com/specimen/Ysabeau+SC?query=Ysabeau
+font_style = f"""
+            <style>
+            @import url('https://fonts.googleapis.com/css2?family=Ysabeau+SC:wght@200&display=swap');
+            
+            p {{
+               font-family: 'Ysabeau SC', sans-serif; /* Specify the desired font family */
+            }}
+            </style>
+            """
 
 # =============================================================================
 #   _____   ____   ____  _____  _      ______  _____ 
@@ -1455,7 +1466,7 @@ def create_flipcard_quick_insights(num_cards, header_list, paragraph_list_front,
             text-align: center;
             width: 25px;
             height: 25px;
-            line-height: 25px;
+            line-height: 20px;
             display: inline-block;
             position: absolute;
             left: 0;
@@ -1492,7 +1503,7 @@ def create_flipcard_quick_insights(num_cards, header_list, paragraph_list_front,
           height: 600px;
           border-radius: 10px;
           backface-visibility: hidden;
-          font-family: {font_family};
+          font-family: 'Ysabeau SC', sans-serif;
           text-align: center;
         }}
         .front {{
@@ -1508,6 +1519,7 @@ def create_flipcard_quick_insights(num_cards, header_list, paragraph_list_front,
           justify-content: center;
           align-items: center;
           flex-direction: column;
+          border: 1px solid #48555e; /* Change the border color here */
         }}                                
         .flashcard:hover .front {{
           transform: rotateY(180deg);
@@ -1532,7 +1544,6 @@ def create_flipcard_quick_insights(num_cards, header_list, paragraph_list_front,
         }}
         </style>
         """, unsafe_allow_html=True)        
-
 
 # =============================================================================
 # quick summary flipcard
@@ -1563,7 +1574,7 @@ def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, 
     # create empty list that will keep the html code needed for each card with header+text
     card_html = []
     
-    header_color = '#48555e'
+    header_color = '#F5F5F5'
     
     # iterate over cards specified by user and join the headers and text of the lists
     for i in range(num_cards):
@@ -1571,27 +1582,27 @@ def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, 
                                 <div class='front_summary'>
                                     <img src="data:image/png;base64,{data_url}"style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
                                     <h1 style='text-align:center;color:#F5F5F5; margin-bottom: 10px;padding: 35px;'>{header_list[i]}</h1>
-                                    <p style='text-align:center; font-family: {font_family}; font-size: {font_size_front};'>{paragraph_list_front[i]}</p>
+                                    <p style='text-align:center; font-family: Lato; font-size: {font_size_front};'>{paragraph_list_front[i]} </p>
                                 </div>
                                 <div class="back_summary">
                                     <h2>{header_list[i]}</h2>
-                                       <div style="display: flex; justify-content: space-between; margin-bottom: -20px;margin-left: 20px; margin-right: 0px; margin-top: -10px;">
-                                       <div style="text-align: center; margin-right: 50px;">
-                                       <div><b style="color: {header_color};">Rows</b></div><div>{rows}</div><br/>
-                                       <div><b style="color: {header_color};">Start Date</b></div><div>{min_date}</div><br/>
-                                       <div><b style="color: {header_color};">Missing</b></div><div>{percent_missing}</div><br/>
-                                       <div><b style="color: {header_color};">Mean</b></div><div>{mean_val}</div><br/>
-                                       <div><b style="color: {header_color};">Minimum</b></div><div>{min_val}</div><br/>
-                                       <div><b style="color: {header_color};">StDev</b></div><div>{std_val}</div><br/>
+                                       <div style="display: flex; justify-content: space-between; margin-bottom: -20px; margin-left: 20px; margin-right: 20px; margin-top: -20px;">
+                                       <div style="text-align: center; margin-right: 80px;">
+                                       <div style="margin-bottom: 5px; "><b style="color: {header_color};">Rows</b></div><div>{rows}</div><br/>
+                                       <div style="margin-bottom: 5px;"><b style="color: {header_color};">Start Date</b></div><div>{min_date}</div><br/>
+                                       <div style="margin-bottom: 5px;"><b style="color: {header_color};">Missing</b></div><div>{percent_missing}</div><br/>
+                                       <div style="margin-bottom: 5px;"><b style="color: {header_color};">Mean</b></div><div>{mean_val}</div><br/>
+                                       <div style="margin-bottom: 5px;"><b style="color: {header_color};">Minimum</b></div><div>{min_val}</div><br/>
+                                       <div style="margin-bottom: 5px;"><b style="color: {header_color};">StDev</b></div><div>{std_val}</div><br/>
                                        </div>
                                        <div style="text-align: center;">
-                                       <div><b style="color: {header_color};">Columns</b></div><div>{cols}</div><br/>
-                                       <div><b style="color: {header_color};">End Date</b></div><div>{max_date}</div><br/>
-                                       <div><b style="color: {header_color};">Frequency</b></div><div>{dataframe_freq_name}</div><br/>
-                                       <div><b style="color: {header_color};">Median</b></div><div>{median_val}</div><br/>
-                                       <div><b style="color: {header_color};">Maximum</b></div><div>{max_val}</div><br/>
-                                       <div><b style="color: {header_color};">Mode</b></div><div>{mode_val}</div><br/>
-                                    <p style='text-align:center; font-family: {font_family}; font-size: {font_size_back};'>{paragraph_list_back[i]}</p>
+                                       <div style="margin-bottom: 5px; "><b style="color: {header_color};">Columns</b></div><div>{cols}</div><br/>
+                                       <div style="margin-bottom: 5px; "><b style="color: {header_color};">End Date</b></div><div>{max_date}</div><br/>
+                                       <div style="margin-bottom: 5px; "><b style="color: {header_color};">Frequency</b></div><div>{dataframe_freq_name}</div><br/>
+                                       <div style="margin-bottom: 5px; "><b style="color: {header_color};">Median</b></div><div>{median_val}</div><br/>
+                                       <div style="margin-bottom: 5px; "><b style="color: {header_color};">Maximum</b></div><div>{max_val}</div><br/>
+                                       <div style="margin-bottom: 5px; "><b style="color: {header_color};">Mode</b></div><div>{mode_val}</div><br/>
+                                    <p style='text-align:center; font-family: Lato; font-size: {font_size_back};'>{paragraph_list_back[i]}</p>
                                 </div>
                             </div>
                             """)
@@ -1602,7 +1613,8 @@ def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, 
     # Create the CSS styling for the carousel
     st.markdown(
         f"""
-        <style>        
+        <style>   
+        
         /* Carousel Styling */
         .carousel {{
           grid-gap: 20px;
@@ -1642,15 +1654,17 @@ def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, 
             transform: rotateY(0deg);
         }}
         .back_summary {{
-            border: 0px solid #48555e; /* Change the border color here */
-            background-color: #E9EBE1; /* Change the background color here */
-            color: black;
+            border: 1px solid #48555e; /* Change the border color here */
+            background-color: #456689; /* Change the background color here */
+            color: #F5F5F5;
             transform: rotateY(180deg);
             display: flex;
             justify-content: center;
             align-items: center;
             flex-direction: column;
             box-shadow: none; /* Remove the shadow */
+            font-family: 'Ysabeau SC', sans-serif;
+
         }}                       
         .flashcard:hover .front_summary {{
           transform: rotateY(180deg);
@@ -1675,7 +1689,12 @@ def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, 
         }}
         </style>
         """, unsafe_allow_html=True)        
-        
+ 
+
+
+
+# Display the font style in Streamlit
+st.markdown(font_style, unsafe_allow_html=True)
 #################################
 # FORMATTING DATAFRAMES FUNCTIONS
 #################################
@@ -2593,12 +2612,12 @@ def adf_test(df, variable_loc, max_diffs=3):
     if p_value <= 0.05:
         with col2:
             vertical_spacer(1) # newline vertical space
-            h0 = st.markdown(r'$H_0$: The time series has a unit root, meaning it is **non-stationary**. It has some time dependent structure.')
+            h0 = st.markdown(r'$H_0$: the time series has a unit root, meaning it is **non-stationary**. It has some time dependent structure.')
             vertical_spacer(1)
-            h1 = st.markdown(r'✅$H_1$: The time series does **not** have a unit root, meaning it is **stationary**. It does not have time-dependent structure.')
+            h1 = st.markdown(r'✅$H_1$: the time series does **not** have a unit root, meaning it is **stationary**. it does not have time-dependent structure.')
             vertical_spacer(1)
-            result = f'**Conclusion:**\
-                      The null hypothesis can be :red[**rejected**] with a p-value of **`{p_value:.5f}`**, which is smaller than the 95% confidence interval (p-value = `0.05`).'
+            result = f'**conclusion:**\
+                      the null hypothesis can be :red[**rejected**] with a p-value of **`{p_value:.5f}`**, which is smaller than the 95% confidence interval (p-value = `0.05`).'
     else:
         # If the time series remains non-stationary after max_diffs differencings, return the non-stationary result
         for i in range(1, max_diffs+1):
@@ -2618,16 +2637,16 @@ def adf_test(df, variable_loc, max_diffs=3):
                 # If the differenced time series is stationary, return the result
                 with col2:
                     vertical_spacer(1)
-                    h0 = st.markdown(f'❌$H_0$: The time series has a unit root, meaning it is :red[**non-stationary**]. It has some time dependent structure.')
+                    h0 = st.markdown(f'❌$H_0$: the time series has a unit root, meaning it is :red[**non-stationary**]. it has some time dependent structure.')
                     vertical_spacer(1)
-                    h1 = st.markdown(f'✅$H_1$: The time series does **not** have a unit root, meaning it is :green[**stationary**]. It does not have time-dependent structure.')
+                    h1 = st.markdown(f'✅$H_1$: the time series does **not** have a unit root, meaning it is :green[**stationary**]. it does not have time-dependent structure.')
                     vertical_spacer(1)
-                    result = f'**Conclusion:**\
+                    result = f'**conclusion:**\
                               After *differencing* the time series **`{i}`** time(s), the null hypothesis can be :red[**rejected**] with a p-value of **`{p_value_str}`**, which is smaller than `0.05`.'
                 break
             else:
                # If the time series remains non-stationary after max_diffs differencings, return the non-stationary result
-                result = f'The {variable.name} time series is non-stationary even after **differencing** up to **{max_diffs}** times. Last ADF p-value: {p_value:.5f}'
+                result = f'the {variable.name} time series is non-stationary even after **differencing** up to **{max_diffs}** times. last ADF p-value: {p_value:.5f}'
                 
                 with col2:
                     max_diffs = st.slider(':red[[Optional]] *Adjust maximum number of differencing:*', min_value=0, max_value=10, value=3, step=1, help='Adjust maximum number of differencing if Augmented Dickey-Fuller Test did not become stationary after differencing the data e.g. 3 times (default value)')
@@ -2656,6 +2675,7 @@ def ljung_box_test(df, variable_loc, lag, model_type="AutoReg"):
         A string containing the results of the Ljung-Box test.
     """
     import statsmodels.api as sm
+    
     # Select the variable to test for white noise
     if isinstance(variable_loc, int):
         variable = df.iloc[:, variable_loc]
@@ -2665,6 +2685,17 @@ def ljung_box_test(df, variable_loc, lag, model_type="AutoReg"):
         variable = variable_loc
     else:
         raise ValueError("The 'variable_loc' argument must be an integer, tuple, list, or pandas Series.")
+    
+    # =============================================================================
+    # Replace NaN with 0 values ELSE WHITENOISE TEST WILL THROW ERROR
+    # =============================================================================
+    if variable.isnull().any():
+        # make a deepcopy
+        variable = variable.copy(deep=True)   
+        # replace with 0
+        variable = variable.fillna(0)
+        # show user message
+        st.info('**ForecastGenie message**: replaced your missing values with zero in a copy of original dataframe, in order to perform the ljung box test and can introduce bias into the results.')
 
     # Drop missing values
     variable = variable.dropna()
@@ -2696,20 +2727,20 @@ def ljung_box_test(df, variable_loc, lag, model_type="AutoReg"):
             break
  
     # if p value is less than or equal to significance level reject zero hypothesis
-    if lag_with_autocorr != None: 
-        st.markdown(f'❌ $H_0$: The residuals have **:green[no autocorrelation]** for all lags up to a maximum lag of **{lag}**.') # h0
-        st.markdown(f'✅ $H_1$: The residuals **:red[have autocorrelation]** for all lags up to a maximum lag of **{lag}**.') #h1
+    if lag_with_autocorr is not None: 
+        st.markdown(f'❌ $H_0$: the residuals have **:green[no autocorrelation]** for all lags up to a maximum lag of **{lag}**.') # h0
+        st.markdown(f'✅ $H_1$: the residuals **:red[have autocorrelation]** for all lags up to a maximum lag of **{lag}**.') #h1
     else: 
-        st.markdown(f'✅ $H_0$: The residuals have **:green[no autocorrelation]** for all lags up to a maximum lag of **{lag}**.') # h0
-        st.markdown(f'❌ $H_1$: The residuals **:red[have autocorrelation]** for all lags up to a maximum lag of **{lag}**.') #h1
+        st.markdown(f'✅ $H_0$: the residuals have **:green[no autocorrelation]** for all lags up to a maximum lag of **{lag}**.') # h0
+        st.markdown(f'❌ $H_1$: the residuals **:red[have autocorrelation]** for all lags up to a maximum lag of **{lag}**.') #h1
    
     alpha = 0.05  # Significance level
     
-    if lag_with_autocorr == None:
-        st.markdown(f"**Conclusion:** The null hypothesis **cannot** be rejected for all lags up to maximum lag of **{lag}**. The residuals show **no significant autocorrelation.**")
+    if lag_with_autocorr is None:
+        st.markdown(f"**conclusion:** the null hypothesis **cannot** be rejected for all lags up to maximum lag of **{lag}**. the residuals show **no significant autocorrelation.**")
         vertical_spacer(2)
     else:
-        st.markdown(f"**Conclusion:** The null hypothesis can be **rejected** for at least one lag up to a maximum lag of **{lag}** with a p-value of **`{p_value:.2e}`**, which is smaller than the significance level of **`{alpha:}`**. This suggests presence of serial dependence in the time series.")
+        st.markdown(f"**conclusion:** the null hypothesis can be **rejected** for at least one lag up to a maximum lag of **{lag}** with a p-value of **`{p_value:.2e}`**, which is smaller than the significance level of **`{alpha:}`**. this suggests presence of serial dependence in the time series.")
     
     # show dataframe with test results
     st.dataframe(result_ljungbox, use_container_width=True)
@@ -6159,7 +6190,7 @@ def initiate_global_variables():
     # store color scheme for app
     create_store("COLORS", [
         ("chart_color", "#4715EF"),
-        ("chart_patterns", "#fc7e56"),
+        ("chart_patterns", "#456689"),
         ("run", 0)
     ])
     
@@ -6636,8 +6667,8 @@ with st.sidebar:
                 "font-size": "15px",
                 "margin-right": "10px"
             }, 
-            "nav-link": {
-                            "font-family": "Helvetica Neue, sans-serif",
+            "nav-link": {   
+                            "font-family": "Ysabeau SC",
                             "font-size": "14px",
                             "font-weight": "normal",
                             "letter-spacing": "0.5px",
@@ -6696,6 +6727,7 @@ menu_item = option_menu(menu_title = None,
                                     },
                                     "nav-link": {
                                         "font-size": "12px",
+                                        "font-family": 'Ysabeau SC',
                                         "color": "#333333",
                                         "text-align": "center",
                                         "margin": "0px",
@@ -7460,7 +7492,7 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
             
             with col1:
                my_text_header('Demo Data')     
-            show_lottie_animation("./images/16938-asteroid.json", key='rocket_launch', speed=1, height=200, width=200, col_sizes=[4,4,4])
+            #show_lottie_animation("./images/16938-asteroid.json", key='rocket_launch', speed=1, height=200, width=200, col_sizes=[4,4,4])
                  
             # create 3 columns for spacing
             col1, col2, col3 = st.columns([1,3,1])
@@ -7587,14 +7619,14 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
 if menu_item == 'Explore' and sidebar_menu_item == 'Home':  
     
     # define tabs for page sections
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Overview", 
-                                            "Insights", 
-                                            "Patterns", 
-                                            "Statistical Tests", 
-                                            "Lag Analysis"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["overview", 
+                                            "insights", 
+                                            "patterns", 
+                                            "statistical Tests", 
+                                            "lag Analysis"])
     
     # set default color for charts / style in Explore page
-    set_state("COLORS", ("chart_patterns", "#fe8153"))
+    #set_state("COLORS", ("chart_patterns", "#456689"))
     
     # If dataset is very small (less then 31 rows), then update the key1_explore and key2_explore
     if len(st.session_state['df_raw']) < 31:
@@ -7701,8 +7733,8 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                                                 paragraph_list_front = [''], 
                                                 paragraph_list_back = [''], 
                                                 font_family = 'Arial', 
-                                                font_size_front ='12px', 
-                                                font_size_back ='12px', 
+                                                font_size_front ='16px', 
+                                                font_size_back ='16px', 
                                                 image_path_front_card = './images/quick_summary.png',
                                                 my_chart_color = '#FFFFFF')
                 
@@ -7794,10 +7826,13 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                                           index = 1 if get_state("HIST", "histogram_freq_type") == "Relative" else 0,
                                           on_change = hist_change_freq,
                                           horizontal = True)
-                vertical_spacer(3)   
+                
+                vertical_spacer(3)
+                
+        st.image('./images/patterns_banner.png')
     with tab4:
         ################################################
-        st.image('./images/statistical_tests.png') 
+        #st.image('./images/statistical_tests.png') 
         
         ###################################################################
         # LJUNG-BOX STATISTICAL TEST FOR WHITE NOISE e.g. random residuals
@@ -7817,37 +7852,14 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                                                       variable_loc = 1, 
                                                       lag = lag1_ljung_box,
                                                       model_type = "AutoReg")
-                vertical_spacer(1) 
-                
-            col1, col2, col3 = st.columns([89,40,80])
-            with col2:        
-                placeholder = st.empty()
-                
-                # create button (enabled to click e.g. disabled=false with unique key)
-                btn = placeholder.button('Show Plots', disabled=False)
-                
-                vertical_spacer(1)
             
-            # if button is clicked run below code
-            if btn == True:
-                
-                
-                # display button with text "click me again", with unique key
-                placeholder.button('Hide Plots', disabled=False)
-                
-                ljung_box_plots(df = st.session_state['df_raw'], 
-                                variable_loc = 1,
-                                lag = lag1_ljung_box,
-                                res = res,
-                                result_ljungbox = result_ljungbox,
-                                my_chart_color = my_chart_color)
-            else:
-                pass
-            
-             
-                
+            ljung_box_plots(df = st.session_state['df_raw'], 
+                            variable_loc = 1,
+                            lag = lag1_ljung_box,
+                            res = res,
+                            result_ljungbox = result_ljungbox,
+                            my_chart_color = my_chart_color)
 
-            
         ###################################################################  
         # AUGMENTED DICKEY-FULLER TEST
         ###################################################################
@@ -7911,18 +7923,18 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                     p_value_str = f"{p_value:.3f}"
                 
                 # H0 and H1 hypotheses
-                h0 = r"❌$H_0$: The data is normally distributed."
-                h1 = r"✅$H_1$: The data is **not** normally distributed."
+                h0 = r"❌$H_0$: the data is normally distributed."
+                h1 = r"✅$H_1$: the data is **not** normally distributed."
                 
                 # Conclusion when H0 is rejected
-                conclusion = f"**Conclusion:** The null hypothesis can be **:red[rejected]** with a p-value of **`{p_value_str}`**, which is smaller than or equal to the significance level of **`{alpha}`**. Therefore, the data is **not** normally distributed."
+                conclusion = f"**conclusion:** the null hypothesis can be **:red[rejected]** with a p-value of **`{p_value_str}`**, which is smaller than or equal to the significance level of **`{alpha}`**. therefore, the data is **not** normally distributed."
             else:
                 # H0 and H1 hypotheses
                h0 = r"✅$H_0$: The data is normally distributed."
                h1 = r"$H_1$: The data is **not** normally distributed."
                 
                # Conclusion when H0 is not rejected
-               conclusion = f"**Conclusion:** The null hypothesis cannot be rejected with a p-value of **`{p_value:.5f}`**, which is greater than the significance level of **`{alpha}`**. Therefore, the data is normally distributed."
+               conclusion = f"**conclusion:** the null hypothesis cannot be rejected with a p-value of **`{p_value:.5f}`**, which is greater than the significance level of **`{alpha}`**. therefore, the data is normally distributed."
             
             # Combine H0, H1, and conclusion
             result = f"{h0}\n\n{h1}\n\n{conclusion}"
@@ -9083,7 +9095,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         num_features_mifs = form_feature_selection_method_mifs()
     
     # define user tabs to seperate SELECT PAGE sections
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["▫️Info", "▫️RFE", "▫️PCA", "▫️MI", "▫️Pairwise Correlation", "▫️Feature Selection"])
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["▫️info", "▫️rfe", "▫️pca", "▫️mi", "▫️pairwise correlation", "▫️feature selection"])
     
     # =============================================================================
     # SHOW INFORMATION CARD ABOUT FEATURE SELECTION METHODS
