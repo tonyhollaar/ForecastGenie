@@ -154,6 +154,10 @@ font_style = f"""
             }}
             </style>
             """
+# =============================================================================
+# # Display the font style in Streamlit
+# =============================================================================
+st.markdown(font_style, unsafe_allow_html=True)
 
 # =============================================================================
 #   _____   ____   ____  _____  _      ______  _____ 
@@ -642,7 +646,7 @@ def form_feature_selection_method_mifs():
             # Add slider to select number of top features
             num_features_mifs = st.slider(
                                           label = "*Select number of top features to include:*", 
-                                          min_value = 1, 
+                                          min_value = 0, 
                                           max_value = len(X.columns), 
                                           #value = 5,
                                           key = key1_select_page_mifs,
@@ -669,7 +673,7 @@ def form_feature_selection_method_pca():
             # Add a slider to select the number of features to be selected by the PCA algorithm
             num_features_pca = st.slider(
                                          label = '*Select number of top features to include:*', 
-                                         min_value = 1, 
+                                         min_value = 0, 
                                          max_value = len(X_train.columns), 
                                          key = key1_select_page_pca
                                         )
@@ -694,33 +698,40 @@ def form_feature_selection_method_rfe():
         with st.form('rfe'):
              my_text_paragraph('Recursive Feature Elimination')
              # Add a slider to select the number of features to be selected by the RFECV algorithm
+             
              num_features_rfe = st.slider(
-                                          label = '*Select number of top features to include:*', 
-                                          min_value = 1, 
+                                          label = f'Select number of top features to include*:', 
+                                          min_value = 0, 
                                           max_value = len(st.session_state['X'].columns), 
                                           key = key1_select_page_rfe,
                                           help = '**`Recursive Feature Elimination (RFE)`** is an algorithm that iteratively removes the least important features from the feature set until the desired number of features is reached.\
                                                   \nIt assigns a rank to each feature based on their importance scores. It is possible to have multiple features with the same ranking because the importance scores of these features are identical or very close to each other.\
-                                                  \nThis can happen when the features are highly correlated or provide very similar information to the model.\
-                                                  \nIn such cases, the algorithm may not be able to distinguish between them and assign the same rank to multiple features.'
+                                                  \nThis can happen when the features are highly correlated or provide very similar information to the model. In such cases, the algorithm may not be able to distinguish between them and assign the same rank to multiple features.'
                                           )
+
 
              # set the options for the rfe (recursive feature elimination)
              with st.expander('◾', expanded=False):
-                 
+                 # Include duplicate ranks (True/False) because RFE can have duplicate features with the same ranking
+                 duplicate_ranks_rfe = st.selectbox(label = '*\*allow duplicate ranks:*',
+                                                    options = [True, False],
+                                                    key = key5_select_page_rfe,
+                                                    help = '''
+                                                           Allow multiple features to be added to the feature selection with the same ranking when set to `True`. otherwise, when the option is set to `False`, only 1 feature will be added to the feature selection. 
+                                                           ''')
+
                  # Add a selectbox for the user to choose the estimator
                  estimator_rfe = st.selectbox(
-                                              label = '*Set estimator:*', 
+                                              label = '*set estimator:*', 
                                               options = ['Linear Regression', 'Random Forest Regression'], 
                                               key = key2_select_page_rfe,
                                               help = '''
                                                      The **`estimator`** parameter is used to specify the machine learning model that will be used to evaluate the importance of each feature. \
                                                      The estimator is essentially the algorithm used to fit the data and make predictions.
-                                                     '''
-                                              )
-
+                                                     ''')
+                                              
                  # Add a slider to select the number of n_splits for the RFE method
-                 timeseriessplit_value_rfe = st.slider(label = '*Set number of splits for Cross-Validation:*', 
+                 timeseriessplit_value_rfe = st.slider(label = '*set number of splits for cross-validation:*', 
                                                        min_value = 2, 
                                                        max_value = 5, 
                                                        key = key3_select_page_rfe,
@@ -731,7 +742,7 @@ def form_feature_selection_method_rfe():
                                                               The feature selection process is repeated for each fold of the cross-validation procedure.')
                  
                  # Add a slider in the sidebar for the user to set the number of steps parameter
-                 num_steps_rfe = st.slider(label = '*Set Number of Steps*', 
+                 num_steps_rfe = st.slider(label = '*set number of steps:*', 
                                            min_value = 1, 
                                            max_value = 10, 
                                            #value = 1, 
@@ -740,11 +751,14 @@ def form_feature_selection_method_rfe():
 
              col1, col2, col3 = st.columns([4,4,4])
              with col2:       
+                 
                  rfe_btn = st.form_submit_button("Submit", type="secondary", on_click=form_update, args=('SELECT_PAGE_RFE',))   
+                 
                  if rfe_btn:
                      # update session state with user preference feature selection
                      set_state("SELECT_PAGE_BTN_CLICKED", ('rfe_btn', True))
-             return num_features_rfe, estimator_rfe, timeseriessplit_value_rfe, num_steps_rfe
+                     
+             return num_features_rfe, duplicate_ranks_rfe, estimator_rfe, timeseriessplit_value_rfe, num_steps_rfe
     except:
         st.error('the user form for feature selection method \'Recursive Feature Selection\' could not execute')
          
@@ -931,7 +945,7 @@ def show_rfe_plot(rfecv, selected_features):
                     **Recursive Feature Elimination** involves recursively removing features and building a model on the remaining features. It then **ranks the features** based on their importance and **eliminates** the **least important feature**.
                     ''')
 
-def perform_rfe(X_train, y_train, estimator_rfe, num_steps_rfe, num_features_rfe, timeseriessplit_value_rfe):
+def perform_rfe(X_train, y_train, estimator_rfe, duplicate_ranks_rfe, num_steps_rfe, num_features_rfe, timeseriessplit_value_rfe):
     """
     Perform Recursive Feature Elimination with Cross-Validation and display the results using a scatter plot.
 
@@ -940,6 +954,7 @@ def perform_rfe(X_train, y_train, estimator_rfe, num_steps_rfe, num_features_rfe
         y_train (pandas.Series): Training data target.
         est_rfe (estimator object): A supervised learning estimator with a `fit` method.
         num_steps_rfe (int): Number of features to remove at each iteration of RFE.
+        duplicate_ranks_rfe (bool): allow duplicate ranks if set to True otherwise take first feature(s) from list when ordered by rank ascending
         num_features (int): Number of features to select, defaults to None.
         timeseriessplit_value_rfe (int): Number of splits in time series cross-validation.
 
@@ -955,22 +970,49 @@ def perform_rfe(X_train, y_train, estimator_rfe, num_steps_rfe, num_features_rfe
     #############################################################
     # Recursive Feature Elemination
     #############################################################
-    # define the time series splits set by user in sidebar slider      
+    # Define the time series splits set by user in sidebar slider      
     tscv = TimeSeriesSplit(n_splits=timeseriessplit_value_rfe)
+    
     # Set up the recursive feature elimination with cross validation
-    rfecv = RFECV(estimator=est_rfe, step=num_steps_rfe, cv=tscv, scoring='neg_mean_squared_error', n_jobs=-1)
+    rfecv = RFECV(estimator = est_rfe, 
+                  step = num_steps_rfe, 
+                  cv = tscv, 
+                  scoring = 'neg_mean_squared_error',  #['r2', 'neg_mean_absolute_percentage_error', 'neg_mean_squared_error'] accuracy
+                  min_features_to_select = num_features_rfe,
+                  n_jobs = -1)
+    
     # Fit the feature selection model
     rfecv.fit(X_train, y_train)
-    # Define the selected features
+    
+    user_message = f"note: optimal number of features suggested = {rfecv.n_features_}"
+        
     if num_features_rfe is not None:
         selected_features = X_train.columns[rfecv.ranking_ <= num_features_rfe]
     else:
         selected_features = X_train.columns[rfecv.support_]
+
+    # if user selected to allow duplicate rankings (default = True) use all ranks
+    # example: when two features or more have rank 1, keep both features and it overrides the selected number of features by user initially set
+    if duplicate_ranks_rfe == True:
+        selected_cols_rfe = list(selected_features)
+    # if user doesn't want duplicate ranking just get the first n items in the list with m features whereby n <= m
+    elif duplicate_ranks_rfe == False:
+        # Get the feature ranking
+        feature_rankings = pd.Series(rfecv.ranking_, index=X_train.columns).rename('Ranking')
+        # Sort the feature rankings in descending order
+        sorted_rankings = feature_rankings.sort_values(ascending=True)
+        # Create a dataframe with feature rankings and selected features
+        df_ranking = pd.DataFrame({'Features': sorted_rankings.index, 'Ranking': sorted_rankings})
+        # Sort the dataframe by ranking
+        df_ranking = df_ranking.sort_values('Ranking', ascending=True)
+                
+        # only keep top x features, so slice and reindex to 0,1,2,3
+        selected_features = df_ranking.iloc[:num_features_rfe, 0].reset_index(drop=True)
+        selected_cols_rfe = list(selected_features)
         
-    # show user selected columns
-    selected_cols_rfe = list(selected_features)
-    #st.write('selected_cols_rfe:', selected_cols_rfe) # TEST
-    return selected_cols_rfe, selected_features, rfecv
+        #st.write('selected features', selected_features, selected_cols_rfe) # TEST
+
+    return selected_cols_rfe, selected_features, rfecv, user_message
 
 def perform_mifs(X_train, y_train, num_features_mifs):
     """
@@ -1505,6 +1547,7 @@ def create_flipcard_quick_insights(num_cards, header_list, paragraph_list_front,
           backface-visibility: hidden;
           font-family: 'Ysabeau SC', sans-serif;
           text-align: center;
+          overflow: hidden; /* Hide the scroll bar */
         }}
         .front {{
           background: linear-gradient(to bottom left, #4e3fce, #7a5dc7, #9b7cc2, #bb9bbd, #c2b1c4);
@@ -1549,6 +1592,7 @@ def create_flipcard_quick_insights(num_cards, header_list, paragraph_list_front,
 # quick summary flipcard
 # =============================================================================
 def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back, image_path_front_card = None, **kwargs):    
+   
     # Compute and display the metrics for the first column
     rows = st.session_state.df_raw.shape[0]
     min_date = str(st.session_state.df_raw.iloc[:, 0].min().date())
@@ -1565,7 +1609,6 @@ def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, 
     max_val = np.round(st.session_state.df_raw.iloc[:, 1].max(skipna=True), 2)
     mode_val = st.session_state.df_raw.iloc[:, 1].dropna().mode().round(2).iloc[0]
 
-
     # open the image for the front of the card
     with open(image_path_front_card, 'rb') as file:
         contents = file.read()
@@ -1574,7 +1617,7 @@ def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, 
     # create empty list that will keep the html code needed for each card with header+text
     card_html = []
     
-    header_color = '#F5F5F5'
+    header_color = 'white'
     
     # iterate over cards specified by user and join the headers and text of the lists
     for i in range(num_cards):
@@ -1588,20 +1631,20 @@ def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, 
                                     <h2>{header_list[i]}</h2>
                                        <div style="display: flex; justify-content: space-between; margin-bottom: -20px; margin-left: 20px; margin-right: 20px; margin-top: -20px;">
                                        <div style="text-align: center; margin-right: 80px;">
-                                       <div style="margin-bottom: 5px; "><b style="color: {header_color};">Rows</b></div><div>{rows}</div><br/>
-                                       <div style="margin-bottom: 5px;"><b style="color: {header_color};">Start Date</b></div><div>{min_date}</div><br/>
-                                       <div style="margin-bottom: 5px;"><b style="color: {header_color};">Missing</b></div><div>{percent_missing}</div><br/>
-                                       <div style="margin-bottom: 5px;"><b style="color: {header_color};">Mean</b></div><div>{mean_val}</div><br/>
-                                       <div style="margin-bottom: 5px;"><b style="color: {header_color};">Minimum</b></div><div>{min_val}</div><br/>
-                                       <div style="margin-bottom: 5px;"><b style="color: {header_color};">StDev</b></div><div>{std_val}</div><br/>
+                                       <div style="margin-bottom: 0px; "><b style="color: {header_color};">rows</b></div><div>{rows}</div><br/>
+                                       <div style="margin-bottom: 0px;"><b style="color: {header_color};">start date</b></div><div>{min_date}</div><br/>
+                                       <div style="margin-bottom: 0px;"><b style="color: {header_color};">missing</b></div><div>{percent_missing}</div><br/>
+                                       <div style="margin-bottom: 0px;"><b style="color: {header_color};">mean</b></div><div>{mean_val}</div><br/>
+                                       <div style="margin-bottom: 0px;"><b style="color: {header_color};">minimum</b></div><div>{min_val}</div><br/>
+                                       <div style="margin-bottom: 0px;"><b style="color: {header_color};">stdev</b></div><div>{std_val}</div><br/>
                                        </div>
                                        <div style="text-align: center;">
-                                       <div style="margin-bottom: 5px; "><b style="color: {header_color};">Columns</b></div><div>{cols}</div><br/>
-                                       <div style="margin-bottom: 5px; "><b style="color: {header_color};">End Date</b></div><div>{max_date}</div><br/>
-                                       <div style="margin-bottom: 5px; "><b style="color: {header_color};">Frequency</b></div><div>{dataframe_freq_name}</div><br/>
-                                       <div style="margin-bottom: 5px; "><b style="color: {header_color};">Median</b></div><div>{median_val}</div><br/>
-                                       <div style="margin-bottom: 5px; "><b style="color: {header_color};">Maximum</b></div><div>{max_val}</div><br/>
-                                       <div style="margin-bottom: 5px; "><b style="color: {header_color};">Mode</b></div><div>{mode_val}</div><br/>
+                                       <div style="margin-bottom: 0px; "><b style="color: {header_color};">columns</b></div><div>{cols}</div><br/>
+                                       <div style="margin-bottom: 0px; "><b style="color: {header_color};">end date</b></div><div>{max_date}</div><br/>
+                                       <div style="margin-bottom: 0px; "><b style="color: {header_color};">frequency</b></div><div>{dataframe_freq_name}</div><br/>
+                                       <div style="margin-bottom: 0px; "><b style="color: {header_color};">median</b></div><div>{median_val}</div><br/>
+                                       <div style="margin-bottom: 0px; "><b style="color: {header_color};">maximum</b></div><div>{max_val}</div><br/>
+                                       <div style="margin-bottom: 0px; "><b style="color: {header_color};">mode</b></div><div>{mode_val}</div><br/>
                                     <p style='text-align:center; font-family: Lato; font-size: {font_size_back};'>{paragraph_list_back[i]}</p>
                                 </div>
                             </div>
@@ -1647,6 +1690,7 @@ def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, 
           backface-visibility: hidden;
           font-family: {font_family};
           text-align: center;
+          overflow: hidden; /* Hide the scroll bar */
         }}
         .front_summary {{
             background: linear-gradient(to bottom, #383e56, #383e56, #383e56, #383e56, #383e56, #383e56);
@@ -1655,8 +1699,8 @@ def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, 
         }}
         .back_summary {{
             border: 1px solid #48555e; /* Change the border color here */
-            background-color: #456689; /* Change the background color here */
-            color: #F5F5F5;
+            background-color: #4d5466 ; /* Change the background color here */
+            color: white;
             transform: rotateY(180deg);
             display: flex;
             justify-content: center;
@@ -1664,7 +1708,7 @@ def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, 
             flex-direction: column;
             box-shadow: none; /* Remove the shadow */
             font-family: 'Ysabeau SC', sans-serif;
-
+            font-size: 18px;
         }}                       
         .flashcard:hover .front_summary {{
           transform: rotateY(180deg);
@@ -1691,10 +1735,159 @@ def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, 
         """, unsafe_allow_html=True)        
  
 
+def create_flipcard_stats(num_cards=1, 
+                          header_list=[''], 
+                          paragraph_list_front = [''], 
+                          paragraph_list_back = [''], 
+                          font_family='Arial', 
+                          font_size_front='12px', 
+                          font_size_back='12px', 
+                          image_path_front_card = None, 
+                          df = None, 
+                          my_string_column = 'Label', **kwargs):
+    
+    col1, col2, col3 = st.columns([20,40,20])
+    with col2:
+        my_text_header('Test Results')
+        vertical_spacer(1)
+    
+    # open the image for the front of the card
+    with open(image_path_front_card, 'rb') as file:
+        contents = file.read()
+        data_url = base64.b64encode(contents).decode("utf-8")
+    
+    # create empty list that will keep the html code needed for each card with header+text
+    card_html = []
+    
+    # iterate over cards specified by user and join the headers and text of the lists
+    for i in range(num_cards):
+        card_html.append(f"""<div class="flashcard">
+                                <div class='front'>
+                                    <img src="data:image/png;base64,{data_url}"style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
+                                    <h1 style='text-align:center;color:white; margin-bottom: 10px;padding: 35px;'>{header_list[i]}</h1>
+                                    <p style='text-align:center; font-family: {font_family}; font-size: {font_size_front};'>{paragraph_list_front[i]}</p>
+                                </div>
+                                <div class="back">
+                                    <h2>{header_list[i]}</h2>
+                                    <p style='font-family: {font_family}; font-size: {font_size_back};'>hello this is a test hello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a test</p>
+                                </div>
+                            </div>
+                            """)
+    # join all the html code for each card and join it into single html code with carousel wrapper
+    carousel_html = "<div class='carousel'>" + "".join(card_html) + "</div>"
+    # Display the carousel in streamlit
+    st.markdown(carousel_html, unsafe_allow_html=True)
+    # Create the CSS styling for the carousel
+    st.markdown(
+        f"""
+        <style>
+        /* back of card styling */
+        .my-list {{
+            font-size: 16px;
+            color: black; /* Add your desired font color here */
+            line-height: 1.4;
+            margin-bottom: 10px;
+            margin-left: 0px;
+            margin-right: 0px;
+            margin-bottom: 0px;
+            padding: 0px;
+            text-align: left;
+        }}
+        .my-list li {{
+            margin: 10px 10px 10px 10px;
+            padding-left: 50px;
+            position: relative;
+        }}
+        .my-number {{
+            font-weight: lighter;
+            color: white;
+            background-color: #48555e;
+            border-radius: 100%;
+            text-align: center;
+            width: 25px;
+            height: 25px;
+            line-height: 20px;
+            display: inline-block;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }}
+        
+        /* Carousel Styling */
+        .carousel {{
+          grid-gap: 10px;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          scroll-behavior: smooth;
+          -webkit-overflow-scrolling: touch;
+          width: 100%;
+          margin: auto;
+        }}
+       .flashcard {{
+          display: inline-block; /* Display cards inline */
+          width: 600px;
+          height: 600px;
+          background-color: white;
+          border-radius: 10px;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+          perspective: 100px;
+          margin-bottom: 0px; /* Add space between cards */
+          padding: 0px;
+          scroll-snap-align: center;
+        }}
+        .front, .back {{
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 600px;
+          height: 600px;
+          border-radius: 10px;
+          backface-visibility: hidden;
+          font-family: 'Ysabeau SC', sans-serif;
+          text-align: center;
+        }}
+        .front {{
+          background: linear-gradient(to bottom left, #4e3fce, #7a5dc7, #9b7cc2, #bb9bbd, #c2b1c4);
+          color: white;
+          transform: rotateY(0deg);
+        }}
+        .back {{
+              color: #333333;
+              background-color: #E9EBE1;
+              transform: rotateY(180deg);
+              display: flex;
+              justify-content: flex-start;
+              border: 1px solid #48555e;
+              margin: 0px;
+              padding: 20px;
+              text-align: left; /* Add text-align property to justify the text */
+              text-justify: inter-word; /* Add text-justify property for better word spacing */
+            }}                          
+        .flashcard:hover .front {{
+          transform: rotateY(180deg);
+        }}
+        .flashcard:hover .back {{
+          transform: rotateY(0deg);
+        }}
+        .front h1 {{
+          padding-top: 10px;
+          line-height: 1.5;
+        }}
+        .back h2 {{
+          line-height: 2;
+        }}
+        .back p {{
+          margin: 20px; /* Add margin for paragraph text */
+        }}
+        /* Carousel Navigation Styling */
+        .carousel-nav {{
+          margin: 10px 0px;
+          text-align: center;
+        }}
+        </style>
+        """, unsafe_allow_html=True)        
 
 
-# Display the font style in Streamlit
-st.markdown(font_style, unsafe_allow_html=True)
 #################################
 # FORMATTING DATAFRAMES FUNCTIONS
 #################################
@@ -2612,7 +2805,7 @@ def adf_test(df, variable_loc, max_diffs=3):
     if p_value <= 0.05:
         with col2:
             vertical_spacer(1) # newline vertical space
-            h0 = st.markdown(r'$H_0$: the time series has a unit root, meaning it is **non-stationary**. It has some time dependent structure.')
+            h0 = st.markdown(r'❌$H_0$: the time series has a unit root, meaning it is **non-stationary**. It has some time dependent structure.')
             vertical_spacer(1)
             h1 = st.markdown(r'✅$H_1$: the time series does **not** have a unit root, meaning it is **stationary**. it does not have time-dependent structure.')
             vertical_spacer(1)
@@ -2833,6 +3026,7 @@ def plot_missing_values_matrix(df):
                     y=missing_matrix.index,
                     color_continuous_scale='Viridis', # Viridis
                     title='')
+    
     # Set Plotly configuration options
     fig.update_layout(width=400, height=400, margin=dict(l=50, r=50, t=0, b=50))
     fig.update_traces(showlegend=False)
@@ -2840,97 +3034,119 @@ def plot_missing_values_matrix(df):
     st.plotly_chart(fig, use_container_width=True)
 
 def acf_pacf_info():
+    background_colors = ["#456689", "#99c9f4"]
+    
     col1, col2, col3 = st.columns([5,5,5])
     with col1:
-        show_acf_info_btn = st.button(f'About ACF plot', use_container_width=True, type='secondary')
+        show_acf_info_btn = st.button(f'about acf plot', use_container_width=True, type='secondary')
+    with col2:
+        show_pacf_info_btn = st.button(f'about pacf plot', use_container_width=True, type='secondary')
+    with col3:
+        diff_acf_pacf_info_btn = st.button(f'difference acf/pacf', use_container_width=True, type='secondary')   
+        
     if show_acf_info_btn == True:
         vertical_spacer(1)
-        my_subheader('Autocorrelation Function (ACF)', my_background_colors=["#4915ee", "#4715EF", "#7f2ad0", "#b03db5", "#e35099", "#ff5b8a", "#fc8d60"])
-        st.markdown('''
-                    The **Autocorrelation Function (ACF)** plot is a statistical tool used to identify patterns of correlation between observations in a time series dataset. 
-                    It is commonly used in time series analysis to determine the extent to which a given observation is related to its previous observations.  
-                    The **ACF** plot displays the correlation coefficient between the time series and its own lagged values (i.e., the correlation between the series at time $t$ and the series at times $t_{-1}$, $t_{-2}$, $t_{-3}$, etc.).  
-                    The horizontal axis of the plot shows the lag or time difference between observations, while the vertical axis represents the correlation coefficient, ranging from -1 to 1.
-                    ''')
+        my_subheader('Autocorrelation Function (ACF)', my_background_colors = background_colors)
+        col1, col2, col3 = st.columns([1,8,1]) 
+        with col2:
+           st.markdown('''
+                        The **Autocorrelation Function (ACF)** plot is a statistical tool used to identify patterns of correlation between observations in a time series dataset. 
+                        It is commonly used in time series analysis to determine the extent to which a given observation is related to its previous observations.  
+                        \nThe **ACF** plot displays the correlation coefficient between the time series and its own lagged values (i.e., the correlation between the series at time $t$ and the series at times $t_{-1}$, $t_{-2}$, $t_{-3}$, etc.).  
+                        The horizontal axis of the plot shows the lag or time difference between observations, while the vertical axis represents the correlation coefficient, ranging from -1 to 1.
+                        ''')
         vertical_spacer(1)  
-        my_subheader('How to interpret a ACF plot',  my_background_colors=["#4915ee", "#4715EF", "#7f2ad0", "#b03db5", "#e35099", "#ff5b8a", "#fc8d60"])
-        st.markdown('''Interpreting the **ACF** plot involves looking for significant peaks or spikes above the horizontal dashed lines (which represent the confidence interval) to determine if there is any correlation between the current observation and the lagged observations. 
-                    If there is a significant peak at a particular lag value, it indicates that there is a strong correlation between the observation and its lagged values up to that point.
-                    ''')
+        my_subheader('How to interpret a ACF plot', my_background_colors = background_colors)
+        col1, col2, col3 = st.columns([1,8,1]) 
+        with col2:
+            st.markdown('''Interpreting the **ACF** plot involves looking for significant peaks or spikes above the horizontal dashed lines (which represent the confidence interval) to determine if there is any correlation between the current observation and the lagged observations. 
+                        If there is a significant peak at a particular lag value, it indicates that there is a strong correlation between the observation and its lagged values up to that point.
+                        ''')
         vertical_spacer(1)                            
-        my_subheader('Key Points:',  my_background_colors=["#4915ee", "#4715EF", "#7f2ad0", "#b03db5", "#e35099", "#ff5b8a", "#fc8d60"])  
-        st.markdown('''
-                    Some key takeaways when looking at an **ACF** plot include:  
-                    - If there are no significant peaks, then there is no significant correlation between the observations and their lagged values.
-                    - A significant peak at lag $k$ means that the observation at time $t$ is significantly correlated with the observation at time $t_{-k}$.
-                    - A rapid decay of autocorrelation towards zero suggests a stationary time series, while a slowly decaying or persistent non-zero autocorrelations, suggests a non-stationary time series.
-                    ''')
+        my_subheader('Key Points:', my_background_colors = background_colors)  
+        col1, col2, col3 = st.columns([1,8,1]) 
+        with col2:
+            st.markdown('''
+                        Some key takeaways when looking at an **ACF** plot include:  
+                        1. If there are no significant peaks, then there is no significant correlation between the observations and their lagged values.
+                        2. A significant peak at lag $k$ means that the observation at time $t$ is significantly correlated with the observation at time $t_{-k}$.
+                        3. A rapid decay of autocorrelation towards zero suggests a stationary time series, while a slowly decaying or persistent non-zero autocorrelations, suggests a non-stationary time series.
+                        ''')
         vertical_spacer(1)
-    with col2:
-        show_pacf_info_btn = st.button(f'About PACF plot', use_container_width=True, type='secondary')
     if show_pacf_info_btn == True:   
+ 
         vertical_spacer(1)     
-        my_subheader('Partial Autocorrelation Function (PACF)',  my_background_colors=["#4915ee", "#4715EF", "#7f2ad0", "#b03db5", "#e35099", "#ff5b8a", "#fc8d60"])
-        st.markdown('''
-                    The **Partial Autocorrelation Function (PACF)** is a plot of the partial correlation coefficients between a time series and its lags. 
-                    The PACF can help us determine the order of an autoregressive (AR) model by identifying the lag beyond which the autocorrelations are effectively zero.
-                    
-                    The **PACF plot** helps us identify the important lags that are related to a time series. It measures the correlation between a point in the time series and a lagged version of itself while controlling for the effects of all the other lags that come before it.
-                    In other words, the PACF plot shows us the strength and direction of the relationship between a point in the time series and a specific lag, independent of the other lags. 
-                    A significant partial correlation coefficient at a particular lag suggests that the lag is an important predictor of the time series.
-                    
-                    If a particular lag has a partial autocorrelation coefficient that falls outside of the **95%** or **99%** confidence interval, it suggests that this lag is a significant predictor of the time series. 
-                    The next step would be to consider including that lag in the autoregressive model to improve its predictive accuracy.
-                    However, it is important to note that including too many lags in the model can lead to overfitting, which can reduce the model's ability to generalize to new data. 
-                    Therefore, it is recommended to use a combination of statistical measures and domain knowledge to select the optimal number of lags to include in the model.
-                    
-                    On the other hand, if none of the lags have significant partial autocorrelation coefficients, it suggests that the time series is not well explained by an autoregressive model. 
-                    In this case, alternative modeling techniques such as **Moving Average (MA)** or **Autoregressive Integrated Moving Average (ARIMA)** may be more appropriate. 
-                    Or you could just flip a coin and hope for the best. But I don\'t recommend the latter...
-                    ''')
+        my_subheader('Partial Autocorrelation Function (PACF)', my_background_colors = background_colors)
+        col1, col2, col3 = st.columns([1,8,1])
+        with col2:
+            st.markdown('''
+                        The **Partial Autocorrelation Function (PACF)** is a plot of the partial correlation coefficients between a time series and its lags. 
+                        The PACF can help us determine the order of an autoregressive (AR) model by identifying the lag beyond which the autocorrelations are effectively zero.
+                        
+                        The **PACF plot** helps us identify the important lags that are related to a time series. It measures the correlation between a point in the time series and a lagged version of itself while controlling for the effects of all the other lags that come before it.
+                        In other words, the PACF plot shows us the strength and direction of the relationship between a point in the time series and a specific lag, independent of the other lags. 
+                        A significant partial correlation coefficient at a particular lag suggests that the lag is an important predictor of the time series.
+                        
+                        If a particular lag has a partial autocorrelation coefficient that falls outside of the **95%** or **99%** confidence interval, it suggests that this lag is a significant predictor of the time series. 
+                        The next step would be to consider including that lag in the autoregressive model to improve its predictive accuracy.
+                        However, it is important to note that including too many lags in the model can lead to overfitting, which can reduce the model's ability to generalize to new data. 
+                        Therefore, it is recommended to use a combination of statistical measures and domain knowledge to select the optimal number of lags to include in the model.
+                        
+                        On the other hand, if none of the lags have significant partial autocorrelation coefficients, it suggests that the time series is not well explained by an autoregressive model. 
+                        In this case, alternative modeling techniques such as **Moving Average (MA)** or **Autoregressive Integrated Moving Average (ARIMA)** may be more appropriate. 
+                        Or you could just flip a coin and hope for the best. But I don\'t recommend the latter...
+                        ''')
         vertical_spacer(1)  
-        my_subheader('How to interpret a PACF plot',  my_background_colors=["#4915ee", "#4715EF", "#7f2ad0", "#b03db5", "#e35099", "#ff5b8a", "#fc8d60"])
-        st.markdown('''
-                    The partial autocorrelation plot (PACF) is a tool used to investigate the relationship between an observation in a time series with its lagged values, while controlling for the effects of intermediate lags. Here's a brief explanation of how to interpret a PACF plot:  
-                    
-                    - The horizontal axis shows the lag values (i.e., how many time steps back we\'re looking).
-                    - The vertical axis shows the correlation coefficient, which ranges from **-1** to **1**. 
-                      A value of :green[**1**] indicates a :green[**perfect positive correlation**], while a value of :red[**-1**] indicates a :red[**perfect negative correlation**]. A value of **0** indicates **no correlation**.
-                    - Each bar in the plot represents the correlation between the observation and the corresponding lag value. The height of the bar indicates the strength of the correlation. 
-                      If the bar extends beyond the dotted line (which represents the 95% confidence interval), the correlation is statistically significant.  
-                    ''')
-        vertical_spacer(1)                           
-        my_subheader('Key Points:',  my_background_colors=["#4915ee", "#4715EF", "#7f2ad0", "#b03db5", "#e35099", "#ff5b8a", "#fc8d60"])  
-        st.markdown('''                            
-                    - **The first lag (lag 0) is always 1**, since an observation is perfectly correlated with itself.
-                    - A significant spike at a particular lag indicates that there may be some **useful information** in that lagged value for predicting the current observation. 
-                      This can be used to guide the selection of lag values in time series forecasting models.
-                    - A sharp drop in the PACF plot after a certain lag suggests that the lags beyond that point **are not useful** for prediction, and can be safely ignored.
-                    ''')
+        
+        my_subheader('How to interpret a PACF plot', my_background_colors = background_colors)
+        col1, col2, col3 = st.columns([1,8,1]) 
+        col1, col2, col3 = st.columns([1,8,1])
+        with col2:
+            st.markdown('''
+                        The partial autocorrelation plot (PACF) is a tool used to investigate the relationship between an observation in a time series with its lagged values, while controlling for the effects of intermediate lags. Here's a brief explanation of how to interpret a PACF plot:  
+                        
+                        - The horizontal axis shows the lag values (i.e., how many time steps back we\'re looking).
+                        - The vertical axis shows the correlation coefficient, which ranges from **-1** to **1**. 
+                          A value of :green[**1**] indicates a :green[**perfect positive correlation**], while a value of :red[**-1**] indicates a :red[**perfect negative correlation**]. A value of **0** indicates **no correlation**.
+                        - Each bar in the plot represents the correlation between the observation and the corresponding lag value. The height of the bar indicates the strength of the correlation. 
+                          If the bar extends beyond the dotted line (which represents the 95% confidence interval), the correlation is statistically significant.  
+                        ''')
+        vertical_spacer(1)             
+        my_subheader('Key Points:', my_background_colors = background_colors)  
+        col1, col2, col3 = st.columns([1,8,1])
+        with col2:
+            st.markdown('''                            
+                        - **The first lag (lag 0) is always 1**, since an observation is perfectly correlated with itself.
+                        - A significant spike at a particular lag indicates that there may be some **useful information** in that lagged value for predicting the current observation. 
+                          This can be used to guide the selection of lag values in time series forecasting models.
+                        - A sharp drop in the PACF plot after a certain lag suggests that the lags beyond that point **are not useful** for prediction, and can be safely ignored.
+                        ''')
         vertical_spacer(1)                
-
-        my_subheader('An analogy',  my_background_colors=["#4915ee", "#4715EF", "#7f2ad0", "#b03db5", "#e35099", "#ff5b8a", "#fc8d60"])
-        st.markdown('''
-                    Imagine you are watching a magic show where the magician pulls a rabbit out of a hat. Now, imagine that the magician can do this trick with different sized hats. If you were trying to figure out how the magician does this trick, you might start by looking for clues in the size of the hats.
-                    Similarly, the PACF plot is like a magic show where we are trying to figure out the "trick" that is causing our time series data to behave the way it does. 
-                    The plot shows us how strong the relationship is between each point in the time series and its past values, while controlling for the effects of all the other past values. 
-                    It's like looking at different sized hats to see which one the magician used to pull out the rabbit.
-    
-                    If the **PACF** plot shows a strong relationship between a point in the time series and its past values at a certain lag (or hat size), it suggests that this past value is an important predictor of the time series. 
-                    On the other hand, if there is no significant relationship between a point and its past values, it suggests that the time series may not be well explained by past values alone, and we may need to look for other "tricks" to understand it.
-                    In summary, the **PACF** plot helps us identify important past values of our time series that can help us understand its behavior and make predictions about its future values.
-                    ''')
+        my_subheader('An analogy', my_background_colors = background_colors)
+        col1, col2, col3 = st.columns([1,8,1])
+        with col2:
+            st.markdown('''
+                        Imagine you are watching a magic show where the magician pulls a rabbit out of a hat. Now, imagine that the magician can do this trick with different sized hats. If you were trying to figure out how the magician does this trick, you might start by looking for clues in the size of the hats.
+                        Similarly, the PACF plot is like a magic show where we are trying to figure out the "trick" that is causing our time series data to behave the way it does. 
+                        The plot shows us how strong the relationship is between each point in the time series and its past values, while controlling for the effects of all the other past values. 
+                        It's like looking at different sized hats to see which one the magician used to pull out the rabbit.
+        
+                        If the **PACF** plot shows a strong relationship between a point in the time series and its past values at a certain lag (or hat size), it suggests that this past value is an important predictor of the time series. 
+                        On the other hand, if there is no significant relationship between a point and its past values, it suggests that the time series may not be well explained by past values alone, and we may need to look for other "tricks" to understand it.
+                        In summary, the **PACF** plot helps us identify important past values of our time series that can help us understand its behavior and make predictions about its future values.
+                        ''')
         vertical_spacer(1)
-    with col3:
-        diff_acf_pacf_info_btn = st.button(f'Difference ACF/PACF', use_container_width=True, type='secondary')
+        
     if diff_acf_pacf_info_btn == True: 
         vertical_spacer(1)
-        my_subheader('Differences explained between ACF and PACF',  my_background_colors=["#4915ee", "#4715EF", "#7f2ad0", "#b03db5", "#e35099", "#ff5b8a", "#fc8d60"])
-        st.markdown('''
-                    - The **ACF** plot measures the correlation between an observation and its lagged values.
-                    - The **PACF** plot measures the correlation between an observation and its lagged values while controlling for the effects of intermediate observations.
-                    - The **ACF** plot is useful for identifying the order of a moving average **(MA)** model, while the **PACF** plot is useful for identifying the order of an autoregressive **(AR)** model.  
-                    ''')
+        my_subheader('Differences explained between ACF and PACF',  my_background_colors = background_colors)
+        col1, col2, col3 = st.columns([1,8,1]) 
+        with col2:
+            st.markdown('''
+                        - The **ACF** plot measures the correlation between an observation and its lagged values.
+                        - The **PACF** plot measures the correlation between an observation and its lagged values while controlling for the effects of intermediate observations.
+                        - The **ACF** plot is useful for identifying the order of a moving average **(MA)** model, while the **PACF** plot is useful for identifying the order of an autoregressive **(AR)** model.  
+                        ''')
         vertical_spacer(1)
         
 def chart_title(title, subtitle, font, font_size):
@@ -3100,7 +3316,7 @@ def display_dataframe_graph(df, key=0, my_chart_color = '#217CD0'):
     # Display Plotly Express figure in Streamlit
     st.plotly_chart(fig, use_container_width=True, key=key)
     
-def create_rfe_plot(df_ranking):
+def create_rfe_plot(df_ranking, duplicate_ranks_rfe = get_state("SELECT_PAGE_RFE", "duplicate_ranks_rfe")):
     """
     Create a scatter plot of feature rankings and selected features.
 
@@ -3117,6 +3333,8 @@ def create_rfe_plot(df_ranking):
     my_text_paragraph('Recursive Feature Elimination', my_font_size='26px')
     # streamlit subtitle rfe plot
     my_text_paragraph('with Cross-Validation (RFECV)', my_font_size='16px')
+    
+    rank_str = get_state("SELECT_PAGE_RFE", "num_features_rfe")
     my_text_paragraph(f'<b> TOP {num_top_features}</b>', my_font_size='16px', my_font_family='Segui UI')
     
     fig = px.scatter(df_ranking, x='Features', y='Ranking', color='Selected', hover_data=['Ranking'],   color_discrete_map={'Yes': '#4715EF', 'No': '#000000'})
@@ -6189,8 +6407,8 @@ def initiate_global_variables():
     # ================================ COLORS =====================================
     # store color scheme for app
     create_store("COLORS", [
-        ("chart_color", "#4715EF"),
-        ("chart_patterns", "#456689"),
+        ("chart_color", "#4d5466"),
+        ("chart_patterns", "#4d5466"),
         ("run", 0)
     ])
     
@@ -6345,7 +6563,6 @@ def initiate_global_variables():
                                             ("mifs_btn", False), 
                                             ("pca_btn", False),
                                             ("correlation_btn", False)])
-                                            
     # FEATURE SELECTION BY USER
     key1_select_page_user_selection, key2_select_page_user_selection = create_store("SELECT_PAGE_USER_SELECTION", [
                                 ("feature_selection_user", []), #key1_select_page_user_selection
@@ -6357,12 +6574,13 @@ def initiate_global_variables():
                                 ("run", 0)])             #key2_select_page_pca
                                 
     # RFE
-    key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, key5_select_page_rfe = create_store("SELECT_PAGE_RFE", [
+    key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, key5_select_page_rfe, key6_select_page_rfe = create_store("SELECT_PAGE_RFE", [
                                 ("num_features_rfe", 5),                #key1_select_page_rfe
                                 ("estimator_rfe", "Linear Regression"), #key2_select_page_rfe
                                 ("timeseriessplit_value_rfe", 5),       #key3_select_page_rfe
                                 ("num_steps_rfe", 1),                   #key4_select_page_rfe
-                                ("run", 0)])                            #key5_select_page_rfe
+                                ("duplicate_ranks_rfe", True),          #key5_select_page_rfe
+                                ("run", 0)])                            #key6_select_page_rfe
                                 
     # MIFS
     key1_select_page_mifs, key2_select_page_mifs = create_store("SELECT_PAGE_MIFS", [
@@ -6417,10 +6635,10 @@ def initiate_global_variables():
                                                 ("enforce_stationarity",  True),        #key16_train
                                                 ("enforce_invertibility", True),        #key17_train
                                                 ("horizon_option", 30),                 #key18_train
-                                                ("changepoint_prior_scale", 0.05),      #key19_train
+                                                ("changepoint_prior_scale", 0.01),      #key19_train
                                                 ("seasonality_mode", "multiplicative"), #key20_train
-                                                ("seasonality_prior_scale", 1.0),       #key21_train
-                                                ("holidays_prior_scale", 1.0),          #key22_train
+                                                ("seasonality_prior_scale", 0.01),       #key21_train
+                                                ("holidays_prior_scale", 0.01),          #key22_train
                                                 ("yearly_seasonality", True),           #key23_train
                                                 ("weekly_seasonality", True),           #key24_train
                                                 ("daily_seasonality", True),            #key25_train
@@ -6477,7 +6695,7 @@ def initiate_global_variables():
     key1_prepare_normalization, key2_prepare_standardization, \
     key1_select_page_user_selection, \
     key1_select_page_pca, \
-    key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, \
+    key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, key5_select_page_rfe, key6_select_page_rfe, \
     key1_select_page_mifs, \
     key1_select_page_corr, key2_select_page_corr, \
     key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
@@ -6505,7 +6723,7 @@ key1_engineer_page_country, key2_engineer_page_country, key3_engineer_page_count
 key1_prepare_normalization, key2_prepare_standardization, \
 key1_select_page_user_selection, \
 key1_select_page_pca, \
-key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, \
+key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, key5_select_page_rfe, key6_select_page_rfe, \
 key1_select_page_mifs, \
 key1_select_page_corr, key2_select_page_corr, \
 key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
@@ -7382,7 +7600,7 @@ def reset_session_states():
     key1_prepare_normalization, key2_prepare_standardization, \
     key1_select_page_user_selection, \
     key1_select_page_pca, \
-    key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, \
+    key1_select_page_rfe, key2_select_page_rfe, key3_select_page_rfe, key4_select_page_rfe, key5_select_page_rfe, key6_select_page_rfe, \
     key1_select_page_mifs, \
     key1_select_page_corr, key2_select_page_corr, \
     key1_train, key2_train, key3_train, key4_train, key5_train, key6_train, key7_train, key8_train, key9_train, key10_train, \
@@ -7622,8 +7840,8 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["overview", 
                                             "insights", 
                                             "patterns", 
-                                            "statistical Tests", 
-                                            "lag Analysis"])
+                                            "statistical tests", 
+                                            "lag analysis"])
     
     # set default color for charts / style in Explore page
     #set_state("COLORS", ("chart_patterns", "#456689"))
@@ -7725,18 +7943,20 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
             
             # show tile with the quick summary results on page    
             #eda_quick_summary(my_chart_color)
-            col1, col2, col3 = st.columns([10,120,1])
+            col1, col2, col3 = st.columns([7,120,1])
             with col2:
                 vertical_spacer(1)
+                
+                
                 create_flipcard_quick_summary(num_cards = 1, 
-                                                header_list = [''],  
-                                                paragraph_list_front = [''], 
-                                                paragraph_list_back = [''], 
-                                                font_family = 'Arial', 
-                                                font_size_front ='16px', 
-                                                font_size_back ='16px', 
-                                                image_path_front_card = './images/quick_summary.png',
-                                                my_chart_color = '#FFFFFF')
+                                              header_list = [''],  
+                                              paragraph_list_front = [''], 
+                                              paragraph_list_back = [''], 
+                                              font_family = 'Arial', 
+                                              font_size_front ='16px', 
+                                              font_size_back ='16px', 
+                                              image_path_front_card = './images/quick_summary.png',
+                                              my_chart_color = '#FFFFFF')
                 
             
             # show button and if clicked, show dataframe
@@ -7771,7 +7991,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
             # old metrics card
             #eda_quick_insights(df=summary_statistics_df, my_string_column='Label', my_chart_color = my_chart_color)
             
-            col1, col2, col3 = st.columns([10,120,1])
+            col1, col2, col3 = st.columns([7,120,1])
             with col2:  
                 create_flipcard_quick_insights(1, header_list = [''],  
                                                 paragraph_list_front = [''], 
@@ -7831,8 +8051,22 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                 
         st.image('./images/patterns_banner.png')
     with tab4:
-        ################################################
-        #st.image('./images/statistical_tests.png') 
+        # =============================================================================
+        # ################################## TEST #####################################
+        # =============================================================================
+        with st.expander('', expanded=True):
+            col1, col2, col3 = st.columns([7,120,1])
+            with col2:  
+                
+                paragraph_text_flipcard_stats = ['''Use Case: The Ljung-Box test is used to check for the presence of autocorrelation in a time series. 
+                                                 It helps determine if the residuals of a model exhibit significant patterns that could be exploited for forecasting. If the test result shows a high p-value (greater than 0.05), it suggests that the residuals are independent and do not exhibit autocorrelation, indicating that a white noise model might be appropriate.''',
+                                                 'Use Case: The Augmented Dickey-Fuller (ADF) test is used to assess the stationarity of a time series. Stationarity is an important assumption for many forecasting models. If the test result shows a low p-value (less than 0.05), it indicates that the time series is stationary, meaning it has a stable mean and variance over time. Stationary series are easier to model and forecast accurately.',
+                                                 'Use Case: Normality tests assess whether the distribution of residuals in a model follows a normal distribution. In time series forecasting, it is important to check if the residuals have a symmetric and bell-shaped distribution. If the test result shows a low p-value (less than 0.05), it suggests that the residuals significantly deviate from normality. Departures from normality may require considering alternative modeling approaches or applying transformations to the data.']
+                header_text_flipcard_stats = ['White Noise Test (Ljung-Box)', 'Stationarity Test (Augmented Dickey-Fuller)', 'Normality Test']
+                # apply function flipcard
+                create_flipcard_stats(image_path_front_card='./images/statistical_test.png', 
+                                      paragraph_list_back = paragraph_text_flipcard_stats,
+                                      header_list = header_text_flipcard_stats)
         
         ###################################################################
         # LJUNG-BOX STATISTICAL TEST FOR WHITE NOISE e.g. random residuals
@@ -7931,7 +8165,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
             else:
                 # H0 and H1 hypotheses
                h0 = r"✅$H_0$: The data is normally distributed."
-               h1 = r"$H_1$: The data is **not** normally distributed."
+               h1 = r"❌$H_1$: The data is **not** normally distributed."
                 
                # Conclusion when H0 is not rejected
                conclusion = f"**conclusion:** the null hypothesis cannot be rejected with a p-value of **`{p_value:.5f}`**, which is greater than the significance level of **`{alpha}`**. therefore, the data is normally distributed."
@@ -7948,7 +8182,6 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
             col1, col2, col3 = st.columns([18,40,10])
             col2.write(shapiro_result)
             vertical_spacer(2)
-
     with tab5:    
         ###################################################################
         # AUTOCORRELATION PLOTS - Autocorrelation Plots (ACF & PACF) with optional Differencing applied
@@ -7972,7 +8205,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
             plot_pacf(data, my_chart_color = my_chart_color, nlags=nlags_pacf, method=method_pacf)              
             # create 3 buttons, about ACF/PACF/Difference for more explanation on the ACF and PACF plots
             acf_pacf_info()
-
+    
 # logging
 print('ForecastGenie Print: Ran Explore')
                   
@@ -7992,7 +8225,7 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
         my_title(f"{clean_icon}", "#3b3b3b", gradient_colors="#440154, #2C2A6B, #FDE725")
 
         with st.form('data_cleaning'):
-
+            
             my_text_paragraph('Handling Missing Data')      
 
             # get user input for filling method
@@ -8044,76 +8277,82 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
     df_clean_show = copy_df_date_index(df_clean, datetime_to_date=True, date_to_index=True)
     #=========================================================================
     
-    with st.expander('', expanded=True):
-        my_text_header('Handling missing data')
-        show_lottie_animation(url = "./images/ufo.json", key='jumping_dots', width=300, height=300, speed = 1, col_sizes=[2,4,2])
-        
-        # check if there are no dates skipped for frequency e.g. daily data missing days in between dates
-        missing_dates = pd.date_range(start = st.session_state.df_raw['date'].min(), 
-                                      end = st.session_state.df_raw['date'].max()).difference(st.session_state.df_raw['date'])
-        
-        # check if there are no missing values (NaN) in dataframe
-        missing_values = st.session_state.df_raw.iloc[:,1].isna().sum()
-  
-        # Plot missing values matrix with custom function
-        plot_missing_values_matrix(df=df_cleaned_dates)
-        
-        # check if in continous time-series dataset no dates are missing in between
-        if missing_dates.shape[0] == 0:
-            st.success('Pweh 😅, no dates were skipped in your dataframe!')
-        else:
-            st.warning(f'💡 **{missing_dates.shape[0]}** dates were skipped in your dataframe, don\'t worry though! I will **fix** this by **imputing** the dates into your cleaned dataframe!')
-        if missing_values != 0 and fill_method == 'Backfill':
-            st.warning(f'💡 **{missing_values}** missing values are filled with the next available value in the dataset (i.e. backfill method), optionally you can change the *filling method* and press **\"Submit\"** from the sidebar menu.')
-        elif missing_values != 0 and fill_method != 'Custom':
-            st.warning(f'💡 **{missing_values}** missing values are replaced by the **{fill_method}**, optionally you can change the *filling method* and press **\"Submit\"** from the sidebar menu.')
-        elif missing_values != 0 and fill_method == 'Custom':
-            st.warning(f'💡 **{missing_values}** missing values are replaced by custom value **{custom_fill_value}**, optionally you can change the *filling method* and press **\"Submit\"** from the sidebar menu.')
+    # create user tabs
+    tab1_clean, tab2_clean = st.tabs(['missing data', 'outliers'])
+    
+    with tab1_clean:
+    
+        with st.expander('', expanded=True):
+            my_text_header('Handling missing data')
 
-        col1, col2, col3, col4, col5 = st.columns([2, 0.5, 2, 0.5, 2])
-        with col1:
-            df_graph = copy_df_date_index(my_df = st.session_state['df_raw'], 
-                                          datetime_to_date = True, 
-                                          date_to_index = True)
+            #show_lottie_animation(url = "./images/ufo.json", key='jumping_dots', width=300, height=300, speed = 1, col_sizes=[2,4,2])
             
-            highlighted_df = df_graph.style.highlight_null(color='yellow').format(precision = 2)
+            # check if there are no dates skipped for frequency e.g. daily data missing days in between dates
+            missing_dates = pd.date_range(start = st.session_state.df_raw['date'].min(), 
+                                          end = st.session_state.df_raw['date'].max()).difference(st.session_state.df_raw['date'])
             
-            my_subheader('Original DataFrame', my_style="#333333", my_size=6)
+            # check if there are no missing values (NaN) in dataframe
+            missing_values = st.session_state.df_raw.iloc[:,1].isna().sum()
+      
+            # Plot missing values matrix with custom function
+            plot_missing_values_matrix(df=df_cleaned_dates)
             
-            st.dataframe(highlighted_df, use_container_width=True)
-        
-        with col2:
-            st.markdown(arrow_right_icon, unsafe_allow_html=True)
-        
-        with col3:
-            my_subheader('Skipped Dates', my_style="#333333", my_size=6)
+            # check if in continous time-series dataset no dates are missing in between
+            if missing_dates.shape[0] == 0:
+                st.success('Pweh 😅, no dates were skipped in your dataframe!')
+            else:
+                st.warning(f'💡 **{missing_dates.shape[0]}** dates were skipped in your dataframe, don\'t worry though! I will **fix** this by **imputing** the dates into your cleaned dataframe!')
+            if missing_values != 0 and fill_method == 'Backfill':
+                st.warning(f'💡 **{missing_values}** missing values are filled with the next available value in the dataset (i.e. backfill method), optionally you can change the *filling method* and press **\"Submit\"** from the sidebar menu.')
+            elif missing_values != 0 and fill_method != 'Custom':
+                st.warning(f'💡 **{missing_values}** missing values are replaced by the **{fill_method}**, optionally you can change the *filling method* and press **\"Submit\"** from the sidebar menu.')
+            elif missing_values != 0 and fill_method == 'Custom':
+                st.warning(f'💡 **{missing_values}** missing values are replaced by custom value **{custom_fill_value}**, optionally you can change the *filling method* and press **\"Submit\"** from the sidebar menu.')
+    
+            col1, col2, col3, col4, col5 = st.columns([2, 0.5, 2, 0.5, 2])
+            with col1:
+                df_graph = copy_df_date_index(my_df = st.session_state['df_raw'], 
+                                              datetime_to_date = True, 
+                                              date_to_index = True)
+                
+                highlighted_df = df_graph.style.highlight_null(color='yellow').format(precision = 2)
+                
+                my_subheader('Original DataFrame', my_style="#333333", my_size=6)
+                
+                st.dataframe(highlighted_df, use_container_width=True)
             
-            # Convert the DatetimeIndex to a dataframe with a single column named 'Date'
-            df_missing_dates = pd.DataFrame({'Skipped Dates': missing_dates})
+            with col2:
+                st.markdown(arrow_right_icon, unsafe_allow_html=True)
             
-            # change datetime to date
-            df_missing_dates['Skipped Dates'] = df_missing_dates['Skipped Dates'].dt.date
+            with col3:
+                my_subheader('Skipped Dates', my_style="#333333", my_size=6)
+                
+                # Convert the DatetimeIndex to a dataframe with a single column named 'Date'
+                df_missing_dates = pd.DataFrame({'Skipped Dates': missing_dates})
+                
+                # change datetime to date
+                df_missing_dates['Skipped Dates'] = df_missing_dates['Skipped Dates'].dt.date
+                
+                # show missing dates
+                st.dataframe(df_missing_dates, use_container_width=True)
+    
+                # Display the dates and the number of missing values associated with them
+                my_subheader('Missing Values', my_style="#333333", my_size=6)            
+                # Filter the DataFrame to include only rows with missing values
+                missing_df = copy_df_date_index(st.session_state.df_raw.loc[st.session_state.df_raw.iloc[:,1].isna(), st.session_state.df_raw.columns], datetime_to_date=True, date_to_index=True)
+                st.write(missing_df)
             
-            # show missing dates
-            st.dataframe(df_missing_dates, use_container_width=True)
-
-            # Display the dates and the number of missing values associated with them
-            my_subheader('Missing Values', my_style="#333333", my_size=6)            
-            # Filter the DataFrame to include only rows with missing values
-            missing_df = copy_df_date_index(st.session_state.df_raw.loc[st.session_state.df_raw.iloc[:,1].isna(), st.session_state.df_raw.columns], datetime_to_date=True, date_to_index=True)
-            st.write(missing_df)
-        
-        with col4:
-            st.markdown(arrow_right_icon, unsafe_allow_html = True)
-
-        with col5:
-            my_subheader('Cleaned Dataframe', my_style="#333333", my_size=6)
+            with col4:
+                st.markdown(arrow_right_icon, unsafe_allow_html = True)
+    
+            with col5:
+                my_subheader('Cleaned Dataframe', my_style="#333333", my_size=6)
+                
+                # Show the cleaned dataframe with if needed dates inserted if skipped to NaN and then the values inserted with impute method user selected backfill/forward fill/mean/median
+                st.dataframe(df_clean_show, use_container_width=True)
             
-            # Show the cleaned dataframe with if needed dates inserted if skipped to NaN and then the values inserted with impute method user selected backfill/forward fill/mean/median
-            st.dataframe(df_clean_show, use_container_width=True)
-        
-        # Create and show download button in streamlit to user to download the dataframe with imputations performed to missing values
-        download_csv_button(df_clean_show, my_file="df_imputed_missing_values.csv", set_index=True, help_message='Download cleaned dataframe to .CSV')
+            # Create and show download button in streamlit to user to download the dataframe with imputations performed to missing values
+            download_csv_button(df_clean_show, my_file="df_imputed_missing_values.csv", set_index=True, help_message='Download cleaned dataframe to .CSV')
     
     #########################################################
     # Handling Outliers
@@ -8122,7 +8361,7 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
         # call the function to get the outlier form in Streamlit 'Handling Outliers'
         outlier_form()
         
-    with st.expander('Outliers', expanded= True):
+
         outlier_detection_method = get_state("CLEAN_PAGE", "outlier_detection_method")
         outlier_zscore_threshold = get_state("CLEAN_PAGE", "outlier_zscore_threshold")
         outlier_iqr_q1 = get_state("CLEAN_PAGE", "outlier_iqr_q1")
@@ -8131,9 +8370,7 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
         outlier_isolationforest_contamination = get_state("CLEAN_PAGE", "outlier_isolationforest_contamination")
         outlier_iqr_multiplier = get_state("CLEAN_PAGE", "outlier_iqr_multiplier")                    
                                                          
-        # Set page subheader with custum function
-        my_text_header('Handling outliers')
-        
+       
         # Create form and sliders for outlier detection and handling
         ##############################################################################       
         df_cleaned_outliers, outliers = handle_outliers(df_clean_show, 
@@ -8145,76 +8382,82 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
                                                         outlier_isolationforest_contamination, 
                                                         random_state, 
                                                         outlier_iqr_multiplier)
-        if outliers is not None and any(outliers):
-            
-            outliers_df = copy_df_date_index(df_clean[outliers], datetime_to_date=True, date_to_index=True).add_suffix('_outliers')
-            
-            df_cleaned_outliers = df_cleaned_outliers.add_suffix('_outliers_replaced')
-            
-            # inner join two dataframes
-            outliers_df = outliers_df.join(df_cleaned_outliers, how='inner', rsuffix='_outliers_replaced')
-            
-            ## OUTLIER FIGURE CODE
-            fig_outliers = go.Figure()
-            fig_outliers.add_trace(
-                                   go.Scatter(
-                                             x=df_clean['date'], 
-                                             y=df_clean.iloc[:,1], 
-                                             mode='markers', 
-                                             name='Before',
-                                             marker=dict(color='#440154'),  opacity = 0.5
-                                             )
-                                   )
-            # add scatterplot
-            fig_outliers.add_trace(
-                                   go.Scatter(
-                                              x = df_cleaned_outliers.index, 
-                                              y = df_cleaned_outliers.iloc[:,0], 
-                                              mode='markers', 
-                                              name='After',
-                                              marker=dict(color='#45B8AC'), opacity = 1
-                                             )
-                                   )
-            
-            df_diff = df_cleaned_outliers.loc[outliers]
-            # add scatterplot
-            fig_outliers.add_trace(go.Scatter(
-                                              x=df_diff.index, 
-                                              y= df_diff.iloc[:,0], 
-                                              mode='markers', 
-                                              name='Outliers After',
-                                              marker=dict(color='#FFC300'),  opacity = 1
-                                             )
-                                  )
-
-            # show the outlier plot
-            st.session_state['fig_outliers'] = fig_outliers
-            
-            st.plotly_chart(fig_outliers, use_container_width=True)
-            
-            #  show the dataframe of outliers
-            st.info(f'ℹ️ You replaced **{len(outliers_df)} outlier(s)** with their respective **{outlier_replacement_method}(s)** utilizing **{outlier_detection_method}**.')
-            
-            # Apply the color scheme to the dataframe, round values by 2 decimals and display it in streamlit using full size of expander window
-            st.dataframe(outliers_df.style.format("{:.2f}").apply(highlight_cols, axis=0), use_container_width=True)
-            
-            # add download button for user to be able to download outliers
-            download_csv_button(outliers_df, my_file="df_outliers.csv", set_index=True, help_message='Download outlier dataframe to .CSV', my_key='df_outliers')
-       
-        # if outliers are NOT found or None is selected as outlier detection method
-        # ... run code... 
-        # show scatterplot data without outliers
-        else:
-            vertical_spacer(1)
-            fig_no_outliers = go.Figure()
-            fig_no_outliers.add_trace(go.Scatter(x = df_clean['date'], 
-                                     y = df_clean.iloc[:,1], 
-                                     mode = 'markers', 
-                                     name = 'Before',
-                          marker=dict(color = '#440154'),  opacity = 0.5))
-            
-            st.plotly_chart(fig_no_outliers, use_container_width=True)
-            my_text_paragraph(f'No <b> outlier detection </b> or <b> outlier replacement </b> method selected.', my_font_size='14px')
+        
+        with tab2_clean:
+            with st.expander('', expanded= True):
+                # Set page subheader with custum function
+                my_text_header('Handling outliers')
+                my_text_paragraph('Outlier Plot')
+                if outliers is not None and any(outliers):
+                    
+                    outliers_df = copy_df_date_index(df_clean[outliers], datetime_to_date=True, date_to_index=True).add_suffix('_outliers')
+                    
+                    df_cleaned_outliers = df_cleaned_outliers.add_suffix('_outliers_replaced')
+                    
+                    # inner join two dataframes
+                    outliers_df = outliers_df.join(df_cleaned_outliers, how='inner', rsuffix='_outliers_replaced')
+                    
+                    ## OUTLIER FIGURE CODE
+                    fig_outliers = go.Figure()
+                    fig_outliers.add_trace(
+                                           go.Scatter(
+                                                     x=df_clean['date'], 
+                                                     y=df_clean.iloc[:,1], 
+                                                     mode='markers', 
+                                                     name='Before',
+                                                     marker=dict(color='#440154'),  opacity = 0.5
+                                                     )
+                                           )
+                    # add scatterplot
+                    fig_outliers.add_trace(
+                                           go.Scatter(
+                                                      x = df_cleaned_outliers.index, 
+                                                      y = df_cleaned_outliers.iloc[:,0], 
+                                                      mode='markers', 
+                                                      name='After',
+                                                      marker=dict(color='#45B8AC'), opacity = 1
+                                                     )
+                                           )
+                    
+                    df_diff = df_cleaned_outliers.loc[outliers]
+                    # add scatterplot
+                    fig_outliers.add_trace(go.Scatter(
+                                                      x=df_diff.index, 
+                                                      y= df_diff.iloc[:,0], 
+                                                      mode='markers', 
+                                                      name='Outliers After',
+                                                      marker=dict(color='#FFC300'),  opacity = 1
+                                                     )
+                                          )
+        
+                    # show the outlier plot
+                    st.session_state['fig_outliers'] = fig_outliers
+                    
+                    st.plotly_chart(fig_outliers, use_container_width=True)
+                    
+                    #  show the dataframe of outliers
+                    st.info(f'ℹ️ You replaced **{len(outliers_df)} outlier(s)** with their respective **{outlier_replacement_method}(s)** utilizing **{outlier_detection_method}**.')
+                    
+                    # Apply the color scheme to the dataframe, round values by 2 decimals and display it in streamlit using full size of expander window
+                    st.dataframe(outliers_df.style.format("{:.2f}").apply(highlight_cols, axis=0), use_container_width=True)
+                    
+                    # add download button for user to be able to download outliers
+                    download_csv_button(outliers_df, my_file="df_outliers.csv", set_index=True, help_message='Download outlier dataframe to .CSV', my_key='df_outliers')
+               
+                # if outliers are NOT found or None is selected as outlier detection method
+                # ... run code... 
+                # show scatterplot data without outliers
+                else:
+                    vertical_spacer(1)
+                    fig_no_outliers = go.Figure()
+                    fig_no_outliers.add_trace(go.Scatter(x = df_clean['date'], 
+                                             y = df_clean.iloc[:,1], 
+                                             mode = 'markers', 
+                                             name = 'Before',
+                                  marker=dict(color = '#440154'),  opacity = 0.5))
+                    
+                    st.plotly_chart(fig_no_outliers, use_container_width=True)
+                    my_text_paragraph(f'No <b> outlier detection </b> or <b> outlier replacement </b> method selected.', my_font_size='14px')
 else:
     ##################################################################################################################################
     #************************* PREPROCESSING DATA - CLEANING MISSING AND IF USER SELECTED ALSO OUTLIERS ******************************
@@ -8282,11 +8525,13 @@ else:
 # FEATURE ENGINEERING
 if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
     
+    tab1_engineer, tab2_engineer = st.tabs(['engineer', 'result'])
+    
     with st.sidebar:
         my_title(f"{engineer_icon}", "#3b3b3b", gradient_colors="#1A2980, #FF6F61, #FEBD2E")
         
     with st.sidebar.form('feature engineering sidebar'):
-        
+
         my_text_paragraph('Features')
 
         vertical_spacer(1)
@@ -8367,296 +8612,298 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
                 # update session state to True -> which is used to determine if default feature selection is chosen or user selection in SELECT PAGE
                 set_state("ENGINEER_PAGE_FEATURES_BTN", ('engineering_form_submit_btn', True))
     
-    with st.expander("", expanded=True):
-        
-        show_lottie_animation(url="./images/aJ7Ra5vpQB.json", key="robot_engineering", width=350, height=350, speed=1, col_sizes= [1,3,1])
-        
-        ##############################
-        # Add Day/Month/Year Features
-        # create checkboxes for user to checkmark if to include features
-        ##############################
-        my_text_header('Dummy Variables')
-        my_text_paragraph('🌓 Pick your time-based features to include: ')
-        vertical_spacer(1)
-        
-        # select all or none of the individual dummy variable checkboxes based on sidebar checkbox
-        if calendar_dummies_checkbox == False:
-            # update the individual variables checkboxes if not true
-            set_state("ENGINEER_PAGE_VARS", ('year_dummies_checkbox', False))
-            set_state("ENGINEER_PAGE_VARS", ('month_dummies_checkbox', False))
-            set_state("ENGINEER_PAGE_VARS", ('day_dummies_checkbox', False))
-        else:
-            # update the individual variables checkboxes if calendar_dummies_checkbox is True
-            set_state("ENGINEER_PAGE_VARS", ('year_dummies_checkbox', True))
-            set_state("ENGINEER_PAGE_VARS", ('month_dummies_checkbox', True))
-            set_state("ENGINEER_PAGE_VARS", ('day_dummies_checkbox', True))
+    with tab1_engineer:
+        with st.expander("", expanded=True):
             
-        if special_calendar_days_checkbox == False:
-            set_state("ENGINEER_PAGE_VARS", ('jan_sales', False))
-            set_state("ENGINEER_PAGE_VARS", ('val_day_lod', False))
-            set_state("ENGINEER_PAGE_VARS", ('val_day', False))
-            set_state("ENGINEER_PAGE_VARS", ('mother_day_lod', False))
-            set_state("ENGINEER_PAGE_VARS", ('mother_day', False))
-            set_state("ENGINEER_PAGE_VARS", ('father_day_lod', False))
-            set_state("ENGINEER_PAGE_VARS", ('pay_days', False))
-            set_state("ENGINEER_PAGE_VARS", ('father_day', False))
-            set_state("ENGINEER_PAGE_VARS", ('black_friday_lod', False))
-            set_state("ENGINEER_PAGE_VARS", ('black_friday', False))
-            set_state("ENGINEER_PAGE_VARS", ('cyber_monday', False))
-            set_state("ENGINEER_PAGE_VARS", ('christmas_day', False))
-            set_state("ENGINEER_PAGE_VARS", ('boxing_day', False))
+            show_lottie_animation(url="./images/aJ7Ra5vpQB.json", key="robot_engineering", width=350, height=350, speed=1, col_sizes= [1,3,1])
+            
+            ##############################
+            # Add Day/Month/Year Features
+            # create checkboxes for user to checkmark if to include features
+            ##############################
+            my_text_header('Dummy Variables')
+            my_text_paragraph('🌓 Pick your time-based features to include: ')
+            vertical_spacer(1)
+            
+            # select all or none of the individual dummy variable checkboxes based on sidebar checkbox
+            if calendar_dummies_checkbox == False:
+                # update the individual variables checkboxes if not true
+                set_state("ENGINEER_PAGE_VARS", ('year_dummies_checkbox', False))
+                set_state("ENGINEER_PAGE_VARS", ('month_dummies_checkbox', False))
+                set_state("ENGINEER_PAGE_VARS", ('day_dummies_checkbox', False))
+            else:
+                # update the individual variables checkboxes if calendar_dummies_checkbox is True
+                set_state("ENGINEER_PAGE_VARS", ('year_dummies_checkbox', True))
+                set_state("ENGINEER_PAGE_VARS", ('month_dummies_checkbox', True))
+                set_state("ENGINEER_PAGE_VARS", ('day_dummies_checkbox', True))
+                
+            if special_calendar_days_checkbox == False:
+                set_state("ENGINEER_PAGE_VARS", ('jan_sales', False))
+                set_state("ENGINEER_PAGE_VARS", ('val_day_lod', False))
+                set_state("ENGINEER_PAGE_VARS", ('val_day', False))
+                set_state("ENGINEER_PAGE_VARS", ('mother_day_lod', False))
+                set_state("ENGINEER_PAGE_VARS", ('mother_day', False))
+                set_state("ENGINEER_PAGE_VARS", ('father_day_lod', False))
+                set_state("ENGINEER_PAGE_VARS", ('pay_days', False))
+                set_state("ENGINEER_PAGE_VARS", ('father_day', False))
+                set_state("ENGINEER_PAGE_VARS", ('black_friday_lod', False))
+                set_state("ENGINEER_PAGE_VARS", ('black_friday', False))
+                set_state("ENGINEER_PAGE_VARS", ('cyber_monday', False))
+                set_state("ENGINEER_PAGE_VARS", ('christmas_day', False))
+                set_state("ENGINEER_PAGE_VARS", ('boxing_day', False))
+            else:
+                # update the individual variables checkboxes if special_calendar_days_checkbox is True
+                set_state("ENGINEER_PAGE_VARS", ('jan_sales', True))
+                set_state("ENGINEER_PAGE_VARS", ('val_day_lod', True))
+                set_state("ENGINEER_PAGE_VARS", ('val_day', True))
+                set_state("ENGINEER_PAGE_VARS", ('mother_day_lod', True))
+                set_state("ENGINEER_PAGE_VARS", ('mother_day', True))
+                set_state("ENGINEER_PAGE_VARS", ('father_day_lod', True))
+                set_state("ENGINEER_PAGE_VARS", ('pay_days', True))
+                set_state("ENGINEER_PAGE_VARS", ('father_day', True))
+                set_state("ENGINEER_PAGE_VARS", ('black_friday_lod', True))
+                set_state("ENGINEER_PAGE_VARS", ('black_friday', True))
+                set_state("ENGINEER_PAGE_VARS", ('cyber_monday', True))
+                set_state("ENGINEER_PAGE_VARS", ('christmas_day', True))
+                set_state("ENGINEER_PAGE_VARS", ('boxing_day', True))
+                       
+            # create columns for aligning in middle the checkboxes
+            col0, col1, col2, col3, col4 = st.columns([2, 2, 2, 2, 1])
+            with col1:
+                year_dummies_checkbox = st.checkbox(label = 'Year', value = get_state("ENGINEER_PAGE_VARS", "year_dummies_checkbox"))
+                set_state("ENGINEER_PAGE_VARS", ("year_dummies_checkbox", year_dummies_checkbox))
+            with col2:
+                month_dummies_checkbox = st.checkbox('Month', 
+                                            value = get_state("ENGINEER_PAGE_VARS", "month_dummies_checkbox"))
+                set_state("ENGINEER_PAGE_VARS", ("year_dummies_checkbox", month_dummies_checkbox))
+            with col3:
+                day_dummies_checkbox = st.checkbox('Day', 
+                                          value = get_state("ENGINEER_PAGE_VARS", "day_dummies_checkbox"))
+                set_state("ENGINEER_PAGE_VARS", ("year_dummies_checkbox", day_dummies_checkbox))
+    
+            ###############################################
+            # create selectbox for country holidays
+            ###############################################
+            vertical_spacer(1)
+            my_text_header('Holidays')
+            my_text_paragraph('⛱️ Select country-specific holidays to include:')
+            
+            if calendar_holidays_checkbox:
+                # apply function to create country specific holidays in columns is_holiday (boolean 1 if holiday otherwise 0) and holiday_desc for holiday_name
+                df = create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'])
+            
+                # update the session_state
+                st.session_state['df_cleaned_outliers_with_index'] = df
+            else:
+                my_text_paragraph('<i> no country-specific holiday selected </i>')
+            
+            ###############################################
+            # create checkboxes for special days on page
+            ###############################################
+            my_text_header('Special Calendar Days')
+            my_text_paragraph("🎁 Pick your special days to include: ")
+            vertical_spacer(1)
+            
+            col0, col1, col2, col3 = st.columns([6,12,12,1])
+            with col1:               
+                jan_sales = st.checkbox(label = 'January Sale', 
+                                        value = get_state("ENGINEER_PAGE_VARS", "jan_sales"))
+                
+                set_state("ENGINEER_PAGE_VARS", ("jan_sales", jan_sales))
+                                       
+                val_day_lod = st.checkbox(label = "Valentine's Day [last order date]", 
+                                          value = get_state("ENGINEER_PAGE_VARS", "val_day_lod"))
+                
+                set_state("ENGINEER_PAGE_VARS", ("val_day_lod", val_day_lod))
+                
+                val_day = st.checkbox(label = "Valentine's Day", 
+                                      value = get_state("ENGINEER_PAGE_VARS", "val_day"))
+                
+                set_state("ENGINEER_PAGE_VARS", ("val_day", val_day))
+                
+                mother_day_lod = st.checkbox(label = "Mother's Day [last order date]", 
+                                             value = get_state("ENGINEER_PAGE_VARS", "mother_day_lod"))
+                
+                set_state("ENGINEER_PAGE_VARS", ("mother_day_lod", mother_day_lod))
+                
+                mother_day = st.checkbox(label = "Mother's Day",
+                                         value = get_state("ENGINEER_PAGE_VARS", "mother_day"))
+                
+                set_state("ENGINEER_PAGE_VARS", ("mother_day", mother_day))
+                
+                father_day_lod = st.checkbox(label = "Father's Day [last order date]", 
+                                             value = get_state("ENGINEER_PAGE_VARS", "father_day_lod"))
+                
+                set_state("ENGINEER_PAGE_VARS", ("father_day_lod", father_day_lod))
+                    
+                pay_days = st.checkbox(label = 'Monthly Pay Days (4th Friday of month)', 
+                                       value = get_state("ENGINEER_PAGE_VARS", "pay_days"))
+                
+                set_state("ENGINEER_PAGE_VARS", ("pay_days", pay_days))
+           
+            with col2:
+                father_day = st.checkbox(label = "Father's Day", 
+                                         value = get_state("ENGINEER_PAGE_VARS", "father_day"))
+                
+                set_state("ENGINEER_PAGE_VARS", ("father_day", father_day))
+                
+                black_friday_lod = st.checkbox(label = 'Black Friday [sale starts]', 
+                                               value = get_state("ENGINEER_PAGE_VARS", "black_friday_lod"))
+                
+                set_state("ENGINEER_PAGE_VARS", ("black_friday_lod", black_friday_lod))
+                
+                black_friday = st.checkbox(label = 'Black Friday', 
+                                          value = get_state("ENGINEER_PAGE_VARS", "black_friday"))
+                
+                set_state("ENGINEER_PAGE_VARS", ("black_friday", black_friday))
+                
+                cyber_monday = st.checkbox('Cyber Monday', 
+                                           value = get_state("ENGINEER_PAGE_VARS", "cyber_monday"))
+                
+                set_state("ENGINEER_PAGE_VARS", ("cyber_monday", cyber_monday))
+                
+                christmas_day = st.checkbox(label = 'Christmas Day [last order date]', 
+                                            value = get_state("ENGINEER_PAGE_VARS", "christmas_day"))
+                
+                set_state("ENGINEER_PAGE_VARS", ("christmas_day", christmas_day))
+                
+                boxing_day = st.checkbox(label = 'Boxing Day sale', 
+                                         value = get_state("ENGINEER_PAGE_VARS", "boxing_day"))
+                set_state("ENGINEER_PAGE_VARS", ("boxing_day", boxing_day))
+                
+            vertical_spacer(3)
+            
+        # user checkmarked the box for all seasonal periods
+        if special_calendar_days_checkbox:
+            
+            # call very extensive function to create all days selected by users as features
+            df = create_calendar_special_days(st.session_state['df_cleaned_outliers_with_index'])
+            
+            # update the session_state
+            st.session_state['df_cleaned_outliers_with_index'] = df
+            
         else:
-            # update the individual variables checkboxes if special_calendar_days_checkbox is True
-            set_state("ENGINEER_PAGE_VARS", ('jan_sales', True))
-            set_state("ENGINEER_PAGE_VARS", ('val_day_lod', True))
-            set_state("ENGINEER_PAGE_VARS", ('val_day', True))
-            set_state("ENGINEER_PAGE_VARS", ('mother_day_lod', True))
-            set_state("ENGINEER_PAGE_VARS", ('mother_day', True))
-            set_state("ENGINEER_PAGE_VARS", ('father_day_lod', True))
-            set_state("ENGINEER_PAGE_VARS", ('pay_days', True))
-            set_state("ENGINEER_PAGE_VARS", ('father_day', True))
-            set_state("ENGINEER_PAGE_VARS", ('black_friday_lod', True))
-            set_state("ENGINEER_PAGE_VARS", ('black_friday', True))
-            set_state("ENGINEER_PAGE_VARS", ('cyber_monday', True))
-            set_state("ENGINEER_PAGE_VARS", ('christmas_day', True))
-            set_state("ENGINEER_PAGE_VARS", ('boxing_day', True))
-                   
-        # create columns for aligning in middle the checkboxes
-        col0, col1, col2, col3, col4 = st.columns([2, 2, 2, 2, 1])
-        with col1:
-            year_dummies_checkbox = st.checkbox(label = 'Year', value = get_state("ENGINEER_PAGE_VARS", "year_dummies_checkbox"))
-            set_state("ENGINEER_PAGE_VARS", ("year_dummies_checkbox", year_dummies_checkbox))
-        with col2:
-            month_dummies_checkbox = st.checkbox('Month', 
-                                        value = get_state("ENGINEER_PAGE_VARS", "month_dummies_checkbox"))
-            set_state("ENGINEER_PAGE_VARS", ("year_dummies_checkbox", month_dummies_checkbox))
-        with col3:
-            day_dummies_checkbox = st.checkbox('Day', 
-                                      value = get_state("ENGINEER_PAGE_VARS", "day_dummies_checkbox"))
-            set_state("ENGINEER_PAGE_VARS", ("year_dummies_checkbox", day_dummies_checkbox))
-
-        ###############################################
-        # create selectbox for country holidays
-        ###############################################
-        vertical_spacer(1)
-        my_text_header('Holidays')
-        my_text_paragraph('⛱️ Select country-specific holidays to include:')
+            
+            df = st.session_state['df_cleaned_outliers_with_index']
         
-        if calendar_holidays_checkbox:
-            # apply function to create country specific holidays in columns is_holiday (boolean 1 if holiday otherwise 0) and holiday_desc for holiday_name
-            df = create_calendar_holidays(df = st.session_state['df_cleaned_outliers_with_index'])
-        
+        # user checkmarked the box for all seasonal periods
+        if calendar_dummies_checkbox:
+            # apply function to add year/month and day dummy variables
+            df = create_date_features(df, 
+                                      year_dummies = year_dummies_checkbox, 
+                                      month_dummies = month_dummies_checkbox,
+                                      day_dummies = day_dummies_checkbox)
             # update the session_state
             st.session_state['df_cleaned_outliers_with_index'] = df
         else:
-            my_text_paragraph('<i> no country-specific holiday selected </i>')
+            pass
         
-        ###############################################
-        # create checkboxes for special days on page
-        ###############################################
-        my_text_header('Special Calendar Days')
-        my_text_paragraph("🎁 Pick your special days to include: ")
-        vertical_spacer(1)
-        
-        col0, col1, col2, col3 = st.columns([6,12,12,1])
-        with col1:               
-            jan_sales = st.checkbox(label = 'January Sale', 
-                                    value = get_state("ENGINEER_PAGE_VARS", "jan_sales"))
-            
-            set_state("ENGINEER_PAGE_VARS", ("jan_sales", jan_sales))
-                                   
-            val_day_lod = st.checkbox(label = "Valentine's Day [last order date]", 
-                                      value = get_state("ENGINEER_PAGE_VARS", "val_day_lod"))
-            
-            set_state("ENGINEER_PAGE_VARS", ("val_day_lod", val_day_lod))
-            
-            val_day = st.checkbox(label = "Valentine's Day", 
-                                  value = get_state("ENGINEER_PAGE_VARS", "val_day"))
-            
-            set_state("ENGINEER_PAGE_VARS", ("val_day", val_day))
-            
-            mother_day_lod = st.checkbox(label = "Mother's Day [last order date]", 
-                                         value = get_state("ENGINEER_PAGE_VARS", "mother_day_lod"))
-            
-            set_state("ENGINEER_PAGE_VARS", ("mother_day_lod", mother_day_lod))
-            
-            mother_day = st.checkbox(label = "Mother's Day",
-                                     value = get_state("ENGINEER_PAGE_VARS", "mother_day"))
-            
-            set_state("ENGINEER_PAGE_VARS", ("mother_day", mother_day))
-            
-            father_day_lod = st.checkbox(label = "Father's Day [last order date]", 
-                                         value = get_state("ENGINEER_PAGE_VARS", "father_day_lod"))
-            
-            set_state("ENGINEER_PAGE_VARS", ("father_day_lod", father_day_lod))
+        # if user checkmarked checkbox: Discrete Wavelet Transform
+        if dwt_features_checkbox:
+            with st.expander('🌊 Wavelet Features', expanded=True):
+                my_text_header('Discrete Wavelet Transform')
+                my_text_paragraph('Feature Extraction')
                 
-            pay_days = st.checkbox(label = 'Monthly Pay Days (4th Friday of month)', 
-                                   value = get_state("ENGINEER_PAGE_VARS", "pay_days"))
-            
-            set_state("ENGINEER_PAGE_VARS", ("pay_days", pay_days))
-       
-        with col2:
-            father_day = st.checkbox(label = "Father's Day", 
-                                     value = get_state("ENGINEER_PAGE_VARS", "father_day"))
-            
-            set_state("ENGINEER_PAGE_VARS", ("father_day", father_day))
-            
-            black_friday_lod = st.checkbox(label = 'Black Friday [sale starts]', 
-                                           value = get_state("ENGINEER_PAGE_VARS", "black_friday_lod"))
-            
-            set_state("ENGINEER_PAGE_VARS", ("black_friday_lod", black_friday_lod))
-            
-            black_friday = st.checkbox(label = 'Black Friday', 
-                                      value = get_state("ENGINEER_PAGE_VARS", "black_friday"))
-            
-            set_state("ENGINEER_PAGE_VARS", ("black_friday", black_friday))
-            
-            cyber_monday = st.checkbox('Cyber Monday', 
-                                       value = get_state("ENGINEER_PAGE_VARS", "cyber_monday"))
-            
-            set_state("ENGINEER_PAGE_VARS", ("cyber_monday", cyber_monday))
-            
-            christmas_day = st.checkbox(label = 'Christmas Day [last order date]', 
-                                        value = get_state("ENGINEER_PAGE_VARS", "christmas_day"))
-            
-            set_state("ENGINEER_PAGE_VARS", ("christmas_day", christmas_day))
-            
-            boxing_day = st.checkbox(label = 'Boxing Day sale', 
-                                     value = get_state("ENGINEER_PAGE_VARS", "boxing_day"))
-            set_state("ENGINEER_PAGE_VARS", ("boxing_day", boxing_day))
-            
-        vertical_spacer(3)
-        
-    # user checkmarked the box for all seasonal periods
-    if special_calendar_days_checkbox:
-        
-        # call very extensive function to create all days selected by users as features
-        df = create_calendar_special_days(st.session_state['df_cleaned_outliers_with_index'])
-        
-        # update the session_state
-        st.session_state['df_cleaned_outliers_with_index'] = df
-        
-    else:
-        
-        df = st.session_state['df_cleaned_outliers_with_index']
-    
-    # user checkmarked the box for all seasonal periods
-    if calendar_dummies_checkbox:
-        # apply function to add year/month and day dummy variables
-        df = create_date_features(df, 
-                                  year_dummies = year_dummies_checkbox, 
-                                  month_dummies = month_dummies_checkbox,
-                                  day_dummies = day_dummies_checkbox)
-        # update the session_state
-        st.session_state['df_cleaned_outliers_with_index'] = df
-    else:
-        pass
-    
-    # if user checkmarked checkbox: Discrete Wavelet Transform
-    if dwt_features_checkbox:
-        with st.expander('🌊 Wavelet Features', expanded=True):
-            my_text_header('Discrete Wavelet Transform')
-            my_text_paragraph('Feature Extraction')
-            
-            ########## CREATE WAVELET FEATURES ##################
-            # define wavelet and level of decomposition
-            
-            # TEST REPLACE WITH SESSION STATES THE USER CHOICES
-# =============================================================================
-#             wavelet = wavelet_family_selectbox
-#             level = wavelet_level_decomposition_selectbox
-#             window_size = wavelet_window_size_slider
-# =============================================================================
-            wavelet = get_state("ENGINEER_PAGE", "wavelet_family_selectbox")
-            level = get_state("ENGINEER_PAGE", "wavelet_level_decomposition_selectbox")
-            window_size = get_state("ENGINEER_PAGE", "wavelet_window_size_slider")
-            st.write('wavelet', wavelet, 'wavelet_level_decomposition_selectbox', level, 'window_size', window_size)
-            
-            # create empty list to store feature vectors
-            feature_vectors = []
-           
-            # loop over each window in the data
-            for i in range(window_size, len(df)):
-                # extract data for current window
-                data_in_window = df.iloc[i-window_size:i, 1].values
+                ########## CREATE WAVELET FEATURES ##################
+                # define wavelet and level of decomposition
                 
-                # perform DWT on data
-                coeffs = pywt.wavedec(data_in_window, wavelet, level=level)
+                # TEST REPLACE WITH SESSION STATES THE USER CHOICES
+    # =============================================================================
+    #             wavelet = wavelet_family_selectbox
+    #             level = wavelet_level_decomposition_selectbox
+    #             window_size = wavelet_window_size_slider
+    # =============================================================================
+                wavelet = get_state("ENGINEER_PAGE", "wavelet_family_selectbox")
+                level = get_state("ENGINEER_PAGE", "wavelet_level_decomposition_selectbox")
+                window_size = get_state("ENGINEER_PAGE", "wavelet_window_size_slider")
+                st.write('wavelet', wavelet, 'wavelet_level_decomposition_selectbox', level, 'window_size', window_size)
                 
-                # extract features from subbands
-                features = []
-                
-                for j in range(len(coeffs)):
-                    subband_features = [coeffs[j].mean(), coeffs[j].std(), coeffs[j].max(), coeffs[j].min()]
-                    features.extend(subband_features)
+                # create empty list to store feature vectors
+                feature_vectors = []
                
-                # add features to list
-                feature_vectors.append(features)
-           
-            # create new dataframe with features and original date index
-            feature_cols = ['approx_mean', 'approx_std', 'approx_max', 'approx_min'] + \
-                           [f'detail{i+1}_mean' for i in range(level)] + \
-                           [f'detail{i+1}_std' for i in range(level)] + \
-                           [f'detail{i+1}_max' for i in range(level)] + \
-                           [f'detail{i+1}_min' for i in range(level)]
-            
-            # create a dataframe with the created features with discrete wavelet transform on target variable with timewindow set by user
-            features_df_wavelet = pd.DataFrame(feature_vectors, columns=feature_cols, index=df.iloc[:,0].index[window_size:])
-            
-            # merge features dataframe with original data
-            df = pd.merge(df, features_df_wavelet, left_index=True, right_index=True)
-            #################################################################
-            
-            # PLOT WAVELET FEATURES
-            #######################
-            # create a dataframe again with the index set as the first column
-            # assumption used: the 'date' column is the first column of the dataframe
-            features_df_plot = pd.DataFrame(feature_vectors, columns=feature_cols, index=df.iloc[:,0])
-            
-            fig = px.line(features_df_plot, 
-                          x=features_df_plot.index, 
-                          y=['approx_mean'] + [f'detail{i+1}_mean' for i in range(level)],
-                          title='', 
-                          labels={'value': 'Coefficient Mean', 'variable': 'Subband'})
-            
-            fig.update_layout(xaxis_title='Date')
-            
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # SHOW WAVELETE FEATURES
-            ########################
-            # Show Dataframe with features
-            my_text_paragraph('Wavelet Features Dataframe')
-            st.dataframe(features_df_wavelet, use_container_width=True)
-            
-            # update the session state
-            st.session_state['df_cleaned_outliers_with_index'] = df
-    else:
-        pass
-    
-    # =============================================================================
-    # Add the date column but only as numeric feature
-    # =============================================================================
-    df['date_numeric'] = (df['date'] - df['date'].min()).dt.days
+                # loop over each window in the data
+                for i in range(window_size, len(df)):
+                    # extract data for current window
+                    data_in_window = df.iloc[i-window_size:i, 1].values
+                    
+                    # perform DWT on data
+                    coeffs = pywt.wavedec(data_in_window, wavelet, level=level)
+                    
+                    # extract features from subbands
+                    features = []
+                    
+                    for j in range(len(coeffs)):
+                        subband_features = [coeffs[j].mean(), coeffs[j].std(), coeffs[j].max(), coeffs[j].min()]
+                        features.extend(subband_features)
+                   
+                    # add features to list
+                    feature_vectors.append(features)
+               
+                # create new dataframe with features and original date index
+                feature_cols = ['approx_mean', 'approx_std', 'approx_max', 'approx_min'] + \
+                               [f'detail{i+1}_mean' for i in range(level)] + \
+                               [f'detail{i+1}_std' for i in range(level)] + \
+                               [f'detail{i+1}_max' for i in range(level)] + \
+                               [f'detail{i+1}_min' for i in range(level)]
+                
+                # create a dataframe with the created features with discrete wavelet transform on target variable with timewindow set by user
+                features_df_wavelet = pd.DataFrame(feature_vectors, columns=feature_cols, index=df.iloc[:,0].index[window_size:])
+                
+                # merge features dataframe with original data
+                df = pd.merge(df, features_df_wavelet, left_index=True, right_index=True)
+                #################################################################
+                
+                # PLOT WAVELET FEATURES
+                #######################
+                # create a dataframe again with the index set as the first column
+                # assumption used: the 'date' column is the first column of the dataframe
+                features_df_plot = pd.DataFrame(feature_vectors, columns=feature_cols, index=df.iloc[:,0])
+                
+                fig = px.line(features_df_plot, 
+                              x=features_df_plot.index, 
+                              y=['approx_mean'] + [f'detail{i+1}_mean' for i in range(level)],
+                              title='', 
+                              labels={'value': 'Coefficient Mean', 'variable': 'Subband'})
+                
+                fig.update_layout(xaxis_title='Date')
+                
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # SHOW WAVELETE FEATURES
+                ########################
+                # Show Dataframe with features
+                my_text_paragraph('Wavelet Features Dataframe')
+                st.dataframe(features_df_wavelet, use_container_width=True)
+                
+                # update the session state
+                st.session_state['df_cleaned_outliers_with_index'] = df
+        else:
+            pass
+        
+        # =============================================================================
+        # Add the date column but only as numeric feature
+        # =============================================================================
+        df['date_numeric'] = (df['date'] - df['date'].min()).dt.days
    
     #################################################################
     # ALL FEATURES COMBINED INTO A DATAFRAME
     #################################################################
-    with st.expander('', expanded=True):
-        my_text_header('Engineered Features')
-
-        # Retrieve number of features to show on page
-        # -2 -> because of datetime index and target variable
-        num_features_df = len(df.columns)-2
-        my_text_paragraph(f'{num_features_df}')
-        
-        show_lottie_animation(url="./images/features_round.json", key="features_round", width=400, height=400)
-        
-        # Show dataframe in streamlit
-        st.dataframe(copy_df_date_index(my_df = df, datetime_to_date = True, date_to_index = True), use_container_width = True)
-        
-        # add download button
-        download_csv_button(df, my_file = "dataframe_incl_features.csv", help_message = "Download your dataset incl. features to .CSV")
+    with tab2_engineer:
+        with st.expander('', expanded=True):
+            my_text_header('Engineered Features')
+    
+            # Retrieve number of features to show on page
+            # -2 -> because of datetime index and target variable
+            num_features_df = len(df.columns)-2
+            my_text_paragraph(f'{num_features_df}')
+            
+            show_lottie_animation(url="./images/features_round.json", key="features_round", width=400, height=400)
+            
+            # Show dataframe in streamlit
+            st.dataframe(copy_df_date_index(my_df = df, datetime_to_date = True, date_to_index = True), use_container_width = True)
+            
+            # add download button
+            download_csv_button(df, my_file = "dataframe_incl_features.csv", help_message = "Download your dataset incl. features to .CSV")
         
 # Else e.g. if user is not within menu_item == 'Engineer' and sidebar_menu_item is not 'Home':
 else:
@@ -9088,7 +9335,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
     # SHOW USER FORMS FOR PARAMETERS OF FEATURE SELECTION METHODS
     # =============================================================================
     with st.sidebar:
-        num_features_rfe, estimator_rfe, timeseriessplit_value_rfe, num_steps_rfe = form_feature_selection_method_rfe()
+        num_features_rfe, duplicate_ranks_rfe, estimator_rfe, timeseriessplit_value_rfe, num_steps_rfe = form_feature_selection_method_rfe()
        
         num_features_pca = form_feature_selection_method_pca()
         
@@ -9112,10 +9359,18 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
     with tab2:   
         try:
             with st.expander('', expanded=True):
-                selected_cols_rfe, selected_features, rfecv = perform_rfe(X_train = st.session_state['X_train'], y_train = st.session_state['y_train'], estimator_rfe = estimator_rfe, num_steps_rfe = num_steps_rfe, num_features_rfe = num_features_rfe, timeseriessplit_value_rfe = timeseriessplit_value_rfe)
+                selected_cols_rfe, selected_features, rfecv, user_message = perform_rfe(X_train = st.session_state['X_train'], 
+                                                                                        y_train = st.session_state['y_train'], 
+                                                                                        duplicate_ranks_rfe = duplicate_ranks_rfe,
+                                                                                        estimator_rfe = estimator_rfe, 
+                                                                                        num_steps_rfe = num_steps_rfe, 
+                                                                                        num_features_rfe = num_features_rfe, 
+                                                                                        timeseriessplit_value_rfe = timeseriessplit_value_rfe)
                 show_rfe_plot(rfecv, selected_features)
+                # note the optimal features to user noted by RFE method
+                st.write(user_message)
         except:
-            selected_cols_rfe= []
+            selected_cols_rfe = []
             st.error('**ForecastGenie Error**: *Recursive Feature Elimination with Cross-Validation* could not execute. Need at least 2 features to be able to apply Feature Elimination. Please adjust your selection criteria.')
 
     # =============================================================================        
@@ -9158,7 +9413,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                                                key = key1_select_page_corr,
                                                step = 0.05, 
                                                help = 'Set `Correlation Threshold` to determine which pair(s) of variables in the dataset are strongly correlated e.g. no correlation = 0, perfect correlation = 1')
-
+    
                     # define models for computing importance scores of highly correlated independent features
                     models = {'Linear Regression': LinearRegression(), 'Random Forest Regressor': RandomForestRegressor(n_estimators=100)}
                     
@@ -9199,6 +9454,13 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                                                                                                                                    selected_cols_mifs, 
                                                                                                                                    corr_threshold, 
                                                                                                                                    models)
+                # =============================================================================
+                # CHECK IF USER HAS SELECTED ANY FEATURES - IF ALL 3 SLIDERS ARE SET TO 0 FOR RFE, PCA, MIFS                                                                                                                               models)
+                # =============================================================================
+                if not total_features:   
+                    st.info(f'**NOTE**: please adjust your selection criteria as the list of features is currently empty!')
+                    st.stop()
+                    
                 # Display message with pairs in total_features
                 if df_pairwise.empty:
                     st.info(f'There are no **pairwise combinations** in the selected features with a **correlation** larger than or equal to the user defined threshold of **{corr_threshold*100:.0f}%**')
@@ -9222,8 +9484,10 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                 # Remove features with lowest importance scores from each pair
                 # note: only remove one of highly correlated features based on importance score after plot is shown
                 total_features_default = remove_lowest_importance_feature(total_features, importance_scores, pairwise_features_in_total_features)
+                
         except:
-            st.warning(':red[**ERROR**: Error with Correlation Analysis...please adjust your selection criteria]')
+            total_features_default = ['date_numeric']
+            st.warning(':red[**ERROR**]: could not execute the correlation analysis...please adjust your selection criteria.')
 
     # =============================================================================
     # Top Features
@@ -9281,7 +9545,9 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
             else:
                 st.write('option 3') # TEST
                 # set feature selection to default based result of 3 feature selection methods)
+                
                 total_features = total_features_default 
+                
                 total_features = set_state("SELECT_PAGE_USER_SELECTION", ("feature_selection_user", total_features))
 
             
@@ -9338,7 +9604,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
             # AND WHAT USER ADDS AS ADDITIONAL VARIABLES OUTSIDE OF RECOMMENDATION
             # Note: first time app starts the total_features is None
             # =============================================================================
-            if total_features != None:
+            if total_features is not None:
                 difference_lsts = list(set(feature_selection_user) - set(total_features_default))
             else:
                 # if no features chosen by user then return empty list -> no cells need to be highlighted yellow 
@@ -9389,9 +9655,10 @@ else:
     # 1. RFE
     ################   
     try:
-        selected_cols_rfe, selected_features, rfecv = perform_rfe(X_train = st.session_state['X_train'], 
+        selected_cols_rfe, selected_features, rfecv, message = perform_rfe(X_train = st.session_state['X_train'], 
                                                                   y_train = st.session_state['y_train'], 
                                                                   estimator_rfe = get_state("SELECT_PAGE_RFE", "estimator_rfe"), 
+                                                                  duplicate_ranks_rfe = get_state("SELECT_PAGE_RFE", "duplicate_ranks_rfe"),
                                                                   num_steps_rfe = get_state("SELECT_PAGE_RFE", "num_steps_rfe"),
                                                                   num_features_rfe = get_state("SELECT_PAGE_RFE", "num_features_rfe"), 
                                                                   timeseriessplit_value_rfe = get_state("SELECT_PAGE_RFE", "timeseriessplit_value_rfe"))
@@ -9473,7 +9740,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                 include_feature_selection = st.selectbox(label = '*include feature selection:*', 
                                                          options = ['Yes', 'No'],
                                                          key = key28_train,
-                                                         help = '''If `feature selection` is enabled, the explanatory variables or features will be incorporated as additional inputs during the model training process. These features can be either the default recommendations based on the feature selection process (refer to the Select Page for more details), or if you have made changes to the selection, it will reflect the features you have chosen to include.  
+                                                         help = '''if `feature selection` is enabled, the explanatory variables or features will be incorporated as additional inputs during the model training process. These features can be either the default recommendations based on the feature selection process (refer to the Select Page for more details), or if you have made changes to the selection, it will reflect the features you have chosen to include.  
                                                                    \nBy enabling feature selection, you allow the model to utilize these explanatory features with the goal to enhance its predictive capabilities to improve the overall performance of the model(s).''')
             with col4:
                 # Generic Graph Settings
@@ -9482,7 +9749,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                              max_value = 99,
                                              step = 1,
                                              key = key1_train,
-                                             help = 'A **`confidence interval`** is a range of values around a sample statistic, such as a mean or proportion, which is likely to contain the true population parameter with a certain degree of confidence.\
+                                             help = 'a **`confidence interval`** is a range of values around a sample statistic, such as a mean or proportion, which is likely to contain the true population parameter with a certain degree of confidence.\
                                                     The level of confidence is typically expressed as a percentage, such as 95%, and represents the probability that the true parameter lies within the interval.\
                                                     A wider interval will generally have a higher level of confidence, while a narrower interval will have a lower level of confidence.')
             vertical_spacer(2)
@@ -9517,7 +9784,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                     lag = lag.lower() # make lag name lowercase e.g. 'Week' becomes 'week'
                     
                     if lag == 'custom':
-                        custom_lag_value = st.number_input(label = "*If seasonal **lag** set to Custom, please set lag value (in days):*", 
+                        custom_lag_value = st.number_input(label = "*if seasonal **lag** set to Custom, please set lag value (in days):*", 
                                                            step = 1,
                                                            key = key8_train)
                         
@@ -9609,10 +9876,10 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                     s = st.number_input(label = "Seasonal Periodicity (s):", 
                                         min_value = 1, 
                                         key = key15_train,
-                                        help = '`Seasonal periodicity` i.e. **$s$** in **SARIMAX** refers to the **number of observations per season**.\
-                                               \n\nFor example, if we have daily data with a weekly seasonal pattern, **s** would be 7 because there are 7 days in a week.\
-                                               Similarly, for monthly data with an annual seasonal pattern, **s** would be 12 because there are 12 months in a year.\
-                                               Here are some common values for **$s$**:\
+                                        help = '`seasonal periodicity` i.e. **$s$** in **SARIMAX** refers to the **number of observations per season**.\
+                                               \n\nfor example, if we have daily data with a weekly seasonal pattern, **s** would be 7 because there are 7 days in a week.\
+                                               similarly, for monthly data with an annual seasonal pattern, **s** would be 12 because there are 12 months in a year.\
+                                               here are some common values for **$s$**:\
                                                \n- **Daily data** with **weekly** seasonality: **$s=7$** \
                                                \n- **Monthly data** with **quarterly** seasonality: **$s=3$**\
                                                \n- **Monthly data** with **yearly** seasonality: **$s=12$**\
@@ -9773,7 +10040,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
     # =============================================================================
     # CREATE TABS    
     # =============================================================================
-    tab1, tab2, tab3, tab4 = st.tabs(['▫️Info', '▫️Inputs', '▫️Outputs', '▫️Model Details'])
+    tab1, tab2, tab3, tab4 = st.tabs(['▫️info', '▫️inputs', '▫️outputs', '▫️model details'])
 
     with tab1:
         with st.expander('', expanded=True):
@@ -10205,7 +10472,7 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
                 # define list of metrics user can choose from in drop-down selectbox                
                 metrics_list = ['Mean Absolute Percentage Error', 'Root Mean Square Error', 'R-squared']
                 
-                selected_metric = st.selectbox(label = "*Select evaluation metric to sort top model scores:*", 
+                selected_metric = st.selectbox(label = "*Select evaluation metric to sort by:*", 
                                                options = metrics_list,
                                                key = key1_evaluate,
                                                help = '''Choose which evaluation metric is used to sort the top score of each model by:  
