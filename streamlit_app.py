@@ -1437,6 +1437,7 @@ def vertical_spacer(n):
 #         
 # =============================================================================
 def create_flipcard_quick_insights(num_cards, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back, image_path_front_card = None, df = None, my_string_column = 'Label', **kwargs):    
+    
     col1, col2, col3 = st.columns([20,40,20])
     with col2:
         my_text_header('Quick Insights')
@@ -1475,10 +1476,13 @@ def create_flipcard_quick_insights(num_cards, header_list, paragraph_list_front,
                                 </div>
                             </div>
                             """)
+                            
     # join all the html code for each card and join it into single html code with carousel wrapper
     carousel_html = "<div class='carousel'>" + "".join(card_html) + "</div>"
+    
     # Display the carousel in streamlit
     st.markdown(carousel_html, unsafe_allow_html=True)
+    
     # Create the CSS styling for the carousel
     st.markdown(
         f"""
@@ -1550,8 +1554,8 @@ def create_flipcard_quick_insights(num_cards, header_list, paragraph_list_front,
           overflow: hidden; /* Hide the scroll bar */
         }}
         .front {{
-          background: linear-gradient(to bottom left, #4e3fce, #7a5dc7, #9b7cc2, #bb9bbd, #c2b1c4);
-          color: white;
+          background-color: #E9EBE1; /* Change the background color here */
+          color: #333333;
           transform: rotateY(0deg);
         }}
         .back {{
@@ -1734,21 +1738,12 @@ def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, 
         </style>
         """, unsafe_allow_html=True)        
  
-
-def create_flipcard_stats(num_cards=1, 
-                          header_list=[''], 
-                          paragraph_list_front = [''], 
-                          paragraph_list_back = [''], 
-                          font_family='Arial', 
-                          font_size_front='12px', 
-                          font_size_back='12px', 
-                          image_path_front_card = None, 
-                          df = None, 
-                          my_string_column = 'Label', **kwargs):
+def create_flipcard_stats(image_path_front_card = None, font_size_back = '10px', my_header = None, **kwargs):
     
+    # Header in Streamlit
     col1, col2, col3 = st.columns([20,40,20])
     with col2:
-        my_text_header('Test Results')
+        my_text_header(my_header)
         vertical_spacer(1)
     
     # open the image for the front of the card
@@ -1759,20 +1754,22 @@ def create_flipcard_stats(num_cards=1,
     # create empty list that will keep the html code needed for each card with header+text
     card_html = []
     
-    # iterate over cards specified by user and join the headers and text of the lists
-    for i in range(num_cards):
-        card_html.append(f"""<div class="flashcard">
-                                <div class='front'>
-                                    <img src="data:image/png;base64,{data_url}"style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
-                                    <h1 style='text-align:center;color:white; margin-bottom: 10px;padding: 35px;'>{header_list[i]}</h1>
-                                    <p style='text-align:center; font-family: {font_family}; font-size: {font_size_front};'>{paragraph_list_front[i]}</p>
-                                </div>
-                                <div class="back">
-                                    <h2>{header_list[i]}</h2>
-                                    <p style='font-family: {font_family}; font-size: {font_size_back};'>hello this is a test hello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a testhello this is a test</p>
-                                </div>
+    # append html code to list
+    card_html.append(f"""<div class="flashcard">
+                            <div class='front'>
+                                <img src="data:image/png;base64,{data_url}"style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
                             </div>
-                            """)
+                            <div class="back">
+                                <h6>White Noise Test</h6>
+                                <p><b>Use Case:</b> ForecastGenie runs a simple (Autoreg) model on the target variable's past values (by default lag is set to: 24) and calculates the difference between the actual results and the predicted results (called residuals). These residuals are then tested by the Ljung-Box statistical test to check if there is a pattern present or it is 'just' white noise/random fluctuations. If a pattern is detected (i.e. autocorrelation), then the current model may not capture all dependencies, thus a more complex model is recommended. For instance, consider increasing the order of parameters in SARIMAX(p,d,q)(P,D,Q). If no autocorrelation is found in the residuals, the difference between predicted and actual values are considered to be randomn fluctuations and a simple AR model should suffice to forecast your timeseries, which is the same as SARIMAX(p, 0, 0)(p,0,0) without adding adding additional features.</p>
+                                <h6>Stationarity Test</h6>
+                                <p><b>Use Case:</b> The Augmented Dickey-Fuller (ADF) test is used to assess the stationarity of a time series. Stationarity indicates that a time-series has a stable mean and variance over time, which is an assumption for models such as Autoregressive Moving Average (ARMA) to forecast accurately. However, if initialy your time-series is non-stationary, differencing could be applied to try and make a non-stationary time-series stationary.</p>
+                                <h6>Normality Test</h6>
+                                <p><b>Use Case:</b> The Shapiro test examines residual distribution's normality in a model, where residuals are observed-predicted differences. Non-normality may necessitate alternative models (e.g., Neural Networks or Random Forests)</p>
+                            </div>
+                        </div>
+                    """)
+                            
     # join all the html code for each card and join it into single html code with carousel wrapper
     carousel_html = "<div class='carousel'>" + "".join(card_html) + "</div>"
     # Display the carousel in streamlit
@@ -1781,38 +1778,6 @@ def create_flipcard_stats(num_cards=1,
     st.markdown(
         f"""
         <style>
-        /* back of card styling */
-        .my-list {{
-            font-size: 16px;
-            color: black; /* Add your desired font color here */
-            line-height: 1.4;
-            margin-bottom: 10px;
-            margin-left: 0px;
-            margin-right: 0px;
-            margin-bottom: 0px;
-            padding: 0px;
-            text-align: left;
-        }}
-        .my-list li {{
-            margin: 10px 10px 10px 10px;
-            padding-left: 50px;
-            position: relative;
-        }}
-        .my-number {{
-            font-weight: lighter;
-            color: white;
-            background-color: #48555e;
-            border-radius: 100%;
-            text-align: center;
-            width: 25px;
-            height: 25px;
-            line-height: 20px;
-            display: inline-block;
-            position: absolute;
-            left: 0;
-            top: 0;
-        }}
-        
         /* Carousel Styling */
         .carousel {{
           grid-gap: 10px;
@@ -1844,7 +1809,9 @@ def create_flipcard_stats(num_cards=1,
           border-radius: 10px;
           backface-visibility: hidden;
           font-family: 'Ysabeau SC', sans-serif;
+          font-size: {font_size_back};
           text-align: center;
+          
         }}
         .front {{
           background: linear-gradient(to bottom left, #4e3fce, #7a5dc7, #9b7cc2, #bb9bbd, #c2b1c4);
@@ -1862,6 +1829,7 @@ def create_flipcard_stats(num_cards=1,
               padding: 20px;
               text-align: left; /* Add text-align property to justify the text */
               text-justify: inter-word; /* Add text-justify property for better word spacing */
+              overflow: auto; /* enable a scrollbar for the content inside */
             }}                          
         .flashcard:hover .front {{
           transform: rotateY(180deg);
@@ -1876,9 +1844,15 @@ def create_flipcard_stats(num_cards=1,
         .back h2 {{
           line-height: 2;
         }}
+        .back h6 {{
+          margin-bottom: 0;
+          margin-top: 0;
+        }}
         .back p {{
           margin: 20px; /* Add margin for paragraph text */
+          margin-top: 0;
         }}
+
         /* Carousel Navigation Styling */
         .carousel-nav {{
           margin: 10px 0px;
@@ -2921,11 +2895,11 @@ def ljung_box_test(df, variable_loc, lag, model_type="AutoReg"):
  
     # if p value is less than or equal to significance level reject zero hypothesis
     if lag_with_autocorr is not None: 
-        st.markdown(f'❌ $H_0$: the residuals have **:green[no autocorrelation]** for all lags up to a maximum lag of **{lag}**.') # h0
-        st.markdown(f'✅ $H_1$: the residuals **:red[have autocorrelation]** for all lags up to a maximum lag of **{lag}**.') #h1
+        st.markdown(f'❌ $H_0$: the residuals have **:green[no autocorrelation]** for one or more lags up to a maximum lag of **{lag}**.') # h0
+        st.markdown(f'✅ $H_1$: the residuals **:red[have autocorrelation]** for one or more lags up to a maximum lag of **{lag}**.') #h1
     else: 
-        st.markdown(f'✅ $H_0$: the residuals have **:green[no autocorrelation]** for all lags up to a maximum lag of **{lag}**.') # h0
-        st.markdown(f'❌ $H_1$: the residuals **:red[have autocorrelation]** for all lags up to a maximum lag of **{lag}**.') #h1
+        st.markdown(f'✅ $H_0$: the residuals have **:green[no autocorrelation]** for one or more lags up to a maximum lag of **{lag}**.') # h0
+        st.markdown(f'❌ $H_1$: the residuals **:red[have autocorrelation]** for one or more lags up to a maximum lag of **{lag}**.') #h1
    
     alpha = 0.05  # Significance level
     
@@ -3316,7 +3290,7 @@ def display_dataframe_graph(df, key=0, my_chart_color = '#217CD0'):
     # Display Plotly Express figure in Streamlit
     st.plotly_chart(fig, use_container_width=True, key=key)
     
-def create_rfe_plot(df_ranking, duplicate_ranks_rfe = get_state("SELECT_PAGE_RFE", "duplicate_ranks_rfe")):
+def create_rfe_plot(df_ranking):
     """
     Create a scatter plot of feature rankings and selected features.
 
@@ -3458,6 +3432,14 @@ def plot_train_test_split(df, split_index):
     fig: plotly.graph_objs._figure.Figure
         A plotly Figure object containing the train-test split plot.
     """
+    try:
+        train_linecolor = get_state('COLORS', 'chart_color')
+        test_linecolor = adjusted_color = adjust_brightness(train_linecolor, 2)
+    except:
+        train_linecolor = '#4715ef'
+        test_linecolor = '#efac15'
+        
+    
     # Get the absolute maximum value of the data
     max_value = df.iloc[:, 0].max()
     min_value = min(df.iloc[:, 0].min(), 0)
@@ -3468,7 +3450,7 @@ def plot_train_test_split(df, split_index):
                               y=df.iloc[:split_index, 0],
                               mode='lines',
                               name='Train',
-                              line=dict(color='#4715ef')
+                              line=dict(color = train_linecolor)
                            )
                   )
     fig.add_trace(
@@ -3477,7 +3459,7 @@ def plot_train_test_split(df, split_index):
                                y=df.iloc[split_index:, 0],
                                mode='lines',
                                name='Test',
-                               line=dict(color='#efac15')
+                               line=dict(color = test_linecolor)
                            )
                   )
     fig.update_layout(
@@ -5434,6 +5416,12 @@ def remove_object_columns(df, message_columns_removed = False):
      1     2    5.2
      2     3    6.1
      """
+    # background color number
+    try:
+        background_color_number_lst = get_state("COLORS", "chart_color")
+    except:
+        background_color_number_lst = '#efac15'
+     
     # Get a list of column names with object datatype
     obj_cols = df.select_dtypes(include='object').columns.tolist()
     # Remove the columns that are not needed
@@ -5468,7 +5456,7 @@ def remove_object_columns(df, message_columns_removed = False):
                     .my-number {{
                         font-weight: bold;
                         color: white;
-                        background-color: #efac15;
+                        background-color: {background_color_number_lst};
                         border-radius: 50%;
                         text-align: center;
                         width: 20px;
@@ -7835,22 +7823,22 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
 #                                                  
 # =============================================================================         
 if menu_item == 'Explore' and sidebar_menu_item == 'Home':  
+    # =============================================================================
+    # Define Progress bar
+    # =============================================================================
+    progress_text = "Preparing your exploratory data analysis... Please wait!"
+    my_bar = st.progress(0, text = progress_text)
+    #with st.spinner('Loading your summary, insights, patterns, statistical tests, lag analysis...'):
     
     # define tabs for page sections
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["overview", 
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["overview", 
                                             "insights", 
                                             "patterns", 
                                             "statistical tests", 
-                                            "lag analysis"])
+                                            "lag analysis", 
+                                            "deltas"],
+                                            )
     
-    # set default color for charts / style in Explore page
-    #set_state("COLORS", ("chart_patterns", "#456689"))
-    
-    # If dataset is very small (less then 31 rows), then update the key1_explore and key2_explore
-    if len(st.session_state['df_raw']) < 31:
-        set_state("EXPLORE_PAGE", ("lags_acf", int((len(st.session_state['df_raw'])-1))))
-        set_state("EXPLORE_PAGE", ("lags_pacf", int((len(st.session_state['df_raw'])-1)/2)))
-
     ####################################################            
     # Sidebar EDA parameters / buttons
     ####################################################
@@ -7869,12 +7857,12 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                                               min_value=1, 
                                               value = min(24, len(st.session_state.df_raw)-2), 
                                               max_value=len(st.session_state.df_raw)-2,
-                                              key='lag1_ljung_box',
+                                              key= 'lag1_ljung_box',
                                               help = ' the lag parameter in the Ljung-Box test determines the number of time periods over which the autocorrelation of residuals is evaluated to assess the presence of significant autocorrelation in the time series.')
              
              col1, col2, col3 = st.columns([5,4,4])
              with col2:
-                # create button in sidebar for the ACF and PACF Plot Parameters
+                # create button in sidebar for the white noise (Ljung-Box) test
                 vertical_spacer(1)
                 ljung_box_btn = st.form_submit_button("Submit", type="secondary")
                 
@@ -7883,7 +7871,12 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
             # Create sliders in sidebar for the parameters of PACF Plot
             my_text_paragraph('Autocorrelation ')
             col1, col2, col3 = st.columns([4,1,4])
-            
+        
+            # If dataset is very small (less then 31 rows), then update the key1_explore and key2_explore
+            if len(st.session_state['df_raw']) < 31:
+                set_state("EXPLORE_PAGE", ("lags_acf", int((len(st.session_state['df_raw'])-1))))
+                set_state("EXPLORE_PAGE", ("lags_pacf", int((len(st.session_state['df_raw'])-1)/2)))
+
             # create slider for number of lags for ACF Plot
             nlags_acf = st.slider(label = "*Lags ACF*", 
                                   min_value = 1, 
@@ -7915,8 +7908,6 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                 vertical_spacer(1)
                 acf_pacf_btn = st.form_submit_button("Submit", type="secondary",  on_click=form_update, args=('EXPLORE_PAGE',))   
          
-      
-        
     ####################################################            
     # Explore MAIN PAGE (EDA)
     ####################################################
@@ -7926,27 +7917,23 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         with st.expander('', expanded=True):
             col0, col1, col2, col3 = st.columns([18, 90, 8, 1])   
             with col2:
-               	my_chart_color = st.color_picker(
-                                                 label = 'Color', 
+               	my_chart_color = st.color_picker(label = 'Color', 
                									 value = get_state("COLORS", "chart_patterns"), 
                									 label_visibility = 'collapsed',
-                                                 help = 'Set the **`color`** of the charts and styling elements. It will revert back to the **default** color when switching pages.'
-                                                 )
+                                                  help = 'Set the **`color`** of the charts and styling elements. It will revert back to the **default** color when switching pages.')
+
             #############################################################################
             # Quick Summary Results
             #############################################################################
-            # show in streamlit in sidebar Quick Summary tiles with e.g. rows/columns/start date/end date/mean/median
-            # Display the header for the quick summary
-            #col1, col2, col3 = st.columns([24,40,20])
             with col1:
                 my_text_header('Quick Summary')
             
-            # show tile with the quick summary results on page    
-            #eda_quick_summary(my_chart_color)
+            ## show the flashcard with the quick summary results on page    
+            # eda_quick_summary(my_chart_color)
+            
             col1, col2, col3 = st.columns([7,120,1])
             with col2:
                 vertical_spacer(1)
-                
                 
                 create_flipcard_quick_summary(num_cards = 1, 
                                               header_list = [''],  
@@ -7958,7 +7945,6 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                                               image_path_front_card = './images/quick_summary.png',
                                               my_chart_color = '#FFFFFF')
                 
-            
             # show button and if clicked, show dataframe
             col1, col2, col3 = st.columns([100,50,95])
             with col2:        
@@ -7983,6 +7969,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
             # Show Summary Statistics and statistical test results of dependent variable (y)
             summary_statistics_df = create_summary_df(data = st.session_state.df_raw.iloc[:,1])
         
+    my_bar.progress(20, text = 'loading quick insights...')
     #######################################
     # Quick Insights Results
     #####################################
@@ -8004,7 +7991,6 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                                                 my_string_column='Label', 
                                                 my_chart_color = '#FFFFFF')
                
-            
             # have button available for user and if clicked it expands with the dataframe
             col1, col2, col3 = st.columns([100,50,95])
             with col2:        
@@ -8023,7 +8009,8 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                 st.dataframe(summary_statistics_df, use_container_width=True)
                
                 download_csv_button(summary_statistics_df, my_file="insights.csv", help_message='Download your Insights Dataframe to .CSV', my_key = "insights_download_btn")      
-
+    
+    my_bar.progress(40, text = 'loading patterns')
     with tab3:
         #############################################################################
         # Call function for plotting Graphs of Seasonal Patterns D/W/M/Q/Y in Plotly Charts
@@ -8038,10 +8025,10 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                           y = st.session_state.df_raw.columns[1])
       
             # radio button for user to select frequency of hist: absolute values or relative
-            col1, col2, col3 = st.columns([10,9,9])
+            col1, col2, col3 = st.columns([10,10,7])
             with col2:
                 # Add radio button for frequency type of histogram
-                frequency_type = st.radio(label = "*Select histogram frequency type:*", 
+                frequency_type = st.radio(label = "*histogram frequency type:*", 
                                           options = ("Absolute", "Relative"), 
                                           index = 1 if get_state("HIST", "histogram_freq_type") == "Relative" else 0,
                                           on_change = hist_change_freq,
@@ -8050,6 +8037,8 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
                 vertical_spacer(3)
                 
         st.image('./images/patterns_banner.png')
+        
+    my_bar.progress(60, text = 'loading statistical tests')
     with tab4:
         # =============================================================================
         # ################################## TEST #####################################
@@ -8057,16 +8046,9 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
         with st.expander('', expanded=True):
             col1, col2, col3 = st.columns([7,120,1])
             with col2:  
-                
-                paragraph_text_flipcard_stats = ['''Use Case: The Ljung-Box test is used to check for the presence of autocorrelation in a time series. 
-                                                 It helps determine if the residuals of a model exhibit significant patterns that could be exploited for forecasting. If the test result shows a high p-value (greater than 0.05), it suggests that the residuals are independent and do not exhibit autocorrelation, indicating that a white noise model might be appropriate.''',
-                                                 'Use Case: The Augmented Dickey-Fuller (ADF) test is used to assess the stationarity of a time series. Stationarity is an important assumption for many forecasting models. If the test result shows a low p-value (less than 0.05), it indicates that the time series is stationary, meaning it has a stable mean and variance over time. Stationary series are easier to model and forecast accurately.',
-                                                 'Use Case: Normality tests assess whether the distribution of residuals in a model follows a normal distribution. In time series forecasting, it is important to check if the residuals have a symmetric and bell-shaped distribution. If the test result shows a low p-value (less than 0.05), it suggests that the residuals significantly deviate from normality. Departures from normality may require considering alternative modeling approaches or applying transformations to the data.']
-                header_text_flipcard_stats = ['White Noise Test (Ljung-Box)', 'Stationarity Test (Augmented Dickey-Fuller)', 'Normality Test']
+                                
                 # apply function flipcard
-                create_flipcard_stats(image_path_front_card='./images/statistical_test.png', 
-                                      paragraph_list_back = paragraph_text_flipcard_stats,
-                                      header_list = header_text_flipcard_stats)
+                create_flipcard_stats(image_path_front_card='./images/statistical_test.png', my_header = 'Test Results')
         
         ###################################################################
         # LJUNG-BOX STATISTICAL TEST FOR WHITE NOISE e.g. random residuals
@@ -8182,6 +8164,8 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
             col1, col2, col3 = st.columns([18,40,10])
             col2.write(shapiro_result)
             vertical_spacer(2)
+            
+    my_bar.progress(80, text = 'loading autocorrelation')
     with tab5:    
         ###################################################################
         # AUTOCORRELATION PLOTS - Autocorrelation Plots (ACF & PACF) with optional Differencing applied
@@ -8206,6 +8190,111 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
             # create 3 buttons, about ACF/PACF/Difference for more explanation on the ACF and PACF plots
             acf_pacf_info()
     
+    
+    with tab6:
+        
+        def calculate_relative_change(data, date_column, value_column, relative_change_type):
+            """
+            Calculate the relative change of a given value column based on the selected type of relative change.
+        
+            Args:
+                data (pandas.DataFrame): Input DataFrame containing the date and value columns.
+                date_column (str): Name of the date column.
+                value_column (str): Name of the value column.
+                relative_change_type (str): Type of relative change to calculate.
+        
+            Returns:
+                pandas.Series: Relative change of the value column based on the selected type of relative change.
+            """
+            # Convert the date column to a pandas DateTimeIndex
+            data = data.copy(deep=True)
+            data[date_column] = pd.to_datetime(data[date_column])
+            data.set_index(date_column, inplace=True)
+        
+            # Calculate the relative change based on the selected type
+            if relative_change_type == 'DoD%Δ':
+                relative_change = data[value_column].pct_change() * 100
+            elif relative_change_type == 'WoW%Δ':
+                relative_change = data[value_column].pct_change(7) * 100
+            elif relative_change_type == 'MoM%Δ':
+                relative_change = data[value_column].pct_change(30) * 100
+            elif relative_change_type == 'YoY%Δ':
+                relative_change = data[value_column].pct_change(365) * 100
+            else:
+                relative_change = pd.Series()
+        
+            return relative_change
+        
+        
+        # Example usage with Streamlit
+        # Assuming your data is stored in a pandas DataFrame called 'sales_data'
+        # and has columns 'date' and 'value'
+        
+        # Retrieve the column name based on its relative position (position 1)
+        value_column = st.session_state['df_raw'].iloc[:, 1].name
+        
+        # Call the function to calculate the relative change
+        relative_change_type = st.selectbox('Select relative change type:', ['DoD%Δ', 'WoW%Δ', 'MoM%Δ', 'YoY%Δ'])
+        
+        relative_change = calculate_relative_change(
+            data=st.session_state['df_raw'],
+            date_column='date',
+            value_column=value_column,
+            relative_change_type=relative_change_type
+        )
+        
+        # Filter out empty (NaN) values when comparing relative change
+        relative_change = relative_change.dropna()
+        
+        # Create the bar chart using Plotly Express
+        fig = px.bar(x=relative_change.index, y=relative_change.values)
+        
+        fig.update_layout(
+            xaxis_title='Day of the Week',
+            yaxis_title='Relative Change (%)',
+            xaxis=dict(
+                rangeselector=dict(
+                    buttons=list([
+                        dict(count=7, label='1w', step='day', stepmode='backward'),
+                        dict(count=1, label='1m', step='month', stepmode='backward'),
+                        dict(count=6, label='6m', step='month', stepmode='backward'),
+                        dict(count=1, label='YTD', step='year', stepmode='todate'),
+                        dict(count=1, label='1y', step='year', stepmode='backward'),
+                        dict(step='all')
+                    ]),
+                    x=0.35,
+                    y=0.9,
+                    yanchor='auto',
+                    font=dict(size=10),
+                ),
+                rangeslider=dict(
+                    visible=True,
+                    range=[relative_change.index.min(), relative_change.index.max()]
+                ),
+                type='date'
+            ),
+            height=600,  # Adjust the height value as needed
+            title={
+                'text': f'Relative Change by {relative_change_type}',
+                'x': 0.5,  # Center the title horizontally
+                'xanchor': 'center',  # Center the title horizontally
+                'y': 0.9  # Adjust the vertical position of the title if needed
+            }
+        )
+        
+        # Add labels inside the bars
+        fig.update_traces(
+            texttemplate='%{y:.2f}%',
+            textposition='inside',
+            insidetextfont=dict(color='white')
+        )
+        
+        st.plotly_chart(fig)
+    # =============================================================================
+    # PROGRESS BAR - LOAD COMPLETED    
+    # =============================================================================
+    my_bar.progress(100, text = '"All systems go!"')
+    my_bar.empty()
 # logging
 print('ForecastGenie Print: Ran Explore')
                   
@@ -8218,9 +8307,14 @@ print('ForecastGenie Print: Ran Explore')
 #   \_____|______|______/_/    \_\_| \_|
 #                                       
 # =============================================================================
-# Data Cleaning
+# CLEAN PAGE
 if menu_item == 'Clean' and sidebar_menu_item=='Home':    
-    #my_title(f"{clean_icon} Data Cleaning", "#440154", gradient_colors="#440154, #2C2A6B, #FDE725")
+    # =============================================================================
+    # Define Progress bar
+    # =============================================================================
+    progress_text = "Dusting off cleaning methods... Please wait!"
+    my_bar = st.progress(0, text = progress_text)
+        
     with st.sidebar:
         my_title(f"{clean_icon}", "#3b3b3b", gradient_colors="#440154, #2C2A6B, #FDE725")
 
@@ -8232,6 +8326,7 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             fill_method = st.selectbox(label = '*Select filling method for missing values:*', 
                                        options = ['Backfill', 'Forwardfill', 'Mean', 'Median', 'Mode', 'Custom'],
                                        key = key1_missing)
+            
             if fill_method == 'Custom':
                 custom_fill_value = st.text_input(label = '*Insert custom value to replace missing value(s) with:*', 
                                                   key = key2_missing, 
@@ -8241,8 +8336,9 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             freq_dict = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
 
             # infer and return the original data frequency e.g. 'M' and name e.g. 'Monthly'
-            original_freq, original_freq_name = determine_df_frequency(st.session_state.df_raw, column_name='date')
-
+            original_freq, original_freq_name = determine_df_frequency(st.session_state['df_raw'], 
+                                                                       column_name='date')
+            
             # determine the position of original frequency in the freq_dict to use as the index as chosen frequency in drop-down selectbox for user when loading page
             position = list(freq_dict.values()).index(original_freq)
 
@@ -8257,21 +8353,22 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
                 data_cleaning_btn = st.form_submit_button("Submit", type="secondary", on_click = form_update, args=("CLEAN_PAGE_MISSING",))
 
     # =========================================================================
-    # TRANSFORMATIONS TO DATAFRAME (IMPUTE DATES/MISSING)
-    # =========================================================================
-    
-    # =========================================================================
     # 1. IMPUTE MISSING DATES WITH RESAMPLE METHOD
     # =========================================================================
+    my_bar.progress(25, text = 'checking for missing dates...')
+    
     # Apply function to resample missing dates based on user set frequency
     df_cleaned_dates = resample_missing_dates(df = st.session_state.df_raw, 
                                               freq_dict = freq_dict, 
                                               original_freq = original_freq, 
                                               freq = freq)
-      
+     
+    
     # =========================================================================
     # 2. IMPUTE MISSING VALUES WITH FILL METHOD
     # =========================================================================
+    my_bar.progress(50, text = 'checking for missing values...')
+    
     df_clean = my_fill_method(df_cleaned_dates, fill_method, custom_fill_value)
     # Convert datetime column to date AND set date column as index column
     df_clean_show = copy_df_date_index(df_clean, datetime_to_date=True, date_to_index=True)
@@ -8354,6 +8451,7 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
             # Create and show download button in streamlit to user to download the dataframe with imputations performed to missing values
             download_csv_button(df_clean_show, my_file="df_imputed_missing_values.csv", set_index=True, help_message='Download cleaned dataframe to .CSV')
     
+    my_bar.progress(75, text = 'loading outlier detection methods and cleaning methods')
     #########################################################
     # Handling Outliers
     #########################################################
@@ -8361,7 +8459,7 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
         # call the function to get the outlier form in Streamlit 'Handling Outliers'
         outlier_form()
         
-
+        # retrieve the parameters from default in-memory value or overwritten by user from streamlit widgets
         outlier_detection_method = get_state("CLEAN_PAGE", "outlier_detection_method")
         outlier_zscore_threshold = get_state("CLEAN_PAGE", "outlier_zscore_threshold")
         outlier_iqr_q1 = get_state("CLEAN_PAGE", "outlier_iqr_q1")
@@ -8370,7 +8468,6 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
         outlier_isolationforest_contamination = get_state("CLEAN_PAGE", "outlier_isolationforest_contamination")
         outlier_iqr_multiplier = get_state("CLEAN_PAGE", "outlier_iqr_multiplier")                    
                                                          
-       
         # Create form and sliders for outlier detection and handling
         ##############################################################################       
         df_cleaned_outliers, outliers = handle_outliers(df_clean_show, 
@@ -8394,7 +8491,7 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
                     
                     df_cleaned_outliers = df_cleaned_outliers.add_suffix('_outliers_replaced')
                     
-                    # inner join two dataframes
+                    # inner join two dataframes of outliers and imputed values
                     outliers_df = outliers_df.join(df_cleaned_outliers, how='inner', rsuffix='_outliers_replaced')
                     
                     ## OUTLIER FIGURE CODE
@@ -8446,7 +8543,7 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
                
                 # if outliers are NOT found or None is selected as outlier detection method
                 # ... run code... 
-                # show scatterplot data without outliers
+                # Show scatterplot data without outliers
                 else:
                     vertical_spacer(1)
                     fig_no_outliers = go.Figure()
@@ -8458,9 +8555,12 @@ if menu_item == 'Clean' and sidebar_menu_item=='Home':
                     
                     st.plotly_chart(fig_no_outliers, use_container_width=True)
                     my_text_paragraph(f'No <b> outlier detection </b> or <b> outlier replacement </b> method selected.', my_font_size='14px')
+                    
+    my_bar.progress(100, text = '100%')
+    my_bar.empty()
 else:
     ##################################################################################################################################
-    #************************* PREPROCESSING DATA - CLEANING MISSING AND IF USER SELECTED ALSO OUTLIERS ******************************
+    #************************* PREPROCESSING DATA - CLEANING MISSING AND IF USER SELECTED IT ALSO IMPUTE OUTLIERS ********************
     ##################################################################################################################################
     # Retrieve the date frequency of the timeseries    
     freq_dict = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
@@ -8498,7 +8598,8 @@ else:
                                                     contamination = get_state('CLEAN_PAGE', 'outlier_isolationforest_contamination'), 
                                                     random_state = random_state,  # defined variable random_state top of script e.g. 10
                                                     iqr_multiplier = get_state('CLEAN_PAGE', 'outlier_iqr_multiplier'))
-                                                    
+    
+    # create a copy of the dataframe
     df_cleaned_outliers_with_index = df_cleaned_outliers.copy(deep=True)
     
     # reset the index again to have index instead of date column as index for further processing
@@ -8524,6 +8625,11 @@ else:
 # =============================================================================
 # FEATURE ENGINEERING
 if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
+    # =============================================================================
+    # Define Progress bar
+    # =============================================================================
+    progress_text = "Loading tabs... Please wait!"
+    my_bar = st.progress(0, text = progress_text)
     
     tab1_engineer, tab2_engineer = st.tabs(['engineer', 'result'])
     
@@ -8884,7 +8990,8 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
         # Add the date column but only as numeric feature
         # =============================================================================
         df['date_numeric'] = (df['date'] - df['date'].min()).dt.days
-   
+    
+    my_bar.progress(50, text = 'Combining Features into a presentable format...Please Wait!')
     #################################################################
     # ALL FEATURES COMBINED INTO A DATAFRAME
     #################################################################
@@ -8904,7 +9011,10 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'Home':
             
             # add download button
             download_csv_button(df, my_file = "dataframe_incl_features.csv", help_message = "Download your dataset incl. features to .CSV")
-        
+    
+    my_bar.progress(100, text = 'All systems go!')
+    my_bar.empty()
+    
 # Else e.g. if user is not within menu_item == 'Engineer' and sidebar_menu_item is not 'Home':
 else:
     # set dataframe equal to the cleaned dataframe
@@ -8982,8 +9092,13 @@ local_df = st.session_state['df'].copy(deep=True)
 #  |_|    |_|  \_\______|_| /_/    \_\_|  \_\______|
 #                                                   
 # =============================================================================
-# PREPARE DATASET (REMOVE OBJECT DTYPE FEATURES, TRAIN/TEST SPLIT, NORMALIZE, STANDARDIZE)
+# PREPARE PAGE
+# GOAL: PREPARE DATASET (REMOVE OBJECT DTYPE FEATURES, TRAIN/TEST SPLIT, NORMALIZE, STANDARDIZE)
+
 if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
+    
+    # define user tabs for the prepare page
+    tab1_prepare, tab2_prepare, tab3_prepare, tab4_prepare = st.tabs(['preprocess', 'train/test split', 'normalization', 'standardization'])
     
     with st.sidebar:
         
@@ -8991,246 +9106,264 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
        
     ############################################
     # 5.0.1 PREPROCESS (remove redundant features)
+    # Assumption: if object datatype only descriptive of other columns -> not needed in train/test
     ############################################
-    obj_cols = local_df.select_dtypes(include='object').columns.tolist()
-    
-    # if not an empty list e.g. only show if there are variables removed with dtype = object
-    if obj_cols:
+    with tab1_prepare:
+        obj_cols = local_df.select_dtypes(include='object').columns.tolist()
         
-        # show user which descriptive variables are removed, that just had the purpose to inform user what dummy was from e.g. holiday days such as Martin Luther King Day
-        with st.expander('', expanded=True):
-            my_text_header('Preprocess')
-            my_text_paragraph('*removing redundant features (dtype = object)', my_font_size='12px')
+        # if not an empty list e.g. only show if there are variables removed with dtype = object
+        if obj_cols:
             
-            local_df = remove_object_columns(local_df, message_columns_removed=True)
-    
-            # have button available for user and if clicked it expands with the dataframe
-            col1, col2, col3 = st.columns([130,60,120])
-            with col2:        
+            # show user which descriptive variables are removed, that just had the purpose to inform user what dummy was from e.g. holiday days such as Martin Luther King Day
+            with st.expander('', expanded=True):
+                my_text_header('Preprocess')
+                my_text_paragraph('*removing redundant features (dtype = object)', my_font_size='12px')
                 
-                placeholder = st.empty()
+                local_df = remove_object_columns(local_df, message_columns_removed=True)
+        
+                # have button available for user and if clicked it expands with the dataframe
+                col1, col2, col3 = st.columns([130,60,120])
+                with col2:        
+                    # initiate placeholder
+                    placeholder = st.empty()
+                    
+                    # create button (enabled to click e.g. disabled=false with unique key)
+                    btn = placeholder.button('Show Data', disabled=False,  key = "preprocess_df_show_btn")
                 
-                # create button (enabled to click e.g. disabled=false with unique key)
-                btn = placeholder.button('Show Data', disabled=False,  key = "preprocess_df_show_btn")
-            
-            # if button is clicked run below code
-            if btn == True:
+                # if button is clicked run below code
+                if btn == True:
+                    
+                    # display button with text "click me again", with unique key
+                    placeholder.button('Hide Data', disabled=False, key = "preprocess_df_hide_btn")
+                    
+                    # show dataframe to user in streamlit
+                    st.dataframe(local_df, use_container_width=True)
                 
-                # display button with text "click me again", with unique key
-                placeholder.button('Hide Data', disabled=False, key = "preprocess_df_hide_btn")
-                
-                # show dataframe to user in streamlit
-                st.dataframe(local_df, use_container_width=True)
-            
-            vertical_spacer(1)            
-    
-    ############################################
-    # 5.0.2 PREPROCESS (set date feature as index column)
-    ############################################    
-    # Check if 'date' column exists
-    if 'date' in local_df.columns:
-        # set the date as the index of the pandas dataframe
-        local_df.index = pd.to_datetime(local_df['date'])
-        local_df.drop(columns='date', inplace=True)
-    
-    # update df in session state without descriptive columns
-    st.session_state['df'] = local_df
+                vertical_spacer(1)            
+        st.image('./images/train_test_split_banner.png')
+        ############################################
+        # 5.0.2 PREPROCESS (set date feature as index column)
+        ############################################    
+        # Check if 'date' column exists
+        if 'date' in local_df.columns:
+            # set the date as the index of the pandas dataframe
+            local_df.index = pd.to_datetime(local_df['date'])
+            local_df.drop(columns='date', inplace=True)
+        
+        # update df in session state without descriptive columns
+        st.session_state['df'] = local_df
 
     ######################
     # 5.1 TRAIN/TEST SPLIT
     ######################
-    with st.expander("", expanded=True):
-        my_text_header('Train/Test Split')
-       
-        # create sliders for user insample test-size (/train-size automatically as well)
-        my_insample_forecast_steps, my_insample_forecast_perc = train_test_split_slider(df = st.session_state['df'])
-        
-        # update the session_state with train/test split chosen by user from sidebar slider
-        # note: insample_forecast_steps is used in train/test split as variable
-        st.session_state['insample_forecast_steps'] = my_insample_forecast_steps
-        st.session_state['insample_forecast_perc'] = my_insample_forecast_perc
-        
-        # SHOW USER MESSAGE OF TRAIN/TEST SPLIT
-        #######################################
-        # SET VARIABLES
-        length_df = len(st.session_state['df'])
-        
-        # format as new variables insample_forecast steps in days/as percentage e.g. the test set to predict for
-        perc_test_set = "{:.2f}%".format((st.session_state['insample_forecast_steps']/length_df)*100)
-        perc_train_set = "{:.2f}%".format(((length_df-st.session_state['insample_forecast_steps'])/length_df)*100)
-        my_text_paragraph(f"{perc_train_set} / {perc_test_set}", my_font_size='16px')
-       
-        # PLOT TRAIN/TEST SPLIT
-        ############################
-        # Set train/test split index
-        split_index = min(length_df - st.session_state['insample_forecast_steps'], length_df - 1)
-        # Create a figure with a scatter plot of the train/test split
-        train_test_fig = plot_train_test_split(st.session_state['df'], split_index)
-        # show the plot inside streamlit app on page
-        st.plotly_chart(train_test_fig, use_container_width=True)
-        # show user the train test split currently set by user or default e.g. 80:20 train/test split
-        #st.warning(f"ℹ️ train/test split currently equals :green[**{perc_train_set}**] and :green[**{perc_test_set}**] ")
-        my_text_paragraph('NOTE: a commonly used ratio is <b> 80:20 </b> split between the train- and test set.', my_font_size='12px', my_font_family='Arial') 
-
+    with tab2_prepare:
+        with st.expander("", expanded=True):
+            my_text_header('Train/Test Split')
+           
+            # create sliders for user insample test-size (/train-size automatically as well)
+            my_insample_forecast_steps, my_insample_forecast_perc = train_test_split_slider(df = st.session_state['df'])
+            
+            # update the session_state with train/test split chosen by user from sidebar slider
+            # note: insample_forecast_steps is used in train/test split as variable
+            st.session_state['insample_forecast_steps'] = my_insample_forecast_steps
+            st.session_state['insample_forecast_perc'] = my_insample_forecast_perc
+            
+            # SHOW USER MESSAGE OF TRAIN/TEST SPLIT
+            #######################################
+            # SET VARIABLES
+            length_df = len(st.session_state['df'])
+            
+            # format as new variables insample_forecast steps in days/as percentage e.g. the test set to predict for
+            perc_test_set = "{:.2f}%".format((st.session_state['insample_forecast_steps']/length_df)*100)
+            perc_train_set = "{:.2f}%".format(((length_df-st.session_state['insample_forecast_steps'])/length_df)*100)
+            my_text_paragraph(f"{perc_train_set} / {perc_test_set}", my_font_size='16px')
+           
+            # PLOT TRAIN/TEST SPLIT
+            ############################
+            # Set train/test split index
+            split_index = min(length_df - st.session_state['insample_forecast_steps'], length_df - 1)
+            
+            # Create a figure with a scatter plot of the train/test split
+            train_test_fig = plot_train_test_split(st.session_state['df'], split_index)
+           
+            # show the plot inside streamlit app on page
+            st.plotly_chart(train_test_fig, use_container_width=True)
+            # show user the train test split currently set by user or default e.g. 80:20 train/test split
+            #st.warning(f"ℹ️ train/test split currently equals :green[**{perc_train_set}**] and :green[**{perc_test_set}**] ")
+            
+            my_text_paragraph('NOTE: a commonly used ratio is <b> 80:20 </b> split between the train- and test set.', my_font_size='12px', my_font_family='Arial') 
+            
+            vertical_spacer(2)
+            
     ##############################
     # 5.2 Normalization
     ##############################
-    with st.sidebar:
-        with st.form('normalization'):
-            
-            my_text_paragraph('Normalization')
-            
-            # Add selectbox for normalization choices
-            if numerical_features:
-                # define dictionary of normalization choices as keys and values are descriptions of each choice
-                normalization_choices = {
-                                        "None": "Do not normalize the data",
-                                        "MinMaxScaler": "Scale features to a given range (default range is [0, 1]).",
-                                        "RobustScaler": "Scale features using statistics that are robust to outliers.",
-                                        "MaxAbsScaler": "Scale each feature by its maximum absolute value.",
-                                        "PowerTransformer": "Apply a power transformation to make the data more Gaussian-like.",
-                                        "QuantileTransformer": "Transform features to have a uniform or Gaussian distribution."
-                                        }
+    with tab3_prepare:
+        with st.sidebar:
+            with st.form('normalization'):
                 
-                # create a dropdown menu for user in sidebar to choose from a list of normalization methods
-                normalization_choice = st.selectbox(label = "*Select normalization method:*", 
-                                                    options = list(normalization_choices.keys()),
-                                                    format_func = lambda x: f"{x} - {normalization_choices[x]}", 
-                                                    key = key1_prepare_normalization,
-                                                    help = '**`Normalization`** is a data pre-processing technique to transform the numerical data in a dataset to a standard scale or range.\
-                                                            This process involves transforming the features of the dataset so that they have a common scale, which makes it easier for data scientists to analyze, compare, and draw meaningful insights from the data.')
-                # save user normalization choice in memory
-                st.session_state['normalization_choice'] = normalization_choice
-            else:
-               # if no numerical features show user a message to inform
-               st.warning("No numerical features to normalize, you can try adding features!")
-               # set normalization_choice to None
-               normalization_choice = "None"
+                my_text_paragraph('Normalization')
+                
+                # Add selectbox for normalization choices
+                if numerical_features:
+                    # define dictionary of normalization choices as keys and values are descriptions of each choice
+                    normalization_choices = {
+                                            "None": "Do not normalize the data",
+                                            "MinMaxScaler": "Scale features to a given range (default range is [0, 1]).",
+                                            "RobustScaler": "Scale features using statistics that are robust to outliers.",
+                                            "MaxAbsScaler": "Scale each feature by its maximum absolute value.",
+                                            "PowerTransformer": "Apply a power transformation to make the data more Gaussian-like.",
+                                            "QuantileTransformer": "Transform features to have a uniform or Gaussian distribution."
+                                            }
+                    
+                    # create a dropdown menu for user in sidebar to choose from a list of normalization methods
+                    normalization_choice = st.selectbox(label = "*Select normalization method:*", 
+                                                        options = list(normalization_choices.keys()),
+                                                        format_func = lambda x: f"{x} - {normalization_choices[x]}", 
+                                                        key = key1_prepare_normalization,
+                                                        help = '**`Normalization`** is a data pre-processing technique to transform the numerical data in a dataset to a standard scale or range.\
+                                                                This process involves transforming the features of the dataset so that they have a common scale, which makes it easier for data scientists to analyze, compare, and draw meaningful insights from the data.')
+                    # save user normalization choice in memory
+                    st.session_state['normalization_choice'] = normalization_choice
+                else:
+                   # if no numerical features show user a message to inform
+                   st.warning("No numerical features to normalize, you can try adding features!")
+                   # set normalization_choice to None
+                   normalization_choice = "None"
+                
+                # create form button centered on sidebar to submit user choice for normalization method
+                col1, col2, col3 = st.columns([4,4,4])
+                with col2:       
+                    normalization_btn = st.form_submit_button("Submit", type="secondary", on_click = form_update, args=("PREPARE",))
             
-            # create form button centered on sidebar to submit user choice for normalization method
-            col1, col2, col3 = st.columns([4,4,4])
-            with col2:       
-                normalization_btn = st.form_submit_button("Submit", type="secondary", on_click = form_update, args=("PREPARE",))
-        
-        # apply function for normalizing the dataframe if user choice
-        # IF user selected a normalization_choice other then "None" the X_train and X_test will be scaled
-        X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(df = st.session_state['df'], 
-                                                                                  my_insample_forecast_steps = st.session_state['insample_forecast_steps'], 
-                                                                                  scaler_choice = st.session_state['normalization_choice'], 
-                                                                                  numerical_features = numerical_features)
-        
-    # if user did not select normalization (yet) then show user message to select normalization method in sidebar
-    if normalization_choice == "None":
-        with st.expander('Normalization ',expanded=True):
-            my_text_header('Normalization') 
+            # apply function for normalizing the dataframe if user choice
+            # IF user selected a normalization_choice other then "None" the X_train and X_test will be scaled
+            X, y, X_train, X_test, y_train, y_test, scaler = perform_train_test_split(df = st.session_state['df'], 
+                                                                                      my_insample_forecast_steps = st.session_state['insample_forecast_steps'], 
+                                                                                      scaler_choice = st.session_state['normalization_choice'], 
+                                                                                      numerical_features = numerical_features)
             
-            show_lottie_animation(url="./images/monster-2.json", key="rocket_night_day", width=200, height=200, col_sizes=[6,6,6])
             
-            my_text_paragraph(f'Method: {normalization_choice}')
             
-            st.info('👈 Please choose in the sidebar your normalization method for numerical columns. Note: columns with booleans will be excluded.')
-
-    # else show user the dataframe with the features that were normalized
-    else:
-        with st.expander('Normalization',expanded=True):
-           
-            my_text_header('Normalized Features') 
-            
-            my_text_paragraph(f'Method: {normalization_choice}')
-            
-            # need original (unnormalized) X_train as well for figure in order to show before/after normalization
-            X_unscaled_train = df.iloc[:, 1:].iloc[:-st.session_state['insample_forecast_steps'] , :]
-            
-            # with custom function create the normalization plot with numerical features i.e. before/after scaling
-            plot_scaling_before_after(X_unscaled_train, X_train, numerical_features)
-            
-            st.success(f'🎉 Good job! **{len(numerical_features)}** numerical feature(s) are normalized with **{normalization_choice}**!')
-            
-            st.dataframe(X[numerical_features].assign(date=X.index.date).reset_index(drop=True).set_index('date'), use_container_width=True) # TEST
-           
-            # create download button for user, to download the standardized features dataframe with dates as index i.e. first column
-            download_csv_button(X[numerical_features], 
-                                my_file='standardized_features.csv', 
-                                help_message='Download standardized features to .CSV', 
-                                set_index=True, 
-                                my_key='normalization_download_btn')
-            
+        # if user did not select normalization (yet) then show user message to select normalization method in sidebar
+        if normalization_choice == "None":
+            with st.expander('Normalization ',expanded=True):
+                my_text_header('Normalization') 
+                
+                vertical_spacer(4)
+                
+                #show_lottie_animation(url="./images/monster-2.json", key="rocket_night_day", width=200, height=200, col_sizes=[6,6,6])
+                st.image('./images/train_test_split.png')
+                my_text_paragraph(f'Method: {normalization_choice}')
+                
+                vertical_spacer(12)
+                
+                st.info('👈 Please choose in the sidebar your normalization method for numerical columns. Note: columns with booleans will be excluded.')
+    
+        # else show user the dataframe with the features that were normalized
+        else:
+            with st.expander('Normalization',expanded=True):
+               
+                my_text_header('Normalized Features') 
+                
+                my_text_paragraph(f'Method: {normalization_choice}')
+                
+                # need original (unnormalized) X_train as well for figure in order to show before/after normalization
+                X_unscaled_train = df.iloc[:, 1:].iloc[:-st.session_state['insample_forecast_steps'] , :]
+                
+                # with custom function create the normalization plot with numerical features i.e. before/after scaling
+                plot_scaling_before_after(X_unscaled_train, X_train, numerical_features)
+                
+                st.success(f'🎉 Good job! **{len(numerical_features)}** numerical feature(s) are normalized with **{normalization_choice}**!')
+                
+                st.dataframe(X[numerical_features].assign(date=X.index.date).reset_index(drop=True).set_index('date'), use_container_width=True) # TEST
+               
+                # create download button for user, to download the standardized features dataframe with dates as index i.e. first column
+                download_csv_button(X[numerical_features], 
+                                    my_file='standardized_features.csv', 
+                                    help_message='Download standardized features to .CSV', 
+                                    set_index=True, 
+                                    my_key='normalization_download_btn')
+                
+                
     ##############################
     # 5.3 Standardization
-    ##############################            
-    with st.sidebar:
-        with st.form('standardization'):
-            my_text_paragraph('Standardization')
-            if numerical_features:
-                standardization_choices = {
-                                            "None": "Do not standardize the data",
-                                            "StandardScaler": "Standardize features by removing the mean and scaling to unit variance.",
-                                                                                   }
-                standardization_choice = st.selectbox(label = "*Select standardization method:*", 
-                                                      options = list(standardization_choices.keys()), 
-                                                      format_func = lambda x: f"{x} - {standardization_choices[x]}",
-                                                      key = key2_prepare_standardization,
-                                                      help = '**`Standardization`** is a preprocessing technique used to transform the numerical data to have zero mean and unit variance.\
-                                                              This is achieved by subtracting the mean from each value and then dividing by the standard deviation.\
-                                                              The resulting data will have a mean of zero and a standard deviation of one.\
-                                                              The distribution of the data is changed by centering and scaling the values, which can make the data more interpretable and easier to compare across different features' )
-            else:
-               # if no numerical features show user a message to inform
-               st.warning("No numerical features to standardize, you can try adding features!")
-               
-               # set normalization_choice to None
-               standardization_choice = "None"
+    ##############################   
+    with tab4_prepare:         
+        with st.sidebar:
+            with st.form('standardization'):
+                my_text_paragraph('Standardization')
+                if numerical_features:
+                    standardization_choices = {
+                                                "None": "Do not standardize the data",
+                                                "StandardScaler": "Standardize features by removing the mean and scaling to unit variance.",
+                                                                                       }
+                    standardization_choice = st.selectbox(label = "*Select standardization method:*", 
+                                                          options = list(standardization_choices.keys()), 
+                                                          format_func = lambda x: f"{x} - {standardization_choices[x]}",
+                                                          key = key2_prepare_standardization,
+                                                          help = '**`Standardization`** is a preprocessing technique used to transform the numerical data to have zero mean and unit variance.\
+                                                                  This is achieved by subtracting the mean from each value and then dividing by the standard deviation.\
+                                                                  The resulting data will have a mean of zero and a standard deviation of one.\
+                                                                  The distribution of the data is changed by centering and scaling the values, which can make the data more interpretable and easier to compare across different features' )
+                else:
+                   # if no numerical features show user a message to inform
+                   st.warning("No numerical features to standardize, you can try adding features!")
+                   
+                   # set normalization_choice to None
+                   standardization_choice = "None"
+                
+                # create form button centered on sidebar to submit user choice for standardization method   
+                col1, col2, col3 = st.columns([4,4,4])
+                with col2:       
+                    standardization_btn = st.form_submit_button("Submit", type="secondary", on_click = form_update, args=("PREPARE",))
+    
+            # apply function for normalizing the dataframe if user choice
+            # IF user selected a normalization_choice other then "None" the X_train and X_test will be scaled
+            X, y, X_train, X_test, y_train, y_test = perform_train_test_split_standardization(X, y, X_train, X_test, y_train, y_test, 
+                                                                                              st.session_state['insample_forecast_steps'], 
+                                                                                              scaler_choice = standardization_choice, 
+                                                                                              numerical_features = numerical_features)
             
-            # create form button centered on sidebar to submit user choice for standardization method   
-            col1, col2, col3 = st.columns([4,4,4])
-            with col2:       
-                standardization_btn = st.form_submit_button("Submit", type="secondary", on_click = form_update, args=("PREPARE",))
+        # if user did not select standardization (yet) then show user message to select normalization method in sidebar
+        if standardization_choice == "None":
+            # on page create expander
+            with st.expander('Standardization ',expanded=True):
+                
+                my_text_header('Standardization') 
 
-        # apply function for normalizing the dataframe if user choice
-        # IF user selected a normalization_choice other then "None" the X_train and X_test will be scaled
-        X, y, X_train, X_test, y_train, y_test = perform_train_test_split_standardization(X, y, X_train, X_test, y_train, y_test, 
-                                                                                          st.session_state['insample_forecast_steps'], 
-                                                                                          scaler_choice = standardization_choice, 
-                                                                                          numerical_features = numerical_features)
-        
-    # if user did not select standardization (yet) then show user message to select normalization method in sidebar
-    if standardization_choice == "None":
-        # on page create expander
-        with st.expander('Standardization ',expanded=True):
-            
-            my_text_header('Standardization') 
-            
-            show_lottie_animation(url="./images/2833-green-monster.json", key="green-monster", width=200, height=200, col_sizes=[6,6,6], speed=0.8)
-            
-            my_text_paragraph(f'Method: {standardization_choice}')
-            
-            st.info('👈 Please choose in the sidebar your Standardization method for numerical columns. Note: columns with booleans will be excluded.')
-            
-    # ELSE show user the dataframe with the features that were normalized
-    else:
-        with st.expander('Standardization',expanded=True):
-            
-            my_text_header('Standardization') 
-            
-            my_text_paragraph(f'Method: {standardization_choice}')
-            
-            # need original (unnormalized) X_train as well for figure in order to show before/after Standardization
-            # TEST or do i need st.session_state['df'] instead of df? -> replaced df with st.session_state['df']
-            X_unscaled_train = st.session_state['df'].iloc[:, 1:].iloc[:-st.session_state['insample_forecast_steps'], :]
-            
-            # with custom function create the Standardization plot with numerical features i.e. before/after scaling
-            plot_scaling_before_after(X_unscaled_train, X_train, numerical_features)
-           
-            st.success(f'⚖️ Great, you balanced the scales! **{len(numerical_features)}** numerical feature(s) standardized with **{standardization_choice}**')
-            
-            st.dataframe(X[numerical_features], use_container_width=True)
-            
-            # create download button for user, to download the standardized features dataframe with dates as index i.e. first column
-            download_csv_button(X[numerical_features], 
-                                my_file='standardized_features.csv', 
-                                help_message='Download standardized features to .CSV', 
-                                set_index=True, 
-                                my_key='standardization_download_btn')
+                #show_lottie_animation(url="./images/2833-green-monster.json", key="green-monster", width=200, height=200, col_sizes=[6,6,6], speed=0.8)
+                st.image('./images/standardization.png')
+                
+                my_text_paragraph(f'Method: {standardization_choice}')
+
+                st.info('👈 Please choose in the sidebar your Standardization method for numerical columns. Note: columns with booleans will be excluded.')
+                
+        # ELSE show user the dataframe with the features that were normalized
+        else:
+            with st.expander('Standardization',expanded=True):
+                
+                my_text_header('Standardization') 
+                
+                my_text_paragraph(f'Method: {standardization_choice}')
+                
+                # need original (unnormalized) X_train as well for figure in order to show before/after Standardization
+                # TEST or do i need st.session_state['df'] instead of df? -> replaced df with st.session_state['df']
+                X_unscaled_train = st.session_state['df'].iloc[:, 1:].iloc[:-st.session_state['insample_forecast_steps'], :]
+                
+                # with custom function create the Standardization plot with numerical features i.e. before/after scaling
+                plot_scaling_before_after(X_unscaled_train, X_train, numerical_features)
+               
+                st.success(f'⚖️ Great, you balanced the scales! **{len(numerical_features)}** numerical feature(s) standardized with **{standardization_choice}**')
+                
+                st.dataframe(X[numerical_features], use_container_width=True)
+                
+                # create download button for user, to download the standardized features dataframe with dates as index i.e. first column
+                download_csv_button(X[numerical_features], 
+                                    my_file='standardized_features.csv', 
+                                    help_message='Download standardized features to .CSV', 
+                                    set_index=True, 
+                                    my_key='standardization_download_btn')
 
 else:
     # =============================================================================
@@ -9466,14 +9599,14 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                     st.info(f'There are no **pairwise combinations** in the selected features with a **correlation** larger than or equal to the user defined threshold of **{corr_threshold*100:.0f}%**')
                     vertical_spacer(1)
                 else:
-                    st.markdown(f' <center> The following pairwise combinations of features have a correlation >= threshold: </center>', unsafe_allow_html=True)      
+                    my_text_paragraph(f'The below pairwise combinations of features have a correlation >= {corr_threshold*100:.0f}% threshold:', my_font_size='16px')
                     vertical_spacer(1)
                     
                     # show dataframe with pairwise features
                     st.dataframe(df_pairwise, use_container_width=True)
                     
                     # download button for dataframe of pairwise correlation
-                    download_csv_button(df_pairwise, my_file="pairwise_correlation.csv", help_message='Download pairwise correlation to .CSV', set_index=False)
+                    download_csv_button(df_pairwise, my_file="pairwise_correlation.csv", help_message='Download the pairwise correlations to .CSV', set_index=False)
                     
                     # insert divider line
                     st.markdown('---')
