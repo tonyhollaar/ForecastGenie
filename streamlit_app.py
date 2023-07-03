@@ -209,6 +209,177 @@ st.markdown(font_style, unsafe_allow_html=True)
 # =============================================================================
 
 # =============================================================================
+# def create_moon_clickable_btns(button_names = ['MY_BUTTON_TEXT']):
+#     """
+#     Generates HTML code for creating clickable moon buttons.
+#     
+#     Args:
+#         button_names (list): A list of button names.
+#     
+#     Returns:
+#         str: The lowercase button name if a moon button is clicked with added lowercase if spaces in the name
+#         
+#     Example:
+#         clicked_btn_name = create_moon_clickable_btns(button_names = [my button name'])                                                            
+#         if clicked_btn_name == 'my_button_name':
+#             print(f'you clicked the button {my_button_name}!')        
+#     
+#     Requirements:
+#         streamlit
+#         from st_click_detector import click_detector #source: https://github.com/vivien000/st-click-detector
+#         
+#     """
+#     button_colors = [
+#                      'radial-gradient(circle at 50% 50%, #000000)', 
+#                      'conic-gradient(from 180deg at 50% 50%, #f5f5f5 0deg 180deg, #000000 180deg)', 
+#                      'radial-gradient(circle at 50% 50%, #000000)', 
+#                      'conic-gradient(from 180deg at 50% 50%, #000000 0deg 180deg, #f5f5f5 180deg)'
+#                     ]
+#     
+#     # MOON BUTTONS
+#     button_container = """
+#     <style>
+#         .button-container {{
+#             display: flex;
+#             flex-direction: row;
+#             align-items: center;
+#             justify-content: center;
+#             padding: 10px;
+#             margin-top: -30px;
+#             position: relative;
+#             perspective: 1000px;
+#             transform-style: preserve-3d;
+#         }}
+#     
+#         .button {{
+#             width: 70px;
+#             height: 70px;
+#             background: #292929;
+#             border-radius: 50%;
+#             margin: 0 10px;
+#             position: relative;
+#             perspective: 1000px;
+#             transform-style: preserve-3d;
+#             overflow: hidden;
+#         }}
+#     
+#         .button:before {{
+#             content: "";
+#             position: absolute;
+#             top: 50%;
+#             left: 50%;
+#             width: 120%;
+#             height: 120%;
+#             border-radius: 50%;
+#             background: transparent;
+#             border: 2px solid rgba(255, 255, 255, 0.3);
+#             transform-style: preserve-3d;
+#             transform: translate(-50%, -50%) rotateY(-90deg);
+#             animation: planet-ring-rotation 8s linear infinite reverse;
+#             z-index: -1;
+#         }}
+#     
+#         .button:after {{
+#             content: "";
+#             position: absolute;
+#             top: 50%;
+#             left: 50%;
+#             width: 120%;
+#             height: 2px;
+#             background: rgba(255, 255, 255, 0.3);
+#             transform-style: preserve-3d;
+#             transform: translate(-50%, -50%) rotateX(90deg);
+#         }}
+#     
+#         .button a {{
+#             position: absolute;
+#             top: 0;
+#             left: 0;
+#             width: 100%;
+#             height: 100%;
+#             display: flex;
+#             justify-content: center;
+#             align-items: center;
+#             text-decoration: 'none';
+#             color: #f5f5f5;
+#             text-transform: uppercase;
+#             font-size: 16px;
+#             font-weight: bold;
+#             white-space: nowrap;
+#             animation: text-rotation 8s linear infinite reverse;
+#             transform-style: preserve-3d;
+#             perspective: 1000px;
+#         }}
+#     
+#         @keyframes planet-ring-rotation {{
+#             0% {{
+#                 transform: translate(100%, -50%) rotateY(0deg);
+#                 clip-path: polygon(50%  0%, 0% 0%, 0% 0%, 0% 100%);
+#             }}
+#             50% {{
+#                 transform: translate(-70%, -50%) rotateY(-180deg);
+#                 clip-path: polygon(50%  0%, 100% 0%, 100% 100%, 50% 100%);
+#             }}
+#             100% {{
+#                 transform: translate(-50%, -50%) rotateY(-360deg);
+#                 clip-path: polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%);
+#             }}
+#         }}
+#     
+#         @keyframes text-rotation {{
+#             0% {{
+#                 transform: translateX(-100%) scale(0.5);
+#                 opacity: 0;
+#             }}
+#             10% {{
+#                 transform: translateX(-70%) scale(0.7) perspective(1000px);
+#                 opacity: 1;
+#             }}
+#             90% {{
+#                 transform: translateX(70%) scale(0.7) perspective(1000px);
+#                 opacity: 1;
+#             }}
+#             100% {{
+#                 transform: translateX(100%) scale(0.5) perspective(1000px) rotateY(180deg);
+#                 opacity: 0;
+#             }}
+#         }}
+#     </style>
+#     <div class="button-container">
+#         {buttons_html}
+#     </div>
+#     """
+# 
+#     # Define the HTML code for a single button
+#     button_template = """
+#     <div class="button" style="background: {color};">
+#         <a href="#" id="{id}">
+#             {name}
+#         </a>
+#     </div>
+#     """
+#     
+#     # Generate the HTML code for the buttons
+#     buttons_html = ""
+#     for i, model_name in enumerate(button_names):
+#         button_html = button_template.format(
+#             id=model_name.lower().replace(" ", "_"),
+#             name=model_name,
+#             color=button_colors[i % len(button_colors)]
+#         )
+#         buttons_html += button_html
+#     
+#     # Combine the buttons HTML with the container HTML
+#     full_html = button_container.format(buttons_html=buttons_html)
+#  
+#     clicked_model_btn = click_detector(full_html)
+#     return clicked_model_btn
+# =============================================================================
+
+
+
+
+# =============================================================================
 # # =============================================================================
 # #  Show/Hide Button to download dataframe                   
 # # =============================================================================
@@ -332,171 +503,7 @@ st.markdown(font_style, unsafe_allow_html=True)
 #  |_|     \____/|_| \_|\_____|  |_|  |_____\____/|_| \_|_____/ 
 #                                                               
 # =============================================================================
-def create_moon_clickable_btns(button_names = ['MY_BUTTON_TEXT']):
-    """
-    Generates HTML code for creating clickable moon buttons.
-    
-    Args:
-        button_names (list): A list of button names.
-    
-    Returns:
-        str: The lowercase button name if a moon button is clicked with added lowercase if spaces in the name
-        
-    Example:
-        clicked_btn_name = create_moon_clickable_btns(button_names = [my button name'])                                                            
-        if clicked_btn_name == 'my_button_name':
-            print(f'you clicked the button {my_button_name}!')        
-    
-    Requirements:
-        streamlit
-        from st_click_detector import click_detector #source: https://github.com/vivien000/st-click-detector
-        
-    """
-    button_colors = [
-                     'radial-gradient(circle at 50% 50%, #000000)', 
-                     'conic-gradient(from 180deg at 50% 50%, #f5f5f5 0deg 180deg, #000000 180deg)', 
-                     'radial-gradient(circle at 50% 50%, #000000)', 
-                     'conic-gradient(from 180deg at 50% 50%, #000000 0deg 180deg, #f5f5f5 180deg)'
-                    ]
-    
-    # MOON BUTTONS
-    button_container = """
-    <style>
-        .button-container {{
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: center;
-            padding: 10px;
-            margin-top: -30px;
-            position: relative;
-            perspective: 1000px;
-            transform-style: preserve-3d;
-        }}
-    
-        .button {{
-            width: 70px;
-            height: 70px;
-            background: #292929;
-            border-radius: 50%;
-            margin: 0 10px;
-            position: relative;
-            perspective: 1000px;
-            transform-style: preserve-3d;
-            overflow: hidden;
-        }}
-    
-        .button:before {{
-            content: "";
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 120%;
-            height: 120%;
-            border-radius: 50%;
-            background: transparent;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            transform-style: preserve-3d;
-            transform: translate(-50%, -50%) rotateY(-90deg);
-            animation: planet-ring-rotation 8s linear infinite reverse;
-            z-index: -1;
-        }}
-    
-        .button:after {{
-            content: "";
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 120%;
-            height: 2px;
-            background: rgba(255, 255, 255, 0.3);
-            transform-style: preserve-3d;
-            transform: translate(-50%, -50%) rotateX(90deg);
-        }}
-    
-        .button a {{
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            text-decoration: 'none';
-            color: #f5f5f5;
-            text-transform: uppercase;
-            font-size: 16px;
-            font-weight: bold;
-            white-space: nowrap;
-            animation: text-rotation 8s linear infinite reverse;
-            transform-style: preserve-3d;
-            perspective: 1000px;
-        }}
-    
-        @keyframes planet-ring-rotation {{
-            0% {{
-                transform: translate(100%, -50%) rotateY(0deg);
-                clip-path: polygon(50%  0%, 0% 0%, 0% 0%, 0% 100%);
-            }}
-            50% {{
-                transform: translate(-70%, -50%) rotateY(-180deg);
-                clip-path: polygon(50%  0%, 100% 0%, 100% 100%, 50% 100%);
-            }}
-            100% {{
-                transform: translate(-50%, -50%) rotateY(-360deg);
-                clip-path: polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%);
-            }}
-        }}
-    
-        @keyframes text-rotation {{
-            0% {{
-                transform: translateX(-100%) scale(0.5);
-                opacity: 0;
-            }}
-            10% {{
-                transform: translateX(-70%) scale(0.7) perspective(1000px);
-                opacity: 1;
-            }}
-            90% {{
-                transform: translateX(70%) scale(0.7) perspective(1000px);
-                opacity: 1;
-            }}
-            100% {{
-                transform: translateX(100%) scale(0.5) perspective(1000px) rotateY(180deg);
-                opacity: 0;
-            }}
-        }}
-    </style>
-    <div class="button-container">
-        {buttons_html}
-    </div>
-    """
 
-    # Define the HTML code for a single button
-    button_template = """
-    <div class="button" style="background: {color};">
-        <a href="#" id="{id}">
-            {name}
-        </a>
-    </div>
-    """
-    
-    # Generate the HTML code for the buttons
-    buttons_html = ""
-    for i, model_name in enumerate(button_names):
-        button_html = button_template.format(
-            id=model_name.lower().replace(" ", "_"),
-            name=model_name,
-            color=button_colors[i % len(button_colors)]
-        )
-        buttons_html += button_html
-    
-    # Combine the buttons HTML with the container HTML
-    full_html = button_container.format(buttons_html=buttons_html)
- 
-    clicked_model_btn = click_detector(full_html)
-    return clicked_model_btn
 
 def clear_test_results():
     """
@@ -1199,12 +1206,17 @@ def show_model_inputs():
         None
     """
     my_text_header('Model Inputs')
-    show_lottie_animation(url="./images/86093-data-fork.json", key='inputs')
-
+# =============================================================================
+#     show_lottie_animation(url="./images/86093-data-fork.json", key='inputs')
+# =============================================================================
+    col1, col2, col3 = st.columns([7,120,1])
+    with col2:  
+        create_flipcard_model_input(image_path_front_card='./images/model_inputs.png')
+    
     col1, col2, col3 = st.columns([2, 4, 2])
     with col2:
-        color_train = '#624e9f'  
-        color_test = '#149ef3'  
+        color_train = '#07080d'  
+        color_test = '#67d0c4'  
         button_container = """
             <div style="display: flex; flex-direction: column; align-items: center; padding: 10px; margin-top: -30px;">
                 <div style="display: flex; width: 100%; max-width: 400px;">
@@ -1738,80 +1750,212 @@ def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, 
         </style>
         """, unsafe_allow_html=True)        
  
-def create_flipcard_stats(image_path_front_card = None, font_size_back = '10px', my_header = None, **kwargs):
-    
-    # Header in Streamlit
-    col1, col2, col3 = st.columns([20,40,20])
-    with col2:
-        my_text_header(my_header)
-        vertical_spacer(1)
-    
-    # open the image for the front of the card
+def create_flipcard_model_input(image_path_front_card=None, font_size_back='10px', **kwargs):
+
+    # Open the image for the front of the card
     with open(image_path_front_card, 'rb') as file:
         contents = file.read()
         data_url = base64.b64encode(contents).decode("utf-8")
-    
-    # create empty list that will keep the html code needed for each card with header+text
+
+    # Create empty list that will keep the HTML code needed for each card with header+text
     card_html = []
-    
-    # append html code to list
-    card_html.append(f"""<div class="flashcard">
-                            <div class='front'>
-                                <img src="data:image/png;base64,{data_url}"style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
-                            </div>
-                            <div class="back">
-                                <h6>White Noise Test</h6>
-                                <p><b>Use Case:</b> ForecastGenie runs a simple (Autoreg) model on the target variable's past values (by default lag is set to: 24) and calculates the difference between the actual results and the predicted results (called residuals). These residuals are then tested by the Ljung-Box statistical test to check if there is a pattern present or it is 'just' white noise/random fluctuations. If a pattern is detected (i.e. autocorrelation), then the current model may not capture all dependencies, thus a more complex model is recommended. For instance, consider increasing the order of parameters in SARIMAX(p,d,q)(P,D,Q). If no autocorrelation is found in the residuals, the difference between predicted and actual values are considered to be randomn fluctuations and a simple AR model should suffice to forecast your timeseries, which is the same as SARIMAX(p, 0, 0)(p,0,0) without adding adding additional features.</p>
-                                <h6>Stationarity Test</h6>
-                                <p><b>Use Case:</b> The Augmented Dickey-Fuller (ADF) test is used to assess the stationarity of a time series. Stationarity indicates that a time-series has a stable mean and variance over time, which is an assumption for models such as Autoregressive Moving Average (ARMA) to forecast accurately. However, if initialy your time-series is non-stationary, differencing could be applied to try and make a non-stationary time-series stationary.</p>
-                                <h6>Normality Test</h6>
-                                <p><b>Use Case:</b> The Shapiro test examines residual distribution's normality in a model, where residuals are observed-predicted differences. Non-normality may necessitate alternative models (e.g., Neural Networks or Random Forests)</p>
-                            </div>
-                        </div>
-                    """)
-                            
-    # join all the html code for each card and join it into single html code with carousel wrapper
-    carousel_html = "<div class='carousel'>" + "".join(card_html) + "</div>"
-    # Display the carousel in streamlit
-    st.markdown(carousel_html, unsafe_allow_html=True)
+
+    # Append HTML code to list
+    card_html.append(f"""
+        <div class="flashcard_model_input">
+            <div class='front_model_input'>
+                <img src="data:image/png;base64,{data_url}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
+            </div>
+            <div class="back_model_input" style="margin-top: 20px; display: flex; align-items: center;">
+                <!-- Add your text for the back of the card here -->
+                <h3> your dataset is split into a training dataset and a test dataset. The training dataset is used to train the model, while the test dataset, on the other hand, is used to evaluate the performance of the trained model.<h3/>
+            </div>
+        </div>
+    """)
+        
     # Create the CSS styling for the carousel
     st.markdown(
         f"""
         <style>
-        /* Carousel Styling */
-        .carousel {{
-          grid-gap: 10px;
+        .flipcard_stats {{
+          display: flex;
+          justify-content: center;
           overflow-x: auto;
           scroll-snap-type: x mandatory;
           scroll-behavior: smooth;
           -webkit-overflow-scrolling: touch;
           width: 100%;
-          margin: auto;
         }}
-       .flashcard {{
-          display: inline-block; /* Display cards inline */
+        .flashcard_model_input {{
           width: 600px;
           height: 600px;
           background-color: white;
           border-radius: 10px;
           box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
           perspective: 100px;
-          margin-bottom: 0px; /* Add space between cards */
-          padding: 0px;
+          margin-bottom: 10px;
+          scroll-snap-align: center;
+        }}
+        .front_model_input, .back_model_input {{
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          border-radius: 10px;
+          backface-visibility: hidden;
+          font-family: 'Ysabeau SC', sans-serif;
+          font-size: {font_size_back};
+          text-align: center;
+        }}
+        .front_model_input {{
+          background: linear-gradient(to bottom left, #4e3fce, #7a5dc7, #9b7cc2, #bb9bbd, #c2b1c4);
+          color: white;
+          transform: rotateY(0deg);
+        }}
+        .back_model_input {{
+            color: #333333;
+            background: white;
+            transform: rotateY(180deg);
+            display: flex;
+            justify-content: flex-start;
+            border: none;
+            margin: 0;
+            padding: 60px;
+            text-align: left;
+            text-justify: inter-word;
+            overflow: auto;
+            position: relative;
+            /* border-radius: 10px; */
+            /* border: 10px solid black; */
+        }}
+        .back_model_input h6 {{
+          margin-bottom: 0px;
+          margin-top: 0px;
+        }}
+        .flashcard_model_input:hover .front_model_input {{
+          transform: rotateY(180deg);
+        }}
+        .flashcard_model_input:hover .back_model_input {{
+          transform: rotateY(0deg);
+        }}
+        .back_model_input p {{
+          margin: 10px 0;
+        }}
+        footer {{
+          text-align: center;
+          margin-top: 20px;
+          font-size: 12px;
+          margin-bottom: 20px;
+        }}
+        </style>
+        """, unsafe_allow_html=True)
+
+    # Join the card HTML code list and display the carousel in Streamlit
+    st.markdown("".join(card_html), unsafe_allow_html=True)
+
+
+ 
+def create_flipcard_stats(image_path_front_card=None, font_size_back='10px', my_header=None, **kwargs):
+    # Header in Streamlit
+    col1, col2, col3 = st.columns([20, 40, 20])
+    with col2:
+        my_text_header(my_header)
+        vertical_spacer(1)
+
+    # Open the image for the front of the card
+    with open(image_path_front_card, 'rb') as file:
+        contents = file.read()
+        data_url = base64.b64encode(contents).decode("utf-8")
+
+    # Create empty list that will keep the HTML code needed for each card with header+text
+    card_html = []
+
+    # Append HTML code to list
+    card_html.append(f"""
+        <div class="flashcard">
+            <div class='front'>
+                <img src="data:image/png;base64,{data_url}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
+            </div>
+            <div class="back">
+                <h6>White Noise Test</h6>
+                <p><b>use case:</b> the <i>ljung-box</i> test is utilized to assess whether a forecasting model effectively
+                captures the inherent patterns present in the time series. it accomplishes this by first calculating the
+                differences between the actual values and the predicted values and tests if these unexplained differences,
+                known as <b>'residuals'</b> are either:
+                </p>
+                <ul>
+                    <li><b>random fluctuations:</b> also referred to as <i>white noise</i> and exhibits no correlation or
+                    predictable pattern over time. this is true when the expected total sum of both positive and negative
+                    fluctuations will average out to zero and the variance remains constant/does not systematically increase
+                    or decrease over time.</li>
+                    <li><b>autocorrelated:</b> residuals exhibit a correlation with their own lagged values, indicating the
+                    presence of a pattern that is currently not captured by the existing forecasting model.</li>
+                </ul>
+                <br>
+                <p><b>recommendation:</b> if the residuals are found to be 'just' random fluctuations, continue using the
+                current forecasting model<sup><a href="#footnote-1">1</a></sup> as it captures the underlying patterns.
+                Otherwise, if the presence of autocorrelation is found, consider using a more complex forecasting model or
+                increase the number of lags considered.</p>
+                <footer>
+                    <div id="footnote-1">
+                        <sup>1</sup> ForecastGenie uses an autoregressive model for the white noise test, which is the same
+                        as using SARIMAX(p, 0, 0)(0, 0, 0), whereby p is the lag range (default=24).
+                    </div>
+                </footer>
+                <br>
+                <h6>Stationarity Test</h6>
+                <p><b>use case:</b> The Augmented Dickey-Fuller (ADF) test is used to assess the stationarity of a time
+                series. Stationarity indicates that a time-series has a stable mean and variance over time, which is an
+                assumption for models such as Autoregressive Moving Average (ARMA) to forecast accurately. However, if
+                initially, your time-series is non-stationary, differencing could be applied to try and make a non-stationary
+                time-series stationary.</p>
+                <h6>Normality Test</h6>
+                <p><b>use case:</b> The Shapiro test examines residual distribution's normality in a model, where residuals
+                are observed-predicted differences. Non-normality may necessitate alternative models (e.g., Neural Networks or
+                Random Forests)</p>
+            </div>
+        </div>
+    """)
+
+    # Join all the HTML code for each card and join it into single HTML code with carousel wrapper
+    carousel_html = "<div class='flipcard_stats'>" + "".join(card_html) + "</div>"
+    # Display the carousel in Streamlit
+    st.markdown(carousel_html, unsafe_allow_html=True)
+    # Create the CSS styling for the carousel
+    st.markdown(
+        f"""
+        <style>
+        .flipcard_stats {{
+          display: flex;
+          justify-content: center;
+          overflow-x: auto;
+          scroll-snap-type: x mandatory;
+          scroll-behavior: smooth;
+          -webkit-overflow-scrolling: touch;
+          width: 100%;
+        }}
+        .flashcard {{
+          width: 600px;
+          height: 600px;
+          background-color: white;
+          border-radius: 10px;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+          perspective: 100px;
+          margin-bottom: 10px;
           scroll-snap-align: center;
         }}
         .front, .back {{
           position: absolute;
           top: 0;
           left: 0;
-          width: 600px;
-          height: 600px;
+          width: 100%;
+          height: 100%;
           border-radius: 10px;
           backface-visibility: hidden;
           font-family: 'Ysabeau SC', sans-serif;
           font-size: {font_size_back};
           text-align: center;
-          
         }}
         .front {{
           background: linear-gradient(to bottom left, #4e3fce, #7a5dc7, #9b7cc2, #bb9bbd, #c2b1c4);
@@ -1819,48 +1963,39 @@ def create_flipcard_stats(image_path_front_card = None, font_size_back = '10px',
           transform: rotateY(0deg);
         }}
         .back {{
-              color: #333333;
-              background-color: #E9EBE1;
-              transform: rotateY(180deg);
-              display: flex;
-              justify-content: flex-start;
-              border: 1px solid #48555e;
-              margin: 0px;
-              padding: 20px;
-              text-align: left; /* Add text-align property to justify the text */
-              text-justify: inter-word; /* Add text-justify property for better word spacing */
-              overflow: auto; /* enable a scrollbar for the content inside */
-            }}                          
+          color: #333333;
+          background-color: #E9EBE1;
+          transform: rotateY(180deg);
+          display: flex;
+          justify-content: flex-start;
+          border: 1px solid #48555e;
+          margin: 0;
+          padding: 60px;
+          text-align: left;
+          text-justify: inter-word;
+          overflow: auto;
+        }}
+        .back h6 {{
+          margin-bottom: 0px;
+          margin-top: 0px;
+        }}
         .flashcard:hover .front {{
           transform: rotateY(180deg);
         }}
         .flashcard:hover .back {{
           transform: rotateY(0deg);
         }}
-        .front h1 {{
-          padding-top: 10px;
-          line-height: 1.5;
-        }}
-        .back h2 {{
-          line-height: 2;
-        }}
-        .back h6 {{
-          margin-bottom: 0;
-          margin-top: 0;
-        }}
         .back p {{
-          margin: 20px; /* Add margin for paragraph text */
-          margin-top: 0;
+          margin: 10px 0;
         }}
-
-        /* Carousel Navigation Styling */
-        .carousel-nav {{
-          margin: 10px 0px;
+        footer {{
           text-align: center;
+          margin-top: 20px;
+          font-size: 12px;
+          margin-bottom: 20px;
         }}
         </style>
-        """, unsafe_allow_html=True)        
-
+        """, unsafe_allow_html=True)
 
 #################################
 # FORMATTING DATAFRAMES FUNCTIONS
@@ -3562,13 +3697,15 @@ def model_documentation():
     # ADD MOON MENU BUTTONS    
     # =============================================================================
     # returns the lowercase with no spaces but underscore your button_names when clicked
-    clicked_moon_btn = create_moon_clickable_btns(button_names = ['Home', 'Naive Model', 'Linear Regression', 'SARIMAX', 'Prophet'])
+    #clicked_moon_btn = create_moon_clickable_btns(button_names = ['Home', 'Naive Model', 'Linear Regression', 'SARIMAX', 'Prophet'])
+    clicked_moon_btn = st.selectbox(label = 'Select Model', 
+                                    options = ['-', 'Naive Model', 'Linear Regression', 'SARIMAX', 'Prophet'])
     
     with st.expander('', expanded=True):
         col1, col2, col3 = st.columns([2, 8, 2])
-        if clicked_moon_btn == 'home':
+        if clicked_moon_btn == '-':
             st.image('./images/train_info.png')
-        elif clicked_moon_btn == 'naive_model':
+        elif clicked_moon_btn == 'Naive Model':
             with col2:
                 my_text_header('Naive Model')
                 vertical_spacer(1)
@@ -3618,7 +3755,7 @@ def model_documentation():
                 </p>
                 ''', unsafe_allow_html=True)
             
-        elif clicked_moon_btn == 'linear_regression':
+        elif clicked_moon_btn == 'Linear Regression':
             with col2:
                 my_text_header('Linear Regression')
                 vertical_spacer(1)
@@ -3642,7 +3779,7 @@ def model_documentation():
                             - $β₁$ is the slope &rarr; the change in $Y$ for a unit change in $X$
                             <br>
                             ''', unsafe_allow_html=True)
-        elif clicked_moon_btn == 'sarimax':
+        elif clicked_moon_btn == 'SARIMAX':
             with col2:
                 my_text_header('SARIMAX')
                 vertical_spacer(1)
@@ -3677,7 +3814,7 @@ def model_documentation():
                             - <b>X</b>  &emsp; These are external factors that can impact the variable being forecasted. They are included in the model as additional inputs.  
                             </p>
                             ''', unsafe_allow_html=True)
-        elif clicked_moon_btn == 'prophet':
+        elif clicked_moon_btn == 'Prophet':
             with col2:
                 my_text_header('Prophet')
                 vertical_spacer(1)
@@ -7622,197 +7759,303 @@ def load_change():
         set_state("LOAD_PAGE", ("my_data_choice", "Demo Data"))
         
 if menu_item == 'Load' and sidebar_menu_item == 'Home':    
-    # =============================================================================
-    # SIDEBAR OF LOAD PAGE
-    # =============================================================================
-    with st.sidebar:
-        my_title(f"{load_icon}", "#3b3b3b")
-        with st.expander('', expanded = True):            
-            
-            col1, col2, col3 = st.columns(3)
-            
-            with col2:
+    tab1_load, tab2_load = st.tabs(['Load', 'Dashboard'])
+     
+    with tab2_load:
+        
+        def calculate_relative_change(data, date_column, value_column, relative_change_type):
+            """
+            Calculate the relative change of a given value column based on the selected type of relative change.
+        
+            Args:
+                data (pandas.DataFrame): Input DataFrame containing the date and value columns.
+                date_column (str): Name of the date column.
+                value_column (str): Name of the value column.
+                relative_change_type (str): Type of relative change to calculate.
+        
+            Returns:
+                pandas.Series: Relative change of the value column based on the selected type of relative change.
+            """
+            # Convert the date column to a pandas DateTimeIndex
+            data = data.copy(deep=True)
+            data[date_column] = pd.to_datetime(data[date_column])
+            data.set_index(date_column, inplace=True)
+        
+            # Calculate the relative change based on the selected type
+            if relative_change_type == 'DoD%Δ':
+                relative_change = data[value_column].pct_change() * 100
+            elif relative_change_type == 'WoW%Δ':
+                relative_change = data[value_column].pct_change(7) * 100
+            elif relative_change_type == 'MoM%Δ':
+                relative_change = data[value_column].pct_change(30) * 100
+            elif relative_change_type == 'YoY%Δ':
+                relative_change = data[value_column].pct_change(365) * 100
+            else:
+                relative_change = pd.Series()
+        
+            return relative_change
+        
+        
+        # Example usage with Streamlit
+        # Assuming your data is stored in a pandas DataFrame called 'sales_data'
+        # and has columns 'date' and 'value'
+        
+        # Retrieve the column name based on its relative position (position 1)
+        value_column = st.session_state['df_raw'].iloc[:, 1].name
+        
+        # Call the function to calculate the relative change
+        relative_change_type = st.selectbox('Select relative change type:', ['DoD%Δ', 'WoW%Δ', 'MoM%Δ', 'YoY%Δ'])
+        
+# =============================================================================
+#         relative_change = calculate_relative_change(
+#             data=st.session_state['df_raw'],
+#             date_column='date',
+#             value_column=value_column,
+#             relative_change_type=relative_change_type
+#         )
+#         
+#         # Filter out empty (NaN) values when comparing relative change
+#         relative_change = relative_change.dropna()
+#         
+#         # Create the bar chart using Plotly Express
+#         fig = px.bar(x=relative_change.index, y=relative_change.values)
+#         
+#         fig.update_layout(
+#             xaxis_title='Day of the Week',
+#             yaxis_title='Relative Change (%)',
+#             xaxis=dict(
+#                 rangeselector=dict(
+#                     buttons=list([
+#                         dict(count=7, label='1w', step='day', stepmode='backward'),
+#                         dict(count=1, label='1m', step='month', stepmode='backward'),
+#                         dict(count=6, label='6m', step='month', stepmode='backward'),
+#                         dict(count=1, label='YTD', step='year', stepmode='todate'),
+#                         dict(count=1, label='1y', step='year', stepmode='backward'),
+#                         dict(step='all')
+#                     ]),
+#                     x=0.35,
+#                     y=0.9,
+#                     yanchor='auto',
+#                     font=dict(size=10),
+#                 ),
+#                 rangeslider=dict(
+#                     visible=True,
+#                     range=[relative_change.index.min(), relative_change.index.max()]
+#                 ),
+#                 type='date'
+#             ),
+#             height=600,  # Adjust the height value as needed
+#             title={
+#                 'text': f'Relative Change by {relative_change_type}',
+#                 'x': 0.5,  # Center the title horizontally
+#                 'xanchor': 'center',  # Center the title horizontally
+#                 'y': 0.9  # Adjust the vertical position of the title if needed
+#             }
+#         )
+#         
+#         # Add labels inside the bars
+#         fig.update_traces(
+#             texttemplate='%{y:.2f}%',
+#             textposition='inside',
+#             insidetextfont=dict(color='white')
+#         )
+#         
+#         st.plotly_chart(fig)
+# =============================================================================
+    
+    
+    with tab1_load:
+        # =============================================================================
+        # SIDEBAR OF LOAD PAGE
+        # =============================================================================
+        with st.sidebar:
+            my_title(f"{load_icon}", "#3b3b3b")
+            with st.expander('', expanded = True):            
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col2:
+                    # =============================================================================
+                    #  STEP 1: SAVE USER DATA CHOICE (DEMO/UPLOAD) WITH RADIO BUTTON
+                    # =============================================================================         
+                    data_option = st.radio(
+                                           label = "*Choose an option:*", 
+                                           options = ["Demo Data", "Upload Data"], 
+                                           index = 0 if get_state('LOAD_PAGE', "my_data_choice") == "Demo Data" else 1,
+                                           on_change = load_change # run function
+                                           )
+                    
+                    # UPDATE SESSION STATE WITH USER DATA CHOICE OF RADIO BUTTON
+                    set_state("LOAD_PAGE", ("my_data_choice", data_option))
+    
+                    vertical_spacer(1)
+                
                 # =============================================================================
-                #  STEP 1: SAVE USER DATA CHOICE (DEMO/UPLOAD) WITH RADIO BUTTON
-                # =============================================================================         
-                data_option = st.radio(
-                                       label = "*Choose an option:*", 
-                                       options = ["Demo Data", "Upload Data"], 
-                                       index = 0 if get_state('LOAD_PAGE', "my_data_choice") == "Demo Data" else 1,
-                                       on_change = load_change # run function
-                                       )
+                # STEP 2: IF UPLOADED FILE THEN SHOW FILE-UPLOADER WIDGET
+                # =============================================================================
+                # if user selects radio-button for 'Upload Data'
+                if data_option == "Upload Data":
+                   # show file-uploader widget from streamlit
+                   uploaded_file = st.file_uploader(label = "Upload your file", 
+                                                     type = ["csv", "xls", "xlsx", "xlsm", "xlsb"], 
+                                                         accept_multiple_files = False, 
+                                                     label_visibility = 'collapsed',
+                                                     on_change = reset_session_states)
+                   # if a file is uploaded by user
+                   if uploaded_file != None:
+                       # store the filename in session state
+                       set_state("LOAD_PAGE", ("uploaded_file_name", uploaded_file.name))
+                   # if prior a file was uploaded by user (note: st.file_uploader after page refresh does not keep the object in it)
+                   if get_state('LOAD_PAGE', "user_data_uploaded") == True:
+                       # retrieve filename from session state                    
+                       file_name = get_state("LOAD_PAGE", "uploaded_file_name")
+                       # show filename
+                       my_text_paragraph(f'{file_name}', my_font_weight=100, my_font_size='14px')
+                       
+        # =============================================================================
+        # MAIN PAGE OF LOAD PAGE
+        # =============================================================================
+        if get_state('LOAD_PAGE', "my_data_choice") == "Demo Data":
+           
+            # update session state that user uploaded a file
+            set_state("LOAD_PAGE", ("user_data_uploaded", False))
+            
+            # GENERATE THE DEMO DATA WITH FUNCTION
+            st.session_state['df_raw'] = generate_demo_data()
+            
+            df_raw = generate_demo_data()
+            df_graph = df_raw.copy(deep=True)
+            df_min = df_raw.iloc[:,0].min().date()
+            df_max = df_raw.iloc[:,0].max().date()
+            
+            with st.expander('', expanded=True):
+                col0, col1, col2, col3 = st.columns([10, 90, 8, 1])        
+                with col2:
+                    my_chart_color = st.color_picker(label = 'Color', 
+                                                     value = get_state("COLORS", "chart_color"), 
+                                                     #on_change = on_click_event,
+                                                     label_visibility = 'collapsed')    
+    
+                    # save user color choice in session state
+                    set_state("COLORS", ("chart_color", my_chart_color))
                 
-                # UPDATE SESSION STATE WITH USER DATA CHOICE OF RADIO BUTTON
-                set_state("LOAD_PAGE", ("my_data_choice", data_option))
-
+                with col1:
+                   my_text_header('Demo Data')     
+                #show_lottie_animation("./images/16938-asteroid.json", key='rocket_launch', speed=1, height=200, width=200, col_sizes=[4,4,4])
+                     
+                # create 3 columns for spacing
+                col1, col2, col3 = st.columns([1,3,1])
+                
+                # short message about dataframe that has been loaded with shape (# rows, # columns)
+                col2.markdown(f"<center>Your <b>dataframe</b> has <b><font color='#555555'>{st.session_state.df_raw.shape[0]}</b></font> \
+                               rows and <b><font color='#555555'>{st.session_state.df_raw.shape[1]}</b></font> columns <br> with date range: \
+                               <b><font color='#555555'>{df_min}</b></font> to <b><font color='#555555'>{df_max}</font></b>.</center>", unsafe_allow_html=True)
+                    
+                # create aa deep copy of dataframe which will be manipulated for graphs
+                df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
+                            
+                # Display Plotly Express figure in Streamlit
+                display_dataframe_graph(df=df_graph, key=1, my_chart_color = my_chart_color)
+    
+                # try to use add-on package of streamlit dataframe_explorer
+                try:
+                    df_explore = dataframe_explorer(st.session_state['df_raw'])
+                    st.dataframe(df_explore, use_container_width=True)
+                # if add-on package does not work use the regular dataframe without index
+                except:
+                    st.dataframe(df_graph, use_container_width=True)
+                
+                # download csv button
+                download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
+                
                 vertical_spacer(1)
+                
+        # check if data is uploaded in file_uploader, if so -> use the function load_data to load file into a dataframe 
+        if get_state('LOAD_PAGE', "my_data_choice") == "Upload Data" and uploaded_file is not None:
+            # define dataframe from custom function to read from uploaded read_csv file
+            st.session_state['df_raw'] = load_data()
             
+            # update session state that user uploaded a file
+            set_state("LOAD_PAGE", ("user_data_uploaded", True))
+            
+            # update session state that new file is uploaded / set to True -> use variable reset user selection of features list to empty list
+            set_state("DATA_OPTION", ("upload_new_data", True))
+    
+        # for multi-page app if user previously uploaded data uploaded_file will return to None but then get the persistent session state stored
+        if get_state('LOAD_PAGE', "my_data_choice") == "Upload Data" and ((uploaded_file is not None) or (get_state("LOAD_PAGE", "user_data_uploaded") == True)) and 'demo_data' not in st.session_state['df_raw'].columns:
+            
+            # define dataframe copy used for graphs
+            df_graph = st.session_state['df_raw'].copy(deep=True)
+            # set minimum date
+            df_min = st.session_state['df_raw'].iloc[:,0].min().date()
+            # set maximum date
+            df_max = st.session_state['df_raw'].iloc[:,0].max().date()
+            
+            # let user select color for graph
+            with st.expander('', expanded=True):
+                col0, col1, col2, col3 = st.columns([15, 90, 8, 1])        
+                with col2:
+                    my_chart_color = st.color_picker(label = 'Color', 
+                                                     value = get_state("COLORS", "chart_color"), 
+                                                     #on_change = on_click_event,
+                                                     label_visibility = 'collapsed')    
+                    
+                    set_state("COLORS", ("chart_color", my_chart_color))
+                
+                with col1:    
+                    my_text_header('Uploaded Data')
+                     
+                # create 3 columns for spacing
+                col1, col2, col3 = st.columns([1,3,1])
+                
+                # display df shape and date range min/max for user
+                col2.markdown(f"<center>Your <b>dataframe</b> has <b><font color='#555555'>{st.session_state.df_raw.shape[0]}</b></font> \
+                              rows and <b><font color='#555555'>{st.session_state.df_raw.shape[1]}</b></font> columns <br> with date range: \
+                              <b><font color='#555555'>{df_min}</b></font> to <b><font color='#555555'>{df_max}</font></b>.</center>", unsafe_allow_html=True)
+                    
+                vertical_spacer(1)
+                
+                df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)            
+                
+                vertical_spacer(1)
+                
+                # display/plot graph of dataframe
+                display_dataframe_graph(df=df_graph, key=2, my_chart_color = my_chart_color)
+                
+                try:
+                    # show dataframe below graph
+                    df_explore = dataframe_explorer(st.session_state['df_raw'])
+                    st.dataframe(df_explore, use_container_width=True)
+                except:
+                    st.dataframe(df_graph, use_container_width=True)
+                
+                # download csv button
+                download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
+                
+        elif get_state('LOAD_PAGE', "my_data_choice") == "Upload Data" and ((uploaded_file is None) or (get_state("LOAD_PAGE", "user_data_uploaded") == False)):
             # =============================================================================
-            # STEP 2: IF UPLOADED FILE THEN SHOW FILE-UPLOADER WIDGET
+            # Inform user what template to upload
             # =============================================================================
-            # if user selects radio-button for 'Upload Data'
-            if data_option == "Upload Data":
-               # show file-uploader widget from streamlit
-               uploaded_file = st.file_uploader(label = "Upload your file", 
-                                                 type = ["csv", "xls", "xlsx", "xlsm", "xlsb"], 
-                                                     accept_multiple_files = False, 
-                                                 label_visibility = 'collapsed',
-                                                 on_change = reset_session_states)
-               # if a file is uploaded by user
-               if uploaded_file != None:
-                   # store the filename in session state
-                   set_state("LOAD_PAGE", ("uploaded_file_name", uploaded_file.name))
-               # if prior a file was uploaded by user (note: st.file_uploader after page refresh does not keep the object in it)
-               if get_state('LOAD_PAGE', "user_data_uploaded") == True:
-                   # retrieve filename from session state                    
-                   file_name = get_state("LOAD_PAGE", "uploaded_file_name")
-                   # show filename
-                   my_text_paragraph(f'{file_name}', my_font_weight=100, my_font_size='14px')
-                   
-    # =============================================================================
-    # MAIN PAGE OF LOAD PAGE
-    # =============================================================================
-    if get_state('LOAD_PAGE', "my_data_choice") == "Demo Data":
-       
-        # update session state that user uploaded a file
-        set_state("LOAD_PAGE", ("user_data_uploaded", False))
-        
-        # GENERATE THE DEMO DATA WITH FUNCTION
-        st.session_state['df_raw'] = generate_demo_data()
-        
-        df_raw = generate_demo_data()
-        df_graph = df_raw.copy(deep=True)
-        df_min = df_raw.iloc[:,0].min().date()
-        df_max = df_raw.iloc[:,0].max().date()
-        
-        with st.expander('', expanded=True):
-            col0, col1, col2, col3 = st.columns([10, 90, 8, 1])        
-            with col2:
-                my_chart_color = st.color_picker(label = 'Color', 
-                                                 value = get_state("COLORS", "chart_color"), 
-                                                 #on_change = on_click_event,
-                                                 label_visibility = 'collapsed')    
-
-                # save user color choice in session state
-                set_state("COLORS", ("chart_color", my_chart_color))
-            
-            with col1:
-               my_text_header('Demo Data')     
-            #show_lottie_animation("./images/16938-asteroid.json", key='rocket_launch', speed=1, height=200, width=200, col_sizes=[4,4,4])
-                 
-            # create 3 columns for spacing
-            col1, col2, col3 = st.columns([1,3,1])
-            
-            # short message about dataframe that has been loaded with shape (# rows, # columns)
-            col2.markdown(f"<center>Your <b>dataframe</b> has <b><font color='#555555'>{st.session_state.df_raw.shape[0]}</b></font> \
-                           rows and <b><font color='#555555'>{st.session_state.df_raw.shape[1]}</b></font> columns <br> with date range: \
-                           <b><font color='#555555'>{df_min}</b></font> to <b><font color='#555555'>{df_max}</font></b>.</center>", unsafe_allow_html=True)
+            with st.expander("", expanded=True):
                 
-            # create aa deep copy of dataframe which will be manipulated for graphs
-            df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)
-                        
-            # Display Plotly Express figure in Streamlit
-            display_dataframe_graph(df=df_graph, key=1, my_chart_color = my_chart_color)
-
-            # try to use add-on package of streamlit dataframe_explorer
-            try:
-                df_explore = dataframe_explorer(st.session_state['df_raw'])
-                st.dataframe(df_explore, use_container_width=True)
-            # if add-on package does not work use the regular dataframe without index
-            except:
-                st.dataframe(df_graph, use_container_width=True)
-            
-            # download csv button
-            download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
-            
-            vertical_spacer(1)
-            
-    # check if data is uploaded in file_uploader, if so -> use the function load_data to load file into a dataframe 
-    if get_state('LOAD_PAGE', "my_data_choice") == "Upload Data" and uploaded_file is not None:
-        # define dataframe from custom function to read from uploaded read_csv file
-        st.session_state['df_raw'] = load_data()
-        
-        # update session state that user uploaded a file
-        set_state("LOAD_PAGE", ("user_data_uploaded", True))
-        
-        # update session state that new file is uploaded / set to True -> use variable reset user selection of features list to empty list
-        set_state("DATA_OPTION", ("upload_new_data", True))
-
-    # for multi-page app if user previously uploaded data uploaded_file will return to None but then get the persistent session state stored
-    if get_state('LOAD_PAGE', "my_data_choice") == "Upload Data" and ((uploaded_file is not None) or (get_state("LOAD_PAGE", "user_data_uploaded") == True)) and 'demo_data' not in st.session_state['df_raw'].columns:
-        
-        # define dataframe copy used for graphs
-        df_graph = st.session_state['df_raw'].copy(deep=True)
-        # set minimum date
-        df_min = st.session_state['df_raw'].iloc[:,0].min().date()
-        # set maximum date
-        df_max = st.session_state['df_raw'].iloc[:,0].max().date()
-        
-        # let user select color for graph
-        with st.expander('', expanded=True):
-            col0, col1, col2, col3 = st.columns([15, 90, 8, 1])        
-            with col2:
-                my_chart_color = st.color_picker(label = 'Color', 
-                                                 value = get_state("COLORS", "chart_color"), 
-                                                 #on_change = on_click_event,
-                                                 label_visibility = 'collapsed')    
-                
-                set_state("COLORS", ("chart_color", my_chart_color))
-            
-            with col1:    
-                my_text_header('Uploaded Data')
-                 
-            # create 3 columns for spacing
-            col1, col2, col3 = st.columns([1,3,1])
-            
-            # display df shape and date range min/max for user
-            col2.markdown(f"<center>Your <b>dataframe</b> has <b><font color='#555555'>{st.session_state.df_raw.shape[0]}</b></font> \
-                          rows and <b><font color='#555555'>{st.session_state.df_raw.shape[1]}</b></font> columns <br> with date range: \
-                          <b><font color='#555555'>{df_min}</b></font> to <b><font color='#555555'>{df_max}</font></b>.</center>", unsafe_allow_html=True)
-                
-            vertical_spacer(1)
-            
-            df_graph = copy_df_date_index(my_df=df_graph, datetime_to_date=True, date_to_index=True)            
-            
-            vertical_spacer(1)
-            
-            # display/plot graph of dataframe
-            display_dataframe_graph(df=df_graph, key=2, my_chart_color = my_chart_color)
-            
-            try:
-                # show dataframe below graph
-                df_explore = dataframe_explorer(st.session_state['df_raw'])
-                st.dataframe(df_explore, use_container_width=True)
-            except:
-                st.dataframe(df_graph, use_container_width=True)
-            
-            # download csv button
-            download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
-            
-    elif get_state('LOAD_PAGE', "my_data_choice") == "Upload Data" and ((uploaded_file is None) or (get_state("LOAD_PAGE", "user_data_uploaded") == False)):
-        # =============================================================================
-        # Inform user what template to upload
-        # =============================================================================
-        with st.expander("", expanded=True):
-            
-            my_text_header("Instructions")
-            
-            vertical_spacer(2)
-            
-            col1, col2, col3 = st.columns([1,8,1])
-            with col2:
-                my_text_paragraph('''👈 Please upload a file with your <b><span style="color:#000000">dates</span></b> and <b><span style="color:#000000">values</span></b> in below order:<br><br>
-                         - first column named: <b><span style="color:#000000">date</span></b> in format: mm/dd/yyyy e.g. 12/31/2023<br>
-                         - second column named:  <b><span style="color:#000000">&#60;insert variable name&#62;</span></b> e.g. revenue<br>
-                         - supported frequencies: Daily/Weekly/Monthly/Quarterly/Yearly <br>
-                         - supported file extensions: .CSV, .XLS, .XLSX, .XLSM, .XLSB
-                         ''', my_font_weight=300, my_text_align='left')
+                my_text_header("Instructions")
                 
                 vertical_spacer(2)
-                       
-            # Display Doodle image of Load 
-            st.image("./images/load.png", caption="", use_column_width=True)
-            
+                
+                col1, col2, col3 = st.columns([1,8,1])
+                with col2:
+                    my_text_paragraph('''👈 Please upload a file with your <b><span style="color:#000000">dates</span></b> and <b><span style="color:#000000">values</span></b> in below order:<br><br>
+                             - first column named: <b><span style="color:#000000">date</span></b> in format: mm/dd/yyyy e.g. 12/31/2023<br>
+                             - second column named:  <b><span style="color:#000000">&#60;insert variable name&#62;</span></b> e.g. revenue<br>
+                             - supported frequencies: Daily/Weekly/Monthly/Quarterly/Yearly <br>
+                             - supported file extensions: .CSV, .XLS, .XLSX, .XLSM, .XLSB
+                             ''', my_font_weight=300, my_text_align='left')
+                    
+                    vertical_spacer(2)
+                           
+                # Display Doodle image of Load 
+                st.image("./images/load.png", caption="", use_column_width=True)
+                
 # =============================================================================
 #   ________   _______  _      ____  _____  ______ 
 #  |  ____\ \ / /  __ \| |    / __ \|  __ \|  ____|
@@ -7831,13 +8074,11 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
     #with st.spinner('Loading your summary, insights, patterns, statistical tests, lag analysis...'):
     
     # define tabs for page sections
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["overview", 
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["overview", 
                                             "insights", 
                                             "patterns", 
                                             "statistical tests", 
-                                            "lag analysis", 
-                                            "deltas"],
-                                            )
+                                            "lag analysis"])
     
     ####################################################            
     # Sidebar EDA parameters / buttons
@@ -8190,106 +8431,7 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
             # create 3 buttons, about ACF/PACF/Difference for more explanation on the ACF and PACF plots
             acf_pacf_info()
     
-    
-    with tab6:
-        
-        def calculate_relative_change(data, date_column, value_column, relative_change_type):
-            """
-            Calculate the relative change of a given value column based on the selected type of relative change.
-        
-            Args:
-                data (pandas.DataFrame): Input DataFrame containing the date and value columns.
-                date_column (str): Name of the date column.
-                value_column (str): Name of the value column.
-                relative_change_type (str): Type of relative change to calculate.
-        
-            Returns:
-                pandas.Series: Relative change of the value column based on the selected type of relative change.
-            """
-            # Convert the date column to a pandas DateTimeIndex
-            data = data.copy(deep=True)
-            data[date_column] = pd.to_datetime(data[date_column])
-            data.set_index(date_column, inplace=True)
-        
-            # Calculate the relative change based on the selected type
-            if relative_change_type == 'DoD%Δ':
-                relative_change = data[value_column].pct_change() * 100
-            elif relative_change_type == 'WoW%Δ':
-                relative_change = data[value_column].pct_change(7) * 100
-            elif relative_change_type == 'MoM%Δ':
-                relative_change = data[value_column].pct_change(30) * 100
-            elif relative_change_type == 'YoY%Δ':
-                relative_change = data[value_column].pct_change(365) * 100
-            else:
-                relative_change = pd.Series()
-        
-            return relative_change
-        
-        
-        # Example usage with Streamlit
-        # Assuming your data is stored in a pandas DataFrame called 'sales_data'
-        # and has columns 'date' and 'value'
-        
-        # Retrieve the column name based on its relative position (position 1)
-        value_column = st.session_state['df_raw'].iloc[:, 1].name
-        
-        # Call the function to calculate the relative change
-        relative_change_type = st.selectbox('Select relative change type:', ['DoD%Δ', 'WoW%Δ', 'MoM%Δ', 'YoY%Δ'])
-        
-        relative_change = calculate_relative_change(
-            data=st.session_state['df_raw'],
-            date_column='date',
-            value_column=value_column,
-            relative_change_type=relative_change_type
-        )
-        
-        # Filter out empty (NaN) values when comparing relative change
-        relative_change = relative_change.dropna()
-        
-        # Create the bar chart using Plotly Express
-        fig = px.bar(x=relative_change.index, y=relative_change.values)
-        
-        fig.update_layout(
-            xaxis_title='Day of the Week',
-            yaxis_title='Relative Change (%)',
-            xaxis=dict(
-                rangeselector=dict(
-                    buttons=list([
-                        dict(count=7, label='1w', step='day', stepmode='backward'),
-                        dict(count=1, label='1m', step='month', stepmode='backward'),
-                        dict(count=6, label='6m', step='month', stepmode='backward'),
-                        dict(count=1, label='YTD', step='year', stepmode='todate'),
-                        dict(count=1, label='1y', step='year', stepmode='backward'),
-                        dict(step='all')
-                    ]),
-                    x=0.35,
-                    y=0.9,
-                    yanchor='auto',
-                    font=dict(size=10),
-                ),
-                rangeslider=dict(
-                    visible=True,
-                    range=[relative_change.index.min(), relative_change.index.max()]
-                ),
-                type='date'
-            ),
-            height=600,  # Adjust the height value as needed
-            title={
-                'text': f'Relative Change by {relative_change_type}',
-                'x': 0.5,  # Center the title horizontally
-                'xanchor': 'center',  # Center the title horizontally
-                'y': 0.9  # Adjust the vertical position of the title if needed
-            }
-        )
-        
-        # Add labels inside the bars
-        fig.update_traces(
-            texttemplate='%{y:.2f}%',
-            textposition='inside',
-            insidetextfont=dict(color='white')
-        )
-        
-        st.plotly_chart(fig)
+   
     # =============================================================================
     # PROGRESS BAR - LOAD COMPLETED    
     # =============================================================================
@@ -9331,12 +9473,10 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
             with st.expander('Standardization ',expanded=True):
                 
                 my_text_header('Standardization') 
-
+                my_text_paragraph(f'Method: {standardization_choice}')
+                
                 #show_lottie_animation(url="./images/2833-green-monster.json", key="green-monster", width=200, height=200, col_sizes=[6,6,6], speed=0.8)
                 st.image('./images/standardization.png')
-                
-                my_text_paragraph(f'Method: {standardization_choice}')
-
                 st.info('👈 Please choose in the sidebar your Standardization method for numerical columns. Note: columns with booleans will be excluded.')
                 
         # ELSE show user the dataframe with the features that were normalized
@@ -9344,7 +9484,6 @@ if menu_item == 'Prepare' and sidebar_menu_item == 'Home':
             with st.expander('Standardization',expanded=True):
                 
                 my_text_header('Standardization') 
-                
                 my_text_paragraph(f'Method: {standardization_choice}')
                 
                 # need original (unnormalized) X_train as well for figure in order to show before/after Standardization
@@ -9711,13 +9850,15 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         with st.expander('🥇 Top Features Selected', expanded=True):
             my_text_paragraph('Your Feature Selection', my_font_size='26px')
             
-            show_lottie_animation(url = "./images/astronaut_star_in_hand.json", 
-                                  key = 'lottie_animation_austronaut_star', 
-                                  width=200, 
-                                  height=200, 
-                                  col_sizes=[5,4,5], 
-                                  margin_before=1, 
-                                  margin_after=2)
+# =============================================================================
+#             show_lottie_animation(url = "./images/astronaut_star_in_hand.json", 
+#                                   key = 'lottie_animation_austronaut_star', 
+#                                   width=200, 
+#                                   height=200, 
+#                                   col_sizes=[5,4,5], 
+#                                   margin_before=1, 
+#                                   margin_after=2)
+# =============================================================================
             
             # TEST - show recommended features from 3 selection methods 
             #st.write(selected_cols_rfe, selected_cols_pca, selected_cols_mifs) # TEST1
@@ -10193,8 +10334,8 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                my_text_header('Model Outputs')
                
                vertical_spacer(2)
-                              
-               show_lottie_animation(url = './images/75644-accordion.json', key = 'training_page_outputs') 
+               st.image('./images/model_output.png')
+               #show_lottie_animation(url = './images/75644-accordion.json', key = 'training_page_outputs') 
                
                vertical_spacer(2)
                
