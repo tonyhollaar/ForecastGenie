@@ -148,14 +148,15 @@ st.set_page_config(page_title = "ForecastGenie™️",
 font_style = f"""
             <style>
             @import url('https://fonts.googleapis.com/css2?family=Ysabeau+SC:wght@200&display=swap');
-            
+            @import url('https://fonts.googleapis.com/css2?family=Rubik+Dirt&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Rock+Salt&display=swap');
             p {{
                font-family: 'Ysabeau SC', sans-serif; /* Specify the desired font family */
             }}
             </style>
             """
 # =============================================================================
-# # Display the font style in Streamlit
+# # Render the font styles in Streamlit
 # =============================================================================
 st.markdown(font_style, unsafe_allow_html=True)
 
@@ -1206,14 +1207,18 @@ def show_model_inputs():
         None
     """
     my_text_header('Model Inputs')
+    
 # =============================================================================
 #     show_lottie_animation(url="./images/86093-data-fork.json", key='inputs')
 # =============================================================================
+
     col1, col2, col3 = st.columns([7,120,1])
     with col2:  
         create_flipcard_model_input(image_path_front_card='./images/model_inputs.png')
     
-    col1, col2, col3 = st.columns([2, 4, 2])
+    vertical_spacer(1)
+    
+    col1, col2, col3 = st.columns([25, 40, 20])
     with col2:
         color_train = '#07080d'  
         color_test = '#67d0c4'  
@@ -1667,6 +1672,7 @@ def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, 
                             """)
     # join all the html code for each card and join it into single html code with carousel wrapper
     carousel_html = "<div class='carousel'>" + "".join(card_html) + "</div>"
+      
     # Display the carousel in streamlit
     st.markdown(carousel_html, unsafe_allow_html=True)
     # Create the CSS styling for the carousel
@@ -2125,25 +2131,39 @@ def my_bubbles(my_string, my_background_color="#2CB8A1"):
 def train_models_carousel(my_title= ''):
     # gradient title
     vertical_spacer(2)
+
     title = my_title
-    # set gradient color of letters of title
-    gradient = '-webkit-linear-gradient(left, #0072B2, #673ab7, #3f51b5, #2196f3, #03a9f4)'
-    # show in streamlit the title with gradient
-    st.markdown(f'<h2 style="text-align:center; background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient};"> {title} </h2>', unsafe_allow_html=True)
+    
+# =============================================================================
+#     # set gradient color of letters of title
+#     gradient = '-webkit-linear-gradient(left, #0072B2, #673ab7, #3f51b5, #2196f3, #03a9f4)'
+#     
+# =============================================================================
+    col1, col2, col3 = st.columns([1,8,1])
+    with col2:
+        # show in streamlit the title with gradient
+        st.markdown(f'<h2 style="text-align:center; font-family: Rock Salt; color: black;"> {title} </h2>', unsafe_allow_html=True)
+
     vertical_spacer(2)
-    # show carousel of models
+
+    # show carousel of models   
     paragraph_list_back = ['The <b> Naive Model </b> uses the value of the previous observation (lag) as the prediction for the next observation. The lag can be defined based on various time intervals, such as daily, weekly, monthly, quarterly, yearly, or even a custom lag. The <b> Naive model </b> can serve as a quick and simple baseline.', 
                            'The <b> Linear Regression Model </b> is a statistical technique used to analyze the relationship between a dependent variable and one or more independent variables. It assumes a linear relationship, aiming to find the best-fit line that minimizes the differences between observed and predicted values.', 
                            'SARIMAX, short for <b>Seasonal Autoregressive Integrated Moving Average with Exogenous Variables</b>, is a powerful time series forecasting model that incorporates seasonal patterns and exogenous variables. It combines <i> autoregressive </i> (past values), <i> moving average </i> (averages of certain time spans), and <i> integrated </i> (calculating differences of subsequent values) components.', 
                            '<b>Prophet</b> utilizes an additive model (sum of individual factors) that decomposes time series data into: <i>trend</i>, <i>seasonality</i>, and <i>holiday components</i>. It incorporates advanced statistical techniques and incorporates automatic detection of changepoints to handle irregularities in the data. It offers flexibility in handling missing data and outliers making it a powerful forecasting model.']
+    
     # create carousel cards for each model
     header_list = ['Naive Model', 'Linear Regression', 'SARIMAX', 'Prophet']    
     paragraph_list_front = ['', '', '', '']
+   
     # define the font family to display the text of paragraph
-    font_family = "Helvetica"
+    font_family = 'Ysabeau SC'
+    #font_family = 'Rubik Dirt'
+    
     # define the paragraph text size
     font_size_front = '14px'
     font_size_back = '15px'       
+    
     # apply carousel function to show 'flashcards'
     create_carousel_cards_v2(4, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back)
     vertical_spacer(2)
@@ -2321,7 +2341,7 @@ def create_carousel_cards_v2(num_cards, header_list, paragraph_list_front, parag
     for i in range(num_cards):
         card_html.append(f"""<div class="flashcard">                     
                                 <div class='front'>
-                                    <h1 style='text-align:center;color:white; margin-top: 10px; margin-bottom: -10px;padding: 35px;'>{header_list[i]}</h1>
+                                    <h1 style='text-align: center; color: #62e1d3; margin-top: 10px; margin-bottom: -10px; padding: 35px;'>{header_list[i]}</h1>
                                     <p style='text-align:center; font-family: {font_family}; font-size: {font_size_front};'>{paragraph_list_front[i]}</p>
                                 </div>
                                 <div class="back">
@@ -2376,13 +2396,11 @@ def create_carousel_cards_v2(num_cards, header_list, paragraph_list_front, parag
           text-align: center;
         }}
         .front {{
-          background: #f5f5f5;
-          color: transparent; /* Make the text transparent */
-          background-clip: text; /* Apply the background gradient to the text */
-          -webkit-background-clip: text; /* For Safari */
-          -webkit-text-fill-color: transparent; /* For Safari */
-          background-image: linear-gradient(to bottom left, #941c8e, #763a9a, #4e62a3, #2e81ad, #12a9b4); /* Set the background gradient */
+          background: white;
+          color: black; /* Make the text transparent */
           transform: rotateY(0deg);
+          border: 4px;
+          border-color: white;
         }}
         .back {{
             /* ... other styles ... */
@@ -2391,7 +2409,7 @@ def create_carousel_cards_v2(num_cards, header_list, paragraph_list_front, parag
             background-clip: text; /* Apply the background gradient to the text */
             -webkit-background-clip: text; /* For Safari */
             -webkit-text-fill-color: transparent; /* For Safari */
-            background-image: linear-gradient(to bottom left, #941c8e, #763a9a, #4e62a3, #2e81ad, #12a9b4); /* Set the background gradient */
+            background-image: linear-gradient(to bottom left, #000000); /* linear-gradient(to bottom left, #941c8e, #763a9a, #4e62a3, #2e81ad, #12a9b4); */ /* Set the background gradient */
             transform: rotateY(180deg);
             display: flex;
             justify-content: center;
@@ -2430,7 +2448,115 @@ def create_carousel_cards_v2(num_cards, header_list, paragraph_list_front, parag
         }}
         </style>
         """, unsafe_allow_html=True)
-        
+ 
+        # TEST
+# =============================================================================
+# def create_flipcards_model_cards(num_cards, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back):
+#     # note removing display: flex; inside the css code for .flashcard -> puts cards below eachother
+#     # create empty list that will keep the html code needed for each card with header+text
+#     card_html = []
+#     # iterate over cards specified by user and join the headers and text of the lists
+#     for i in range(num_cards):
+#         card_html.append(f"""<div class="flashcard">                     
+#                                 <div class='front'>
+#                                     <h1 style='text-align:center;'>{header_list[i]}</h1>
+#                                     <p style='text-align:center; font-size: {font_size_front};'>{paragraph_list_front[i]}</p>
+#                                 </div>
+#                                 <div class="back">
+#                                     <p style='text-align:justify; word-spacing: 1px; font-size: {font_size_back}; margin-right: 60px; margin-left: 60px'>{paragraph_list_back[i]}</p>
+#                                 </div>
+#                             </div>
+#                             """)
+#     # join all the html code for each card and join it into single html code with carousel wrapper
+#     carousel_html = "<div class='carousel'>" + "".join(card_html) + "</div>"
+#     
+#     # Display the carousel in streamlit
+#     st.markdown(carousel_html, unsafe_allow_html=True)
+#     
+#     # Create the CSS styling for the carousel
+#     st.markdown(
+#         f"""
+#         <style>
+#         /* Carousel Styling */
+#         .carousel {{
+#           grid-gap: 0px; /* Reduce the gap between cards */
+#           justify-content: center; /* Center horizontally */
+#           align-items: center; /* Center vertically */
+#           overflow-x: auto;
+#           scroll-snap-type: x mandatory;
+#           scroll-behavior: smooth;
+#           -webkit-overflow-scrolling: touch;
+#           width: 500px;
+#           margin: 0 auto; /* Center horizontally by setting left and right margins to auto */
+#           background-color: transparent; /* Remove the background color */
+#           padding: 0px; /* Remove padding */
+#           border-radius: 0px; /* Add border-radius for rounded edges */
+#         }}
+#         .flashcard {{
+#           display: inline-block; /* Display cards inline */
+#           width: 500px;
+#           height: 200px;
+#           background-color: transparent; /* Remove the background color */
+#           border-radius: 0px;
+#           border: 2px solid black; /* Add black border */
+#           perspective: 0px;
+#           margin-bottom: 0px; /* Remove space between cards */
+#           padding: 0px;
+#           scroll-snap-align: center;
+#         }}
+#         .front, .back {{
+#           position: absolute;
+#           top: 0;
+#           left: 0;
+#           width: 500px;
+#           height: 200px;
+#           border-radius: 0px;
+#           backface-visibility: hidden;
+#           font-family: 'Ysabeau SC', sans-serif; /* font-family: font-family: 'Ysabeau SC', sans-serif; */
+#           text-align: center;
+#           margin: 0px;
+#           background: white;
+#         }}
+#         .back {{
+#             /* ... other styles ... */
+#             background: none; /* Remove the background */
+#             color: transparent; /* Make the text transparent */
+#             background-clip: text; /* Apply the background gradient to the text */
+#             -webkit-background-clip: text; /* For Safari */
+#             -webkit-text-fill-color: transparent; /* For Safari */
+#             background-image: linear-gradient(to bottom left, #941c8e, #763a9a, #4e62a3, #2e81ad, #12a9b4); /* Set the background gradient */
+#             transform: rotateY(180deg);
+#             display: flex;
+#             justify-content: center;
+#             align-items: center;
+#             flex-direction: column;
+#         }}                               
+#         .flashcard:hover .front {{
+#           transform: rotateY(180deg);
+#         }}
+#         .flashcard:hover .back {{
+#           transform: rotateY(0deg);
+#           cursor: default; /* Change cursor to pointer on hover */
+#         }}
+#         .front h1, .back p {{
+#           color: black;
+#           text-align: center;
+#           margin: 0;
+#           font-family: {font_family};
+#           font-size: {font_size_front}px;
+#         }}
+#         .back p {{
+#           line-height: 1.5;
+#           margin: 0;
+#         }}
+#         /* Carousel Navigation Styling */
+#         .carousel-nav {{
+#           margin: 0px 0px;
+#           text-align: center;
+#         }}
+#         </style>
+#         """, unsafe_allow_html=True)
+# =============================================================================
 #******************************************************************************
 # STATISTICAL TEST FUNCTIONS
 #******************************************************************************
@@ -7231,14 +7357,32 @@ if sidebar_menu_item == 'About':
                     # DISPLAY LOGO
                     col1, col2, col3 = st.columns([2,8,2])
                     with col2:
-                        vertical_spacer(1)
-                        st.image('./images/astronaut_helmet.png')
+                        st.image('./images/coin_logo.png')
                         
                 # scrolling/marquee text effect
-                space_quotes = """ "That's one small step for man, one giant leap for mankind." - Neil Armstrong, Apollo 11 astronaut, upon stepping onto the lunar surface in 1969  \
-                                | "The sky is not the limit; it's just the beginning." - Astronaut Kathy Sullivan, the first American woman to perform a spacewalk\
-                                | "Look again at that dot. That's here. That's home. That's us." - Carl Sagan
-                                """
+                scroll_text = """
+                In a world ravaged by chaos,
+                Humans and robots intertwine.
+                
+                Humans bring emotions and dreams,
+                Robots bring logic and precision.
+                
+                Together, they mend their broken realm,
+                Contributing unique strengths.
+                
+                Side by side, they stand as guardians,
+                Defending their fragile society.
+                
+                Humans rely on machine strength,
+                Robots depend on human empathy.
+                
+                Bound by an unbreakable code,
+                They blend their destinies.
+                
+                Hope emerges amidst the chaos,
+                Balance and harmony prevail. - Quote from OpenAI's GPT-3.5-based ChatGPT
+                """
+
                 #stock_ticker(space_quotes, speed = 30)
                 #st.markdown('---')
                 streamlit_marquee(**{
@@ -7249,13 +7393,13 @@ if sidebar_menu_item == 'About':
                     # the marquee text color
                     "color": "#000000",
                     # the marquee text content
-                    'content': space_quotes,
+                    'content': scroll_text,
                     # the marquee container width
                     'width': '800px',
                     # the marquee container line height
                     'lineHeight': "0px",
                     # the marquee duration
-                    'animationDuration': '45s',
+                    'animationDuration': '60s',
                 })
                 
         # =============================================================================
@@ -10320,8 +10464,9 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
         with st.expander('', expanded=True):
             col1, col2, col3 = st.columns([1,3,1])
             with col2:
-                train_models_carousel(my_title= 'Select your models to train in the sidebar!')
+                train_models_carousel(my_title= 'Select your models to train!')
                 
+        st.image('./images/train_page_info.png')
     with tab2:
             with st.expander('', expanded=True):
                 # Show buttons with Training Data/Test Data 
