@@ -805,7 +805,7 @@ def show_card_feature_selection_methods():
             paragraph_list_back = [
                                    "<b>RFE</b> is a <b>feature selection technique</b> that repeatedly removes feature(s) and each turn evaluates remaining features by ranking the features based on their importance scores and eliminates the least important feature. This process continues until a desired number of features is reached.", 
                                    "<b>PCA</b> is a <b>feature selection technique</b> that repeatedly transforms and evaluates features based on their variance, reducing the dataset to a smaller set of uncorrelated variables called principal components. This process continues until a desired number of components is achieved.", 
-                                   "<b>MIFS</b> aka <nobr>`Mutual Information Feature Selection`</nobr> is a <b>feature selection technique</b> that calculates the mutual information between each feature and the target to determine how much information each feature provides about the target."
+                                   "<b>MI</b> is a <b>feature selection technique</b> that calculates the mutual information between each feature and the target to determine how much information each feature provides about the target."
                                   ]
             font_family = "Helvetica"
             font_size_front = '14px'
@@ -1214,8 +1214,8 @@ def show_model_inputs():
 
     col1, col2, col3 = st.columns([7,120,1])
     with col2:  
-        create_flipcard_model_input(image_path_front_card='./images/model_inputs.png')
-    
+        create_flipcard_model_input(image_path_front_card='./images/model_inputs.png', 
+                                    my_string_back_card = 'Your dataset is split into two parts: a <i style="color:#67d0c4;">train dataset </i> and a <i style="color:#67d0c4;">test dataset</i>. The former is used to train the model, allowing it to learn from the features by adjusting its parameters to minimize errors and improve its predictive abilities. The latter dataset is then used to assess the performance of the trained model on new or unseen data and its ability to make accurate predictions.')
     vertical_spacer(1)
     
     col1, col2, col3 = st.columns([25, 40, 20])
@@ -1756,7 +1756,7 @@ def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, 
         </style>
         """, unsafe_allow_html=True)        
  
-def create_flipcard_model_input(image_path_front_card=None, font_size_back='10px', **kwargs):
+def create_flipcard_model_input(image_path_front_card=None, font_size_back='10px', my_string_back_card = '', **kwargs):
 
     # Open the image for the front of the card
     with open(image_path_front_card, 'rb') as file:
@@ -1774,7 +1774,7 @@ def create_flipcard_model_input(image_path_front_card=None, font_size_back='10px
             </div>
             <div class="back_model_input" style="margin-top: 20px; display: flex; align-items: center;">
                 <!-- Add your text for the back of the card here -->
-                <h3> your dataset is split into a training dataset and a test dataset. The training dataset is used to train the model, while the test dataset, on the other hand, is used to evaluate the performance of the trained model.<h3/>
+                <h3> {my_string_back_card} </h3>
             </div>
         </div>
     """)
@@ -1815,7 +1815,7 @@ def create_flipcard_model_input(image_path_front_card=None, font_size_back='10px
           text-align: center;
         }}
         .front_model_input {{
-          background: linear-gradient(to bottom left, #4e3fce, #7a5dc7, #9b7cc2, #bb9bbd, #c2b1c4);
+          /* background: linear-gradient(to bottom left, #4e3fce, #7a5dc7, #9b7cc2, #bb9bbd, #c2b1c4); */ 
           color: white;
           transform: rotateY(0deg);
         }}
@@ -2147,13 +2147,13 @@ def train_models_carousel(my_title= ''):
     vertical_spacer(2)
 
     # show carousel of models   
-    paragraph_list_back = ['The <b> Naive Model </b> uses the value of the previous observation (lag) as the prediction for the next observation. The lag can be defined based on various time intervals, such as daily, weekly, monthly, quarterly, yearly, or even a custom lag. The <b> Naive model </b> can serve as a quick and simple baseline.', 
+    paragraph_list_back = ['The <b> Naive models </b> serve as a simple baseline or benchmark. Model I assumes the next observation is equal to a lagged previous value which can be either previous day, week, month, quarter, year or custom defined. Model II aggregates a set of past values using a rolling window to predict the next value. Model III has a fixed single value by taking the average, median or mode.', 
                            'The <b> Linear Regression Model </b> is a statistical technique used to analyze the relationship between a dependent variable and one or more independent variables. It assumes a linear relationship, aiming to find the best-fit line that minimizes the differences between observed and predicted values.', 
-                           'SARIMAX, short for <b>Seasonal Autoregressive Integrated Moving Average with Exogenous Variables</b>, is a powerful time series forecasting model that incorporates seasonal patterns and exogenous variables. It combines <i> autoregressive </i> (past values), <i> moving average </i> (averages of certain time spans), and <i> integrated </i> (calculating differences of subsequent values) components.', 
-                           '<b>Prophet</b> utilizes an additive model (sum of individual factors) that decomposes time series data into: <i>trend</i>, <i>seasonality</i>, and <i>holiday components</i>. It incorporates advanced statistical techniques and incorporates automatic detection of changepoints to handle irregularities in the data. It offers flexibility in handling missing data and outliers making it a powerful forecasting model.']
+                           '<b>SARIMAX</b>, short for <b>Seasonal Autoregressive Integrated Moving Average with Exogenous Variables</b>, is a powerful time series forecasting model that incorporates seasonal patterns and exogenous variables. It combines <i> autoregressive </i> (past values), <i> moving average </i> (averages of certain time spans), and <i> integrated </i> (calculating differences of subsequent values) components.', 
+                           '<b>Prophet</b> utilizes an additive model (sum of individual factors) that decomposes time series data into: <i>trend</i>, <i>seasonality</i>, and <i>holiday components</i>. It incorporates advanced statistical techniques and automatic detection of changepoints to handle irregularities in the data. It offers flexibility in handling missing data and outliers making it a powerful forecasting model.']
     
     # create carousel cards for each model
-    header_list = ['Naive Model', 'Linear Regression', 'SARIMAX', 'Prophet']    
+    header_list = ['Naive Models', 'Linear Regression', 'SARIMAX', 'Prophet']    
     paragraph_list_front = ['', '', '', '']
    
     # define the font family to display the text of paragraph
@@ -3830,7 +3830,8 @@ def model_documentation():
     with st.expander('', expanded=True):
         col1, col2, col3 = st.columns([2, 8, 2])
         if clicked_moon_btn == '-':
-            st.image('./images/train_info.png')
+            st.image('./images/model_details_info.png')
+            
         elif clicked_moon_btn == 'Naive Model':
             with col2:
                 my_text_header('Naive Model')
@@ -6930,7 +6931,7 @@ def initiate_global_variables():
     # SHOW IN STREAMLIT DICTIONARY OF VARIABLES IN SESSION STATE
     #///////////////////////////////////////////////////////////////////
     # show in streamlit the session state variables that are stored cache for the user session
-    st.write(st.session_state)
+    #st.write(st.session_state)
     #///////////////////////////////////////////////////////////////////
     
     # Logging
@@ -7185,7 +7186,7 @@ menu_item = option_menu(menu_title = None,
                         orientation = "horizontal", 
                         styles = {
                                     "container": {
-                                        "padding": "0!important",
+                                        "padding": "0.3px",
                                         "background-color": "#f5f5f5",
                                         "border-radius": "10px",
                                         "border": "1px solid black",
@@ -8085,6 +8086,7 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
                 
                 with col1:
                    my_text_header('Demo Data')     
+                
                 #show_lottie_animation("./images/16938-asteroid.json", key='rocket_launch', speed=1, height=200, width=200, col_sizes=[4,4,4])
                      
                 # create 3 columns for spacing
@@ -8114,6 +8116,7 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
                 
                 vertical_spacer(1)
                 
+        st.image('./images/load_page.png')        
         # check if data is uploaded in file_uploader, if so -> use the function load_data to load file into a dataframe 
         if get_state('LOAD_PAGE', "my_data_choice") == "Upload Data" and uploaded_file is not None:
             # define dataframe from custom function to read from uploaded read_csv file
@@ -10153,7 +10156,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
             my_text_paragraph('Settings')
             vertical_spacer(2)
             
-            col1, col2, col3, col4, col5 = st.columns([1,4,1,4,1])
+            col1, col2, col3, col4, col5 = st.columns([1,7,1,7,1])
             with col2:    
                 include_feature_selection = st.selectbox(label = '*include feature selection:*', 
                                                          options = ['Yes', 'No'],
@@ -10477,21 +10480,17 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
         if selected_models == []:
             with st.expander('', expanded = True):
                my_text_header('Model Outputs')
-               
-               vertical_spacer(2)
-               st.image('./images/model_output.png')
-               #show_lottie_animation(url = './images/75644-accordion.json', key = 'training_page_outputs') 
-               
-               vertical_spacer(2)
-               
-               col1, col2, col3 = st.columns([2,8,2])
+
+               col1, col2, col3 = st.columns([7,120,1])
                with col2:
-                   my_text_paragraph('your model output will show up here, if you train your models...which are available in the sidebar menu!')
-               
-                   vertical_spacer(2)
-                
+                   
+                   create_flipcard_model_input(image_path_front_card = './images/train_info.png', my_string_back_card = 'If you train your models, the output will show up here! You can use the checkboxes from the sidebar menu to select your model(s) and hit <i style="color:#9d625e;">\"Submit\"</i> to check out your test results!')
+                       
+               vertical_spacer(4)
+
         # if models are selected by user run code
         if selected_models:
+            
             # iterate over all models and if user selected checkbox for model the model(s) is/are trained
             for model_name, model in selected_models:
                 
@@ -10507,11 +10506,12 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                     features_str = 'date_numeric'
 
                 # =============================================================================
-                #  NAIVE MODEL                   
+                #  NAIVE MODELS                   
                 # =============================================================================
 # =============================================================================
 #                 try:         
 # =============================================================================
+
                 if model_name == "Naive Model":
                     with st.expander('📈' + model_name, expanded=True):
                         # =============================================================================
@@ -10858,6 +10858,10 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                         
                         # update session state with latest results with new row added
                         set_state("TRAIN_PAGE", ("results_df", results_df))
+                                    
+            # show friendly user reminder message they can compare results on the evaluation page
+            st.markdown(f'<h2 style="text-align:center; font-family: Ysabeau SC, sans-serif; font-size: 20px ; color: black; border: 1px solid #d7d8d8; padding: 10px; border-radius: 5px;">💡 Vist the evaluation page for a comparison of your test results! </h2>', unsafe_allow_html=True)
+
     with tab4:
         # SHOW MODEL DETAILED DOCUMENTATION
         #model_documentation(st.session_state['selected_model_info'])
@@ -10975,7 +10979,8 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
         download_csv_button(my_df = st.session_state['results_df'], 
                             my_file = "Modeling Test Results.csv", 
                             help_message = "Download your Modeling Test Results to .CSV")
-            
+        
+    st.image('./images/evaluation_page.png')
 # =============================================================================
 #   _______ _    _ _   _ ______ 
 #  |__   __| |  | | \ | |  ____|
