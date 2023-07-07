@@ -99,7 +99,7 @@ from scipy.stats import mode, kurtosis, skew, shapiro
 #from statsmodels.stats.diagnostic import acorr_ljungbox
 #from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-
+import statsmodels.api as sm
 #********************************
 # Data (Pre-) Processing
 #********************************
@@ -150,6 +150,7 @@ font_style = f"""
             @import url('https://fonts.googleapis.com/css2?family=Ysabeau+SC:wght@200&display=swap');
             @import url('https://fonts.googleapis.com/css2?family=Rubik+Dirt&display=swap');
             @import url('https://fonts.googleapis.com/css2?family=Rock+Salt&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Josefin+Slab:wght@200&display=swap');
             p {{
                font-family: 'Ysabeau SC', sans-serif; /* Specify the desired font family */
             }}
@@ -788,15 +789,17 @@ def show_card_feature_selection_methods():
             title = 'Select your top features with 3 methods!'
             
             # set gradient color of letters of title
-            gradient = '-webkit-linear-gradient(left, #9c27b0, #673ab7, #3f51b5, #2196f3, #03a9f4)'
+            #gradient = '-webkit-linear-gradient(left, #9c27b0, #673ab7, #3f51b5, #2196f3, #03a9f4)'
+            gradient = '-webkit-linear-gradient(left, #FFFFF, #7c91b4, #a9b9d2, #7b8dad, #69727c)'
             
             # show in streamlit the title with gradient
-            st.markdown(f'<h1 style="text-align:center; background: none; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: {gradient};"> {title} </h1>', unsafe_allow_html=True)
+            st.markdown(f'<h1 style="text-align:center; font-family: Ysabeau SC; font-size: 30px; background: none; -webkit-background-clip: text;"> {title} </h1>', unsafe_allow_html=True)
            
             vertical_spacer(2)
             
             #### CAROUSEL ####
-            header_list = ['🎨', '🧮', '🎏']
+            #header_list = ['🎨', '🧮', '🎏']
+            header_list = ['', '', '']
             paragraph_list_front = [
                                     "<b> Recursive Feature Elimination </b>", 
                                     "<b>Principal Component Analysis</b>", 
@@ -807,12 +810,13 @@ def show_card_feature_selection_methods():
                                    "<b>PCA</b> is a <b>feature selection technique</b> that repeatedly transforms and evaluates features based on their variance, reducing the dataset to a smaller set of uncorrelated variables called principal components. This process continues until a desired number of components is achieved.", 
                                    "<b>MI</b> is a <b>feature selection technique</b> that calculates the mutual information between each feature and the target to determine how much information each feature provides about the target."
                                   ]
-            font_family = "Helvetica"
-            font_size_front = '14px'
+            #font_family = "Ysabeau SC"
+            font_family = "Josefin Slab"
+            font_size_front = '16px'
             font_size_back = '15px'    
             
             # in Streamlit create and show the user defined number of carousel cards with header+text
-            create_carousel_cards_v2(3, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back)
+            create_carousel_cards_v3(3, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back)
             vertical_spacer(2)
 
         # Display a NOTE to the user about using the training set for feature selection
@@ -1208,12 +1212,13 @@ def show_model_inputs():
     """
     my_text_header('Model Inputs')
     
-# =============================================================================
-#     show_lottie_animation(url="./images/86093-data-fork.json", key='inputs')
-# =============================================================================
+    # =============================================================================
+    #     show_lottie_animation(url="./images/86093-data-fork.json", key='inputs')
+    # =============================================================================
 
     col1, col2, col3 = st.columns([7,120,1])
     with col2:  
+        
         create_flipcard_model_input(image_path_front_card='./images/model_inputs.png', 
                                     my_string_back_card = 'Your dataset is split into two parts: a <i style="color:#67d0c4;">train dataset </i> and a <i style="color:#67d0c4;">test dataset</i>. The former is used to train the model, allowing it to learn from the features by adjusting its parameters to minimize errors and improve its predictive abilities. The latter dataset is then used to assess the performance of the trained model on new or unseen data and its ability to make accurate predictions.')
     vertical_spacer(1)
@@ -1612,7 +1617,7 @@ def create_flipcard_quick_insights(num_cards, header_list, paragraph_list_front,
 # =============================================================================
 # quick summary flipcard
 # =============================================================================
-def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back, image_path_front_card = None, **kwargs):    
+def create_flipcard_quick_summary(header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back, image_path_front_card = None, **kwargs):    
    
     # Compute and display the metrics for the first column
     rows = st.session_state.df_raw.shape[0]
@@ -1640,36 +1645,36 @@ def create_flipcard_quick_summary(num_cards, header_list, paragraph_list_front, 
     
     header_color = 'white'
     
-    # iterate over cards specified by user and join the headers and text of the lists
-    for i in range(num_cards):
-        card_html.append(f"""<div class="flashcard">
-                                <div class='front_summary'>
-                                    <img src="data:image/png;base64,{data_url}"style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
-                                    <h1 style='text-align:center;color:#F5F5F5; margin-bottom: 10px;padding: 35px;'>{header_list[i]}</h1>
-                                    <p style='text-align:center; font-family: Lato; font-size: {font_size_front};'>{paragraph_list_front[i]} </p>
-                                </div>
-                                <div class="back_summary">
-                                    <h2>{header_list[i]}</h2>
-                                       <div style="display: flex; justify-content: space-between; margin-bottom: -20px; margin-left: 20px; margin-right: 20px; margin-top: -20px;">
-                                       <div style="text-align: center; margin-right: 80px;">
-                                       <div style="margin-bottom: 0px; "><b style="color: {header_color};">rows</b></div><div>{rows}</div><br/>
-                                       <div style="margin-bottom: 0px;"><b style="color: {header_color};">start date</b></div><div>{min_date}</div><br/>
-                                       <div style="margin-bottom: 0px;"><b style="color: {header_color};">missing</b></div><div>{percent_missing}</div><br/>
-                                       <div style="margin-bottom: 0px;"><b style="color: {header_color};">mean</b></div><div>{mean_val}</div><br/>
-                                       <div style="margin-bottom: 0px;"><b style="color: {header_color};">minimum</b></div><div>{min_val}</div><br/>
-                                       <div style="margin-bottom: 0px;"><b style="color: {header_color};">stdev</b></div><div>{std_val}</div><br/>
-                                       </div>
-                                       <div style="text-align: center;">
-                                       <div style="margin-bottom: 0px; "><b style="color: {header_color};">columns</b></div><div>{cols}</div><br/>
-                                       <div style="margin-bottom: 0px; "><b style="color: {header_color};">end date</b></div><div>{max_date}</div><br/>
-                                       <div style="margin-bottom: 0px; "><b style="color: {header_color};">frequency</b></div><div>{dataframe_freq_name}</div><br/>
-                                       <div style="margin-bottom: 0px; "><b style="color: {header_color};">median</b></div><div>{median_val}</div><br/>
-                                       <div style="margin-bottom: 0px; "><b style="color: {header_color};">maximum</b></div><div>{max_val}</div><br/>
-                                       <div style="margin-bottom: 0px; "><b style="color: {header_color};">mode</b></div><div>{mode_val}</div><br/>
-                                    <p style='text-align:center; font-family: Lato; font-size: {font_size_back};'>{paragraph_list_back[i]}</p>
-                                </div>
+
+    card_html.append(f"""<div class="flashcard">
+                            <div class='front_summary'>
+                                <img src="data:image/png;base64,{data_url}"style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
+                                <h1 style='text-align:center;color:#F5F5F5; margin-bottom: 10px;padding: 35px;'>{header_list}</h1>
+                                <p style='text-align:center; font-family: Lato; font-size: {font_size_front};'>{paragraph_list_front} </p>
                             </div>
-                            """)
+                            <div class="back_summary">
+                                <h2>{header_list}</h2>
+                                   <div style="display: flex; justify-content: space-between; margin-bottom: -20px; margin-left: 20px; margin-right: 20px; margin-top: -20px;">
+                                   <div style="text-align: center; margin-right: 80px;">
+                                   <div style="margin-bottom: 0px; "><b style="color: {header_color};">rows</b></div><div>{rows}</div><br/>
+                                   <div style="margin-bottom: 0px;"><b style="color: {header_color};">start date</b></div><div>{min_date}</div><br/>
+                                   <div style="margin-bottom: 0px;"><b style="color: {header_color};">missing</b></div><div>{percent_missing}</div><br/>
+                                   <div style="margin-bottom: 0px;"><b style="color: {header_color};">mean</b></div><div>{mean_val}</div><br/>
+                                   <div style="margin-bottom: 0px;"><b style="color: {header_color};">minimum</b></div><div>{min_val}</div><br/>
+                                   <div style="margin-bottom: 0px;"><b style="color: {header_color};">stdev</b></div><div>{std_val}</div><br/>
+                                   </div>
+                                   <div style="text-align: center;">
+                                   <div style="margin-bottom: 0px; "><b style="color: {header_color};">columns</b></div><div>{cols}</div><br/>
+                                   <div style="margin-bottom: 0px; "><b style="color: {header_color};">end date</b></div><div>{max_date}</div><br/>
+                                   <div style="margin-bottom: 0px; "><b style="color: {header_color};">frequency</b></div><div>{dataframe_freq_name}</div><br/>
+                                   <div style="margin-bottom: 0px; "><b style="color: {header_color};">median</b></div><div>{median_val}</div><br/>
+                                   <div style="margin-bottom: 0px; "><b style="color: {header_color};">maximum</b></div><div>{max_val}</div><br/>
+                                   <div style="margin-bottom: 0px; "><b style="color: {header_color};">mode</b></div><div>{mode_val}</div><br/>
+                                <p style='text-align:center; font-family: Lato; font-size: {font_size_back};'>{paragraph_list_back}</p>
+                            </div>
+                        </div>
+                        """)
+                        
     # join all the html code for each card and join it into single html code with carousel wrapper
     carousel_html = "<div class='carousel'>" + "".join(card_html) + "</div>"
       
@@ -2238,7 +2243,7 @@ def create_carousel_cards_v3(num_cards, header_list, paragraph_list_front, parag
                                     <p style='text-align:center; font-family: {font_family}; font-size: {font_size_front};'>{paragraph_list_front[i]}</p>
                                 </div>
                                 <div class="back">
-                                    <p style='text-align:center; font-family: {font_family}; font-size: {font_size_back};'>{paragraph_list_back[i]}</p>
+                                    <p style=font-family: {font_family}; font-size: {font_size_back};'>{paragraph_list_back[i]}</p>
                                 </div>
                             </div>
                             """)
@@ -2259,6 +2264,8 @@ def create_carousel_cards_v3(num_cards, header_list, paragraph_list_front, parag
           -webkit-overflow-scrolling: touch;
           width: 100%;
           margin: auto;
+          border: 1px solid #000000; 
+          border-radius: 10px;
         }}
        .flashcard {{
           display: inline-block; /* Display cards inline */
@@ -2266,7 +2273,6 @@ def create_carousel_cards_v3(num_cards, header_list, paragraph_list_front, parag
           height: 200px;
           background-color: white;
           border-radius: 10px;
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
           perspective: 100px;
           margin-bottom: 5px; /* Add space between cards */
           padding: 0px;
@@ -2281,24 +2287,22 @@ def create_carousel_cards_v3(num_cards, header_list, paragraph_list_front, parag
           border-radius: 10px;
           backface-visibility: hidden;
           font-family: {font_family};
-          text-align: center;
+          text-align: justify;
         }}
         .front {{
-          background: linear-gradient(to bottom left, #4e3fce, #7a5dc7, #9b7cc2, #bb9bbd, #c2b1c4);
-          color: white;
+          background: linear-gradient(to bottom, #F5F5F5, #F5F5F5);
+          color: black; /* text color */
           transform: rotateY(0deg);
         }}
         .back {{   
-          background: linear-gradient(to bottom left, #941c8e, #763a9a, #4e62a3, #2e81ad, #12a9b4);
-          -webkit-background-clip: text; /* Apply the background gradient to the text */
-          -webkit-text-fill-color: transparent; /* Make the text transparent */
-          background-color: #f5f5f5; /* Set the background color to off-white */
-          color: #333333;
+          background-color: #F5F5F5; /* Set the background color to off-white */
+          color: black;
         transform: rotateY(180deg);
         display: flex;
         justify-content: center;
         align-items: center;
         flex-direction: column;
+        /* border: 1px solid #000000; */ /* Add 1px border with black color */ 
         }}                                
         .flashcard:hover .front {{
           transform: rotateY(180deg);
@@ -2449,7 +2453,7 @@ def create_carousel_cards_v2(num_cards, header_list, paragraph_list_front, parag
         </style>
         """, unsafe_allow_html=True)
  
-        # TEST
+# TEST
 # =============================================================================
 # def create_flipcards_model_cards(num_cards, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back):
 #     # note removing display: flex; inside the css code for .flashcard -> puts cards below eachother
@@ -2557,6 +2561,7 @@ def create_carousel_cards_v2(num_cards, header_list, paragraph_list_front, parag
 #         </style>
 #         """, unsafe_allow_html=True)
 # =============================================================================
+
 #******************************************************************************
 # STATISTICAL TEST FUNCTIONS
 #******************************************************************************
@@ -2746,48 +2751,76 @@ def create_summary_df(data):
         else:
             white_noise_label  = '-'
         return white_noise_label
-            
-    # define the model
-    model_lag24 = sm.tsa.AutoReg(data, lags=24, trend='c', old_names=False)
-    # train model on the residuals
-    res_lag24 = model_lag24.fit()
-
-    # define the model
-    model_lag48 = sm.tsa.AutoReg(data, lags=48, trend='c', old_names=False)
-    # train model on the residuals
-    res_lag48 = model_lag48.fit()
     
-# =============================================================================
-#     # Perform Ljung-Box test on residuals with lag=24 and lag=48
-#     try:
-# =============================================================================
-    result_ljungbox24 = sm.stats.acorr_ljungbox(res_lag24.resid, lags=[24], return_df=True)
-    result_ljungbox48 = sm.stats.acorr_ljungbox(res_lag48.resid, lags=[48], return_df=True)
+    try:        
+        if len(data) >= 24:
+            # define the model
+            model_lag24 = sm.tsa.AutoReg(data, lags=24, trend='c', old_names=False)
+            # train model on the residuals
+            res_lag24 = model_lag24.fit()
         
-    test_statistic_ljungbox_24 = result_ljungbox24.iloc[0]['lb_stat']
-    test_statistic_ljungbox_48 = result_ljungbox48.iloc[0]['lb_stat']
-    
-    p_value_ljungbox_24 = result_ljungbox24.iloc[0]['lb_pvalue']
-    p_value_ljungbox_48 = result_ljungbox48.iloc[0]['lb_pvalue']
-    
-    white_noise_24 = "True" if p_value_ljungbox_24 <= 0.05 else "False"
-    white_noise_48 = "True" if p_value_ljungbox_48 <= 0.05 else "False"
-    
-    white_noise_24_lbl = white_noise_label(white_noise_24, 24)
-    white_noise_48_lbl = white_noise_label(white_noise_48, 48)
-
-# =============================================================================
-#     except:
-#         result_ljungbox = np.nan
-#         test_statistic_ljungbox_24 = np.nan
-#         test_statistic_ljungbox_48 = np.nan
-#         p_value_ljungbox_24 = np.nan
-#         p_value_ljungbox_48 = np.nan
-#         white_noise_24 = np.nan
-#         white_noise_48 = np.nan
-#         white_noise_24_lbl = '-'
-#         white_noise_48_lbl = '-'
-# =============================================================================
+            # define the model
+            model_lag48 = sm.tsa.AutoReg(data, lags=48, trend='c', old_names=False)
+            # train model on the residuals
+            res_lag48 = model_lag48.fit()
+            
+            # Perform Ljung-Box test on residuals with lag=24 and lag=48
+            result_ljungbox24 = sm.stats.acorr_ljungbox(res_lag24.resid, lags=[24], return_df=True)
+            result_ljungbox48 = sm.stats.acorr_ljungbox(res_lag48.resid, lags=[48], return_df=True)
+                
+            test_statistic_ljungbox_24 = result_ljungbox24.iloc[0]['lb_stat']
+            test_statistic_ljungbox_48 = result_ljungbox48.iloc[0]['lb_stat']
+            
+            p_value_ljungbox_24 = result_ljungbox24.iloc[0]['lb_pvalue']
+            p_value_ljungbox_48 = result_ljungbox48.iloc[0]['lb_pvalue']
+            
+            white_noise_24 = "True" if p_value_ljungbox_24 <= 0.05 else "False"
+            white_noise_48 = "True" if p_value_ljungbox_48 <= 0.05 else "False"
+            
+            white_noise_24_lbl = white_noise_label(white_noise_24, 24)
+            white_noise_48_lbl = white_noise_label(white_noise_48, 48)
+        else:
+            #define lags
+            lag1 = int((len(data)-1)/2)
+            lag2 = int(len(data)-1)
+            
+            st.write(lag1, lag2)#test
+            
+            # define the model
+            model_lag24 = sm.tsa.AutoReg(data, lags = lag1, trend='c', old_names=False)
+            # train model on the residuals
+            res_lag24 = model_lag24.fit()
+        
+            # define the model
+            model_lag48 = sm.tsa.AutoReg(data, lags = lag2, trend='c', old_names=False)
+            # train model on the residuals
+            res_lag48 = model_lag48.fit()
+            
+            # Perform Ljung-Box test on residuals with lag=24 and lag=48
+            result_ljungbox24 = sm.stats.acorr_ljungbox(res_lag24.resid, lags=[lag1], return_df=True)
+            result_ljungbox48 = sm.stats.acorr_ljungbox(res_lag48.resid, lags=[lag2], return_df=True)
+                
+            test_statistic_ljungbox_24 = result_ljungbox24.iloc[0]['lb_stat']
+            test_statistic_ljungbox_48 = result_ljungbox48.iloc[0]['lb_stat']
+            
+            p_value_ljungbox_24 = result_ljungbox24.iloc[0]['lb_pvalue']
+            p_value_ljungbox_48 = result_ljungbox48.iloc[0]['lb_pvalue']
+            
+            white_noise_24 = "True" if p_value_ljungbox_24 <= 0.05 else "False"
+            white_noise_48 = "True" if p_value_ljungbox_48 <= 0.05 else "False"
+            
+            white_noise_24_lbl = white_noise_label(white_noise_24, lag1)
+            white_noise_48_lbl = white_noise_label(white_noise_48, lag2)
+    except:
+        result_ljungbox = np.nan
+        test_statistic_ljungbox_24 = np.nan
+        test_statistic_ljungbox_48 = np.nan
+        p_value_ljungbox_24 = np.nan
+        p_value_ljungbox_48 = np.nan
+        white_noise_24 = np.nan
+        white_noise_48 = np.nan
+        white_noise_24_lbl = '-'
+        white_noise_48_lbl = '-'
     # =============================================================================
     
     #******************************
@@ -2996,7 +3029,7 @@ def distinct_values_label_function(data):
 def adf_test(df, variable_loc, max_diffs=3):
     """
     Perform the Augmented Dickey-Fuller (ADF) test for stationarity on a time series.
-
+    
     Parameters
     ----------
     df : pandas DataFrame
@@ -3008,12 +3041,13 @@ def adf_test(df, variable_loc, max_diffs=3):
     max_diff : int, optional
         The maximum number of times to difference the time series if it is non-stationary.
         Defaults to 3.
-
+    
     Returns
     -------
     result : str
         A string containing the results of the ADF test.
     """
+    
     # Select the variable to test for stationarity
     if isinstance(variable_loc, int):
         variable = df.iloc[:, variable_loc]
@@ -3102,8 +3136,9 @@ def ljung_box_test(df, variable_loc, lag, model_type="AutoReg"):
     result : str
         A string containing the results of the Ljung-Box test.
     """
-    import statsmodels.api as sm
-    
+# =============================================================================
+#     try:
+# =============================================================================
     # Select the variable to test for white noise
     if isinstance(variable_loc, int):
         variable = df.iloc[:, variable_loc]
@@ -3130,11 +3165,11 @@ def ljung_box_test(df, variable_loc, lag, model_type="AutoReg"):
 
     if model_type == "AutoReg":
         # Fit AutoReg model to the data
-        model = sm.tsa.AutoReg(variable, lags=lag, trend='c', old_names=False)
-        res = model.fit()   
+        model = sm.tsa.AutoReg(variable, lags = lag, trend='c', old_names=False)
+        res = model.fit() 
+        
         # Perform Ljung-Box test on residuals for all lags including up to lag integer
         result_ljungbox = sm.stats.acorr_ljungbox(res.resid, lags=lag, return_df=True)
-
     else:
         raise ValueError("Invalid model type selected.")
         
@@ -3174,6 +3209,10 @@ def ljung_box_test(df, variable_loc, lag, model_type="AutoReg"):
     st.dataframe(result_ljungbox, use_container_width=True)
     
     return res, result_ljungbox
+# =============================================================================
+#     except:
+#         pass
+# =============================================================================
 
 def ljung_box_plots(df, variable_loc, res, lag, result_ljungbox, my_chart_color):
     adjusted_color = adjust_brightness(my_chart_color, 2)
@@ -3203,41 +3242,33 @@ def ljung_box_plots(df, variable_loc, res, lag, result_ljungbox, my_chart_color)
     # Display the plot
     st.plotly_chart(fig, use_container_width=True)
     st.markdown('---')
+    
     # 2nd GRAPH -  p-values of the lags
     ###################################
+    
     # Compute the p-values of the lags
     p_values = result_ljungbox['lb_pvalue']
+    
     # Plot the p-values
     my_text_paragraph('P-values for Ljung-Box Statistic')
-    fig_pvalues = go.Figure(data=go.Scatter( 
-                                            x = df.index[0:lag], 
+    
+    fig_pvalues = go.Figure(data=go.Scatter(x = df.index[0:lag], 
                                             y = p_values.iloc[0:lag], 
                                             mode = "markers", 
                                             name = 'p-value',
-                                            marker = dict(
-                                                          symbol="circle-open", 
-                                                          color = my_chart_color, 
-                                                         
-                                                         )
-                                           )
-                            )
-    
-    # Update y-axis range and tick settings
-    fig_pvalues.update_layout(yaxis=dict(range=[-0.1, 1], dtick=0.1), margin=dict(t=10))
+                                            marker = dict(symbol="circle-open", color = my_chart_color)))
     
     # Add a blue dotted line for the significance level
-    fig_pvalues.add_trace(go.Scatter(
-        x=[df.index[0], df.index[lag-1]],
-        y=[0.05, 0.05],
-        mode="lines",
-        line=dict(color = adjusted_color, 
-                  dash="dot"),
-        name="α = 0.05"
-    ))
+    fig_pvalues.add_trace(go.Scatter(x = [df.index[0], df.index[lag-1]],
+                                     y = [0.05, 0.05],
+                                     mode = "lines",
+                                     line = dict(color = adjusted_color, dash="dot"), 
+                                     name="α = 0.05"))
     
-    # Position the legend at the top right inside the graph
-    fig_pvalues.update_layout(legend=dict(x=1, y=1, xanchor='right', yanchor='top'))
-    fig_pvalues.update_layout(xaxis_title="Lag", yaxis_title="P-value", showlegend=True)
+    # Position the legend at the top right inside the graph and update y-axis range and tick settings
+    fig_pvalues.update_layout(legend=dict(x=1, y=1, xanchor='right', yanchor='top'), xaxis_title="Lag", yaxis_title="P-value", yaxis=dict(range=[-0.1, 1], dtick=0.1), margin=dict(t=10), showlegend=True)
+    
+    # Show plotly chart
     st.plotly_chart(fig_pvalues, use_container_width=True)
     
 #******************************************************************************
@@ -8242,11 +8273,11 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
              my_text_paragraph('White Noise')
          
              lag1_ljung_box = st.number_input(label = '*Enter maximum lag:*', 
-                                              min_value=1, 
+                                              min_value = 1, 
                                               value = min(24, len(st.session_state.df_raw)-2), 
-                                              max_value=len(st.session_state.df_raw)-2,
+                                              max_value = len(st.session_state.df_raw)-2,
                                               key= 'lag1_ljung_box',
-                                              help = ' the lag parameter in the Ljung-Box test determines the number of time periods over which the autocorrelation of residuals is evaluated to assess the presence of significant autocorrelation in the time series.')
+                                              help = 'the lag parameter in the Ljung-Box test determines the number of time periods over which the autocorrelation of residuals is evaluated to assess the presence of significant autocorrelation in the time series.')
              
              col1, col2, col3 = st.columns([5,4,4])
              with col2:
@@ -8323,10 +8354,9 @@ if menu_item == 'Explore' and sidebar_menu_item == 'Home':
             with col2:
                 vertical_spacer(1)
                 
-                create_flipcard_quick_summary(num_cards = 1, 
-                                              header_list = [''],  
-                                              paragraph_list_front = [''], 
-                                              paragraph_list_back = [''], 
+                create_flipcard_quick_summary(header_list = '',  
+                                              paragraph_list_front = '', 
+                                              paragraph_list_back = '', 
                                               font_family = 'Arial', 
                                               font_size_front ='16px', 
                                               font_size_back ='16px', 
@@ -9769,6 +9799,8 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
     with tab1: 
         try:
             show_card_feature_selection_methods()
+            
+            st.image('./images/feature_info.png')
         except:
             pass
         
@@ -9997,6 +10029,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
         with st.expander('🥇 Top Features Selected', expanded=True):
             my_text_paragraph('Your Feature Selection', my_font_size='26px')
             
+            
 # =============================================================================
 #             show_lottie_animation(url = "./images/astronaut_star_in_hand.json", 
 #                                   key = 'lottie_animation_austronaut_star', 
@@ -10060,6 +10093,7 @@ if menu_item == 'Select' and sidebar_menu_item == 'Home':
                                 help_message = "Download your **features** to .CSV", 
                                 my_key = 'features_df_download_btn')
             
+        st.image('./images/feature_selection2.png')
     # Set session state variable 'upload_new_data' back to False
     set_state("DATA_OPTION", ("upload_new_data", False))
 else:
@@ -10860,7 +10894,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                         set_state("TRAIN_PAGE", ("results_df", results_df))
                                     
             # show friendly user reminder message they can compare results on the evaluation page
-            st.markdown(f'<h2 style="text-align:center; font-family: Ysabeau SC, sans-serif; font-size: 20px ; color: black; border: 1px solid #d7d8d8; padding: 10px; border-radius: 5px;">💡 Vist the evaluation page for a comparison of your test results! </h2>', unsafe_allow_html=True)
+            st.markdown(f'<h2 style="text-align:center; font-family: Ysabeau SC, sans-serif; font-size: 20px ; color: black; border: 1px solid #d7d8d8; padding: 10px; border-radius: 5px;">💡 Vist the Evaluation Page for a comparison of your test results! </h2>', unsafe_allow_html=True)
 
     with tab4:
         # SHOW MODEL DETAILED DOCUMENTATION
@@ -10981,6 +11015,7 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
                             help_message = "Download your Modeling Test Results to .CSV")
         
     st.image('./images/evaluation_page.png')
+    
 # =============================================================================
 #   _______ _    _ _   _ ______ 
 #  |__   __| |  | | \ | |  ____|
@@ -11006,13 +11041,18 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
     # SIDEBAR Hyperparameter Tuning
     ################################
     with st.sidebar:
+         
          my_title(f'{tune_icon}', "#88466D")                    
+         
          with st.form("hyper_parameter_tuning"):
+             
              # create a multiselect checkbox with all model names selected by default
              # create a list of the selected models by the user in the training section of the streamlit app
              model_lst = [model_name for model_name, model in selected_models]
+             
              # SELECT MODEL(S): let the user select the trained model(s) in a multi-selectbox for hyper-parameter tuning
              selected_model_names = st.multiselect('*Select Models*', model_lst, help='Selected Models are tuned utilizing **`Grid Search`**, which is a specific technique for hyperparameter tuning where a set of hyperparameters is defined and the model is trained and evaluated on all possible combinations')
+             
              # SELECT EVALUATION METRIC: let user set evaluation metric for the hyper-parameter tuning
              metric = st.selectbox('*Select Evaluation Metric*', ['AIC', 'BIC', 'RMSE'], 
                                    label_visibility='visible', 
@@ -11027,6 +11067,7 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                  # Set mini to positive infinity to ensure that the first value evaluated will become the minimum
                  # minimum metric score will be saved under variable mini while looping thorugh parameter grid
                  mini = float('-inf')
+             
              # SARIMAX HYPER-PARAMETER GRID TO SELECT BY USER
              ##################################################
              with st.expander('SARIMAX GridSearch Parameters'):
@@ -11040,6 +11081,7 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                      D_max = st.number_input("*Max Seasonal Differencing (D):*", value=1, min_value=0, max_value=10)
                      Q_max = st.number_input("*Max Seasonal Moving Average (Q):*", value=2, min_value=0, max_value=10)
                      s = st.number_input("*Set Seasonal Periodicity (s):*", value=7, min_value=1)
+         
              # PROPHET HYPER-PARAMETER GRID TO SELECT BY USER
              ##################################################
              with st.expander('Prophet GridSearch Parameters'):
@@ -11079,6 +11121,7 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
             # set start time when grid-search is kicked-off to define total time it takes
             # as computationaly intensive
             start_time = time.time()
+            
             # if the name of the model selected by user in multi-selectbox is selected when pressing the submit button then run hyper-parameter search for the model
             # note that naive model/linear regression are not added as they do not have hyper-parameters
             for model_name in selected_model_names:
@@ -11130,7 +11173,8 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                             except:
                                 continue
                     # set the end of runtime
-                    end_time_sarimax = time.time()                  
+                    end_time_sarimax = time.time()
+                    
                 if model_name == "Prophet":
                     horizon_int = horizon_option
                     horizon_str = f'{horizon_int} days'  # construct horizon parameter string
