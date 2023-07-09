@@ -11,4 +11,5 @@ prophet==1.1.2
 pywavelets
 openpyxl
 holidays==0.24
+optuna
 

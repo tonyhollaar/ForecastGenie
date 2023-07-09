@@ -378,9 +378,6 @@ st.markdown(font_style, unsafe_allow_html=True)
 #     return clicked_model_btn
 # =============================================================================
 
-
-
-
 # =============================================================================
 # # =============================================================================
 # #  Show/Hide Button to download dataframe                   
@@ -1864,8 +1861,6 @@ def create_flipcard_model_input(image_path_front_card=None, font_size_back='10px
 
     # Join the card HTML code list and display the carousel in Streamlit
     st.markdown("".join(card_html), unsafe_allow_html=True)
-
-
  
 def create_flipcard_stats(image_path_front_card=None, font_size_back='10px', my_header=None, **kwargs):
     # Header in Streamlit
@@ -6957,14 +6952,7 @@ def initiate_global_variables():
     # ================================ FORECAST PAGE ===================================
     #
     #
-    
-    #///////////////////////////////////////////////////////////////////
-    # SHOW IN STREAMLIT DICTIONARY OF VARIABLES IN SESSION STATE
-    #///////////////////////////////////////////////////////////////////
-    # show in streamlit the session state variables that are stored cache for the user session
-    #st.write(st.session_state)
-    #///////////////////////////////////////////////////////////////////
-    
+
     # Logging
     print('ForecastGenie Print: Loaded Global Variables')
     
@@ -6985,6 +6973,16 @@ def initiate_global_variables():
     key11_train, key12_train, key13_train, key14_train, key15_train, key16_train, key17_train, key18_train, key19_train, key20_train, \
     key21_train, key22_train, key23_train, key24_train, key25_train, key26_train, key27_train, key28_train, key29_train, key30_train, key31_train, key32_train, \
     key1_evaluate, key2_evaluate
+
+    
+#///////////////////////////////////////////////////////////////////
+# SHOW IN STREAMLIT DICTIONARY OF VARIABLES IN SESSION STATE DEBUG
+#///////////////////////////////////////////////////////////////////
+# show in streamlit the session state variables that are stored cache for the user session
+st.write(st.session_state)
+#///////////////////////////////////////////////////////////////////
+    
+
     
 # =============================================================================
 #   _____ _   _ _____ _______ _____       _______ ______ 
@@ -8146,8 +8144,10 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
                 download_csv_button(df_graph, my_file="raw_data.csv", help_message='Download dataframe to .CSV', set_index=True)
                 
                 vertical_spacer(1)
-                
-        st.image('./images/load_page.png')        
+        
+            # 
+            st.image('./images/load_page.png')
+        
         # check if data is uploaded in file_uploader, if so -> use the function load_data to load file into a dataframe 
         if get_state('LOAD_PAGE', "my_data_choice") == "Upload Data" and uploaded_file is not None:
             # define dataframe from custom function to read from uploaded read_csv file
@@ -10894,7 +10894,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                         set_state("TRAIN_PAGE", ("results_df", results_df))
                                     
             # show friendly user reminder message they can compare results on the evaluation page
-            st.markdown(f'<h2 style="text-align:center; font-family: Ysabeau SC, sans-serif; font-size: 20px ; color: black; border: 1px solid #d7d8d8; padding: 10px; border-radius: 5px;">💡 Vist the Evaluation Page for a comparison of your test results! </h2>', unsafe_allow_html=True)
+            st.markdown(f'<h2 style="text-align:center; font-family: Ysabeau SC, sans-serif; font-size: 18px ; color: black; border: 1px solid #d7d8d8; padding: 10px; border-radius: 5px;">💡 Vist the Evaluation Page for a comparison of your test results! </h2>', unsafe_allow_html=True)
 
     with tab4:
         # SHOW MODEL DETAILED DOCUMENTATION
@@ -11015,7 +11015,142 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
                             help_message = "Download your Modeling Test Results to .CSV")
         
     st.image('./images/evaluation_page.png')
-    
+
+def hyperparameter_tuning_form():
+    my_title(f'{tune_icon}', "#88466D")         
+     
+    with st.form("hyper_parameter_tuning"):
+        
+        # create option for user to early stop the hyper-parameter tuning process based on time
+        max_wait_time = st.time_input(label = 'Set the maximum minutes for optimization', 
+                          value = datetime.time(0, 5),
+                          step = 60) # seconds /  You can also pass a datetime.timedelta object.
+        
+        # create a list of the selected models by the user in the training section of the streamlit app
+        model_lst = [model_name for model_name, model in selected_models]
+        
+        # SELECT MODEL(S): let the user select the models multi-selectbox for hyper-parameter tuning
+        selected_model_names = st.multiselect('*Select Models*', 
+                                              options = model_lst, 
+                                              help='Selected Models are tuned utilizing **`Grid Search`**, which is a specific technique for hyperparameter tuning where a set of hyperparameters is defined and the model is trained and evaluated on all possible combinations')
+        
+        # SELECT EVALUATION METRIC: let user set evaluation metric for the hyper-parameter tuning
+        metric = st.selectbox(label = '*Select Evaluation Metric*', 
+                              options = ['AIC', 'BIC', 'RMSE'], 
+                              label_visibility = 'visible', 
+                              help = '**`AIC`** (**Akaike Information Criterion**): A measure of the quality of a statistical model, taking into account the goodness of fit and the complexity of the model. A lower AIC indicates a better model fit. \
+                              \n**`BIC`** (**Bayesian Information Criterion**): Similar to AIC, but places a stronger penalty on models with many parameters. A lower BIC indicates a better model fit.  \
+                              \n**`RMSE`** (**Root Mean Squared Error**): A measure of the differences between predicted and observed values in a regression model. It is the square root of the mean of the squared differences between predicted and observed values. A lower RMSE indicates a better model fit.')
+         
+        # =============================================================================
+        # SARIMAX HYPER-PARAMETER GRID TO SELECT BY USER
+        # =============================================================================
+        with st.expander('SARIMAX GridSearch Parameters'):
+            
+            col1, col2, col3 = st.columns([5,1,5])
+            with col1:
+                p_max = st.number_input(label = "*Max Autoregressive Order (p):*", 
+                                        value=1, 
+                                        min_value=0, 
+                                        max_value=10)
+                
+                d_max = st.number_input(label = "*Max Differencing (d):*", 
+                                        value=1, 
+                                        min_value=0, 
+                                        max_value=10)
+                
+                q_max = st.number_input(label = "*Max Moving Average (q):*", 
+                                        value=1, 
+                                        min_value=0, 
+                                        max_value=10)   
+            with col3:
+                P_max = st.number_input(label = "*Max Seasonal Autoregressive Order (P):*", 
+                                        value=1, 
+                                        min_value=0, 
+                                        max_value=10)
+                
+                D_max = st.number_input(label = "*Max Seasonal Differencing (D):*", 
+                                        value=1, 
+                                        min_value=0, 
+                                        max_value=10)
+                
+                Q_max = st.number_input(label = "*Max Seasonal Moving Average (Q):*", 
+                                        value=1, 
+                                        min_value=0, 
+                                        max_value=10)
+                
+                s = st.number_input(label = "*Set Seasonal Periodicity (s):*", 
+                                    value = 7, 
+                                    min_value = 1)
+                
+            col1, col2, col3 = st.columns([5,1,5])
+            with col1:
+                enforce_stationarity = st.multiselect('*Enforce Stationarity*', 
+                                                       options = [True, False], 
+                                                       default = [True],
+                                                       help='Whether or not to transform the AR parameters to enforce stationarity in the autoregressive component of the model.')
+            with col3:     
+                enforce_invertibility = st.multiselect('*Enforce Invertibility*', 
+                                                       options = [True, False], 
+                                                       default = [True],
+                                                       help='Whether or not to transform the MA parameters to enforce invertibility in the moving average component of the model.')
+        
+        # =============================================================================
+        # PROPHET HYPER-PARAMETER GRID TO SELECT BY USER
+        # =============================================================================
+        with st.expander('Prophet GridSearch Parameters'):
+            
+            vertical_spacer(1)
+            
+            col1, col2 = st.columns([5,1])
+            with col1:
+                # usually set to forecast horizon e.g. 30 days
+                horizon_option = st.slider(label = 'Set Forecast Horizon (default = 30 Days):', 
+                                           min_value = 1, 
+                                           max_value = 365, 
+                                           step = 1, value=30, 
+                                           help='The horizon for a Prophet model is typically set to the number of time periods that you want to forecast into the future. This is also known as the forecasting horizon or prediction horizon.')
+                
+                changepoint_prior_scale_options = st.multiselect(label = '*Changepoint Prior Scale*', 
+                                                                 options =  [0.001, 0.01, 0.05, 0.1, 1], 
+                                                                 default = [0.001, 0.01, 0.1, 1], 
+                                                                 help = 'This is probably the most impactful parameter. It determines the flexibility of the trend, and in particular how much the trend changes at the trend changepoints. As described in this documentation, if it is too small, the trend will be underfit and variance that should have been modeled with trend changes will instead end up being handled with the noise term. If it is too large, the trend will overfit and in the most extreme case you can end up with the trend capturing yearly seasonality. The default of 0.05 works for many time series, but this could be tuned; a range of [0.001, 0.5] would likely be about right. Parameters like this (regularization penalties; this is effectively a lasso penalty) are often tuned on a log scale.')
+                
+                seasonality_mode_options = st.multiselect(label = '*Seasonality Modes*', 
+                                                          options = [ 'additive', 'multiplicative'], 
+                                                          default = [ 'additive', 'multiplicative'])
+                
+                seasonality_prior_scale_options = st.multiselect(label = '*Seasonality Prior Scales*', 
+                                                                 options = [0.01, 0.1, 1.0, 10.0], 
+                                                                 default = [0.01, 10.0])
+                
+                holidays_prior_scale_options = st.multiselect(label = '*Holidays Prior Scales*', 
+                                                              options = [0.01, 10.0], 
+                                                              default = [0.01, 10.0])
+                
+                yearly_seasonality_options = st.multiselect(label = '*Yearly Seasonality*', 
+                                                            options = [True, False], 
+                                                            default = [True])
+                
+                weekly_seasonality_options = st.multiselect(label = '*Weekly Seasonality*', 
+                                                            options = [True, False], 
+                                                            default = [True])
+                
+                daily_seasonality_options = st.multiselect(label = '*Daily Seasonality*', 
+                                                           options = [True, False], 
+                                                           default = [True])
+                
+        # create vertical spacing columns
+        col1, col2, col3 = st.columns([4,4,4])
+        with col2: 
+            # create submit button for the hyper-parameter tuning
+            hp_tuning_btn = st.form_submit_button("Submit", type="secondary")
+             
+    return max_wait_time, selected_model_names, metric, \
+           p_max, d_max, q_max, P_max, D_max, Q_max, s,  enforce_stationarity, enforce_invertibility, \
+           horizon_option, changepoint_prior_scale_options, seasonality_mode_options, seasonality_prior_scale_options, holidays_prior_scale_options, yearly_seasonality_options, weekly_seasonality_options, daily_seasonality_options, \
+           hp_tuning_btn
+
 # =============================================================================
 #   _______ _    _ _   _ ______ 
 #  |__   __| |  | | \ | |  ____|
@@ -11027,242 +11162,322 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
 # =============================================================================
 # 9. Hyper-parameter tuning
 if menu_item == 'Tune' and sidebar_menu_item == 'Home':
-    my_title(f'{tune_icon} Hyperparameter Tuning', "#88466D", gradient_colors="#1A2980, #88466D, #FEBD2E")
-    
-    # Set Variables Needed
-    ######################
-    # set initial start time before hyper-parameter tuning is kicked-off
-    start_time = time.time()
+    # =============================================================================
+    # Initiate Variables Required
+    # =============================================================================
+
     # initialize variable for sarimax parameters p,d,q
     param_mini = None
+    
     # initialize variable for sarimax model parameters P,D,Q,s
     param_seasonal_mini = None
-
-    # SIDEBAR Hyperparameter Tuning
-    ################################
+    
+    # define tuples of model name, model
+    selected_models = [('Naive Model', None),
+                      ('Linear Regression', LinearRegression(fit_intercept=True)), 
+                      ('SARIMAX', SARIMAX(y_train)),
+                      ('Prophet', Prophet())]
+    
+    # =============================================================================
+    # CREATE USER FORM FOR HYPERPARAMETER TUNING
+    # =============================================================================
     with st.sidebar:
-         
-         my_title(f'{tune_icon}', "#88466D")                    
-         
-         with st.form("hyper_parameter_tuning"):
+        # return parameters set for hyper-parameter tuning either default or overwritten by user options
+        max_wait_time, selected_model_names, metric, \
+        p_max, d_max, q_max, P_max, D_max, Q_max, s,  enforce_stationarity, enforce_invertibility, \
+        horizon_option, changepoint_prior_scale_options, seasonality_mode_options, seasonality_prior_scale_options, holidays_prior_scale_options, yearly_seasonality_options, weekly_seasonality_options, daily_seasonality_options, \
+        hp_tuning_btn = hyperparameter_tuning_form()
              
-             # create a multiselect checkbox with all model names selected by default
-             # create a list of the selected models by the user in the training section of the streamlit app
-             model_lst = [model_name for model_name, model in selected_models]
-             
-             # SELECT MODEL(S): let the user select the trained model(s) in a multi-selectbox for hyper-parameter tuning
-             selected_model_names = st.multiselect('*Select Models*', model_lst, help='Selected Models are tuned utilizing **`Grid Search`**, which is a specific technique for hyperparameter tuning where a set of hyperparameters is defined and the model is trained and evaluated on all possible combinations')
-             
-             # SELECT EVALUATION METRIC: let user set evaluation metric for the hyper-parameter tuning
-             metric = st.selectbox('*Select Evaluation Metric*', ['AIC', 'BIC', 'RMSE'], 
-                                   label_visibility='visible', 
-                                   help='**`AIC`** (**Akaike Information Criterion**): A measure of the quality of a statistical model, taking into account the goodness of fit and the complexity of the model. A lower AIC indicates a better model fit. \
-                                   \n**`BIC`** (**Bayesian Information Criterion**): Similar to AIC, but places a stronger penalty on models with many parameters. A lower BIC indicates a better model fit.  \
-                                   \n**`RMSE`** (**Root Mean Squared Error**): A measure of the differences between predicted and observed values in a regression model. It is the square root of the mean of the squared differences between predicted and observed values. A lower RMSE indicates a better model fit.')
-             
-             # Note that we set best_metric to -np.inf instead of np.inf since we want to maximize the R2 metric. 
-             if metric in ['AIC', 'BIC', 'RMSE']:
-                 mini = float('+inf')
-             else:
-                 # Set mini to positive infinity to ensure that the first value evaluated will become the minimum
-                 # minimum metric score will be saved under variable mini while looping thorugh parameter grid
-                 mini = float('-inf')
-             
-             # SARIMAX HYPER-PARAMETER GRID TO SELECT BY USER
-             ##################################################
-             with st.expander('SARIMAX GridSearch Parameters'):
-                 col1, col2, col3 = st.columns([5,1,5])
-                 with col1:
-                     p_max = st.number_input("*Max Autoregressive Order (p):*", value=2, min_value=0, max_value=10)
-                     d_max = st.number_input("*Max Differencing (d):*", value=1, min_value=0, max_value=10)
-                     q_max = st.number_input("*Max Moving Average (q):*", value=2, min_value=0, max_value=10)   
-                 with col3:
-                     P_max = st.number_input("*Max Seasonal Autoregressive Order (P):*", value=2, min_value=0, max_value=10)
-                     D_max = st.number_input("*Max Seasonal Differencing (D):*", value=1, min_value=0, max_value=10)
-                     Q_max = st.number_input("*Max Seasonal Moving Average (Q):*", value=2, min_value=0, max_value=10)
-                     s = st.number_input("*Set Seasonal Periodicity (s):*", value=7, min_value=1)
-         
-             # PROPHET HYPER-PARAMETER GRID TO SELECT BY USER
-             ##################################################
-             with st.expander('Prophet GridSearch Parameters'):
-                st.write('')
-                col1, col2 = st.columns([5,1])
-                with col1:
-                    # PROPHET MODEL HYPER-PARAMETER GRID WITH DOCUMENTATION
-                    # usually set to forecast horizon e.g. 30 days
-                    horizon_option = int(st.slider('Set Forecast Horizon (default = 30 Days):', min_value=1, max_value=365, step=1, value=30, help='The horizon for a Prophet model is typically set to the number of time periods that you want to forecast into the future. This is also known as the forecasting horizon or prediction horizon.'))
-                    # This is probably the most impactful parameter. It determines the flexibility of the trend, and in particular how much the trend changes at the trend changepoints. As described in this documentation, if it is too small, the trend will be underfit and variance that should have been modeled with trend changes will instead end up being handled with the noise term. If it is too large, the trend will overfit and in the most extreme case you can end up with the trend capturing yearly seasonality. The default of 0.05 works for many time series, but this could be tuned; a range of [0.001, 0.5] would likely be about right. Parameters like this (regularization penalties; this is effectively a lasso penalty) are often tuned on a log scale.
-                    changepoint_prior_scale_options = st.multiselect('*Changepoint Prior Scale*', [0.001, 0.01, 0.05, 0.1, 1], default = [0.001, 0.01, 0.1, 1], help='This is probably the most impactful parameter. It determines the flexibility of the trend, and in particular how much the trend changes at the trend changepoints. As described in this documentation, if it is too small, the trend will be underfit and variance that should have been modeled with trend changes will instead end up being handled with the noise term. If it is too large, the trend will overfit and in the most extreme case you can end up with the trend capturing yearly seasonality. The default of 0.05 works for many time series, but this could be tuned; a range of [0.001, 0.5] would likely be about right. Parameters like this (regularization penalties; this is effectively a lasso penalty) are often tuned on a log scale.')
-                    # Options are ['additive', 'multiplicative']. Default is 'additive', but many business time series will have multiplicative seasonality. 
-                    # This is best identified just from looking at the time series and seeing if the magnitude of seasonal fluctuations grows with the magnitude of the time series
-                    seasonality_mode_options = st.multiselect('*Seasonality Modes*', [ 'additive', 'multiplicative'], default = [ 'additive', 'multiplicative'])
-                    seasonality_prior_scale_options = st.multiselect('*Seasonality Prior Scales*', [0.01, 0.1, 1.0, 10.0], default = [0.01, 0.1, 1.0, 10.0])
-                    holidays_prior_scale_options = st.multiselect('*Holidays Prior Scales*', [0.01, 0.1, 1.0, 10.0], default = [0.01, 0.1, 1.0, 10.0])
-                    yearly_seasonality_options = st.multiselect('*Yearly Seasonality*', [True, False], default = [True, False])
-                    weekly_seasonality_options = st.multiselect('*Weekly Seasonality*', [True, False], default = [True, False])
-                    daily_seasonality_options = st.multiselect('*Daily Seasonality*', [True, False], default = [True, False])
-                    #interval_width=interval_width
-                        
-             sarimax_tuning_results = pd.DataFrame(columns=['SARIMAX (p,d,q)x(P,D,Q,s)', 'param', 'param_seasonal', metric])
-             prophet_tuning_results = pd.DataFrame() # TEST
-             # create vertical spacing columns
-             col1, col2, col3 = st.columns([4,4,4])
-             with col2: 
-                 # create submit button for the hyper-parameter tuning
-                 hp_tuning_btn = st.form_submit_button("Submit", type="secondary")    
-          
+    # =============================================================================
+    # CREATE DATAFRAMES TO STORE HYPERPARAMETER TUNING RESULTS                    
+    # =============================================================================
+    sarimax_tuning_results = pd.DataFrame(columns = ['SARIMAX (p,d,q)x(P,D,Q,s)', 'param', 'param_seasonal', metric])
+    prophet_tuning_results = pd.DataFrame() # TEST
+ 
     # if user clicks the hyper-parameter tuning button run code below
     if hp_tuning_btn == True and selected_model_names:
-        # Set up a progress bar
-        with st.spinner(f'Searching for optimal hyper-parameters...hold your horses 🐎🐎🐎 this might take a while to run!'):
-            ################################
-            # kick off the grid-search!
-            ################################
-            # set start time when grid-search is kicked-off to define total time it takes
-            # as computationaly intensive
-            start_time = time.time()
-            
-            # if the name of the model selected by user in multi-selectbox is selected when pressing the submit button then run hyper-parameter search for the model
-            # note that naive model/linear regression are not added as they do not have hyper-parameters
-            for model_name in selected_model_names:
-                if model_name == "SARIMAX":
-                    # Define the parameter grid to search
-                    param_grid = {
-                                    'order': [(p, d, q) for p, d, q in itertools.product(range(p_max+1), range(d_max+1), range(q_max+1))],
-                                    'seasonal_order': [(p, d, q, s) for p, d, q in itertools.product(range(P_max+1), range(D_max+1), range(Q_max+1))]
-                                  }
-                    # Loop through each parameter combination in the parameter grid
-                    for param, param_seasonal in itertools.product(param_grid['order'], param_grid['seasonal_order']):
-                            try:
-                                # Create a SARIMAX model with the current parameter values
-                                mod = SARIMAX(y,
-                                              order=param,
-                                              seasonal_order=param_seasonal,
-                                              exog=X, 
-                                              enforce_stationarity=enforce_stationarity,
-                                              enforce_invertibility=enforce_invertibility)
-                                # Fit the model to the data
-                                results = mod.fit()
-                                # Check if the current model has a lower AIC than the previous models
-                                if metric == 'AIC':
-                                    if results.aic < mini:
-                                        # If so, update the mini value and the parameter values for the model with the lowest AIC
-                                        mini = results.aic
-                                        param_mini = param
-                                        param_seasonal_mini = param_seasonal
-                                elif metric == 'BIC':
-                                    if results.bic < mini:
-                                        # If so, update the mini value and the parameter values for the model with the lowest AIC
-                                        mini = results.bic
-                                        param_mini = param
-                                        param_seasonal_mini = param_seasonal
-                                elif metric == 'RMSE':
-                                    rmse = math.sqrt(results.mse)
-                                    if rmse < mini:
-                                        mini = rmse
-                                        param_mini = param
-                                        param_seasonal_mini = param_seasonal
-                                                         
-                                # Append a new row to the dataframe with the parameter values and AIC score
-                                sarimax_tuning_results = sarimax_tuning_results.append({'SARIMAX (p,d,q)x(P,D,Q,s)': f'{param} x {param_seasonal}', 
-                                                               'param': param, 
-                                                               'param_seasonal': param_seasonal, 
-                                                               metric: "{:.2f}".format(mini)}, 
-                                                               ignore_index=True)
-                            # If the model fails to fit, skip it and continue to the next model
-                            except:
-                                continue
-                    # set the end of runtime
-                    end_time_sarimax = time.time()
-                    
-                if model_name == "Prophet":
-                    horizon_int = horizon_option
-                    horizon_str = f'{horizon_int} days'  # construct horizon parameter string
-                    # define cutoffs
-                    cutoff_date = X_train.index[-(horizon_int+1)].strftime('%Y-%m-%d')
-                    # define the parameter grid - user can select options with multi-select box in streamlit app
-                    param_grid = {  
-                                    'changepoint_prior_scale': changepoint_prior_scale_options,
-                                    'seasonality_prior_scale': seasonality_prior_scale_options,
-                                    'changepoint_prior_scale': changepoint_prior_scale_options,
-                                    'seasonality_mode': seasonality_mode_options,
-                                    'seasonality_prior_scale': seasonality_prior_scale_options,
-                                    'holidays_prior_scale': holidays_prior_scale_options,
-                                    'yearly_seasonality': yearly_seasonality_options,
-                                    'weekly_seasonality': weekly_seasonality_options,
-                                    'daily_seasonality': daily_seasonality_options
-                                  }
-                    
-                    # Generate all combinations of parameters
-                    all_params = [dict(zip(param_grid.keys(), v)) for v in itertools.product(*param_grid.values())]
-                    rmses = [] # Store the RMSEs for each params here
-                    aics = []  # Store the AICs for each params here
-                    bics = []  # Store the BICs for each params here
-                    
-                    # for simplicity set only a single cutoff for train/test split defined by user in the streamlit app
-                    #cutoffs = pd.to_datetime(['2021-06-01', '2021-12-31']) # add list of dates 
-                    cutoffs = pd.to_datetime([cutoff_date])
-                    
-                    # preprocess the data (y_train/y_test) for prophet model with datestamp (DS) and target (y) column
-                    y_train_prophet = preprocess_data_prophet(y_train)
-                    y_test_prophet = preprocess_data_prophet(y_test)
-                    
-                    # Use cross validation to evaluate all parameters
-                    for params in all_params:
-                        m = Prophet(**params)  # Fit model with given params
-                        # train the model on the data with set parameters
-                        m.fit(y_train_prophet)
+        ################################
+        # kick off the grid-search!
+        ################################
+        # set start time when grid-search is kicked-off to define total time it takes as computationaly intensive
+        start_time = time.time()
 
-                        # other examples of forecast horizon settings:
-                        #df_cv2 = cross_validation(m, cutoffs=cutoffs, horizon='100 days')
-                        #df_cv2 = cross_validation(m, cutoffs=cutoffs, horizon='365 days')
-                        df_cv = cross_validation(m, cutoffs=cutoffs, horizon=horizon_str, parallel=False)
-                        # rolling_window = 1 computes performance metrics using all the forecasted data to get a single performance metric number.
-                        df_p = performance_metrics(df_cv, rolling_window=1)
-                        rmses.append(df_p['rmse'].values[0])
-                        # Get residuals to compute AIC and BIC
-                        df_cv['residuals'] = df_cv['y'] - df_cv['yhat']
-                        residuals = df_cv['residuals'].values
-                        
-                        # Compute AIC and BIC
-                        nobs = len(residuals)
-                        k = len(params)
-                        loglik = -0.5 * nobs * (1 + np.log(2*np.pi) + np.log(np.sum(residuals**2)/nobs))
-                        aic = -2 * loglik + 2 * k
-                        bic = 2 * loglik + k * np.log(nobs)
-                        # add AIC score to list
-                        aics.append(aic)
-                        # add BIC score to list
-                        bics.append(bic)
+        # if the name of the model selected by user in multi-selectbox is selected when pressing the submit button then run hyper-parameter search for the model
+        # note that naive model/linear regression are not added as they do not have hyper-parameters
+        for model_name in selected_model_names:
+
+            if model_name == "SARIMAX":
+                
+# =============================================================================
+#                 # set progress bar for SARIMAX runtime
+#                 progress_bar = st.progress(0)
+#                 
+# 
+#                 param_grid = {'order': [(p, d, q) for p, d, q in itertools.product(range(p_max+1), range(d_max+1), range(q_max+1))],
+#                               'seasonal_order': [(p, d, q, s) for p, d, q in itertools.product(range(P_max+1), range(D_max+1), range(Q_max+1))],
+#                               'enforce_stationarity': enforce_stationarity,
+#                               'enforce_invertibility': enforce_invertibility}
+# 
+#                 # retrieve total number of combinations in the parameter grid
+#                 total_combinations = len(param_grid['order']) * len(param_grid['seasonal_order']) * len(param_grid['enforce_stationarity']) * len(param_grid['enforce_invertibility'])
+#                 
+#                 # iterate over grid of all possible combinations of hyperparameters
+#                 for i, (param, param_seasonal, enforce_stationarity_val, enforce_invertibility_val) in enumerate(itertools.product(param_grid['order'], param_grid['seasonal_order'], param_grid['enforce_stationarity'], param_grid['enforce_invertibility']), 0):
+#                     
+#                     # =============================================================================
+#                     # CHECK IF MAXIMUM RUNTIME SET IS REACHED
+#                     # =============================================================================
+#                     # Convert max_wait_time to an integer
+#                     max_wait_time_minutes = int(str(max_wait_time.minute))
+#                     
+#                     # Convert the maximum waiting time from minutes to seconds
+#                     max_wait_time_seconds = max_wait_time_minutes * 60
+# 
+#                     # Check if the maximum waiting time has been exceeded
+#                     elapsed_time_seconds = time.time() - start_time
+#                     if elapsed_time_seconds > max_wait_time_seconds:
+#                         st.warning("Maximum waiting time exceeded. The grid search has been stopped.")
+#                         break
+#                     # =============================================================================
+#                     
+#                     # Update the progress bar
+#                     progress_percentage = i / total_combinations * 100
+#                     progress_bar.progress(value = (i / total_combinations), text = f'Please Wait.! Tuning {model_name} hyperparameters...{progress_percentage:.2f}% completed ({i} of {total_combinations} total combinations).')
+#                     
+# # =============================================================================
+# #                             try:
+# # =============================================================================
+#                     # Create a SARIMAX model with the current parameter values
+#                     mod = SARIMAX(y_train,
+#                                   order = param,
+#                                   seasonal_order = param_seasonal,
+#                                   exog = X_train, 
+#                                   enforce_stationarity = enforce_stationarity,
+#                                   enforce_invertibility = enforce_invertibility)
+#                     
+#                     # Train/Fit the model to the data
+#                     results = mod.fit()
+#                     
+#                     # Note that we set best_metric to -np.inf instead of np.inf since we want to maximize the R2 metric. 
+#                     if metric in ['AIC', 'BIC', 'RMSE']:
+#                         mini = float('+inf')
+#                     else:
+#                         # Set mini to positive infinity to ensure that the first value evaluated will become the minimum
+#                         # minimum metric score will be saved under variable mini while looping thorugh parameter grid
+#                         mini = float('-inf')
+#                     
+#                     # Check if the current model has a lower AIC than the previous models
+#                     if metric == 'AIC':
+#                         if results.aic < mini:
+#                             # If so, update the mini value and the parameter values for the model with the lowest AIC
+#                             mini = results.aic
+#                             param_mini = param
+#                             param_seasonal_mini = param_seasonal
+#                     
+#                     elif metric == 'BIC':
+#                         if results.bic < mini:
+#                             # If so, update the mini value and the parameter values for the model with the lowest AIC
+#                             mini = results.bic
+#                             param_mini = param
+#                             param_seasonal_mini = param_seasonal
+#                     
+#                     elif metric == 'RMSE':
+#                         rmse = math.sqrt(results.mse)
+#                         if rmse < mini:
+#                             mini = rmse
+#                             param_mini = param
+#                             param_seasonal_mini = param_seasonal
+#                                              
+#                     # Append a new row to the dataframe with the parameter values and AIC score
+#                     sarimax_tuning_results = sarimax_tuning_results.append({'SARIMAX (p,d,q)x(P,D,Q,s)': f'{param} x {param_seasonal}', 
+#                                                                             'param': param, 
+#                                                                             'param_seasonal': param_seasonal, 
+#                                                                             metric: "{:.2f}".format(mini)
+#                                                                             }, ignore_index=True)
+#                         
+# # =============================================================================
+# #                             # If the model fails to fit, skip it and continue to the next model
+# #                             except:
+# #                                 continue
+# # =============================================================================
+#                         
+#                 # set the end of runtime
+#                 end_time_sarimax = time.time()
+#                 
+#                 # clear progress bar in streamlit for user as process is completed
+#                 progress_bar.empty()
+# =============================================================================
+                
+                
+                ################# TEST PACKAGE ##############
+                import optuna
+                p = d = q = range(0, 4)
+                pdq = list(itertools.product(p, d, q))
+                pdqs = [(x[0], x[1], x[2], 7) for x in pdq]
+                
+                #########################
+# =============================================================================
+#                 def objective_sarima(trial):
+#                     order = trial.suggest_categorical('order', pdq)
+#                     seasonal_order = trial.suggest_categorical('seasonal_order', pdqs)
+#                     trend = trial.suggest_categorical('trend', ['n', 'c', 't', 'ct', None])
+#                     model = SARIMAX(y_train, 
+#                                     order = order, 
+#                                     seasonal_order = seasonal_order, 
+#                                     trend=trend, 
+#                                     initialization='approximate_diffuse')
+#                     
+#                     # train model
+#                     mdl = model.fit(disp=0)
+#                     
+#                     # create predictions
+#                     predictions = mdl.forecast(len(y_test))
+#                 
+#                     # Convert predictions to a pandas Series with the same index as y_test
+#                     predictions = pd.Series(predictions, index = y_test.index).squeeze()
+#                 
+#                     # Calculate the residuals by subtracting predictions from y_test
+#                     residuals = y_test.squeeze() - predictions
+#                 
+#                     # Output the residuals
+#                     st.write('Residuals:', residuals)
+#                 
+#                     mse = np.sqrt(np.mean(residuals**2))
+#                     accuracy = mse
+#                     return accuracy
+# =============================================================================
+                def objective_sarima(trial):
+                    order = trial.suggest_categorical('order', pdq)
+                    seasonal_order = trial.suggest_categorical('seasonal_order', pdqs)
+                    trend = trial.suggest_categorical('trend', ['n', 'c', 't', 'ct', None])
+                    model = SARIMAX(y_train, 
+                                    order=order, 
+                                    seasonal_order=seasonal_order, 
+                                    trend=trend, 
+                                    initialization='approximate_diffuse')
                     
-                    # create dataframe with parameter combinations
-                    prophet_tuning_results = pd.DataFrame(all_params)
-                    # add RMSE scores to dataframe
-                    prophet_tuning_results['rmse'] = rmses
-                    # add AIC scores to dataframe
-                    prophet_tuning_results['aic'] = aics
-                    # add BIC scores to dataframe
-                    prophet_tuning_results['bic'] = bics
-                    # set the end of runtime
-                    end_time_prophet = time.time()        
-    
-        # if user presses "Submit" button for hyper-parameter tuning and selected a model or multiple models in dropdown multiselectbox then run code below
-        if hp_tuning_btn == True and selected_model_names:
-            # if SARIMAX model is inside the list of modelames then run code below:
-            if 'SARIMAX' in selected_model_names:
-                with st.expander('⚙️ SARIMAX', expanded=True):                     
-                    # Add a 'Rank' column based on the AIC score and sort by ascending rank
-                    # rank method: min: lowest rank in the group
-                    # rank method: dense: like ‘min’, but rank always increases by 1 between groups.
-                    sarimax_tuning_results['Rank'] = sarimax_tuning_results[metric].rank(method='min', ascending=True).astype(int)
-                    # sort values by rank
-                    sarimax_tuning_results = sarimax_tuning_results.sort_values('Rank', ascending=True)
-                    # show user dataframe of gridsearch results ordered by ranking
-                    st.dataframe(sarimax_tuning_results.set_index('Rank'), use_container_width=True)   
-                    #st.info(f"ℹ️ SARIMAX search for your optimal hyper-parameters finished in {end_time_sarimax - start_time:.2f} seconds")
-                    if not sarimax_tuning_results.empty:
-                        st.write(f'🏆 **SARIMAX** set of parameters with the lowest {metric} of **{"{:.2f}".format(mini)}** found in **{end_time_sarimax - start_time:.2f}** seconds is:')  
-                        st.write(f'- **`(p,d,q)(P,D,Q,s)`**: {sarimax_tuning_results.iloc[0,1]}{sarimax_tuning_results.iloc[0,2]}')
+                    # Train the model
+                    mdl = model.fit(disp=0)
+                    
+                    # Obtain the AIC score
+                    aic = mdl.aic
+                    st.write(aic)
+                    st.write(model)
+                    return aic
+                #########################
+                
+                # minimize the AIC score
+                study = optuna.create_study(direction = "minimize")
+                study.optimize(objective_sarima, n_trials = 10)
+                
+                trial = study.best_trial
+                #st.write("Accuracy:", trial.value)
+                st.write("AIC:", trial.value)
+                st.write("Best params for SARIMAX:", trial.params) 
+                break
+            break 
+            pass  
+         
+            if model_name == "Prophet":
+                horizon_int = horizon_option
+                
+                horizon_str = f'{horizon_int} days'  # construct horizon parameter string
+                
+                # define cutoffs
+                cutoff_date = X_train.index[-(horizon_int+1)].strftime('%Y-%m-%d')
+                
+                # define the parameter grid - user can select options with multi-select box in streamlit app
+                param_grid = {'changepoint_prior_scale': changepoint_prior_scale_options,
+                              'seasonality_prior_scale': seasonality_prior_scale_options,
+                              'changepoint_prior_scale': changepoint_prior_scale_options,
+                              'seasonality_mode': seasonality_mode_options,
+                              'seasonality_prior_scale': seasonality_prior_scale_options,
+                              'holidays_prior_scale': holidays_prior_scale_options,
+                              'yearly_seasonality': yearly_seasonality_options,
+                              'weekly_seasonality': weekly_seasonality_options,
+                              'daily_seasonality': daily_seasonality_options}
+                
+                # Generate all combinations of parameters
+                all_params = [dict(zip(param_grid.keys(), v)) for v in itertools.product(*param_grid.values())]
+                rmses = [] # Store the RMSEs for each params here
+                aics = []  # Store the AICs for each params here
+                bics = []  # Store the BICs for each params here
+                
+                # for simplicity set only a single cutoff for train/test split defined by user in the streamlit app
+                #cutoffs = pd.to_datetime(['2021-06-01', '2021-12-31']) # add list of dates 
+                cutoffs = pd.to_datetime([cutoff_date])
+                
+                # preprocess the data (y_train/y_test) for prophet model with datestamp (DS) and target (y) column
+                y_train_prophet = preprocess_data_prophet(y_train)
+                y_test_prophet = preprocess_data_prophet(y_test)
+                
+                # Use cross validation to evaluate all parameters
+                for params in all_params:
+                    m = Prophet(**params)  # Fit model with given params
+                    # train the model on the data with set parameters
+                    m.fit(y_train_prophet)
+
+                    # other examples of forecast horizon settings:
+                    #df_cv2 = cross_validation(m, cutoffs=cutoffs, horizon='100 days')
+                    #df_cv2 = cross_validation(m, cutoffs=cutoffs, horizon='365 days')
+                    df_cv = cross_validation(m, cutoffs=cutoffs, horizon=horizon_str, parallel=False)
+                   
+                    # rolling_window = 1 computes performance metrics using all the forecasted data to get a single performance metric number.
+                    df_p = performance_metrics(df_cv, rolling_window=1)
+                    
+                    rmses.append(df_p['rmse'].values[0])
+                    
+                    # Get residuals to compute AIC and BIC
+                    df_cv['residuals'] = df_cv['y'] - df_cv['yhat']
+                    
+                    residuals = df_cv['residuals'].values
+                    
+                    # Compute AIC and BIC
+                    nobs = len(residuals)
+                    k = len(params)
+                    loglik = -0.5 * nobs * (1 + np.log(2*np.pi) + np.log(np.sum(residuals**2)/nobs))
+                    aic = -2 * loglik + 2 * k
+                    bic = 2 * loglik + k * np.log(nobs)
+                    
+                    # add AIC score to list
+                    aics.append(aic)
+                    
+                    # add BIC score to list
+                    bics.append(bic)
+                
+                # create dataframe with parameter combinations
+                prophet_tuning_results = pd.DataFrame(all_params)
+                # add RMSE scores to dataframe
+                prophet_tuning_results['rmse'] = rmses
+                # add AIC scores to dataframe
+                prophet_tuning_results['aic'] = aics
+                # add BIC scores to dataframe
+                prophet_tuning_results['bic'] = bics
+                # set the end of runtime
+                end_time_prophet = time.time()        
+
+    # if user presses "Submit" button for hyper-parameter tuning and selected a model or multiple models in dropdown multiselectbox then run code below
+    if hp_tuning_btn == True and selected_model_names:
+        # if SARIMAX model is inside the list of modelames then run code below:
+        if 'SARIMAX' in selected_model_names:
+            with st.expander('⚙️ SARIMAX', expanded = True):                     
+                                
+                # Convert the AIC column to numeric data type
+                sarimax_tuning_results[metric] = pd.to_numeric(sarimax_tuning_results[metric])
+                
+                # Sort the DataFrame by the AIC score in ascending order
+                sarimax_tuning_results = sarimax_tuning_results.sort_values(metric)
+                
+                # Reset the index of the DataFrame and assign ranks
+                sarimax_tuning_results = sarimax_tuning_results.reset_index(drop=True).reset_index().rename(columns={'index': 'Rank'})
+                
+                # Show the DataFrame with the updated ranks and sorted by rank
+                st.dataframe(sarimax_tuning_results.set_index('Rank'), use_container_width=True)
+
+                if not sarimax_tuning_results.empty:
+                    st.write(f'🏆 **SARIMAX** set of parameters with the lowest {metric} of **{sarimax_tuning_results.iloc[0, 4]}** found in **{end_time_sarimax - start_time:.2f}** seconds is:')
+
+                    st.write(f'- **`(p,d,q)(P,D,Q,s)`**: {sarimax_tuning_results.iloc[0,1]}')
 # =============================================================================
 #                         st.write(f'- Order (p):')
 #                         st.write('Differencing (d):')
@@ -11272,20 +11487,31 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
 #                         st.write('Seasonal Moving Average (Q):')
 #                         st.write('Seasonal Periodicity (s):')
 # =============================================================================
-            if 'Prophet' in selected_model_names:
-                with st.expander('⚙️ Prophet', expanded=True):  
-                    if metric.lower() in prophet_tuning_results.columns:
-                        prophet_tuning_results['Rank'] = prophet_tuning_results[metric.lower()].rank(method='min', ascending=True).astype(int)
-                        # sort values by rank
-                        prophet_tuning_results = prophet_tuning_results.sort_values('Rank', ascending=True)
-                        # show user dataframe of gridsearch results ordered by ranking
-                        st.dataframe(prophet_tuning_results.set_index('Rank'), use_container_width=True)
-                        # provide button for user to download the hyperparameter tuning results
-                        download_csv_button(prophet_tuning_results, my_file='Prophet_Hyperparameter_Gridsearch.csv', help_message='Download your Hyperparameter tuning results to .CSV')
-                    #st.success(f"ℹ️ Prophet search for your optimal hyper-parameters finished in **{end_time_prophet - start_time:.2f}** seconds")
-                    if not prophet_tuning_results.empty:
-                        st.markdown(f'🏆 **Prophet** set of parameters with the lowest {metric} of **{"{:.2f}".format(prophet_tuning_results.loc[0,metric.lower()])}** found in **{end_time_prophet - start_time:.2f}** seconds are:')
-                        st.write('\n'.join([f'- **`{param}`**: {prophet_tuning_results.loc[0, param]}' for param in prophet_tuning_results.columns[:6]]))
+
+
+
+
+        if 'Prophet' in selected_model_names:
+            with st.expander('⚙️ Prophet', expanded=True):  
+                
+                if metric.lower() in prophet_tuning_results.columns:
+                    
+                    prophet_tuning_results['Rank'] = prophet_tuning_results[metric.lower()].rank(method='min', ascending=True).astype(int)
+                    
+                    # sort values by rank
+                    prophet_tuning_results = prophet_tuning_results.sort_values('Rank', ascending=True)
+                    
+                    # show user dataframe of gridsearch results ordered by ranking
+                    st.dataframe(prophet_tuning_results.set_index('Rank'), use_container_width=True)
+                    
+                    # provide button for user to download the hyperparameter tuning results
+                    download_csv_button(prophet_tuning_results, my_file='Prophet_Hyperparameter_Gridsearch.csv', help_message='Download your Hyperparameter tuning results to .CSV')
+                
+                #st.success(f"ℹ️ Prophet search for your optimal hyper-parameters finished in **{end_time_prophet - start_time:.2f}** seconds")
+                
+                if not prophet_tuning_results.empty:
+                    st.markdown(f'🏆 **Prophet** set of parameters with the lowest {metric} of **{"{:.2f}".format(prophet_tuning_results.loc[0,metric.lower()])}** found in **{end_time_prophet - start_time:.2f}** seconds are:')
+                    st.write('\n'.join([f'- **`{param}`**: {prophet_tuning_results.loc[0, param]}' for param in prophet_tuning_results.columns[:6]]))
     else:
         st.info('👈 Please select at least one model in the sidebar and press \"Submit\"!')
                    
@@ -11300,7 +11526,9 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
 # =============================================================================
 if menu_item == 'Forecast':
     
+    # =============================================================================
     # DEFINE VARIABLES NEEDED FOR FORECAST
+    # =============================================================================
     min_date = df['date'].min()
     max_date = df['date'].max()
     max_value_calendar=None
@@ -11314,20 +11542,29 @@ if menu_item == 'Forecast':
     # end date dataframe + 1 day into future is start date of forecast
     start_date_forecast = end_date_calendar + timedelta(days=1)
 
-    #my_title(f'{forecast_icon}', "#48466D")   
+    # =============================================================================
+    # FORECAST SIDEBAR    
+    # =============================================================================
     with st.sidebar:
+        
         my_title(f'{forecast_icon}', "#48466D")                  
+        
         with st.form("📆 "):
             if dwt_features_checkbox:
                 # wavelet model choice forecast
                 my_subheader('Select Model for Discrete Wavelet Feature(s) Forecast Estimates')
+            
                 model_type_wavelet = st.selectbox('Select a model', ['Support Vector Regression', 'Linear'], label_visibility='collapsed') 
+            
             # define all models in list as we retrain models on entire dataset anyway
             selected_models_forecast_lst = ['Linear Regression', 'SARIMAX', 'Prophet']
+            
             # SELECT MODEL(S) for Forecasting
             selected_model_names = st.multiselect('*Select Forecasting Models*', selected_models_forecast_lst, default=selected_models_forecast_lst)  
+            
             # create column spacers
             col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 7, 7, 1, 6, 7, 1])
+            
             with col2: 
                 st.markdown(f'<h5 style="color: #48466D; background-color: #F0F2F6; padding: 12px; border-radius: 5px;"><center> End Date:</center></h5>', unsafe_allow_html=True)
             with col3:
@@ -11339,10 +11576,10 @@ if menu_item == 'Forecast':
                     if model_name == "SARIMAX":
                         max_value_calendar = None
                 # create user input box for entering date in a streamlit calendar widget
-                end_date_forecast = st.date_input("input forecast date", 
-                                                  value=start_date_forecast,
-                                                  min_value=start_date_forecast, 
-                                                  max_value=max_value_calendar, 
+                end_date_forecast = st.date_input(label = "input forecast date", 
+                                                  value = start_date_forecast,
+                                                  min_value = start_date_forecast, 
+                                                  max_value = max_value_calendar, 
                                                   label_visibility = 'collapsed')   
             with col5: 
                 # set text information for dropdown frequency
@@ -11350,34 +11587,41 @@ if menu_item == 'Forecast':
             with col6:
                 # Define a dictionary of possible frequencies and their corresponding offsets
                 forecast_freq_dict = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
+                
                 # Ask the user to select the frequency of the data
                 forecast_freq = st.selectbox('Select the frequency of the data', list(forecast_freq_dict.keys()), label_visibility='collapsed')
+                
                 # get the value of the key e.g. D, W, M, Q or Y
                 forecast_freq_letter = forecast_freq_dict[forecast_freq]
           
             vertical_spacer(1)
+            
             # create vertical spacing columns
             col1, col2, col3 = st.columns([4,4,4])
             with col2:
                 # create submit button for the forecast
                 forecast_btn = st.form_submit_button("Submit", type="secondary")    
     
-    # when user clicks the forecast button then run below
+    # =============================================================================
+    # RUN FORECAST - when user clicks the forecast button then run below
+    # =============================================================================
     if forecast_btn:
-        #############################################
-        # SET VARIABLES NEEDED FOR FORECASTING MODELS
-        #############################################
         # create a date range for your forecast
         future_dates = pd.date_range(start=start_date_forecast, end=end_date_forecast, freq=forecast_freq_letter)
+        
         # first create all dates in dataframe with 'date' column
         df_future_dates = future_dates.to_frame(index=False, name='date')
+        
         # add the special calendar days
         df_future_dates = create_calendar_special_days(df_future_dates)
+        
         # add the year/month/day dummy variables
         df_future_dates = create_date_features(df, year_dummies=year_dummies_checkbox, month_dummies=month_dummies_checkbox, day_dummies=day_dummies_checkbox)
+        
         # if user wants discrete wavelet features add them
         if dwt_features_checkbox:
             df_future_dates = forecast_wavelet_features(X, features_df_wavelet, future_dates, df_future_dates)
+        
         ##############################################
         # DEFINE X future
         ##############################################
@@ -11423,6 +11667,7 @@ if menu_item == 'Forecast':
 #                 alpha = 0.05  # Level of significance for the prediction interval
 #                 df_forecast_lr = add_prediction_interval(model, X_future, alpha, df_forecast_lr)
 # =============================================================================
+
                 # create forecast model score card in streamlit
                 with st.expander('ℹ️' + model_name + ' Forecast', expanded=True):   
                     my_header(f'{model_name}')
@@ -11435,25 +11680,35 @@ if menu_item == 'Forecast':
                     download_csv_button(df_forecast_lr, my_file="forecast_linear_regression_results.csv") 
             
             if model_name == "SARIMAX":
+                
+                # =============================================================================
                 # Define Model Parameters
+                # =============================================================================
                 order = (p,d,q)
                 seasonal_order = (P,D,Q,s)
-                # define model on all data (X)
+                
+                # Define model on all data (X)
                 # Assume df is your DataFrame with boolean columns - needed for SARIMAX model that does not handle boolean, but int instead
                 # X bool to int dtypes
                 bool_cols = X.select_dtypes(include=bool).columns
                 X.loc[:, bool_cols] = X.loc[:, bool_cols].astype(int)
+                
                 # X_future bool to int dtypes
                 bool_cols = X_future.select_dtypes(include=bool).columns
                 X_future.loc[:, bool_cols] = X_future.loc[:, bool_cols].astype(int)
+                
                 # define model SARIMAX
-                model = SARIMAX(endog = y, order=(p, d, q),  
-                                     seasonal_order=(P, D, Q, s), 
-                                     exog=X.loc[:, [col for col in feature_selection_user if col in df_future_dates.columns]], 
-                                     enforce_invertibility=enforce_invertibility, 
-                                     enforce_stationarity=enforce_stationarity).fit()
+                model = SARIMAX(endog = y, 
+                                order=(p, d, q),  
+                                seasonal_order=(P, D, Q, s), 
+                                exog=X.loc[:, [col for col in feature_selection_user if col in df_future_dates.columns]], 
+                                enforce_invertibility = enforce_invertibility, 
+                                enforce_stationarity = enforce_stationarity
+                                ).fit()
+           
                 # Forecast future values
                 my_forecast_steps = (end_date_forecast-start_date_forecast.date()).days
+                
                 #y_forecast = model_fit.predict(start=start_date_forecast, end=(start_date_forecast + timedelta(days=len(X_future)-1)), exog=X_future)
                 forecast_values = model.get_forecast(steps = my_forecast_steps, exog = X_future.iloc[:my_forecast_steps,:])
 
@@ -11461,14 +11716,19 @@ if menu_item == 'Forecast':
                 start_date = max_date + timedelta(days=1)
                 # create pandas series before appending to the forecast dataframe
                 date_series = pd.date_range(start=start_date, end=None, periods= my_forecast_steps, freq=forecast_freq_letter)
+                
                 # create dataframe
                 df_forecast =  pd.DataFrame()
+                
                 # add date series to forecasting pandas dataframe
                 df_forecast['date'] = date_series.to_frame(index = False)
+                
                 # convert forecast to integers (e.g. round it)
-                df_forecast[('forecast')] = forecast_values.predicted_mean.values.astype(int).round(0)                      
+                df_forecast[('forecast')] = forecast_values.predicted_mean.values.astype(int).round(0)        
+                
                 # set 'date' as the index of the dataframe
                 df_forecast_sarimax = copy_df_date_index(df_forecast)
+                
                 with st.expander('ℹ️ ' + model_name + ' Forecast', expanded=True):   
                     my_header(f'{model_name}')
                     # Create the forecast plot
@@ -11480,8 +11740,10 @@ if menu_item == 'Forecast':
             
             if model_name == "Prophet": # NOTE: Currently no X features included in this Prophet model
                 forecast_prophet = pd.DataFrame()
+                
                 # prep data for specificalmodelly prophet model requirements, data should have ds column and y column
                 y_prophet = preprocess_data_prophet(y)
+                
                 # define 
                 m = Prophet(changepoint_prior_scale=changepoint_prior_scale,
                             seasonality_mode=seasonality_mode,
