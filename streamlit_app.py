@@ -129,7 +129,6 @@ from pandas.tseries.holiday import(
                                     next_monday, nearest_workday, sunday_to_monday,
                                     EasterMonday, GoodFriday, Easter
                                   )
-    
 # =============================================================================
 # Hyperparameter tuning framework
 # =============================================================================
@@ -508,7 +507,26 @@ st.markdown(font_style, unsafe_allow_html=True)
 #  |_|     \____/|_| \_|\_____|  |_|  |_____\____/|_| \_|_____/ 
 #                                                               
 # =============================================================================
+def rank_dataframe(df, metric):
+    """
+    Rank the DataFrame based on the specified column.
 
+    Args:
+        df (pd.DataFrame): The DataFrame to be ranked.
+        metric (str): The name of the column to rank the DataFrame.
+
+    Returns:
+        pd.DataFrame: The ranked DataFrame.
+    """
+    # Convert the specified column to numeric data type
+    df[metric] = pd.to_numeric(df[metric])
+    
+    # Sort the DataFrame by the specified column in ascending order
+    df = df.sort_values(metric)
+    
+    # Reset the index of the DataFrame and assign ranks
+    df = df.reset_index(drop=True).reset_index().rename(columns={'index': 'Rank'})
+    return df
 
 def clear_test_results():
     """
@@ -1648,7 +1666,6 @@ def create_flipcard_quick_summary(header_list, paragraph_list_front, paragraph_l
     
     header_color = 'white'
     
-
     card_html.append(f"""<div class="flashcard">
                             <div class='front_summary'>
                                 <img src="data:image/png;base64,{data_url}"style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
@@ -1691,7 +1708,7 @@ def create_flipcard_quick_summary(header_list, paragraph_list_front, paragraph_l
         /* Carousel Styling */
         .carousel {{
           grid-gap: 20px;
-          overflow-x: auto;
+          overflow: hidden; /* Disable vertical scroll */
           scroll-snap-type: x mandatory;
           scroll-behavior: smooth;
           -webkit-overflow-scrolling: touch;
@@ -1699,28 +1716,26 @@ def create_flipcard_quick_summary(header_list, paragraph_list_front, paragraph_l
           margin: auto;
         }}
        .flashcard {{
-          display: inline-block; /* Display cards inline */
           width: 600px;
           height: 600px;
-          background-color: #F5F5F5;
+          background-color: white;
           border-radius: 10px;
-          box-shadow: none; /* Remove the shadow */
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
           perspective: 100px;
-          margin-bottom: 0px; /* Add space between cards */
-          padding: 0px;
+          margin-bottom: 10px;
           scroll-snap-align: center;
         }}
         .front_summary, .back_summary {{
           position: absolute;
           top: 0;
           left: 0;
-          width: 600px;
-          height: 600px;
+          width: 100%;
+          height: 100%;
           border-radius: 10px;
           backface-visibility: hidden;
-          font-family: {font_family};
+          font-family: 'Ysabeau SC', sans-serif;
+          font-size: {font_size_back};
           text-align: center;
-          overflow: hidden; /* Hide the scroll bar */
         }}
         .front_summary {{
             background: linear-gradient(to bottom, #383e56, #383e56, #383e56, #383e56, #383e56, #383e56);
@@ -7214,17 +7229,18 @@ with st.sidebar:
 # CREATE MAIN MENU BAR FOR APP WITH BUTTONS OF DATA PIPELINE
 # Horizontal menu with default on first tab e.g. default_index = 0
 menu_item = option_menu(menu_title = None, 
-                        options = ["Load", "Explore", "Clean", "Engineer", "Prepare", "Select", "Train", "Evaluate", "Tune", "Forecast"], 
-                        icons = ['cloud-arrow-up', 'search', 'bi-bezier2', 'gear', 'shuffle', 'bi-sort-down', "cpu", 'clipboard-check', 'sliders', 'graph-up-arrow'], 
+                        options = ["Load", "Explore", "Clean", "Engineer", "Prepare", "Select", "Train", "Evaluate", "Tune", "Forecast", "Review"], 
+                        icons = ['cloud-arrow-up', 'search', 'bi-bezier2', 'gear', 'shuffle', 'bi-sort-down', "cpu", 'clipboard-check', 'sliders', 'graph-up-arrow', 'bullseye'], 
                         menu_icon = "cast", 
                         default_index = 0, 
                         orientation = "horizontal", 
                         styles = {
                                     "container": {
-                                        "padding": "0.3px",
-                                        "background-color": "#f5f5f5",
+                                        "padding": "0.5px",
+                                        "background-color": "transparent",
                                         "border-radius": "10px",
                                         "border": "1px solid black",
+                                        "margin": "0px 0px 0px 0px",
                                     },
                                     "icon": {
                                         "color": "#333333",
@@ -7233,7 +7249,7 @@ menu_item = option_menu(menu_title = None,
                                     "nav-link": {
                                         "font-size": "12px",
                                         "font-family": 'Ysabeau SC',
-                                        "color": "#333333",
+                                        "color": "F5F5F5",
                                         "text-align": "center",
                                         "margin": "0px",
                                         "padding": "8px",
@@ -7245,11 +7261,11 @@ menu_item = option_menu(menu_title = None,
                                         "background-color": "#4715ef",
                                     },
                                     "nav-link-selected": {
-                                        "background-color": "#F5F5F5",
+                                        "background-color": "transparent",
                                         "color": "black",
                                         "opacity": "0.1",
                                         "box-shadow": "0px 4px 6px rgba(0, 0, 0, 0.0)",
-                                        "border-radius": "5px",
+                                        "border-radius": "0px",
                                     },
                                 }
                         )
@@ -7938,7 +7954,7 @@ def load_change():
     except:
         set_state("LOAD_PAGE", ("my_data_choice", "Demo Data"))
         
-if menu_item == 'Load' and sidebar_menu_item == 'Home':    
+if menu_item == 'Load' and sidebar_menu_item == 'Home':
     tab1_load, tab2_load = st.tabs(['Load', 'Dashboard'])
      
     with tab2_load:
@@ -11036,12 +11052,12 @@ def hyperparameter_tuning_form():
         model_lst = [model_name for model_name, model in selected_models]
         
         # SELECT MODEL(S): let the user select the models multi-selectbox for hyper-parameter tuning
-        selected_model_names = st.multiselect('*Select Models*', 
+        selected_model_names = st.multiselect('Select Models', 
                                               options = model_lst,
                                               help='The `Selected Models` are tuned using the chosen hyperparameter search algorithm. A set of hyperparameters is defined, and the models are trained on the training dataset. These models are then evaluated using the selected evaluation metric on a validation dataset for a range of different hyperparameter combinations.')
         
         # SELECT EVALUATION METRIC: let user set evaluation metric for the hyper-parameter tuning
-        metric = st.selectbox(label = '*Select Evaluation Metric To Optimize*', 
+        metric = st.selectbox(label = 'Select Evaluation Metric To Optimize', 
                               options = ['AIC', 'BIC', 'RMSE'], 
                               label_visibility = 'visible', 
                               help = '**`AIC`** (**Akaike Information Criterion**): A measure of the quality of a statistical model, taking into account the goodness of fit and the complexity of the model. A lower AIC indicates a better model fit. \
@@ -11052,7 +11068,8 @@ def hyperparameter_tuning_form():
                                         options = ['Grid Search', 'Random Search', 'Bayesian Optimization'],
                                         help = '''1. `Grid Search:` algorithm exhaustively searches through all possible combinations of hyperparameter values within a predefined range. It evaluates the model performance for each combination and selects the best set of hyperparameters based on a specified evaluation metric.  
                                                   \n2. `Random Search:` search randomly samples hyperparameters from predefined distributions. It performs a specified number of iterations and evaluates the model performance for each sampled set of hyperparameters. Random search can be more efficient than grid search when the search space is large.
-                                               ''')
+                                                  \n3. `Bayesian Optimization:` is an iterative approach to hyperparameter tuning that uses Bayesian inference. Unlike grid search and random search, Bayesian optimization considers past observations to make informed decisions. It intelligently explores the hyperparameter space by selecting promising points based on the model's predictions and uncertainty estimates. It involves defining the search space, choosing an acquisition function, building a surrogate model, iteratively evaluating and updating, and terminating the optimization. It is particularly effective when the search space is large or evaluation is computationally expensive.
+                                                ''')
                            
         trial_runs = st.number_input(label = 'Set number of trial runs',
                                      value = 10,
@@ -11064,7 +11081,8 @@ def hyperparameter_tuning_form():
         # =============================================================================
         # SARIMAX HYPER-PARAMETER GRID TO SELECT BY USER
         # =============================================================================
-        with st.expander('SARIMAX GridSearch Parameters'):
+        my_text_paragraph('Define Model Search Space', my_text_align='left', my_font_family = 'Ysabeau SC', my_font_weight=200, my_font_size='14px')
+        with st.expander('SARIMAX Hyperparameters'):
             
             col1, col2, col3 = st.columns([5,1,5])
             with col1:
@@ -11082,6 +11100,18 @@ def hyperparameter_tuning_form():
                                         value=1, 
                                         min_value=0, 
                                         max_value=10)   
+                
+                trend = st.multiselect(label = 'trend',
+                                       options = ['n', 'c', 't', 'ct', None],
+                                       default = ['n', 'c', 't', 'ct', None],
+                                       help = '''
+                                              Options for the 'trend' parameter:
+                                              - `None`: No trend component is included in the model.
+                                              - `n`: A linear trend component is included in the model.
+                                              - `c`: A constant (i.e., a horizontal line) is included in the model.
+                                              - `t`: A linear trend component with a time-dependent slope.
+                                              - `ct`: A combination of `c` and `t`, including both a constant and a linear time-dependent trend.
+                                              ''' )
             with col3:
                 P_max = st.number_input(label = "*Max Seasonal Autoregressive Order (P):*", 
                                         value=1, 
@@ -11102,22 +11132,28 @@ def hyperparameter_tuning_form():
                                     value = 7, 
                                     min_value = 1)
                 
+
+            
+            st.write('Parameters')
             col1, col2, col3 = st.columns([5,1,5])
+            
             with col1:
-                enforce_stationarity = st.multiselect('*Enforce Stationarity*', 
+                
+                enforce_stationarity = st.selectbox('*Enforce Stationarity*', 
                                                        options = [True, False], 
-                                                       default = [True],
+                                                       index = 0,
                                                        help='Whether or not to transform the AR parameters to enforce stationarity in the autoregressive component of the model.')
             with col3:     
-                enforce_invertibility = st.multiselect('*Enforce Invertibility*', 
+                
+                enforce_invertibility = st.selectbox('*Enforce Invertibility*', 
                                                        options = [True, False], 
-                                                       default = [True],
+                                                       index = 0,
                                                        help='Whether or not to transform the MA parameters to enforce invertibility in the moving average component of the model.')
         
         # =============================================================================
         # PROPHET HYPER-PARAMETER GRID TO SELECT BY USER
         # =============================================================================
-        with st.expander('Prophet GridSearch Parameters'):
+        with st.expander('Prophet Hyperparameters'):
             
             vertical_spacer(1)
             
@@ -11165,7 +11201,7 @@ def hyperparameter_tuning_form():
             # create submit button for the hyper-parameter tuning
             hp_tuning_btn = st.form_submit_button("Submit", type="secondary")
              
-    return max_wait_time, selected_model_names, metric, search_algorithm, trial_runs, \
+    return max_wait_time, selected_model_names, metric, search_algorithm, trial_runs, trend, \
            p_max, d_max, q_max, P_max, D_max, Q_max, s,  enforce_stationarity, enforce_invertibility, \
            horizon_option, changepoint_prior_scale_options, seasonality_mode_options, seasonality_prior_scale_options, holidays_prior_scale_options, yearly_seasonality_options, weekly_seasonality_options, daily_seasonality_options, \
            hp_tuning_btn
@@ -11185,34 +11221,27 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
     # =============================================================================
     # Initiate Variables Required
     # =============================================================================
-
-    # initialize variable for sarimax parameters p,d,q
-    param_mini = None
-    
-    # initialize variable for sarimax model parameters P,D,Q,s
-    param_seasonal_mini = None
-    
-    # define tuples of model name, model
+    # Define tuples of (model name, model)
     selected_models = [('Naive Model', None),
                       ('Linear Regression', LinearRegression(fit_intercept=True)), 
                       ('SARIMAX', SARIMAX(y_train)),
                       ('Prophet', Prophet())]
-    
+
     # =============================================================================
     # CREATE USER FORM FOR HYPERPARAMETER TUNING
     # =============================================================================
     with st.sidebar:
         # return parameters set for hyper-parameter tuning either default or overwritten by user options
-        max_wait_time, selected_model_names, metric, search_algorithm, trial_runs, \
-        p_max, d_max, q_max, P_max, D_max, Q_max, s,  enforce_stationarity, enforce_invertibility, \
+        max_wait_time, selected_model_names, metric, search_algorithm, trial_runs, trend, \
+        p_max, d_max, q_max, P_max, D_max, Q_max, s, enforce_stationarity, enforce_invertibility, \
         horizon_option, changepoint_prior_scale_options, seasonality_mode_options, seasonality_prior_scale_options, holidays_prior_scale_options, yearly_seasonality_options, weekly_seasonality_options, daily_seasonality_options, \
         hp_tuning_btn = hyperparameter_tuning_form()
              
     # =============================================================================
     # CREATE DATAFRAMES TO STORE HYPERPARAMETER TUNING RESULTS                    
     # =============================================================================
-    sarimax_tuning_results = pd.DataFrame(columns = ['SARIMAX (p,d,q)x(P,D,Q,s)', 'param', 'param_seasonal', metric])
-    prophet_tuning_results = pd.DataFrame() # TEST
+    sarimax_tuning_results = pd.DataFrame()
+    prophet_tuning_results = pd.DataFrame()
  
     # if user clicks the hyper-parameter tuning button run code below
     if hp_tuning_btn == True and selected_model_names:
@@ -11222,49 +11251,41 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
         # set start time when grid-search is kicked-off to define total time it takes as computationaly intensive
         start_time = time.time()
 
-        # if the name of the model selected by user in multi-selectbox is selected when pressing the submit button then run hyper-parameter search for the model
-        # note that naive model/linear regression are not added as they do not have hyper-parameters
+        # iterate over user selected models from multi-selectbox when user pressed SUBMIT button for hyperparameter tuning
         for model_name in selected_model_names:
 
             if model_name == "SARIMAX":
-                
-                # =============================================================================
-                # RUN DESIRED ALGORITHM BASED ON USER SELECTION OR DEFAULT                
-                # =============================================================================
+
                 if search_algorithm == 'Grid Search':
                     
-                    # set progress bar for SARIMAX runtime
+                    # initiate progress bar for SARIMAX Grid Search runtime
                     progress_bar = st.progress(0)
                     
                     # =============================================================================
-                    # SARIMAX GRID SEARCH CODE                
+                    # Define Parameter Grid for Grid Search             
                     # =============================================================================
                     param_grid = {'order': [(p, d, q) for p, d, q in itertools.product(range(p_max+1), range(d_max+1), range(q_max+1))],
                                   'seasonal_order': [(p, d, q, s) for p, d, q in itertools.product(range(P_max+1), range(D_max+1), range(Q_max+1))],
-                                  'enforce_stationarity': enforce_stationarity,
-                                  'enforce_invertibility': enforce_invertibility}
+                                  'trend': trend}
     
-                    # retrieve total number of combinations in the parameter grid
-                    total_combinations = len(param_grid['order']) * len(param_grid['seasonal_order']) * len(param_grid['enforce_stationarity']) * len(param_grid['enforce_invertibility'])
+                    # store total number of combinations in the parameter grid for progress bar
+                    total_combinations = len(param_grid['order']) * len(param_grid['seasonal_order']) * len(param_grid['trend'])
+                    
+                    # Convert max_wait_time to an integer
+                    max_wait_time_minutes = int(str(max_wait_time.minute))
+                    
+                    # Convert the maximum waiting time from minutes to seconds
+                    max_wait_time_seconds = max_wait_time_minutes * 60
                     
                     # iterate over grid of all possible combinations of hyperparameters
-                    for i, (param, param_seasonal, enforce_stationarity_val, enforce_invertibility_val) in enumerate(itertools.product(param_grid['order'], param_grid['seasonal_order'], param_grid['enforce_stationarity'], param_grid['enforce_invertibility']), 0):
+                    for i, (param, param_seasonal, trend) in enumerate(itertools.product(param_grid['order'], param_grid['seasonal_order'], param_grid['trend']), 0):
                         
-                        # =============================================================================
-                        # CHECK IF MAXIMUM RUNTIME SET IS REACHED
-                        # =============================================================================
-                        # Convert max_wait_time to an integer
-                        max_wait_time_minutes = int(str(max_wait_time.minute))
-                        
-                        # Convert the maximum waiting time from minutes to seconds
-                        max_wait_time_seconds = max_wait_time_minutes * 60
-    
                         # Check if the maximum waiting time has been exceeded
                         elapsed_time_seconds = time.time() - start_time
                         if elapsed_time_seconds > max_wait_time_seconds:
                             st.warning("Maximum waiting time exceeded. The grid search has been stopped.")
+                            # exit the loop once maximum time is exceeded defined by user or default = 5 minutes
                             break
-                        # =============================================================================
                         
                         # Update the progress bar
                         progress_percentage = i / total_combinations * 100
@@ -11272,51 +11293,24 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                         
                         try:
                             # Create a SARIMAX model with the current parameter values
-                            mod = SARIMAX(y_train,
-                                          order = param,
-                                          seasonal_order = param_seasonal,
-                                          exog = X_train, 
-                                          enforce_stationarity = enforce_stationarity,
-                                          enforce_invertibility = enforce_invertibility)
+                            model = SARIMAX(y_train,
+                                            order = param,
+                                            seasonal_order = param_seasonal,
+                                            exog = X_train, 
+                                            enforce_stationarity = enforce_stationarity,
+                                            enforce_invertibility = enforce_invertibility)
                             
                             # Train/Fit the model to the data
-                            results = mod.fit()
+                            mdl = model.fit(disp=0)
                             
-                            # Note that we set best_metric to -np.inf instead of np.inf since we want to maximize the R2 metric. 
-                            if metric in ['AIC', 'BIC', 'RMSE']:
-                                mini = float('+inf')
-                            else:
-                                # Set mini to positive infinity to ensure that the first value evaluated will become the minimum
-                                # minimum metric score will be saved under variable mini while looping thorugh parameter grid
-                                mini = float('-inf')
-                            
-                            # Check if the current model has a lower AIC than the previous models
-                            if metric == 'AIC':
-                                if results.aic < mini:
-                                    # If so, update the mini value and the parameter values for the model with the lowest AIC
-                                    mini = results.aic
-                                    param_mini = param
-                                    param_seasonal_mini = param_seasonal
-                            
-                            elif metric == 'BIC':
-                                if results.bic < mini:
-                                    # If so, update the mini value and the parameter values for the model with the lowest AIC
-                                    mini = results.bic
-                                    param_mini = param
-                                    param_seasonal_mini = param_seasonal
-                            
-                            elif metric == 'RMSE':
-                                rmse = math.sqrt(results.mse)
-                                if rmse < mini:
-                                    mini = rmse
-                                    param_mini = param
-                                    param_seasonal_mini = param_seasonal
-                                                     
                             # Append a new row to the dataframe with the parameter values and AIC score
                             sarimax_tuning_results = sarimax_tuning_results.append({'SARIMAX (p,d,q)x(P,D,Q,s)': f'{param} x {param_seasonal}', 
-                                                                                    'param': param, 
-                                                                                    'param_seasonal': param_seasonal, 
-                                                                                    metric: "{:.2f}".format(mini)
+                                                                                    'order': param, 
+                                                                                    'seasonal_order': param_seasonal, 
+                                                                                    'trend': trend,
+                                                                                    'AIC':  "{:.2f}".format(mdl.aic),
+                                                                                    'BIC':  "{:.2f}".format(mdl.bic),
+                                                                                    'RMSE': "{:.2f}".format(math.sqrt(mdl.mse))
                                                                                     }, ignore_index=True)
                             
                         # If the model fails to fit, skip it and continue to the next model
@@ -11328,29 +11322,152 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                     
                     # clear progress bar in streamlit for user as process is completed
                     progress_bar.empty()
-                
-                
-                if search_algorithm == 'Bayesian Optimization':
+                    
+                    gridsearch_sarimax_results_df = rank_dataframe(df = sarimax_tuning_results, metric = metric)
+                    
+                    # ============================================================================
+                    # Show Results in Streamlit
+                    # =============================================================================    
+                    with st.expander('⚙️ SARIMAX', expanded = True):
 
+                        # Display the result dataframe
+                        st.dataframe(gridsearch_sarimax_results_df, hide_index=True, use_container_width = True)
+                        st.write(f'🏆 **SARIMAX** set of parameters with the lowest {metric} of **{gridsearch_sarimax_results_df.iloc[0, 5]}** found in **{end_time_sarimax - start_time:.2f}** seconds is:')
+                        st.write(f'- **`(p,d,q)(P,D,Q,s)`**: {gridsearch_sarimax_results_df.iloc[0,1]}')
+                        st.markdown('---')
+                        
+                        # =============================================================================
+                        # Hyperparameter Importance                    
+                        # =============================================================================
+                        # Step 1: Perform the grid search and store the evaluation metric values for each combination of hyperparameters.
+
+                        columns = ['p', 'd', 'q', 'P', 'D', 'Q', 's', 'trend', 'AIC', 'BIC', 'RMSE']
+                        df_gridsearch = pd.DataFrame(columns=columns)
+                        
+                        for _, row in sarimax_tuning_results.iterrows():
+                            order = tuple(map(int, str(row['order']).strip('()').split(',')))
+                            seasonal_order = tuple(map(int, str(row['seasonal_order']).strip('()').split(',')))
+                            aic = float(row['AIC'])
+                            bic = float(row['BIC'])
+                            rmse = float(row['RMSE'])
+                            trend = row['trend']
+                            
+                            df_gridsearch = df_gridsearch.append({'p': order[0], 'd': order[1], 'q': order[2],
+                                                      'P': seasonal_order[0], 'D': seasonal_order[1], 'Q': seasonal_order[2], 's': seasonal_order[3],
+                                                      'trend': trend, 'AIC': aic, 'BIC': bic, 'RMSE': rmse}, ignore_index=True)
+                        
+                        #st.write(df_gridsearch) # TEST
+                        
+                        # =============================================================================
+                        # Step 2: Calculate the baseline metric as the minimum value of the evaluation metric.
+                        # =============================================================================
+                        baseline_metric = df_gridsearch[metric].astype(float).min()
+                        #st.write(baseline_metric) # TEST
+                        
+                        # =============================================================================
+                        # Step 3: Calculate the relative importance of each hyperparameter based on the reduction in AIC score
+                        # =============================================================================
+                        feature_importance = {}
+                        
+                        # Iterate over each hyperparameter
+                        for hyperparameter in ['p', 'd', 'q', 'P', 'D', 'Q', 'trend']:
+                            total_reduction = 0
+                            
+                            # Iterate over each unique value of the hyperparameter
+                            for value in df_gridsearch[hyperparameter].unique():
+                                # Filter the dataframe based on the value of the hyperparameter
+                                reduced_rows = df_gridsearch[df_gridsearch[hyperparameter] == value]
+                                
+                                # Calculate the baseline metric for the filtered rows
+                                baseline_metric = reduced_rows['AIC'].astype(float).min()
+                                
+                                # Calculate the total reduction for the current hyperparameter value
+                                reduction = baseline_metric - reduced_rows['AIC'].astype(float)
+                                total_reduction += reduction.sum()
+                            
+                            feature_importance[hyperparameter] = total_reduction / len(df_gridsearch)
+                        
+                        # Normalize the importance scores
+                        total_importance = sum(feature_importance.values())
+                        importance_scores = {param: score / total_importance for param, score in feature_importance.items()}
+                        
+                        # Sort the feature importances in ascending order
+                        sorted_feature_importance = sorted(importance_scores.items(), key=lambda x: x[1], reverse=False)
+                        
+# =============================================================================
+#                         # Display the hyperparameters and their importances
+#                         for hyperparameter, importance in sorted_feature_importance:
+#                             st.write(f'{hyperparameter}: {importance}')
+# =============================================================================
+                        
+                        # =============================================================================
+                        # STEP 5: Plot results
+                        # =============================================================================
+                        # =============================================================================
+                        # Set layout of figure plot of hyperparameter importance                    
+                        # =============================================================================
+                        # Define Figure
+                        fig = go.Figure()
+                        
+                        # Define color schema
+                        color_schema = px.colors.qualitative.Plotly
+                        
+                        # Create a bar trace for each hyperparameter and its importance score
+                        for hyperparameter, importance in sorted_feature_importance:
+                            fig.add_trace(go.Bar(
+                                x=[importance],
+                                y=[hyperparameter],
+                                orientation='h',
+                                name=hyperparameter,
+                                marker=dict(color=color_schema[len(fig.data) % len(color_schema)]),
+                            ))
+                        
+                        # Set the layout of the figure plot
+                        fig.update_layout(
+                            title='',
+                            margin=dict(t=10),
+                            xaxis=dict(title='Importance Score'),
+                            yaxis=dict(title='Hyperparameter'),
+                        )
+                        
+                        # Set figure title centered in Streamlit
+                        my_text_paragraph('Hyperparameter Importance Plot')
+                        
+                        # Show the figure in Streamlit with hyperparameter importance values
+                        st.plotly_chart(fig, use_container_width=True)   
+                            
+                                                                
+                if search_algorithm == 'Bayesian Optimization':
+                    # =============================================================================
+                    # Step 0: Define max wait time
+                    # =============================================================================
                     # Convert max_wait_time to an integer
                     max_wait_time_minutes = int(str(max_wait_time.minute))
-                    
+
                     # Convert the maximum waiting time from minutes to seconds
                     max_wait_time_seconds = max_wait_time_minutes * 60
-    
+                    
+                    # =============================================================================
+                    # Step 1: Define Dataframe to save results in
+                    # =============================================================================
                     # Create a dataframe to store the tuning results
                     optuna_results = pd.DataFrame(columns=['SARIMAX (p,d,q)x(P,D,Q,s)', 'order', 'seasonal_order', 'trend', 'AIC', 'BIC', 'RMSE'])
                     
+                    # =============================================================================
+                    # Step 2: Define progress bar for user to visually see progress
+                    # =============================================================================
                     # Set progress bar for Optuna runtime
                     progress_bar = st.progress(0)
     
-                    
-                    # define parameter grid
+                    # =============================================================================
+                    # Step 3: Define parameter grid
+                    # =============================================================================
                     pdq =  [(p, d, q) for p, d, q in itertools.product(range(p_max+1), range(d_max+1), range(q_max+1))]
                     pdqs = [(p, d, q, s) for p, d, q in itertools.product(range(P_max+1), range(D_max+1), range(Q_max+1))]
                     
-           
-                    # Define the objective function (REQUIREMENT FOR OPTUNA PACKAGE)
+                    # =============================================================================
+                    # Step 4: Define the objective function (REQUIREMENT FOR OPTUNA PACKAGE)
+                    # =============================================================================
                     def objective_sarima(trial):
                         # define parameters of grid for optuna package with syntax: suggest_categorical()
                         p = trial.suggest_int('p', 0, p_max)
@@ -11359,15 +11476,10 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                         P = trial.suggest_int('P', 0, P_max)
                         D = trial.suggest_int('D', 0, D_max)
                         Q = trial.suggest_int('Q', 0, Q_max)
+                        trend = trial.suggest_categorical('trend', ['n', 'c', 't', 'ct', None])
                         
                         order = (p, d, q)
                         seasonal_order = (P, D, Q, s)
-# =============================================================================
-#                         # define parameters of grid for optuna package with syntax: suggest_categorical()
-#                         order = trial.suggest_categorical('order', pdq)
-#                         seasonal_order = trial.suggest_categorical('seasonal_order', pdqs)
-# =============================================================================
-                        trend = trial.suggest_categorical('trend', ['n', 'c', 't', 'ct', None])
                         
                         try:
                             # Your SARIMAX model code here
@@ -11385,7 +11497,6 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                             else:
                                 raise e
                                                 
-                                    
                         # Train the model
                         mdl = model.fit(disp=0)
 
@@ -11405,48 +11516,34 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                         # Update the progress bar
                         progress_percentage = len(optuna_results) / trial_runs * 100
                         progress_bar.progress(value=len(optuna_results) / trial_runs, text=f'Please Wait! Tuning {model_name} hyperparameters... {progress_percentage:.2f}% completed ({len(optuna_results)} of {trial_runs} total combinations).')
-
                         return my_metric
-                                
-                    # Create the Optuna study
+
+                    # =============================================================================
+                    # Step 5: Create the study (hyperparameter tuning experiment)
+                    # =============================================================================                                
                     study = optuna.create_study(direction="minimize")
                     
-                    # Optimize the study with the objective function
+                    # =============================================================================
+                    # Step 6: Optimize the study with the objective function (run experiment)
+                    # =============================================================================
                     study.optimize(objective_sarima, 
                                    n_trials = trial_runs,
                                    timeout = max_wait_time_seconds)
-                    
-                    # Get the best trial
-                    best_trial = study.best_trial
-                    
+
+                    # =============================================================================
+                    # Step 8: Clear progress bar when optimization has completed                    
+                    # =============================================================================
                     # Clear the progress bar in Streamlit
                     progress_bar.empty()
                     
-                    def rank_dataframe(df, metric):
-                        """
-                        Rank the DataFrame based on the specified column.
-                    
-                        Args:
-                            df (pd.DataFrame): The DataFrame to be ranked.
-                            metric (str): The name of the column to rank the DataFrame.
-                    
-                        Returns:
-                            pd.DataFrame: The ranked DataFrame.
-                        """
-                        # Convert the specified column to numeric data type
-                        df[metric] = pd.to_numeric(df[metric])
-                        
-                        # Sort the DataFrame by the specified column in ascending order
-                        df = df.sort_values(metric)
-                        
-                        # Reset the index of the DataFrame and assign ranks
-                        df = df.reset_index(drop=True).reset_index().rename(columns={'index': 'Rank'})
-                        
-                        return df
-                                        
-                    # add a rank column to the results dataframe
+                    # =============================================================================
+                    # Step 9: Rank the results dataframe on the evaluation metric
+                    # =============================================================================                                        
                     bayesian_sarimax_results_df = rank_dataframe(df = optuna_results, metric = metric)
                     
+                    # =============================================================================
+                    # Step 10: Show Results in Streamlit
+                    # =============================================================================    
                     with st.expander('⚙️ SARIMAX', expanded = True):
                     
                         # Display the result dataframe
@@ -11455,16 +11552,19 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                         # =============================================================================
                         # Plot Hyperparameter Importance                        
                         # =============================================================================
+                        # Define Figure
                         fig = optuna.visualization.plot_param_importances(study)
                         
                         # Set an empty string as the title
                         fig.update_layout(title='')
                         fig.update_layout(margin=dict(t=10))    
+                        
                         # =============================================================================
-                        # Set colors of figure plot of hyperparameter importance                    
+                        # Set layout of figure plot of hyperparameter importance                    
                         # =============================================================================
                         # Get the list of colors from Plotly qualitative color scheme
                         color_schema = px.colors.qualitative.Plotly
+                        
                         # Update the marker color of each bar in the plot with the color scheme
                         for i, trace in enumerate(fig.data):
                             trace.marker.color = [color_schema[j % len(color_schema)] for j in range(len(trace.y))]
@@ -11474,17 +11574,9 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                         
                         # show figure in streamlit with hyperparameter importance values
                         st.plotly_chart(fig, use_container_width = True)
-                        
-                    
-# =============================================================================
-#                     # Display the best parameters and AIC score
-#                     st.write("Best parameters for SARIMAX:", best_trial.params)
-#                     st.write(f"Best {metric} score:", best_trial.value)
-# =============================================================================
     
             if model_name == "Prophet":
                 horizon_int = horizon_option
-                
                 horizon_str = f'{horizon_int} days'  # construct horizon parameter string
                 
                 # define cutoffs
@@ -11560,39 +11652,6 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                 # set the end of runtime
                 end_time_prophet = time.time()        
 
-    # if user presses "Submit" button for hyper-parameter tuning and selected a model or multiple models in dropdown multiselectbox then run code below
-    if hp_tuning_btn == True and selected_model_names:
-        # if SARIMAX model is inside the list of modelames then run code below:
-        if 'SARIMAX' in selected_model_names:
-            
-            with st.expander('⚙️ SARIMAX', expanded = True):                     
-                                
-                # Convert the AIC column to numeric data type
-                sarimax_tuning_results[metric] = pd.to_numeric(sarimax_tuning_results[metric])
-                
-                # Sort the DataFrame by the user defined (or default = AIC) metric score in ascending order
-                sarimax_tuning_results = sarimax_tuning_results.sort_values(metric)
-                
-                # Reset the index of the DataFrame and assign ranks
-                sarimax_tuning_results = sarimax_tuning_results.reset_index(drop=True).reset_index().rename(columns={'index': 'Rank'})
-                
-                # Show the DataFrame with the updated ranks and sorted by rank
-                st.dataframe(sarimax_tuning_results.set_index('Rank'), use_container_width=True)
-
-                if not sarimax_tuning_results.empty:
-                    st.write(f'🏆 **SARIMAX** set of parameters with the lowest {metric} of **{sarimax_tuning_results.iloc[0, 4]}** found in **{end_time_sarimax - start_time:.2f}** seconds is:')
-
-                    st.write(f'- **`(p,d,q)(P,D,Q,s)`**: {sarimax_tuning_results.iloc[0,1]}')
-# =============================================================================
-#                         st.write(f'- Order (p):')
-#                         st.write('Differencing (d):')
-#                         st.write('Moving Average (q):')
-#                         st.write('Seasonal Order (P):')
-#                         st.write('Seasonal Differencing (D):')
-#                         st.write('Seasonal Moving Average (Q):')
-#                         st.write('Seasonal Periodicity (s):')
-# =============================================================================
-
         if 'Prophet' in selected_model_names:
             with st.expander('⚙️ Prophet', expanded=True):  
                 
@@ -11618,7 +11677,7 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
             
         with st.expander('', expanded=True):
             st.image('./images/tune_models.png')
-            my_text_paragraph('Please select at least one model in the sidebar and press \"Submit\"!')
+            my_text_paragraph('Please select at least one model in the sidebar and press \"Submit\"!', my_font_size = '16px')
                    
 # =============================================================================
 #   ______ ____  _____  ______ _____           _____ _______ 
