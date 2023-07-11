@@ -11367,33 +11367,58 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                         # =============================================================================
                         # Step 3: Calculate the relative importance of each hyperparameter based on the reduction in AIC score
                         # =============================================================================
-                        feature_importance = {}
+# =============================================================================
+#                         feature_importance = {}
+#                         
+#                         # Iterate over each hyperparameter
+#                         for hyperparameter in ['p', 'd', 'q', 'P', 'D', 'Q', 'trend']:
+#                             total_reduction = 0
+#                             
+#                             # Iterate over each unique value of the hyperparameter
+#                             for value in df_gridsearch[hyperparameter].unique():
+#                                 # Filter the dataframe based on the value of the hyperparameter
+#                                 reduced_rows = df_gridsearch[df_gridsearch[hyperparameter] == value]
+#                                 
+#                                 # Calculate the baseline metric for the filtered rows
+#                                 baseline_metric = reduced_rows['AIC'].astype(float).min()
+#                                 
+#                                 # Calculate the total reduction for the current hyperparameter value
+#                                 reduction = baseline_metric - reduced_rows['AIC'].astype(float)
+#                                 total_reduction += reduction.sum()
+#                             
+#                             feature_importance[hyperparameter] = total_reduction / len(df_gridsearch)
+#                         
+#                         # Normalize the importance scores
+#                         total_importance = sum(feature_importance.values())
+#                         importance_scores = {param: score / total_importance for param, score in feature_importance.items()}
+#                         
+#                         # Sort the feature importances in ascending order
+#                         sorted_feature_importance = sorted(importance_scores.items(), key=lambda x: x[1], reverse=False)
+# =============================================================================
+                        # Step 3: Train a random forest regression model
+                        from sklearn.ensemble import RandomForestRegressor
+                        from sklearn.impute import SimpleImputer
+
+                        # Step 3: Prepare the data
+                        df_gridsearch['trend'] = df_gridsearch['trend'].map({'n': 0, 'c': 1, 't': 2, 'ct': 3, None: 4})  # Convert trend column to numeric values
                         
-                        # Iterate over each hyperparameter
-                        for hyperparameter in ['p', 'd', 'q', 'P', 'D', 'Q', 'trend']:
-                            total_reduction = 0
-                            
-                            # Iterate over each unique value of the hyperparameter
-                            for value in df_gridsearch[hyperparameter].unique():
-                                # Filter the dataframe based on the value of the hyperparameter
-                                reduced_rows = df_gridsearch[df_gridsearch[hyperparameter] == value]
-                                
-                                # Calculate the baseline metric for the filtered rows
-                                baseline_metric = reduced_rows['AIC'].astype(float).min()
-                                
-                                # Calculate the total reduction for the current hyperparameter value
-                                reduction = baseline_metric - reduced_rows['AIC'].astype(float)
-                                total_reduction += reduction.sum()
-                            
-                            feature_importance[hyperparameter] = total_reduction / len(df_gridsearch)
+                        X = df_gridsearch[['p', 'd', 'q', 'P', 'D', 'Q', 'trend']]  # Features (hyperparameters)
+                        y = df_gridsearch[metric]  # Target (evaluation metric values)
                         
-                        # Normalize the importance scores
-                        total_importance = sum(feature_importance.values())
-                        importance_scores = {param: score / total_importance for param, score in feature_importance.items()}
+                        # Handle missing values using SimpleImputer / as no NaN are accepted by Randomforest
+                        imputer = SimpleImputer()
+                        X_imputed = imputer.fit_transform(X)
+
+                        rf_model = RandomForestRegressor()
+                        rf_model.fit(X, y)
                         
-                        # Sort the feature importances in ascending order
-                        sorted_feature_importance = sorted(importance_scores.items(), key=lambda x: x[1], reverse=False)
+                        # Step 4: Calculate the feature importances
+                        feature_importances = rf_model.feature_importances_
+                        importance_scores = {param: score for param, score in zip(X.columns, feature_importances)}
                         
+                        # Sort the feature importances in descending order
+                        sorted_feature_importance = sorted(importance_scores.items(), key=lambda x: x[1], reverse=True)
+                                                
 # =============================================================================
 #                         # Display the hyperparameters and their importances
 #                         for hyperparameter, importance in sorted_feature_importance:
