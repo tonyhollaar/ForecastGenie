@@ -129,11 +129,12 @@ from pandas.tseries.holiday import(
                                     next_monday, nearest_workday, sunday_to_monday,
                                     EasterMonday, GoodFriday, Easter
                                   )
+    
 # =============================================================================
 # Hyperparameter tuning framework
 # =============================================================================
 import optuna
-
+from optuna import visualization as ov
 # =============================================================================
 #   _____        _____ ______    _____ ______ _______ _    _ _____  
 #  |  __ \ /\   / ____|  ____|  / ____|  ____|__   __| |  | |  __ \ 
@@ -507,6 +508,51 @@ st.markdown(font_style, unsafe_allow_html=True)
 #  |_|     \____/|_| \_|\_____|  |_|  |_____\____/|_| \_|_____/ 
 #                                                               
 # =============================================================================
+def create_hyperparameter_importance_plot(data, plot_type='param_importances', grid_search=False):
+    """
+    Create a hyperparameter importance plot.
+    
+    Parameters:
+        data (object or list): The data required to create the plot. For 'param_importances' plot_type,
+                              it can be a study object from Optuna. For 'bar_chart' plot_type, it should
+                              be a list of tuples containing hyperparameter and importance values.
+        plot_type (str, optional): The type of plot to be created. Defaults to 'param_importances'.
+        grid_search (bool, optional): Specifies if the plot is for regular grid search. Defaults to False.
+    
+    Returns:
+        None
+    
+    Output:
+        Streamlit Figure: Displays the hyperparameter importance plot in Streamlit.
+    
+    """
+    fig = go.Figure()
+    color_schema = px.colors.qualitative.Plotly
+
+    if plot_type == 'param_importances' and not grid_search:
+        fig = ov.plot_param_importances(data)
+        fig.update_layout(title='', margin=dict(t=10))
+        for i, trace in enumerate(fig.data):
+            trace.marker.color = [color_schema[j % len(color_schema)] for j in range(len(trace.y))]
+
+    elif plot_type == 'bar_chart':
+        sorted_feature_importance = data
+        for hyperparameter, importance in sorted_feature_importance:
+            fig.add_trace(go.Bar(
+                x=[importance],
+                y=[hyperparameter],
+                orientation='h',
+                name=hyperparameter,
+                marker=dict(color=color_schema[len(fig.data) % len(color_schema)]),
+            ))
+        fig.update_layout(title='', margin=dict(t=10), xaxis=dict(title='Importance Score'), yaxis=dict(title='Hyperparameter'))
+
+    # Set figure title centered in Streamlit
+    my_text_paragraph('Hyperparameter Importance Plot')
+
+    # Show the figure in Streamlit with hyperparameter importance values
+    st.plotly_chart(fig, use_container_width=True)
+
 def rank_dataframe(df, metric):
     """
     Rank the DataFrame based on the specified column.
@@ -1636,7 +1682,7 @@ def create_flipcard_quick_insights(num_cards, header_list, paragraph_list_front,
         """, unsafe_allow_html=True)        
 
 # =============================================================================
-# quick summary flipcard
+# Quick Summary Flipcard
 # =============================================================================
 def create_flipcard_quick_summary(header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back, image_path_front_card = None, **kwargs):    
    
@@ -1707,13 +1753,13 @@ def create_flipcard_quick_summary(header_list, paragraph_list_front, paragraph_l
         
         /* Carousel Styling */
         .carousel {{
-          grid-gap: 20px;
-          overflow: hidden; /* Disable vertical scroll */
+          display: flex;
+          justify-content: center;
+          overflow-x: auto;
           scroll-snap-type: x mandatory;
           scroll-behavior: smooth;
           -webkit-overflow-scrolling: touch;
           width: 100%;
-          margin: auto;
         }}
        .flashcard {{
           width: 600px;
@@ -10493,23 +10539,34 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
         selected_models = []
 
         # Iterate over each model in list and add to selected models variable
-        for model_name, model in models:
-
-            # Add model name and model if checkbox of model is checked into a list
-            if model_name == 'Naive Model' and naive_model_checkbox == True:
-               selected_models.append((model_name, model))
-               
-            # Add model name and model if checkbox of model is checked into a list
-            if model_name == 'Linear Regression' and linreg_checkbox == True:
-                selected_models.append((model_name, model))
-                
-            # add model name and model if checkbox of model is checked into a list
-            if model_name == 'SARIMAX' and sarimax_checkbox == True:
-                selected_models.append((model_name, model))
-                
-            # add model name and model if checkbox of model is checked into a list
-            if model_name == 'Prophet' and prophet_checkbox == True:
-                selected_models.append((model_name, model))   
+        
+        # =============================================================================
+        #         TEST TEST TEST TEST TEST TEST TEST
+        # =============================================================================
+        
+        st.write(st.session_state['train_models_btn'])
+        
+        
+        # if user pressed submit button train the models else do not e.g. every time you go back to train page dont automatically kick off the training
+        if st.session_state['train_models_btn']:
+            
+            for model_name, model in models:
+    
+                # Add model name and model if checkbox of model is checked into a list
+                if model_name == 'Naive Model' and naive_model_checkbox == True:
+                   selected_models.append((model_name, model))
+                   
+                # Add model name and model if checkbox of model is checked into a list
+                if model_name == 'Linear Regression' and linreg_checkbox == True:
+                    selected_models.append((model_name, model))
+                    
+                # add model name and model if checkbox of model is checked into a list
+                if model_name == 'SARIMAX' and sarimax_checkbox == True:
+                    selected_models.append((model_name, model))
+                    
+                # add model name and model if checkbox of model is checked into a list
+                if model_name == 'Prophet' and prophet_checkbox == True:
+                    selected_models.append((model_name, model))   
     
     # add the user selected trained models to the session state
     set_state("TRAIN_PAGE", ("selected_models", selected_models))
@@ -10526,6 +10583,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                 train_models_carousel(my_title= 'Select your models to train!')
                 
         st.image('./images/train_page_info.png')
+        
     with tab2:
             with st.expander('', expanded=True):
                 # Show buttons with Training Data/Test Data 
@@ -10540,7 +10598,8 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                col1, col2, col3 = st.columns([7,120,1])
                with col2:
                    
-                   create_flipcard_model_input(image_path_front_card = './images/train_info.png', my_string_back_card = 'If you train your models, the output will show up here! You can use the checkboxes from the sidebar menu to select your model(s) and hit <i style="color:#9d625e;">\"Submit\"</i> to check out your test results!')
+                   create_flipcard_model_input(image_path_front_card = './images/train_info.png', 
+                                               my_string_back_card = 'If you train your models, the output will show up here! You can use the checkboxes from the sidebar menu to select your model(s) and hit <i style="color:#9d625e;">\"Submit\"</i> to check out your test results!')
                        
                vertical_spacer(4)
 
@@ -10564,198 +10623,194 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                 # =============================================================================
                 #  NAIVE MODELS                   
                 # =============================================================================
-# =============================================================================
-#                 try:         
-# =============================================================================
+                try:         
 
-                if model_name == "Naive Model":
-                    with st.expander('📈' + model_name, expanded=True):
-                        # =============================================================================
-                        # Naive Model I
-                        # =============================================================================
-                        df_preds_naive_model1 = forecast_naive_model1_insample(model, 
-                                                                              X_train, 
-                                                                              y_train, 
-                                                                              X_test, 
-                                                                              y_test, 
-                                                                              lag = lag, 
-                                                                              custom_lag_value = custom_lag_value)
-                        
-                        lag_word = {'day': 'daily', 'week': 'weekly', 'month': 'monthly', 'year': 'yearly'}.get(lag)
-                        
-                        # Show metrics on model card
-                        display_my_metrics(df_preds_naive_model1, 
-                                           model_name = "Naive Model I",
-                                           my_subtitle = f'{lag_word} lag')
-                       
-                        # Plot graph with actual versus insample predictions
-                        plot_actual_vs_predicted(df_preds_naive_model1, my_conf_interval)
-                           
-                        # Show the dataframe
-                        st.dataframe(df_preds_naive_model1.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
-                        
-                        # Create download button for forecast results to .csv
-                        download_csv_button(df_preds_naive_model1, my_file="insample_forecast_naivemodel_results.csv", 
-                                             help_message="Download your Naive Model I results to .CSV",
-                                             my_key = 'naive_trained_modeli_download_btn', 
-                                             set_index = True)
-                        #vertical_spacer(1)
-                        
-                        # =============================================================================
-                        # SAVE TEST RESULTS FOR EVALUATION PAGE BY ADDING ROW TO RESULTS_DF                
-                        # =============================================================================
-                        mape, rmse, r2 = my_metrics(df_preds_naive_model1, model_name = "Naive Model I")
-                        
-                        # Retrieve the feature for Naive Model for results_df 'features' column
-                        lag_int = {'day': '1', 'week': '7', 'month': '30', 'year': '-365'}.get(lag)
-                      
-                        naive_model1_feature_str = f"t-{custom_lag_value}" if custom_lag_value else f"yt-{lag_int}"
-                        
-                        # Create new row with test result details
-                        new_row = {'model_name': 'Naive Model I',
-                                   'mape': '{:.2%}'.format(metrics_dict['Naive Model I']['mape']),
-                                   'rmse': '{:.2f}'.format(metrics_dict['Naive Model I']['rmse']),
-                                   'r2': '{:.2f}'.format(metrics_dict['Naive Model I']['r2']),
-                                   'features': naive_model1_feature_str,
-                                   'model_settings': f"lag: {lag}",
-                                   'prediction':  np.ravel(df_preds_naive_model1['Predicted'])
-                                  }
-                        
-                        # Turn new row into a dataframe
-                        new_row_df = pd.DataFrame([new_row])
-                        
-                        # Concatenate new row DataFrame with results_df
-                        results_df = pd.concat([results_df, new_row_df], ignore_index=True)
-                        
-                        # update session state with latest results with new row added
-                        set_state("TRAIN_PAGE", ("results_df", results_df))
-                        
-                        # =============================================================================
-                        # Naive Model II
-                        # =============================================================================
-                        st.markdown('---')
-                        
-                        df_preds_naive_model2 = forecast_naive_model2_insample(model, 
-                                                                               X_train, 
-                                                                               y_train, 
-                                                                               X_test, 
-                                                                               y_test, 
-                                                                               size_rolling_window_naive_model, 
-                                                                               agg_method_rolling_window_naive_model)
-                        # Show metrics on model card
-                        display_my_metrics(df_preds_naive_model2, 
-                                           model_name = 'Naive Model II', 
-                                           my_subtitle = f'{agg_method_rolling_window_naive_model.lower()} rolling window of {size_rolling_window_naive_model}')
-                       
-                        # Plot graph with actual versus insample predictions
-                        plot_actual_vs_predicted(df_preds_naive_model2, my_conf_interval)
-                           
-                        # Show the dataframe
-                        st.dataframe(df_preds_naive_model2.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
-                      
-                        # Create download button for forecast results to .csv
-                        download_csv_button(df_preds_naive_model2, my_file="insample_forecast_naivemodel_results.csv", 
-                                            help_message="Download your Naive Model II results to .CSV",
-                                            my_key = 'naive_trained_modelii_download_btn',
-                                            set_index = True)
-                        
-                        # =============================================================================
-                        # SAVE TEST RESULTS FOR EVALUATION PAGE BY ADDING ROW TO RESULTS_DF                
-                        # =============================================================================
-                        mape, rmse, r2 = my_metrics(df_preds_naive_model2, model_name = "Naive Model II")
-                        
-                        # Get a scientific notation for the rolling window (Note: Latex not supported in Streamlit st.dataframe() so not currently possible)
-                        if agg_method_rolling_window_naive_model == 'Mean':      
-                            naive_model2_feature_str = f"(1/{size_rolling_window_naive_model}) * ∑yt-1, ..., yt-{size_rolling_window_naive_model+1}"
-                        elif agg_method_rolling_window_naive_model == 'Median':
-                            naive_model2_feature_str = f"median(yt-1, ..., yt-{size_rolling_window_naive_model+1})"
-                        elif agg_method_rolling_window_naive_model == 'Mode':
-                            naive_model2_feature_str = f"mode(yt-1, ..., yt-{size_rolling_window_naive_model+1})"
-                        else:
-                            naive_model2_feature_str = '-'
+                    if model_name == "Naive Model":
+                        with st.expander('📈' + model_name, expanded=True):
+                            # =============================================================================
+                            # Naive Model I
+                            # =============================================================================
+                            df_preds_naive_model1 = forecast_naive_model1_insample(model, 
+                                                                                  X_train, 
+                                                                                  y_train, 
+                                                                                  X_test, 
+                                                                                  y_test, 
+                                                                                  lag = lag, 
+                                                                                  custom_lag_value = custom_lag_value)
                             
-                        # Create new row with test result details
-                        new_row = {'model_name': 'Naive Model II',
-                                   'mape': '{:.2%}'.format(metrics_dict['Naive Model II']['mape']),
-                                   'rmse': '{:.2f}'.format(metrics_dict['Naive Model II']['rmse']),
-                                   'r2': '{:.2f}'.format(metrics_dict['Naive Model II']['r2']),
-                                   'features': naive_model2_feature_str,
-                                   'model_settings': f"rolling window: {size_rolling_window_naive_model}, aggregation method: {agg_method_rolling_window_naive_model}",
-                                   'prediction':  np.ravel(df_preds_naive_model2['Predicted'])}
-                                  
-                        # Turn new row into a dataframe
-                        new_row_df = pd.DataFrame([new_row])
-                        
-                        # Concatenate new row DataFrame with results_df
-                        results_df = pd.concat([results_df, new_row_df], ignore_index=True)
-                        
-                        # Update session state with latest results with new row added
-                        set_state("TRAIN_PAGE", ("results_df", results_df))
-                        
-                        # =============================================================================
-                        # Naive Model III
-                        # =============================================================================                        
-                        st.markdown('---')
-                        
-                        # retrieve dataframe with insample prediction results from train/test of naive model III
-                        df_preds_naive_model3 = forecast_naive_model3_insample(y_train, 
-                                                                               y_test, 
-                                                                               agg_method = agg_method_baseline_naive_model)
-                        # Show metrics on model card
-                        display_my_metrics(df_preds_naive_model3, 
-                                           model_name = 'Naive Model III', 
-                                           my_subtitle = f'{agg_method_baseline_naive_model.lower()}')
-                       
-                        # Plot graph with actual versus insample predictions
-                        plot_actual_vs_predicted(df_preds_naive_model3,
-                                                 my_conf_interval)
-                           
-                        # Show the dataframe
-                        st.dataframe(df_preds_naive_model3.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
-                      
-                        # Create download button for forecast results to .csv
-                        download_csv_button(df_preds_naive_model3, my_file="insample_forecast_naivemodeliii_results.csv", 
-                                            help_message="Download your Naive Model III results to .CSV",
-                                            my_key = 'naive_trained_modeliii_download_btn',
-                                            set_index = True)
-                        
-                        # =============================================================================
-                        # SAVE TEST RESULTS FOR EVALUATION PAGE BY ADDING ROW TO RESULTS_DF                
-                        # =============================================================================
-                        mape, rmse, r2 = my_metrics(df_preds_naive_model3, model_name = "Naive Model III")
-                        
-                        # Get a scientific notation for the rolling window (Note: Latex not supported in Streamlit st.dataframe() so not currently possible)
-                        if agg_method_baseline_naive_model == 'Mean':      
-                            naive_model3_feature_str = f"(1/{len(y_train)}) * ∑yt, ..., yt-{len(y_train)}"
-                        elif agg_method_baseline_naive_model == 'Median':
-                            naive_model3_feature_str = f"median(yt, ..., yt-{len(y_train)})"
-                        elif agg_method_baseline_naive_model == 'Mode':
-                            naive_model3_feature_str = f"mode(yt, ..., yt-{len(y_train)})"
-                        else:
-                            naive_model3_feature_str = '-'
+                            lag_word = {'day': 'daily', 'week': 'weekly', 'month': 'monthly', 'year': 'yearly'}.get(lag)
                             
-                        # Create new row with test result details
-                        new_row = {'model_name': 'Naive Model III',
-                                   'mape': '{:.2%}'.format(metrics_dict['Naive Model III']['mape']),
-                                   'rmse': '{:.2f}'.format(metrics_dict['Naive Model III']['rmse']),
-                                   'r2': '{:.2f}'.format(metrics_dict['Naive Model III']['r2']),
-                                   'features': naive_model3_feature_str,
-                                   'model_settings': f"aggregation method: {agg_method_baseline_naive_model.lower()}",
-                                   'prediction':  np.ravel(df_preds_naive_model3['Predicted'])}
-                                  
-                        # Turn new row into a dataframe
-                        new_row_df = pd.DataFrame([new_row])
-                        
-                        # Concatenate new row DataFrame with results_df
-                        results_df = pd.concat([results_df, new_row_df], ignore_index=True)
-                        
-                        # Update session state with latest results with new row added
-                        set_state("TRAIN_PAGE", ("results_df", results_df))
-                        
-# =============================================================================
-#                 except:
-#                     st.warning(f'Naive Model failed to train, please check parameters set in the sidebar: lag={lag}, custom_lag_value={lag}')
-# =============================================================================
+                            # Show metrics on model card
+                            display_my_metrics(df_preds_naive_model1, 
+                                               model_name = "Naive Model I",
+                                               my_subtitle = f'{lag_word} lag')
+                           
+                            # Plot graph with actual versus insample predictions
+                            plot_actual_vs_predicted(df_preds_naive_model1, my_conf_interval)
+                               
+                            # Show the dataframe
+                            st.dataframe(df_preds_naive_model1.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                            
+                            # Create download button for forecast results to .csv
+                            download_csv_button(df_preds_naive_model1, my_file="insample_forecast_naivemodel_results.csv", 
+                                                 help_message="Download your Naive Model I results to .CSV",
+                                                 my_key = 'naive_trained_modeli_download_btn', 
+                                                 set_index = True)
+                            #vertical_spacer(1)
+                            
+                            # =============================================================================
+                            # SAVE TEST RESULTS FOR EVALUATION PAGE BY ADDING ROW TO RESULTS_DF                
+                            # =============================================================================
+                            mape, rmse, r2 = my_metrics(df_preds_naive_model1, model_name = "Naive Model I")
+                            
+                            # Retrieve the feature for Naive Model for results_df 'features' column
+                            lag_int = {'day': '1', 'week': '7', 'month': '30', 'year': '-365'}.get(lag)
+                          
+                            naive_model1_feature_str = f"t-{custom_lag_value}" if custom_lag_value else f"yt-{lag_int}"
+                            
+                            # Create new row with test result details
+                            new_row = {'model_name': 'Naive Model I',
+                                       'mape': '{:.2%}'.format(metrics_dict['Naive Model I']['mape']),
+                                       'rmse': '{:.2f}'.format(metrics_dict['Naive Model I']['rmse']),
+                                       'r2': '{:.2f}'.format(metrics_dict['Naive Model I']['r2']),
+                                       'features': naive_model1_feature_str,
+                                       'model_settings': f"lag: {lag}",
+                                       'prediction':  np.ravel(df_preds_naive_model1['Predicted'])
+                                      }
+                            
+                            # Turn new row into a dataframe
+                            new_row_df = pd.DataFrame([new_row])
+                            
+                            # Concatenate new row DataFrame with results_df
+                            results_df = pd.concat([results_df, new_row_df], ignore_index=True)
+                            
+                            # update session state with latest results with new row added
+                            set_state("TRAIN_PAGE", ("results_df", results_df))
+                            
+                            # =============================================================================
+                            # Naive Model II
+                            # =============================================================================
+                            st.markdown('---')
+                            
+                            df_preds_naive_model2 = forecast_naive_model2_insample(model, 
+                                                                                   X_train, 
+                                                                                   y_train, 
+                                                                                   X_test, 
+                                                                                   y_test, 
+                                                                                   size_rolling_window_naive_model, 
+                                                                                   agg_method_rolling_window_naive_model)
+                            # Show metrics on model card
+                            display_my_metrics(df_preds_naive_model2, 
+                                               model_name = 'Naive Model II', 
+                                               my_subtitle = f'{agg_method_rolling_window_naive_model.lower()} rolling window of {size_rolling_window_naive_model}')
+                           
+                            # Plot graph with actual versus insample predictions
+                            plot_actual_vs_predicted(df_preds_naive_model2, my_conf_interval)
+                               
+                            # Show the dataframe
+                            st.dataframe(df_preds_naive_model2.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                          
+                            # Create download button for forecast results to .csv
+                            download_csv_button(df_preds_naive_model2, my_file="insample_forecast_naivemodel_results.csv", 
+                                                help_message="Download your Naive Model II results to .CSV",
+                                                my_key = 'naive_trained_modelii_download_btn',
+                                                set_index = True)
+                            
+                            # =============================================================================
+                            # SAVE TEST RESULTS FOR EVALUATION PAGE BY ADDING ROW TO RESULTS_DF                
+                            # =============================================================================
+                            mape, rmse, r2 = my_metrics(df_preds_naive_model2, model_name = "Naive Model II")
+                            
+                            # Get a scientific notation for the rolling window (Note: Latex not supported in Streamlit st.dataframe() so not currently possible)
+                            if agg_method_rolling_window_naive_model == 'Mean':      
+                                naive_model2_feature_str = f"(1/{size_rolling_window_naive_model}) * ∑yt-1, ..., yt-{size_rolling_window_naive_model+1}"
+                            elif agg_method_rolling_window_naive_model == 'Median':
+                                naive_model2_feature_str = f"median(yt-1, ..., yt-{size_rolling_window_naive_model+1})"
+                            elif agg_method_rolling_window_naive_model == 'Mode':
+                                naive_model2_feature_str = f"mode(yt-1, ..., yt-{size_rolling_window_naive_model+1})"
+                            else:
+                                naive_model2_feature_str = '-'
+                                
+                            # Create new row with test result details
+                            new_row = {'model_name': 'Naive Model II',
+                                       'mape': '{:.2%}'.format(metrics_dict['Naive Model II']['mape']),
+                                       'rmse': '{:.2f}'.format(metrics_dict['Naive Model II']['rmse']),
+                                       'r2': '{:.2f}'.format(metrics_dict['Naive Model II']['r2']),
+                                       'features': naive_model2_feature_str,
+                                       'model_settings': f"rolling window: {size_rolling_window_naive_model}, aggregation method: {agg_method_rolling_window_naive_model}",
+                                       'prediction':  np.ravel(df_preds_naive_model2['Predicted'])}
+                                      
+                            # Turn new row into a dataframe
+                            new_row_df = pd.DataFrame([new_row])
+                            
+                            # Concatenate new row DataFrame with results_df
+                            results_df = pd.concat([results_df, new_row_df], ignore_index=True)
+                            
+                            # Update session state with latest results with new row added
+                            set_state("TRAIN_PAGE", ("results_df", results_df))
+                            
+                            # =============================================================================
+                            # Naive Model III
+                            # =============================================================================                        
+                            st.markdown('---')
+                            
+                            # retrieve dataframe with insample prediction results from train/test of naive model III
+                            df_preds_naive_model3 = forecast_naive_model3_insample(y_train, 
+                                                                                   y_test, 
+                                                                                   agg_method = agg_method_baseline_naive_model)
+                            # Show metrics on model card
+                            display_my_metrics(df_preds_naive_model3, 
+                                               model_name = 'Naive Model III', 
+                                               my_subtitle = f'{agg_method_baseline_naive_model.lower()}')
+                           
+                            # Plot graph with actual versus insample predictions
+                            plot_actual_vs_predicted(df_preds_naive_model3,
+                                                     my_conf_interval)
+                               
+                            # Show the dataframe
+                            st.dataframe(df_preds_naive_model3.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                          
+                            # Create download button for forecast results to .csv
+                            download_csv_button(df_preds_naive_model3, my_file="insample_forecast_naivemodeliii_results.csv", 
+                                                help_message="Download your Naive Model III results to .CSV",
+                                                my_key = 'naive_trained_modeliii_download_btn',
+                                                set_index = True)
+                            
+                            # =============================================================================
+                            # SAVE TEST RESULTS FOR EVALUATION PAGE BY ADDING ROW TO RESULTS_DF                
+                            # =============================================================================
+                            mape, rmse, r2 = my_metrics(df_preds_naive_model3, model_name = "Naive Model III")
+                            
+                            # Get a scientific notation for the rolling window (Note: Latex not supported in Streamlit st.dataframe() so not currently possible)
+                            if agg_method_baseline_naive_model == 'Mean':      
+                                naive_model3_feature_str = f"(1/{len(y_train)}) * ∑yt, ..., yt-{len(y_train)}"
+                            elif agg_method_baseline_naive_model == 'Median':
+                                naive_model3_feature_str = f"median(yt, ..., yt-{len(y_train)})"
+                            elif agg_method_baseline_naive_model == 'Mode':
+                                naive_model3_feature_str = f"mode(yt, ..., yt-{len(y_train)})"
+                            else:
+                                naive_model3_feature_str = '-'
+                                
+                            # Create new row with test result details
+                            new_row = {'model_name': 'Naive Model III',
+                                       'mape': '{:.2%}'.format(metrics_dict['Naive Model III']['mape']),
+                                       'rmse': '{:.2f}'.format(metrics_dict['Naive Model III']['rmse']),
+                                       'r2': '{:.2f}'.format(metrics_dict['Naive Model III']['r2']),
+                                       'features': naive_model3_feature_str,
+                                       'model_settings': f"aggregation method: {agg_method_baseline_naive_model.lower()}",
+                                       'prediction':  np.ravel(df_preds_naive_model3['Predicted'])}
+                                      
+                            # Turn new row into a dataframe
+                            new_row_df = pd.DataFrame([new_row])
+                            
+                            # Concatenate new row DataFrame with results_df
+                            results_df = pd.concat([results_df, new_row_df], ignore_index=True)
+                            
+                            # Update session state with latest results with new row added
+                            set_state("TRAIN_PAGE", ("results_df", results_df))
+                            
+                except:
+                    st.warning(f'Naive Model(s) failed to train, please check parameters...!')
                 
                 try:
                     # =============================================================================
@@ -11044,7 +11099,7 @@ def hyperparameter_tuning_form():
     with st.form("hyper_parameter_tuning"):
         
         # create option for user to early stop the hyper-parameter tuning process based on time
-        max_wait_time = st.time_input(label = 'Set the maximum time for optimization (in minutes)', 
+        max_wait_time = st.time_input(label = 'Set the maximum time per model optimization (in minutes)', 
                           value = datetime.time(0, 5),
                           step = 60) # seconds /  You can also pass a datetime.timedelta object.
         
@@ -11066,23 +11121,77 @@ def hyperparameter_tuning_form():
         
         search_algorithm = st.selectbox(label = 'Select Search Algorithm',
                                         options = ['Grid Search', 'Random Search', 'Bayesian Optimization'],
+                                        index = 2,
                                         help = '''1. `Grid Search:` algorithm exhaustively searches through all possible combinations of hyperparameter values within a predefined range. It evaluates the model performance for each combination and selects the best set of hyperparameters based on a specified evaluation metric.  
                                                   \n2. `Random Search:` search randomly samples hyperparameters from predefined distributions. It performs a specified number of iterations and evaluates the model performance for each sampled set of hyperparameters. Random search can be more efficient than grid search when the search space is large.
                                                   \n3. `Bayesian Optimization:` is an iterative approach to hyperparameter tuning that uses Bayesian inference. Unlike grid search and random search, Bayesian optimization considers past observations to make informed decisions. It intelligently explores the hyperparameter space by selecting promising points based on the model's predictions and uncertainty estimates. It involves defining the search space, choosing an acquisition function, building a surrogate model, iteratively evaluating and updating, and terminating the optimization. It is particularly effective when the search space is large or evaluation is computationally expensive.
                                                 ''')
-                           
-        trial_runs = st.number_input(label = 'Set number of trial runs',
-                                     value = 10,
-                                     step = 1, 
-                                     min_value = 1,
-                                     help = '''Set number of different combinations of hyperparameters tested by the algorithm. A larger number will increase the hyperparameter search space, potentially increasing the likelihood of finding better-performing hyperparameter combinations. However, keep in mind that a larger n_trials value can also increase the overall computational time required for the optimization process
-                                            ''')
+        # set the number of combinations to search for Bayesian Optimization algorithm                                    
+        if search_algorithm == 'Bayesian Optimization':                   
+            trial_runs = st.number_input(label = 'Set number of trial runs',
+                                         value = 10,
+                                         step = 1, 
+                                         min_value = 1,
+                                         help = '''`Trial Runs` sets the number of maximum different combinations of hyperparameters to be tested by the search algorithm. A larger number will increase the hyperparameter search space, potentially increasing the likelihood of finding better-performing hyperparameter combinations. However, keep in mind that a larger n_trials value can also increase the overall computational time required for the optimization process.
+                                                ''')
+        else:
+            # set default value
+            trial_runs = 10
         
         # =============================================================================
         # SARIMAX HYPER-PARAMETER GRID TO SELECT BY USER
         # =============================================================================
-        my_text_paragraph('Define Model Search Space', my_text_align='left', my_font_family = 'Ysabeau SC', my_font_weight=200, my_font_size='14px')
-        with st.expander('SARIMAX Hyperparameters'):
+        my_text_paragraph('Set Model(s) Search Space(s)', my_text_align='left', my_font_family = 'Ysabeau SC', my_font_weight=200, my_font_size='14px')
+        
+        with st.expander('◾ Naive Models Parameters'):
+            # =============================================================================
+            # Naive Model I: Lag      
+            # =============================================================================
+            my_text_paragraph('Naive Model I: Lag')
+        
+            col1, col2, col3 = st.columns([1,12,1])
+            with col2: 
+                options_lag = st.multiselect(label = '*select seasonal lag*', 
+                                 options = ['Day', 'Week', 'Month', 'Year'],
+                                 default = ['Day', 'Week', 'Month', 'Year'])
+      
+            #lag_options = lag_options.lower() # make lag name lowercase e.g. 'Week' becomes 'week'  
+            
+            vertical_spacer(1)
+            # =============================================================================
+            # Naive Model II: Rolling Window           
+            # =============================================================================
+            my_text_paragraph('Naive Model II: Rolling Window')
+            
+            col1, col2, col3 = st.columns([1,12,1])
+            with col2:
+                range_size_rolling_window_naive_model = st.slider(label = 'Select rolling window size:',
+                                                                min_value = 2,
+                                                                max_value = 365,
+                                                                value = (7, 30),
+                                                                step = 1)
+                
+                options_agg_method_rolling_window_naive_model = st.multiselect(label = '*select aggregation method:*', 
+                                                                               options = ['Mean', 'Median', 'Mode'],
+                                                                               default = ['Mean', 'Median', 'Mode'],
+                                                                               key = 'tune_options_naivemodelii')
+
+            # =============================================================================
+            # Naive Model III                    
+            # =============================================================================
+            vertical_spacer(1)
+            my_text_paragraph('Naive Model III: Constant Value')
+            
+            col1, col2, col3 = st.columns([1,12,1])
+            with col2:
+                options_agg_method_baseline_naive_model = st.multiselect(label = '*select aggregation method:*', 
+                                                                         options = ['Mean', 'Median', 'Mode'],
+                                                                         default = ['Mean', 'Median', 'Mode'],
+                                                                         key = 'tune_options_naivemodeliii')
+            vertical_spacer(1)
+        
+        
+        with st.expander('◾ SARIMAX Hyperparameters'):
             
             col1, col2, col3 = st.columns([5,1,5])
             with col1:
@@ -11102,12 +11211,11 @@ def hyperparameter_tuning_form():
                                         max_value=10)   
                 
                 trend = st.multiselect(label = 'trend',
-                                       options = ['n', 'c', 't', 'ct', None],
-                                       default = ['n', 'c', 't', 'ct', None],
+                                       options = ['n', 'c', 't', 'ct'],
+                                       default = ['n'],
                                        help = '''
                                               Options for the 'trend' parameter:
-                                              - `None`: No trend component is included in the model.
-                                              - `n`: A linear trend component is included in the model.
+                                              - `n`: No trend component is included in the model.
                                               - `c`: A constant (i.e., a horizontal line) is included in the model.
                                               - `t`: A linear trend component with a time-dependent slope.
                                               - `ct`: A combination of `c` and `t`, including both a constant and a linear time-dependent trend.
@@ -11153,7 +11261,7 @@ def hyperparameter_tuning_form():
         # =============================================================================
         # PROPHET HYPER-PARAMETER GRID TO SELECT BY USER
         # =============================================================================
-        with st.expander('Prophet Hyperparameters'):
+        with st.expander('◾ Prophet Hyperparameters'):
             
             vertical_spacer(1)
             
@@ -11236,20 +11344,15 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
         p_max, d_max, q_max, P_max, D_max, Q_max, s, enforce_stationarity, enforce_invertibility, \
         horizon_option, changepoint_prior_scale_options, seasonality_mode_options, seasonality_prior_scale_options, holidays_prior_scale_options, yearly_seasonality_options, weekly_seasonality_options, daily_seasonality_options, \
         hp_tuning_btn = hyperparameter_tuning_form()
-             
+        
     # =============================================================================
     # CREATE DATAFRAMES TO STORE HYPERPARAMETER TUNING RESULTS                    
     # =============================================================================
     sarimax_tuning_results = pd.DataFrame()
     prophet_tuning_results = pd.DataFrame()
  
-    # if user clicks the hyper-parameter tuning button run code below
+    # if user clicks the hyper-parameter tuning button start hyperparameter tuning code below for selected models
     if hp_tuning_btn == True and selected_model_names:
-        ################################
-        # kick off the grid-search!
-        ################################
-        # set start time when grid-search is kicked-off to define total time it takes as computationaly intensive
-        start_time = time.time()
 
         # iterate over user selected models from multi-selectbox when user pressed SUBMIT button for hyperparameter tuning
         for model_name in selected_model_names:
@@ -11257,13 +11360,19 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
             if model_name == "SARIMAX":
 
                 if search_algorithm == 'Grid Search':
-                    
+                    # set start time when grid-search is kicked-off to define total time it takes as computationaly intensive
+                    start_time = time.time()
+
                     # initiate progress bar for SARIMAX Grid Search runtime
                     progress_bar = st.progress(0)
                     
                     # =============================================================================
                     # Define Parameter Grid for Grid Search             
                     # =============================================================================
+                    # check if trend has at least 1 option (not an empty lsit) / e.g. when user clears all options in sidebar - set default to 'n'
+                    if trend == []:
+                        trend = ['n']
+                    
                     param_grid = {'order': [(p, d, q) for p, d, q in itertools.product(range(p_max+1), range(d_max+1), range(q_max+1))],
                                   'seasonal_order': [(p, d, q, s) for p, d, q in itertools.product(range(P_max+1), range(D_max+1), range(Q_max+1))],
                                   'trend': trend}
@@ -11282,6 +11391,7 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                         
                         # Check if the maximum waiting time has been exceeded
                         elapsed_time_seconds = time.time() - start_time
+                        
                         if elapsed_time_seconds > max_wait_time_seconds:
                             st.warning("Maximum waiting time exceeded. The grid search has been stopped.")
                             # exit the loop once maximum time is exceeded defined by user or default = 5 minutes
@@ -11289,7 +11399,9 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                         
                         # Update the progress bar
                         progress_percentage = i / total_combinations * 100
-                        progress_bar.progress(value = (i / total_combinations), text = f'Please Wait.! Tuning {model_name} hyperparameters...{progress_percentage:.2f}% completed ({i} of {total_combinations} total combinations).')
+                        progress_bar.progress(value = (i / total_combinations), 
+                                              text = f'''Please wait up to {max_wait_time_minutes} minute(s) while hyperparameters of {model_name} model are being tuned!  
+                                                         \n{progress_percentage:.2f}% of total combinations within the search space reviewed ({i} out of {total_combinations} combinations).''')
                         
                         try:
                             # Create a SARIMAX model with the current parameter values
@@ -11323,6 +11435,7 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                     # clear progress bar in streamlit for user as process is completed
                     progress_bar.empty()
                     
+                    # add a rank column and order dataframe ascending based on the chosen metric
                     gridsearch_sarimax_results_df = rank_dataframe(df = sarimax_tuning_results, metric = metric)
                     
                     # ============================================================================
@@ -11332,7 +11445,7 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
 
                         # Display the result dataframe
                         st.dataframe(gridsearch_sarimax_results_df, hide_index=True, use_container_width = True)
-                        st.write(f'🏆 **SARIMAX** set of parameters with the lowest {metric} of **{gridsearch_sarimax_results_df.iloc[0, 5]}** found in **{end_time_sarimax - start_time:.2f}** seconds is:')
+                        st.write(f'🏆 **SARIMAX** hyperparameters with the lowest {metric} of **{gridsearch_sarimax_results_df.iloc[0, 5]}** found in **{end_time_sarimax - start_time:.2f}** seconds is:')
                         st.write(f'- **`(p,d,q)(P,D,Q,s)`**: {gridsearch_sarimax_results_df.iloc[0,1]}')
                         st.markdown('---')
                         
@@ -11365,107 +11478,42 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                         #st.write(baseline_metric) # TEST
                         
                         # =============================================================================
-                        # Step 3: Calculate the relative importance of each hyperparameter based on the reduction in AIC score
+                        # Step 3: Define / Train Model on hyperparameters (X) and target metric (y)
                         # =============================================================================
-# =============================================================================
-#                         feature_importance = {}
-#                         
-#                         # Iterate over each hyperparameter
-#                         for hyperparameter in ['p', 'd', 'q', 'P', 'D', 'Q', 'trend']:
-#                             total_reduction = 0
-#                             
-#                             # Iterate over each unique value of the hyperparameter
-#                             for value in df_gridsearch[hyperparameter].unique():
-#                                 # Filter the dataframe based on the value of the hyperparameter
-#                                 reduced_rows = df_gridsearch[df_gridsearch[hyperparameter] == value]
-#                                 
-#                                 # Calculate the baseline metric for the filtered rows
-#                                 baseline_metric = reduced_rows['AIC'].astype(float).min()
-#                                 
-#                                 # Calculate the total reduction for the current hyperparameter value
-#                                 reduction = baseline_metric - reduced_rows['AIC'].astype(float)
-#                                 total_reduction += reduction.sum()
-#                             
-#                             feature_importance[hyperparameter] = total_reduction / len(df_gridsearch)
-#                         
-#                         # Normalize the importance scores
-#                         total_importance = sum(feature_importance.values())
-#                         importance_scores = {param: score / total_importance for param, score in feature_importance.items()}
-#                         
-#                         # Sort the feature importances in ascending order
-#                         sorted_feature_importance = sorted(importance_scores.items(), key=lambda x: x[1], reverse=False)
-# =============================================================================
-                        # Step 3: Train a random forest regression model
-                        from sklearn.ensemble import RandomForestRegressor
-                        from sklearn.impute import SimpleImputer
-
-                        # Step 3: Prepare the data
-                        df_gridsearch['trend'] = df_gridsearch['trend'].map({'n': 0, 'c': 1, 't': 2, 'ct': 3, None: 4})  # Convert trend column to numeric values
+                        # Prepare the data
+                        df_gridsearch['trend'] = df_gridsearch['trend'].replace({None: 'None'})                        
+                        df_gridsearch['trend'] = df_gridsearch['trend'].map({'n': 0, 'c': 1, 't': 2, 'ct': 3, 'None':4})
                         
                         X = df_gridsearch[['p', 'd', 'q', 'P', 'D', 'Q', 'trend']]  # Features (hyperparameters)
                         y = df_gridsearch[metric]  # Target (evaluation metric values)
                         
-                        # Handle missing values using SimpleImputer / as no NaN are accepted by Randomforest
-                        imputer = SimpleImputer()
-                        X_imputed = imputer.fit_transform(X)
-
+                        # Define Model for Importance Score testing
                         rf_model = RandomForestRegressor()
+                        
+                        # Define X and y (X = parameters, y = evaluation metric scores)
                         rf_model.fit(X, y)
                         
-                        # Step 4: Calculate the feature importances
+                        # =============================================================================
+                        # Step 4: Calculate the relative importance of each hyperparameter
+                        # =============================================================================
                         feature_importances = rf_model.feature_importances_
                         importance_scores = {param: score for param, score in zip(X.columns, feature_importances)}
                         
                         # Sort the feature importances in descending order
-                        sorted_feature_importance = sorted(importance_scores.items(), key=lambda x: x[1], reverse=True)
+                        sorted_feature_importance = sorted(importance_scores.items(), key=lambda x: x[1], reverse=False)
                                                 
-# =============================================================================
-#                         # Display the hyperparameters and their importances
-#                         for hyperparameter, importance in sorted_feature_importance:
-#                             st.write(f'{hyperparameter}: {importance}')
-# =============================================================================
-                        
                         # =============================================================================
                         # STEP 5: Plot results
                         # =============================================================================
-                        # =============================================================================
-                        # Set layout of figure plot of hyperparameter importance                    
-                        # =============================================================================
-                        # Define Figure
-                        fig = go.Figure()
+                        create_hyperparameter_importance_plot(sorted_feature_importance, plot_type='bar_chart', grid_search=True) 
                         
-                        # Define color schema
-                        color_schema = px.colors.qualitative.Plotly
-                        
-                        # Create a bar trace for each hyperparameter and its importance score
-                        for hyperparameter, importance in sorted_feature_importance:
-                            fig.add_trace(go.Bar(
-                                x=[importance],
-                                y=[hyperparameter],
-                                orientation='h',
-                                name=hyperparameter,
-                                marker=dict(color=color_schema[len(fig.data) % len(color_schema)]),
-                            ))
-                        
-                        # Set the layout of the figure plot
-                        fig.update_layout(
-                            title='',
-                            margin=dict(t=10),
-                            xaxis=dict(title='Importance Score'),
-                            yaxis=dict(title='Hyperparameter'),
-                        )
-                        
-                        # Set figure title centered in Streamlit
-                        my_text_paragraph('Hyperparameter Importance Plot')
-                        
-                        # Show the figure in Streamlit with hyperparameter importance values
-                        st.plotly_chart(fig, use_container_width=True)   
-                            
-                                                                
                 if search_algorithm == 'Bayesian Optimization':
                     # =============================================================================
-                    # Step 0: Define max wait time
+                    # Step 0: Define variables in order to retrieve time it takes to run hyperparameter tuning
                     # =============================================================================
+                    # set start time when grid-search is kicked-off to define total time it takes as computationaly intensive
+                    start_time = time.time()
+
                     # Convert max_wait_time to an integer
                     max_wait_time_minutes = int(str(max_wait_time.minute))
 
@@ -11493,7 +11541,7 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                     # =============================================================================
                     # Step 4: Define the objective function (REQUIREMENT FOR OPTUNA PACKAGE)
                     # =============================================================================
-                    def objective_sarima(trial):
+                    def objective_sarima(trial, trend=trend):
                         # define parameters of grid for optuna package with syntax: suggest_categorical()
                         p = trial.suggest_int('p', 0, p_max)
                         d = trial.suggest_int('d', 0, d_max)
@@ -11501,7 +11549,7 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                         P = trial.suggest_int('P', 0, P_max)
                         D = trial.suggest_int('D', 0, D_max)
                         Q = trial.suggest_int('Q', 0, Q_max)
-                        trend = trial.suggest_categorical('trend', ['n', 'c', 't', 'ct', None])
+                        trend = trial.suggest_categorical('trend', trend)
                         
                         order = (p, d, q)
                         seasonal_order = (P, D, Q, s)
@@ -11556,15 +11604,21 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                                    timeout = max_wait_time_seconds)
 
                     # =============================================================================
-                    # Step 8: Clear progress bar when optimization has completed                    
+                    # Step 8: Clear progress bar and stop time when optimization has completed                    
                     # =============================================================================
                     # Clear the progress bar in Streamlit
                     progress_bar.empty()
+                    
+                    # set the end of runtime
+                    end_time_sarimax = time.time()
                     
                     # =============================================================================
                     # Step 9: Rank the results dataframe on the evaluation metric
                     # =============================================================================                                        
                     bayesian_sarimax_results_df = rank_dataframe(df = optuna_results, metric = metric)
+                    
+                    # round to 2 decimals
+                    bayesian_sarimax_results_df[['AIC', 'BIC', 'RMSE']] = bayesian_sarimax_results_df[['AIC', 'BIC', 'RMSE']].round(2)
                     
                     # =============================================================================
                     # Step 10: Show Results in Streamlit
@@ -11573,33 +11627,18 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                     
                         # Display the result dataframe
                         st.dataframe(bayesian_sarimax_results_df, hide_index=True, use_container_width = True)
-                    
+                        
+                        # user messages about the results
+                        st.write(f'🏆 **SARIMAX** hyperparameters with the lowest {metric} of **{bayesian_sarimax_results_df.iloc[0, 5]}** found in **{end_time_sarimax - start_time:.2f}** seconds is:')
+                        st.write(f'- **`(p,d,q)(P,D,Q,s)`**: {bayesian_sarimax_results_df.iloc[0,1]}')
+                        st.markdown('---')
+                        
                         # =============================================================================
                         # Plot Hyperparameter Importance                        
                         # =============================================================================
-                        # Define Figure
-                        fig = optuna.visualization.plot_param_importances(study)
-                        
-                        # Set an empty string as the title
-                        fig.update_layout(title='')
-                        fig.update_layout(margin=dict(t=10))    
-                        
-                        # =============================================================================
-                        # Set layout of figure plot of hyperparameter importance                    
-                        # =============================================================================
-                        # Get the list of colors from Plotly qualitative color scheme
-                        color_schema = px.colors.qualitative.Plotly
-                        
-                        # Update the marker color of each bar in the plot with the color scheme
-                        for i, trace in enumerate(fig.data):
-                            trace.marker.color = [color_schema[j % len(color_schema)] for j in range(len(trace.y))]
-                        
-                        # set figure title centered in streamlit 
-                        my_text_paragraph('Hyperparameter Importance Plot')
-                        
-                        # show figure in streamlit with hyperparameter importance values
-                        st.plotly_chart(fig, use_container_width = True)
-    
+                        # Optuna Parameter Importance Plot
+                        create_hyperparameter_importance_plot(study, plot_type='param_importances', grid_search=False)
+                    
             if model_name == "Prophet":
                 horizon_int = horizon_option
                 horizon_str = f'{horizon_int} days'  # construct horizon parameter string
