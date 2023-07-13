@@ -565,7 +565,7 @@ def rank_dataframe(df, metric):
         pd.DataFrame: The ranked DataFrame.
     """
     # Convert the specified column to numeric data type
-    df[metric] = pd.to_numeric(df[metric])
+    df[metric] = pd.to_numeric(df[metric], errors='coerce')
     
     # Sort the DataFrame by the specified column in ascending order
     df = df.sort_values(metric)
@@ -573,6 +573,7 @@ def rank_dataframe(df, metric):
     # Reset the index of the DataFrame and assign ranks
     df = df.reset_index(drop=True).reset_index().rename(columns={'index': 'Rank'})
     return df
+
 
 def clear_test_results():
     """
@@ -4977,21 +4978,15 @@ def display_my_metrics(my_df, model_name="", my_subtitle=None):
         st.metric(':green[R-squared:]',  value= round(r2, 2))
 
 
-def forecast_naive_model1_insample(model, X_train, y_train, X_test, y_test, **kwargs):
+def forecast_naive_model1_insample(y_test, lag=None, custom_lag_value=None):
     """
     Implements Naive Model I for time series forecasting.
-    
+
     Args:
-        model: The model or algorithm used for forecasting.
-        X_train: The input features of the training set.
-        y_train: The target variable of the training set.
-        X_test: The input features of the test set.
         y_test: The target variable of the test set.
-        **kwargs: Additional keyword arguments.
-            lag (str): The lag value to use for shifting the target variable. Options are 'day', 'week', 'month',
-                       'year', or 'custom'.
-            custom_lag_value (int): The custom lag value to use if lag='custom'.
-    
+        lag: The lag value to use for shifting the target variable. Options are 'day', 'week', 'month', 'year', or 'custom'.
+        custom_lag_value: The custom lag value to use if lag='custom'.
+
     Returns:
         df_preds (pandas.DataFrame): DataFrame containing actual and predicted values for evaluation.
             Columns:
@@ -4999,62 +4994,60 @@ def forecast_naive_model1_insample(model, X_train, y_train, X_test, y_test, **kw
                 - 'Predicted': Predicted target variable values.
                 - 'Percentage_Diff': Percentage difference between predicted and actual values.
                 - 'MAPE': Mean Absolute Percentage Error between predicted and actual values.
-    
+
     Raises:
-        ValueError: If an invalid value for 'lag' is provided.
-    
+        ValueError: If an invalid value for 'lag' is provided, or if custom_lag_value is not provided when lag='custom'.
+
     Note:
         - The function applies a lag to the target variable based on the 'lag' argument.
         - It creates a DataFrame with actual and predicted values.
         - The index is set to the date portion of the datetime index.
         - Rows with missing values are dropped.
         - Percentage difference and MAPE (Mean Absolute Percentage Error) are calculated.
-    
+
     Example:
         lag_value = 'day'
         custom_lag_value = 5
-        result = naive_model1(model, X_train, y_train, X_test, y_test, lag=lag_value, custom_lag_value=5)
+        result = forecast_naive_model1_insample(y_test, lag=lag_value, custom_lag_value=5)
     """
-    if 'lag' in kwargs and kwargs['lag'] is not None:
-        lag = kwargs['lag']
-        if lag == 'day':
-            y_pred = y_test.shift(1) 
-        elif lag == 'week':
-            y_pred = y_test.shift(7) 
-        elif lag == 'month':
-            y_pred = y_test.shift(30) 
-        elif lag == 'year':
-            y_pred = y_test.shift(365)
-        elif lag == 'custom':
-            y_pred = y_test.shift(custom_lag_value)
-        else:
-            raise ValueError('Invalid value for "lag". Must be "day", "week", "month", or "year".')
-            
-        # Create dataframe for insample predictions versus actual
-        df_preds = pd.DataFrame({'Actual': y_test.squeeze(), 'Predicted': y_pred.squeeze()})
-        
-        # set the index to just the date portion of the datetime index
-        df_preds.index = df_preds.index.date
-        
-        # Drop rows with N/A values
-        df_preds.dropna(inplace=True)
-        
-        # Calculate percentage difference between actual and predicted values and add it as a new column
-        df_preds = df_preds.assign(Percentage_Diff = ((df_preds['Predicted'] - df_preds['Actual']) / df_preds['Actual']))
-        
-        # Calculate MAPE and add it as a new column
-        df_preds = df_preds.assign(MAPE = abs(df_preds['Percentage_Diff']))   
-        return df_preds
 
-def forecast_naive_model2_insample(model, X_train, y_train, X_test, y_test, size_rolling_window, agg_method_rolling_window):
+    if lag == 'day':
+        y_pred = y_test.shift(1)
+    elif lag == 'week':
+        y_pred = y_test.shift(7)
+    elif lag == 'month':
+        y_pred = y_test.shift(30)
+    elif lag == 'year':
+        y_pred = y_test.shift(365)
+    elif lag == 'custom':
+        if custom_lag_value is None:
+            raise ValueError('Custom lag value is required when lag is set to "custom".')
+        y_pred = y_test.shift(custom_lag_value)
+    else:
+        raise ValueError('Invalid value for "lag". Must be "day", "week", "month", "year", or "custom".')
+
+    # Create a DataFrame for insample predictions versus actual
+    df_preds = pd.DataFrame({'Actual': y_test.squeeze(), 'Predicted': y_pred.squeeze()})
+
+    # Set the index to just the date portion of the datetime index
+    df_preds.index = df_preds.index.date
+
+    # Drop rows with N/A values
+    df_preds.dropna(inplace=True)
+
+    # Calculate the percentage difference between actual and predicted values and add it as a new column
+    df_preds['Percentage_Diff'] = ((df_preds['Predicted'] - df_preds['Actual']) / df_preds['Actual'])
+
+    # Calculate MAPE and add it as a new column
+    df_preds['MAPE'] = abs(df_preds['Percentage_Diff'])
+
+    return df_preds
+
+def forecast_naive_model2_insample(y_test, size_rolling_window, agg_method_rolling_window):
     """
     Implements Naive Model 2 for time series forecasting with a rolling window approach.
     
     Args:
-        model: The model or algorithm used for forecasting.
-        X_train: The input features of the training set.
-        y_train: The target variable of the training set.
-        X_test: The input features of the test set.
         y_test: The target variable of the test set.
         size_rolling_window (int): The size of the rolling window.
         agg_method_rolling_window (str): The aggregation method to apply within the rolling window. Options are
@@ -5082,7 +5075,7 @@ def forecast_naive_model2_insample(model, X_train, y_train, X_test, y_test, size
     Example:
         size_window = 7
         agg_method = 'mean'
-        result = forecast_naive_model2_insample(model, X_train, y_train, X_test, y_test, size_rolling_window=size_window, agg_method_rolling_window=agg_method)
+        result = forecast_naive_model2_insample(y_test, size_rolling_window=size_window, agg_method_rolling_window=agg_method)
     """
     agg_method_rolling_window = agg_method_rolling_window.lower()
     
@@ -10630,14 +10623,11 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                             # =============================================================================
                             # Naive Model I
                             # =============================================================================
-                            df_preds_naive_model1 = forecast_naive_model1_insample(model, 
-                                                                                  X_train, 
-                                                                                  y_train, 
-                                                                                  X_test, 
-                                                                                  y_test, 
-                                                                                  lag = lag, 
-                                                                                  custom_lag_value = custom_lag_value)
+                            df_preds_naive_model1 = forecast_naive_model1_insample(y_test, 
+                                                                                   lag = lag, 
+                                                                                   custom_lag_value = custom_lag_value)
                             
+                            # define for subtitle dictionary to tell user what lag frequency was chosen
                             lag_word = {'day': 'daily', 'week': 'weekly', 'month': 'monthly', 'year': 'yearly'}.get(lag)
                             
                             # Show metrics on model card
@@ -10692,11 +10682,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                             # =============================================================================
                             st.markdown('---')
                             
-                            df_preds_naive_model2 = forecast_naive_model2_insample(model, 
-                                                                                   X_train, 
-                                                                                   y_train, 
-                                                                                   X_test, 
-                                                                                   y_test, 
+                            df_preds_naive_model2 = forecast_naive_model2_insample(y_test, 
                                                                                    size_rolling_window_naive_model, 
                                                                                    agg_method_rolling_window_naive_model)
                             # Show metrics on model card
@@ -11151,13 +11137,14 @@ def hyperparameter_tuning_form():
         
             col1, col2, col3 = st.columns([1,12,1])
             with col2: 
-                options_lag = st.multiselect(label = '*select seasonal lag*', 
+                lag_options = st.multiselect(label = '*select seasonal lag*', 
                                  options = ['Day', 'Week', 'Month', 'Year'],
                                  default = ['Day', 'Week', 'Month', 'Year'])
       
             #lag_options = lag_options.lower() # make lag name lowercase e.g. 'Week' becomes 'week'  
             
             vertical_spacer(1)
+            
             # =============================================================================
             # Naive Model II: Rolling Window           
             # =============================================================================
@@ -11165,13 +11152,13 @@ def hyperparameter_tuning_form():
             
             col1, col2, col3 = st.columns([1,12,1])
             with col2:
-                range_size_rolling_window_naive_model = st.slider(label = 'Select rolling window size:',
-                                                                min_value = 2,
-                                                                max_value = 365,
-                                                                value = (7, 30),
-                                                                step = 1)
+                rolling_window_range = st.slider(label = 'Select rolling window size:',
+                                                                  min_value = 2,
+                                                                  max_value = 365,
+                                                                  value = (2, 365),
+                                                                  step = 1)
                 
-                options_agg_method_rolling_window_naive_model = st.multiselect(label = '*select aggregation method:*', 
+                rolling_window_options = st.multiselect(label = '*select aggregation method:*', 
                                                                                options = ['Mean', 'Median', 'Mode'],
                                                                                default = ['Mean', 'Median', 'Mode'],
                                                                                key = 'tune_options_naivemodelii')
@@ -11184,7 +11171,7 @@ def hyperparameter_tuning_form():
             
             col1, col2, col3 = st.columns([1,12,1])
             with col2:
-                options_agg_method_baseline_naive_model = st.multiselect(label = '*select aggregation method:*', 
+                agg_options = st.multiselect(label = '*select aggregation method:*', 
                                                                          options = ['Mean', 'Median', 'Mode'],
                                                                          default = ['Mean', 'Median', 'Mode'],
                                                                          key = 'tune_options_naivemodeliii')
@@ -11310,6 +11297,7 @@ def hyperparameter_tuning_form():
             hp_tuning_btn = st.form_submit_button("Submit", type="secondary")
              
     return max_wait_time, selected_model_names, metric, search_algorithm, trial_runs, trend, \
+           lag_options, rolling_window_range, rolling_window_options, agg_options, \
            p_max, d_max, q_max, P_max, D_max, Q_max, s,  enforce_stationarity, enforce_invertibility, \
            horizon_option, changepoint_prior_scale_options, seasonality_mode_options, seasonality_prior_scale_options, holidays_prior_scale_options, yearly_seasonality_options, weekly_seasonality_options, daily_seasonality_options, \
            hp_tuning_btn
@@ -11341,6 +11329,7 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
     with st.sidebar:
         # return parameters set for hyper-parameter tuning either default or overwritten by user options
         max_wait_time, selected_model_names, metric, search_algorithm, trial_runs, trend, \
+        lag_options, rolling_window_range, rolling_window_options, agg_options, \
         p_max, d_max, q_max, P_max, D_max, Q_max, s, enforce_stationarity, enforce_invertibility, \
         horizon_option, changepoint_prior_scale_options, seasonality_mode_options, seasonality_prior_scale_options, holidays_prior_scale_options, yearly_seasonality_options, weekly_seasonality_options, daily_seasonality_options, \
         hp_tuning_btn = hyperparameter_tuning_form()
@@ -11350,13 +11339,114 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
     # =============================================================================
     sarimax_tuning_results = pd.DataFrame()
     prophet_tuning_results = pd.DataFrame()
- 
+    naive_model1_tuning_results = pd.DataFrame() # results with lag
+    naive_model2_tuning_results = pd.DataFrame() # results with rolling window
+    naive_model3_tuning_results = pd.DataFrame() # results with constant  (mean/median/mode)
+    naive_models_tuning_results = pd.DataFrame() # total results
+    
     # if user clicks the hyper-parameter tuning button start hyperparameter tuning code below for selected models
     if hp_tuning_btn == True and selected_model_names:
 
         # iterate over user selected models from multi-selectbox when user pressed SUBMIT button for hyperparameter tuning
         for model_name in selected_model_names:
 
+            if model_name == 'Naive Model':
+
+                
+                with st.expander('Naive Model', expanded = True):
+                    # set start time when grid-search is kicked-off to define total time it takes as computationaly intensive
+                    start_time = time.time()
+                    
+                    # initiate progress bar for SARIMAX Grid Search runtime
+                    progress_bar = st.progress(0)
+                    
+                    # Convert max_wait_time to an integer
+                    max_wait_time_minutes = int(str(max_wait_time.minute))
+                    
+                    # Convert the maximum waiting time from minutes to seconds
+                    max_wait_time_seconds = max_wait_time_minutes * 60
+                    
+                    # store total number of combinations in the parameter grid for progress bar
+                    #total_combinations = len(param_grid['order']) * len(param_grid['seasonal_order']) * len(param_grid['trend'])
+                    total_options = len(lag_options) + (len(list(range(rolling_window_range[0], rolling_window_range[1] + 1)))*len(rolling_window_options))
+                    
+                    #########################################################################################################
+                    # Naive Model I: Lag                    
+                    #########################################################################################################
+                    my_text_paragraph('Naive Model I: Lag')
+                    
+                    # iterate over grid of all possible combinations of hyperparameters
+                    for i, lag_option in enumerate(lag_options):
+                        
+                        #   st.write(i, lag_option)
+                        
+                        # Check if the maximum waiting time has been exceeded
+                        elapsed_time_seconds = time.time() - start_time
+                            
+                        if elapsed_time_seconds > max_wait_time_seconds:
+                            st.warning("Maximum waiting time exceeded. The grid search has been stopped.")
+                            # exit the loop once maximum time is exceeded defined by user or default = 5 minutes
+                            break
+                        
+                        # Update the progress bar
+                        progress_percentage = i / total_options * 100
+                        progress_bar.progress(value = (i / total_options), 
+                                              text = f'''Please wait up to {max_wait_time_minutes} minute(s) while parameters of Naive Model I are being tuned!  
+                                                         \n{progress_percentage:.2f}% of total options within the search space reviewed ({i} out of {total_options} total options).''')
+                                                         
+                        # Create a model with the current parameter values
+                        df_preds_naive_model1 = forecast_naive_model1_insample(y_test, 
+                                                                               lag = lag_option.lower(), 
+                                                                               custom_lag_value = None)
+                        #st.write(df_preds_naive_model1)
+                        
+                        # Append a new row to the dataframe with the parameter values and AIC score
+                        naive_model1_tuning_results = naive_model1_tuning_results.append({'Naive Model': 'I', 
+                                                                                'parameters': f'lag: {lag_option}', 
+                                                                                'MAPE':  "{:.2f}".format(df_preds_naive_model1['MAPE'].mean())
+                                                                                }, ignore_index=True)
+
+
+                        # add rank column to dataframe and order by metric column
+                        ranked_naive_model1_tuning_results = rank_dataframe(naive_model1_tuning_results, 'MAPE')
+                    st.dataframe(ranked_naive_model1_tuning_results, use_container_width = True, hide_index = True)
+                    
+                    #########################################################################################################
+                    # Naive Model II: Rolling Window
+                    #########################################################################################################
+                    my_text_paragraph('Naive Model II: Rolling Window')
+                    
+                    # Iterate over grid of all possible combinations of hyperparameters
+                    param_grid = {
+                        'rolling_window_range': list(range(rolling_window_range[0], rolling_window_range[1] + 1)),
+                        'rolling_window_options': rolling_window_options
+                    }
+                    
+                    for i, (rolling_window_value, rolling_window_option) in enumerate(itertools.product(param_grid['rolling_window_range'], param_grid['rolling_window_options']), 0):
+                         # Update the progress bar
+                         progress_percentage = (i + len(lag_options)) / total_options * 100
+                         progress_bar.progress(value = ((i  + len(lag_options) ) / total_options), 
+                                               text = f'''Please wait up to {max_wait_time_minutes} minute(s) while parameters of Naive Model I are being tuned!  
+                                                         \n{progress_percentage:.2f}% of total options within the search space reviewed ({i + len(lag_options)} out of {total_options} total options).''')
+                         # model 
+                         df_preds_naive_model2 = forecast_naive_model2_insample(y_test, size_rolling_window = rolling_window_value, agg_method_rolling_window = rolling_window_option)
+                        
+                         # Append a new row to the dataframe with the parameter values and MAPE score
+                         naive_model2_tuning_results = naive_model2_tuning_results.append({'Naive Model': 'II', 
+                                                                                            'parameters': f'rolling_window_size: {rolling_window_value}, aggregation_method: {rolling_window_option}', 
+                                                                                            'MAPE': df_preds_naive_model2['MAPE'].mean()}, ignore_index=True)
+                         # add rank column to dataframe and order by metric column
+                         ranked_naive_model2_tuning_results = rank_dataframe(naive_model2_tuning_results, 'MAPE')
+                    st.dataframe(ranked_naive_model2_tuning_results, use_container_width=True, hide_index = True)
+                    
+                # set the end of runtime
+                end_time_naive_models = time.time()
+                
+                # clear progress bar in streamlit for user as process is completed
+                progress_bar.empty()
+                
+                st.write(f'🏆 **Naive Model** parameter with the lowest metric found in **{end_time_naive_models - start_time:.2f}** seconds is:')
+                        
             if model_name == "SARIMAX":
 
                 if search_algorithm == 'Grid Search':
@@ -11369,14 +11459,14 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                     # =============================================================================
                     # Define Parameter Grid for Grid Search             
                     # =============================================================================
-                    # check if trend has at least 1 option (not an empty lsit) / e.g. when user clears all options in sidebar - set default to 'n'
+                    # check if trend has at least 1 option (not an empty list) / e.g. when user clears all options in sidebar - set default to 'n'
                     if trend == []:
                         trend = ['n']
                     
                     param_grid = {'order': [(p, d, q) for p, d, q in itertools.product(range(p_max+1), range(d_max+1), range(q_max+1))],
                                   'seasonal_order': [(p, d, q, s) for p, d, q in itertools.product(range(P_max+1), range(D_max+1), range(Q_max+1))],
                                   'trend': trend}
-    
+                    
                     # store total number of combinations in the parameter grid for progress bar
                     total_combinations = len(param_grid['order']) * len(param_grid['seasonal_order']) * len(param_grid['trend'])
                     
