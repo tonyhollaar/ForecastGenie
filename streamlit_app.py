@@ -4919,7 +4919,7 @@ def my_metrics(my_df, model_name):
         mape_value, rmse_value, r2_value = result
     """
     # calculate metrics
-    mape = my_df['MAPE'].mean()
+    mape = np.mean(np.abs((my_df['Actual'] - my_df['Predicted']) / my_df['Actual']))
     mse = mean_squared_error(my_df['Actual'], my_df['Predicted'])
     rmse = np.sqrt(mse)
     r2 = r2_score(my_df['Actual'], my_df['Predicted'])
@@ -5036,10 +5036,8 @@ def forecast_naive_model1_insample(y_test, lag=None, custom_lag_value=None):
     df_preds.dropna(inplace=True)
 
     # Calculate the percentage difference between actual and predicted values and add it as a new column
-    df_preds['Percentage_Diff'] = ((df_preds['Predicted'] - df_preds['Actual']) / df_preds['Actual'])
-
-    # Calculate MAPE and add it as a new column
-    df_preds['MAPE'] = abs(df_preds['Percentage_Diff'])
+    df_preds['Error'] = (df_preds['Actual'] - df_preds['Predicted'])
+    df_preds['Error (%)'] = (df_preds['Error'] / df_preds['Actual'])
 
     return df_preds
 
@@ -5101,11 +5099,11 @@ def forecast_naive_model2_insample(y_test, size_rolling_window, agg_method_rolli
     # Drop rows with N/A values
     df_preds.dropna(inplace=True)
         
-    # Calculate percentage difference between actual and predicted values and add it as a new column
-    df_preds = df_preds.assign(Percentage_Diff = ((df_preds['Predicted'] - df_preds['Actual']) / df_preds['Actual']))
-        
-    # Calculate MAPE and add it as a new column
-    df_preds = df_preds.assign(MAPE = abs(df_preds['Percentage_Diff']))   
+    # Calculate the percentage difference between actual and predicted values and add it as a new column
+    df_preds['Error'] = (df_preds['Actual'] - df_preds['Predicted'])
+    
+    df_preds['Error (%)'] = (df_preds['Error'] / df_preds['Actual'])
+    
     return df_preds
 
 def forecast_naive_model3_insample(y_train, y_test, agg_method):
@@ -5171,11 +5169,9 @@ def forecast_naive_model3_insample(y_train, y_test, agg_method):
     # Drop rows with N/A values
     df_preds.dropna(inplace=True)
         
-    # Calculate percentage difference between actual and predicted values and add it as a new column
-    df_preds = df_preds.assign(Percentage_Diff=((df_preds['Predicted'] - df_preds['Actual']) / df_preds['Actual']))
-        
-    # Calculate MAPE and add it as a new column
-    df_preds = df_preds.assign(MAPE=abs(df_preds['Percentage_Diff']))   
+    # Calculate the percentage difference between actual and predicted values and add it as a new column
+    df_preds['Error'] = (df_preds['Actual'] - df_preds['Predicted'])
+    df_preds['Error (%)'] = (df_preds['Error'] / df_preds['Actual'])
     
     return df_preds
  
@@ -5261,11 +5257,9 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
     # Drop rows with N/A values
     df_preds.dropna(inplace=True)
     
-    # Calculate percentage difference between actual and predicted values and add it as a new column
-    df_preds = df_preds.assign(Percentage_Diff = ((df_preds['Predicted'] - df_preds['Actual']) / df_preds['Actual']))
-    
-    # Calculate MAPE and add it as a new column
-    df_preds = df_preds.assign(MAPE = abs(df_preds['Percentage_Diff']))   
+    # Calculate the percentage difference between actual and predicted values and add it as a new column
+    df_preds['Error'] = (df_preds['Predicted'] - df_preds['Actual'])
+    df_preds['Error (%)'] = df_preds['Error'] / df_preds['Actual']
     
     return df_preds, coefficients_table, equation_str
 
@@ -5307,18 +5301,17 @@ def evaluate_sarimax_model(order, seasonal_order, exog_train, exog_test, endog_t
                              exog = exog_test)
 
     # Step 4: Combine Actual values and Prediction in a single dataframe
-    preds_df = pd.DataFrame({'Actual': endog_test.squeeze(), 
+    df_preds = pd.DataFrame({'Actual': endog_test.squeeze(), 
                              'Predicted': y_pred.squeeze()}, 
                              index = endog_test.index)
 
     # Step 5: Calculate Difference
-    # Calculate percentage difference between actual and predicted values and add it as a new column
-    preds_df = preds_df.assign(Percentage_Diff = ((preds_df['Predicted'] - preds_df['Actual']) / preds_df['Actual']))
+    # Calculate the percentage difference between actual and predicted values and add it as a new column
+    df_preds['Error'] = (df_preds['Actual'] - df_preds['Predicted'])
+    
+    df_preds['Error (%)'] = (df_preds['Error'] / df_preds['Actual'])
 
-    # Step 6: Calculate metric: 
-    # Calculate MAPE and add it as a new column to the existing dataframe
-    preds_df = preds_df.assign(MAPE = abs(preds_df['Percentage_Diff']))   
-    return preds_df 
+    return df_preds 
 
 def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, model, model_name):
     """
@@ -5458,8 +5451,8 @@ def predict_prophet(y_train, y_test, X, **kwargs):
         pd.DataFrame: A dataframe with the following columns:
             - Actual: The actual values of the test dataset.
             - Predicted: The predicted values of the test dataset.
-            - Percentage_Diff: The percentage difference between actual and predicted values.
-            - MAPE: The Mean Absolute Percentage Error (MAPE).
+            - Error: The difference between actual and predicted values.
+            - Error (%): The percentage difference between actual and predicted values.
     """
     # if user set selectbox: 'include feature selection' -> 'Yes' then include the additional explanatory variables/features
     if get_state("TRAIN_PAGE", "include_feature_selection") == 'Yes':
@@ -5581,12 +5574,11 @@ def predict_prophet(y_train, y_test, X, **kwargs):
     # set the date column as index column
     preds_df_prophet = preds_df_prophet.set_index('date')
     
+    # Calculate absolute error and add it as a new column
+    preds_df_prophet['Error'] = preds_df_prophet['Predicted'] - preds_df_prophet['Actual']
     # Calculate percentage difference between actual and predicted values and add it as a new column
-    preds_df_prophet = preds_df_prophet.assign(Percentage_Diff = ((preds_df_prophet['Predicted'] - preds_df_prophet['Actual']) / preds_df_prophet['Actual']))
-    
-    # Calculate Mean Absolute Percentage Error (MAPE) and add it as a new column
-    preds_df_prophet = preds_df_prophet.assign(MAPE = abs(preds_df_prophet['Percentage_Diff']))
-    
+    preds_df_prophet['Error (%)'] = (preds_df_prophet['Error'] / preds_df_prophet['Actual'])
+
     return preds_df_prophet
 
 def load_data():
@@ -5604,12 +5596,14 @@ def create_df_pred(y_test, y_pred, show_df_streamlit=True):
         df_preds = pd.DataFrame({'Actual': y_test.squeeze(), 'Predicted': y_pred.squeeze()})
         # set the index to just the date portion of the datetime index
         df_preds.index = df_preds.index.date
+        
         # Calculate percentage difference between actual and predicted values and add it as a new column
-        df_preds = df_preds.assign(Percentage_Diff = ((df_preds['Predicted'] - df_preds['Actual']) / df_preds['Actual']))
-        # Calculate MAPE and add it as a new column
-        df_preds = df_preds.assign(MAPE = abs(df_preds['Percentage_Diff']))
+        df_preds['Error'] = df_preds['Actual'] - df_preds['Predicted']
+        df_preds['Error (%)'] = df_preds['Error'] / df_preds['Actual']
+        
         # show the predictions versus actual results
-        my_df = df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}'})
+        my_df = df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Error': '{:.2f}', 'Error (%)': '{:.2f%}'})
+        
         if show_df_streamlit == True:
             return st.write(my_df)
         else:
@@ -5674,10 +5668,13 @@ def plot_actual_vs_predicted(df_preds, my_conf_interval):
     """
     # Define the color palette
     colors = ['#5276A7', '#ff7700']
+    
     # set color shading of confidence interval
     my_fillcolor = 'rgba(222,235,247,0.5)'
+    
     # Create the figure with easy on eyes colors
     fig = px.line(df_preds, x=df_preds.index, y=['Actual', 'Predicted'], color_discrete_sequence=colors)
+    
     # Update the layout of the figure
     fig.update_layout(
                         legend_title = 'Legend',
@@ -5694,11 +5691,13 @@ def plot_actual_vs_predicted(df_preds, my_conf_interval):
                         xaxis=dict(gridcolor='#E1E1E1'),
                         legend=dict(yanchor="bottom", y=0.0, xanchor="center", x=0.99,  bgcolor= 'rgba(0,0,0,0)' )   
                     )
+    
     # Set the line colors
     for i, color in enumerate(colors):
         fig.data[i].line.color = color
         if fig.data[i].name == 'Predicted':
             fig.data[i].line.dash = 'dot' # dash styles options: ['solid', 'dot', 'dash', 'longdash', 'dashdot', 'longdashdot']
+            
     # Compute the level of confidence 
     confidence = float(my_conf_interval/100)
     # level of significance (1 minus confidence interval)
@@ -5728,6 +5727,7 @@ def plot_actual_vs_predicted(df_preds, my_conf_interval):
         showlegend=False,
         legendgroup='confidence intervals'
     ))
+    
     fig.add_trace(go.Scatter(
         x=df_preds.index,
         y=lower,
@@ -10293,10 +10293,10 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                 col1, col2, col3 = st.columns([1,2,1])
                 with col2: 
                     lag = st.selectbox(label = '*select seasonal lag*', 
-                                   options = ['Day', 'Week', 'Month', 'Year', 'Custom'],
-                                   key = key7_train,
-                                   label_visibility = 'visible')
-                
+                                       options = ['Day', 'Week', 'Month', 'Year', 'Custom'],
+                                       key = key7_train,
+                                       label_visibility = 'visible')
+                    
                     lag = lag.lower() # make lag name lowercase e.g. 'Week' becomes 'week'
                     
                     if lag == 'custom':
@@ -10495,28 +10495,6 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                 # update session_state 
                 st.session_state['train_models_btn'] = train_models_btn
           
-# =============================================================================
-#         with st.sidebar:
-#             with st.expander('', expanded=True):
-#                 
-#                 my_text_paragraph('Model Details')
-# =============================================================================           
-# =============================================================================
-#                 vertical_spacer(1)
-#                 
-#                 col1, col2, col3 = st.columns([10,13,10])
-#                 with col2:
-#                     selected_model_info = st.selectbox(
-#                                                          label = "*Select model*:", 
-#                                                          options = ['-', 'Naive Model', 'Linear Regression', 'SARIMAX', 'Prophet'], 
-#                                                          label_visibility='collapsed'
-#                                                       )
-#                 vertical_spacer(2)
-#                 
-#             # update session state
-#             st.session_state['selected_model_info'] = selected_model_info
-# =============================================================================
-       
         # *****************************************************************************
         # ALL MODELS
         # *****************************************************************************
@@ -10530,15 +10508,6 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
       
         # initiate empty list to hold user's checked model names and models from selectboxes
         selected_models = []
-
-        # Iterate over each model in list and add to selected models variable
-        
-        # =============================================================================
-        #         TEST TEST TEST TEST TEST TEST TEST
-        # =============================================================================
-        
-        st.write(st.session_state['train_models_btn'])
-        
         
         # if user pressed submit button train the models else do not e.g. every time you go back to train page dont automatically kick off the training
         if st.session_state['train_models_btn']:
@@ -10639,14 +10608,13 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                             plot_actual_vs_predicted(df_preds_naive_model1, my_conf_interval)
                                
                             # Show the dataframe
-                            st.dataframe(df_preds_naive_model1.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                            st.dataframe(df_preds_naive_model1.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Error': '{:.2f}', 'Error (%)': '{:.2%}'}), use_container_width=True)
                             
                             # Create download button for forecast results to .csv
                             download_csv_button(df_preds_naive_model1, my_file="insample_forecast_naivemodel_results.csv", 
                                                  help_message="Download your Naive Model I results to .CSV",
                                                  my_key = 'naive_trained_modeli_download_btn', 
                                                  set_index = True)
-                            #vertical_spacer(1)
                             
                             # =============================================================================
                             # SAVE TEST RESULTS FOR EVALUATION PAGE BY ADDING ROW TO RESULTS_DF                
@@ -10694,7 +10662,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                             plot_actual_vs_predicted(df_preds_naive_model2, my_conf_interval)
                                
                             # Show the dataframe
-                            st.dataframe(df_preds_naive_model2.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
+                            st.dataframe(df_preds_naive_model2.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Error': '{:.2f}', 'Error (%)': '{:.2%}'}), use_container_width=True)
                           
                             # Create download button for forecast results to .csv
                             download_csv_button(df_preds_naive_model2, my_file="insample_forecast_naivemodel_results.csv", 
@@ -10754,8 +10722,8 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                                      my_conf_interval)
                                
                             # Show the dataframe
-                            st.dataframe(df_preds_naive_model3.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
-                          
+                            st.dataframe(df_preds_naive_model3.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Error': '{:.2f}', 'Error (%)': '{:.2%}'}), use_container_width=True)
+                            
                             # Create download button for forecast results to .csv
                             download_csv_button(df_preds_naive_model3, my_file="insample_forecast_naivemodeliii_results.csv", 
                                                 help_message="Download your Naive Model III results to .CSV",
@@ -10868,8 +10836,8 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                 plot_actual_vs_predicted(preds_df_sarimax, my_conf_interval)
                                 
                                 # Show the dataframe on Model Card
-                                st.dataframe(preds_df_sarimax.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), use_container_width=True)
-                                
+                                st.dataframe(preds_df_sarimax.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Error': '{:.2f}', 'Error (%)': '{:.2%}'}), use_container_width=True)
+                               
                                 # Create download button for forecast results to .csv
                                 download_csv_button(preds_df_sarimax, my_file="insample_forecast_sarimax_results.csv", help_message="Download your **SARIMAX** model results to .CSV")
                                 
@@ -10922,9 +10890,10 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                         
                         # Plot graph with actual versus insample predictions
                         plot_actual_vs_predicted(preds_df_prophet, my_conf_interval)
+                        
                         # Show the dataframe
-                        st.dataframe(preds_df_prophet.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), 
-                                     use_container_width=True)
+                        st.dataframe(preds_df_prophet.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Error': '{:.2f}', 'Error (%)': '{:.2%}'}), use_container_width=True)
+                            
                         
                         # Create download button for forecast results to .csv
                         download_csv_button(preds_df_prophet, 
@@ -11138,9 +11107,9 @@ def hyperparameter_tuning_form():
             col1, col2, col3 = st.columns([1,12,1])
             with col2: 
                 lag_options = st.multiselect(label = '*select seasonal lag*', 
-                                 options = ['Day', 'Week', 'Month', 'Year'],
-                                 default = ['Day', 'Week', 'Month', 'Year'])
-      
+                                             options = ['Day', 'Week', 'Month', 'Year'],
+                                             default = ['Day', 'Week', 'Month', 'Year'])
+                
             #lag_options = lag_options.lower() # make lag name lowercase e.g. 'Week' becomes 'week'  
             
             vertical_spacer(1)
@@ -11398,17 +11367,17 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                         df_preds_naive_model1 = forecast_naive_model1_insample(y_test, 
                                                                                lag = lag_option.lower(), 
                                                                                custom_lag_value = None)
-                        #st.write(df_preds_naive_model1)
+                        st.write('test', df_preds_naive_model1)
+                        
+                        mape, rmse, r2 = my_metrics(my_df = df_preds_naive_model1, model_name = None)
                         
                         # Append a new row to the dataframe with the parameter values and AIC score
-                        naive_model1_tuning_results = naive_model1_tuning_results.append({'Naive Model': 'I', 
-                                                                                'parameters': f'lag: {lag_option}', 
-                                                                                'MAPE':  "{:.2f}".format(df_preds_naive_model1['MAPE'].mean())
-                                                                                }, ignore_index=True)
+                        naive_model1_tuning_results = naive_model1_tuning_results.append({'parameters': f'lag: {lag_option}', 
+                                                                                          'MAPE':  "{:.2f}".format(abs(df_preds_naive_model1['Error']).mean())}, ignore_index=True)
 
-
-                        # add rank column to dataframe and order by metric column
+                        # Add rank column to dataframe and order by metric column
                         ranked_naive_model1_tuning_results = rank_dataframe(naive_model1_tuning_results, 'MAPE')
+                        
                     st.dataframe(ranked_naive_model1_tuning_results, use_container_width = True, hide_index = True)
                     
                     #########################################################################################################
@@ -11417,24 +11386,23 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                     my_text_paragraph('Naive Model II: Rolling Window')
                     
                     # Iterate over grid of all possible combinations of hyperparameters
-                    param_grid = {
-                        'rolling_window_range': list(range(rolling_window_range[0], rolling_window_range[1] + 1)),
-                        'rolling_window_options': rolling_window_options
-                    }
-                    
+                    param_grid = {'rolling_window_range': list(range(rolling_window_range[0], rolling_window_range[1] + 1)),
+                                  'rolling_window_options': rolling_window_options}
+                                
                     for i, (rolling_window_value, rolling_window_option) in enumerate(itertools.product(param_grid['rolling_window_range'], param_grid['rolling_window_options']), 0):
                          # Update the progress bar
                          progress_percentage = (i + len(lag_options)) / total_options * 100
                          progress_bar.progress(value = ((i  + len(lag_options) ) / total_options), 
-                                               text = f'''Please wait up to {max_wait_time_minutes} minute(s) while parameters of Naive Model I are being tuned!  
+                                               text = f'''Please wait up to {max_wait_time_minutes} minute(s) while parameters of Naive Model II are being tuned!  
                                                          \n{progress_percentage:.2f}% of total options within the search space reviewed ({i + len(lag_options)} out of {total_options} total options).''')
                          # model 
                          df_preds_naive_model2 = forecast_naive_model2_insample(y_test, size_rolling_window = rolling_window_value, agg_method_rolling_window = rolling_window_option)
                         
                          # Append a new row to the dataframe with the parameter values and MAPE score
-                         naive_model2_tuning_results = naive_model2_tuning_results.append({'Naive Model': 'II', 
-                                                                                            'parameters': f'rolling_window_size: {rolling_window_value}, aggregation_method: {rolling_window_option}', 
-                                                                                            'MAPE': df_preds_naive_model2['MAPE'].mean()}, ignore_index=True)
+                         naive_model2_tuning_results = naive_model2_tuning_results.append({
+                                                                                           'parameters': f'rolling_window_size: {rolling_window_value}, aggregation_method: {rolling_window_option}', 
+                                                                                           'MAPE': df_preds_naive_model2['MAPE'].mean()},
+                                                                                           ignore_index=True)
                          # add rank column to dataframe and order by metric column
                          ranked_naive_model2_tuning_results = rank_dataframe(naive_model2_tuning_results, 'MAPE')
                     st.dataframe(ranked_naive_model2_tuning_results, use_container_width=True, hide_index = True)
