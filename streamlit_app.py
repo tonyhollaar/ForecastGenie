@@ -4918,18 +4918,26 @@ def my_metrics(my_df, model_name):
         result = my_metrics(df_preds, 'MyModel')
         mape_value, rmse_value, r2_value = result
     """
-    # calculate metrics
-    mape = np.mean(np.abs((my_df['Actual'] - my_df['Predicted']) / my_df['Actual']))
-    mse = mean_squared_error(my_df['Actual'], my_df['Predicted'])
-    rmse = np.sqrt(mse)
-    r2 = r2_score(my_df['Actual'], my_df['Predicted'])
-    
-    # add the results to the dictionary
+    # Check if not empty dataframe
+    if not my_df.empty:
+        # Calculate metrics
+        mape = np.mean(np.abs((my_df['Actual'] - my_df['Predicted']) / my_df['Actual']))
+        mse = mean_squared_error(my_df['Actual'], my_df['Predicted'])
+        rmse = np.sqrt(mse)
+        r2 = r2_score(my_df['Actual'], my_df['Predicted'])
+    else:
+        # Set metrics equal to none if df is empty
+        mape = None
+        mse = None
+        rmse = None
+        r2 = None
+        
+    # Add the results to the dictionary
     metrics_dict[model_name] = {'mape': mape, 'mse': mse, 'rmse': rmse, 'r2': r2}
     
     return mape, rmse, r2
 
-def display_my_metrics(my_df, model_name="", my_subtitle=None):
+def display_my_metrics(my_df, model_name="", my_subtitle = None):
     """
     Displays the evaluation metrics for a given model using the provided dataframe of predicted and actual values.
     
@@ -4947,7 +4955,10 @@ def display_my_metrics(my_df, model_name="", my_subtitle=None):
     # put all metrics and graph in expander for linear regression e.g. benchmark model
     #st.markdown(f'<h2 style="text-align:center">{model_name}</h2></p>', unsafe_allow_html=True)
     my_text_header(f'{model_name}')
-    my_text_paragraph(my_string = my_subtitle, my_text_align='center', my_font_weight=200, my_font_size='14px')
+    
+    if my_subtitle is not None:
+        my_text_paragraph(my_string = my_subtitle, my_text_align='center', my_font_weight=200, my_font_size='14px')
+    
     vertical_spacer(2)
     
     # define vertical spacings
@@ -4968,7 +4979,6 @@ def display_my_metrics(my_df, model_name="", my_subtitle=None):
         unsafe_allow_html=True,
     )
     
-    
     # Show the evaluation metrics on Model Card
     with col1:  
         st.metric(':red[MAPE:]', value = "{:.2%}".format(mape))
@@ -4976,7 +4986,6 @@ def display_my_metrics(my_df, model_name="", my_subtitle=None):
         st.metric(':red[RMSE:]', value = round(rmse,2))
     with col3: 
         st.metric(':green[R-squared:]',  value= round(r2, 2))
-
 
 def forecast_naive_model1_insample(y_test, lag=None, custom_lag_value=None):
     """
@@ -5033,7 +5042,7 @@ def forecast_naive_model1_insample(y_test, lag=None, custom_lag_value=None):
     df_preds.index = df_preds.index.date
 
     # Drop rows with N/A values
-    df_preds.dropna(inplace=True)
+    df_preds.dropna(inplace = True)
 
     # Calculate the percentage difference between actual and predicted values and add it as a new column
     df_preds['Error'] = (df_preds['Actual'] - df_preds['Predicted'])
@@ -10324,8 +10333,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                     agg_method_rolling_window_naive_model = st.selectbox(label = '*select aggregation method:*', 
                                                                      options = ['Mean', 'Median', 'Mode'],
                                                                      key = key30_train)
-                
-                
+                    
                 # =============================================================================
                 # 1.3 NAIVE MODEL III: Straight Line (Mean, Median, Mode)               
                 # =============================================================================
@@ -10677,11 +10685,11 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                             
                             # Get a scientific notation for the rolling window (Note: Latex not supported in Streamlit st.dataframe() so not currently possible)
                             if agg_method_rolling_window_naive_model == 'Mean':      
-                                naive_model2_feature_str = f"(1/{size_rolling_window_naive_model}) * ∑yt-1, ..., yt-{size_rolling_window_naive_model+1}"
+                                naive_model2_feature_str = f"(1/{size_rolling_window_naive_model}) * ∑yt-1, ..., yt-{size_rolling_window_naive_model}"
                             elif agg_method_rolling_window_naive_model == 'Median':
-                                naive_model2_feature_str = f"median(yt-1, ..., yt-{size_rolling_window_naive_model+1})"
+                                naive_model2_feature_str = f"median(yt-1, ..., yt-{size_rolling_window_naive_model})"
                             elif agg_method_rolling_window_naive_model == 'Mode':
-                                naive_model2_feature_str = f"mode(yt-1, ..., yt-{size_rolling_window_naive_model+1})"
+                                naive_model2_feature_str = f"mode(yt-1, ..., yt-{size_rolling_window_naive_model})"
                             else:
                                 naive_model2_feature_str = '-'
                                 
@@ -11011,9 +11019,12 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
     # MAIN PAGE OF EVALUATE PAGE
     # =============================================================================    
     with st.expander('', expanded=True):
+        
         col0, col1, col2, col3 = st.columns([10, 90, 8, 5]) 
         with col1:
+           
             my_text_header('Model Performance')
+           
             my_text_paragraph(f'{selected_metric}')
             
         # Plot for each model the expirement run with the lowest error (MAPE or RMSE) or highest r2 based on user's chosen metric
@@ -11026,17 +11037,16 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
         # =============================================================================
         # 3. Show Historical Test Runs Dataframe
         # =============================================================================
-        
         # see for line-chart: https://docs.streamlit.io/library/api-reference/data/st.column_config/st.column_config.linechartcolumn
         st.dataframe(st.session_state['results_df'], 
                      column_config={
                                     "prediction": st.column_config.LineChartColumn(
-                                        "predicted",
-                                        width="medium",
-                                        help="The sales volume in the last 6 months",
-                                        y_min=None,
-                                        y_max=None,
-                                     ),
+                                                                                   "predicted",
+                                                                                   width = "medium",
+                                                                                   help = "The sales volume in the last 6 months",
+                                                                                   y_min = None,
+                                                                                   y_max = None,
+                                                                                  ),
                                   }, 
                     hide_index=False, 
                     use_container_width=True)
@@ -11321,12 +11331,12 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
 
             if model_name == 'Naive Model':
 
-                
-                with st.expander('Naive Model', expanded = True):
-                    # set start time when grid-search is kicked-off to define total time it takes as computationaly intensive
+                with st.expander('⚙️ Naive Model', expanded = True):
+                    
+                    # Set start time when grid-search is kicked-off to define total time it takes as computationaly intensive
                     start_time = time.time()
                     
-                    # initiate progress bar for SARIMAX Grid Search runtime
+                    # Initiate progress bar for SARIMAX Grid Search runtime
                     progress_bar = st.progress(0)
                     
                     # Convert max_wait_time to an integer
@@ -11335,7 +11345,7 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                     # Convert the maximum waiting time from minutes to seconds
                     max_wait_time_seconds = max_wait_time_minutes * 60
                     
-                    # store total number of combinations in the parameter grid for progress bar
+                    # Store total number of combinations in the parameter grid for progress bar
                     #total_combinations = len(param_grid['order']) * len(param_grid['seasonal_order']) * len(param_grid['trend'])
                     total_options = len(lag_options) + (len(list(range(rolling_window_range[0], rolling_window_range[1] + 1)))*len(rolling_window_options))
                     
@@ -11346,9 +11356,7 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                     
                     # iterate over grid of all possible combinations of hyperparameters
                     for i, lag_option in enumerate(lag_options):
-                        
-                        #   st.write(i, lag_option)
-                        
+
                         # Check if the maximum waiting time has been exceeded
                         elapsed_time_seconds = time.time() - start_time
                             
@@ -11367,16 +11375,20 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                         df_preds_naive_model1 = forecast_naive_model1_insample(y_test, 
                                                                                lag = lag_option.lower(), 
                                                                                custom_lag_value = None)
-                        st.write('test', df_preds_naive_model1)
                         
+                        # retrieve metrics from difference actual - predicted    
                         mape, rmse, r2 = my_metrics(my_df = df_preds_naive_model1, model_name = None)
                         
                         # Append a new row to the dataframe with the parameter values and AIC score
                         naive_model1_tuning_results = naive_model1_tuning_results.append({'parameters': f'lag: {lag_option}', 
-                                                                                          'MAPE':  "{:.2f}".format(abs(df_preds_naive_model1['Error']).mean())}, ignore_index=True)
+                                                                                          'MAPE':  mape}, ignore_index=True)
 
                         # Add rank column to dataframe and order by metric column
                         ranked_naive_model1_tuning_results = rank_dataframe(naive_model1_tuning_results, 'MAPE')
+                        
+                        # convert mape to %
+                        ranked_naive_model1_tuning_results['MAPE'] = ranked_naive_model1_tuning_results['MAPE'].map(lambda x: f'{x*100:.2f}%' if not np.isnan(x) else x)
+
                         
                     st.dataframe(ranked_naive_model1_tuning_results, use_container_width = True, hide_index = True)
                     
@@ -11397,24 +11409,50 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                                                          \n{progress_percentage:.2f}% of total options within the search space reviewed ({i + len(lag_options)} out of {total_options} total options).''')
                          # model 
                          df_preds_naive_model2 = forecast_naive_model2_insample(y_test, size_rolling_window = rolling_window_value, agg_method_rolling_window = rolling_window_option)
+                         
+                         # retrieve metrics from difference actual - predicted
+                         mape, rmse, r2 = my_metrics(my_df = df_preds_naive_model2, model_name = None)
+                         
+# =============================================================================
+#                          # Append a new row to the dataframe with the parameter values and MAPE score
+#                          naive_model2_tuning_results = naive_model2_tuning_results.append({
+#                                                                                            'parameters': f'rolling_window_size: {rolling_window_value}, aggregation_method: {rolling_window_option}', 
+#                                                                                            'MAPE': mape},
+#                                                                                            ignore_index=True)
+# =============================================================================
+                         # Create a new DataFrame with the row to append
+                         new_row = pd.DataFrame({
+                                                   'parameters': [f'rolling_window_size: {rolling_window_value}, aggregation_method: {rolling_window_option}'],
+                                                   'MAPE': [mape]
+                                                })
                         
-                         # Append a new row to the dataframe with the parameter values and MAPE score
-                         naive_model2_tuning_results = naive_model2_tuning_results.append({
-                                                                                           'parameters': f'rolling_window_size: {rolling_window_value}, aggregation_method: {rolling_window_option}', 
-                                                                                           'MAPE': df_preds_naive_model2['MAPE'].mean()},
-                                                                                           ignore_index=True)
+                         # Concatenate the original DataFrame with the new row DataFrame
+                         naive_model2_tuning_results = pd.concat([naive_model2_tuning_results, new_row], ignore_index=True)
+
                          # add rank column to dataframe and order by metric column
                          ranked_naive_model2_tuning_results = rank_dataframe(naive_model2_tuning_results, 'MAPE')
+                   
+                         # convert mape to %
+                         ranked_naive_model2_tuning_results['MAPE'] = ranked_naive_model2_tuning_results['MAPE'].map(lambda x: f'{x*100:.2f}%' if not np.isnan(x) else x)
+
+                    
                     st.dataframe(ranked_naive_model2_tuning_results, use_container_width=True, hide_index = True)
                     
-                # set the end of runtime
-                end_time_naive_models = time.time()
-                
-                # clear progress bar in streamlit for user as process is completed
-                progress_bar.empty()
-                
-                st.write(f'🏆 **Naive Model** parameter with the lowest metric found in **{end_time_naive_models - start_time:.2f}** seconds is:')
-                        
+                    # set the end of runtime
+                    end_time_naive_models = time.time()
+                    
+                    # clear progress bar in streamlit for user as process is completed
+                    progress_bar.empty()
+                    
+                    # text formatting:
+                    import re
+                    text = str(ranked_naive_model2_tuning_results.iloc[0, 1])
+
+                    formatted_text = re.sub(r'([^:]+): ([^,]+)', r'`\1`: **\2**', text)
+                    final_text = re.sub(r',\s*', ', ', formatted_text)
+                    
+                    st.write(f'🏆 **Naive Model II** parameters with the lowest MAPE of {ranked_naive_model2_tuning_results["MAPE"][0]} found in **{end_time_naive_models - start_time:.2f}** seconds is: {final_text}')
+
             if model_name == "SARIMAX":
 
                 if search_algorithm == 'Grid Search':
