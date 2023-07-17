@@ -593,7 +593,7 @@ def clear_test_results():
     del st.session_state['results_df']
    
     # Delete historical test results from memory
-    set_state("TRAIN_PAGE", ("results_df", pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])))
+    set_state("TRAIN_PAGE", ("results_df", pd.DataFrame(columns=['model_name', 'predicted', 'mape', 'smape', 'rmse', 'r2', 'features', 'model_settings'])))
     
     # do you want to remove checkboxes when user presses clear? if so add below codeblock for each model checkbox on page train sidebar
     # =============================================================================
@@ -620,62 +620,67 @@ def plot_model_performance(df, my_metric):
         df = pd.DataFrame(...)
         plot_lowest_metric(df, 'mape')
     """
-    try:
-        # convert the metric name from user selection to metric abbreviation used in results dataframe
-        metric_dict = {'Mean Absolute Percentage Error': 'mape', 'Root Mean Square Error':'rmse', 'R-squared':'r2'}    
-        selected_metric = metric_dict[my_metric]
-        
-        # Create a copy of the DataFrame to avoid modifying the original
-        df_copy = df.copy()
+# =============================================================================
+#     try:
+# =============================================================================
+    # convert the metric name from user selection to metric abbreviation used in results dataframe
+    metric_dict = {'Mean Absolute Percentage Error': 'mape', 'Symmetric Mean Absolute Percentage Error': 'smape', 'Root Mean Square Error':'rmse', 'R-squared':'r2'}    
+    selected_metric = metric_dict[my_metric]
     
-        # Remove percentage sign from 'mape' column and convert to float
-        df_copy['mape'] = df_copy['mape'].str.replace('%', '').astype(float)
-    
-        # Convert the selected metric column to numeric data type
-        df_copy[selected_metric] = pd.to_numeric(df_copy[selected_metric], errors='coerce')
-    
-        # Group the dataframe by 'model_name' and find the row with the lowest score for each model and selected metric
-        lowest_score_rows = df_copy.groupby('model_name')[selected_metric].idxmin()
-    
-        # Filter the dataframe to keep only the rows with the lowest scores for each model and selected metric
-        filtered_df = df_copy.loc[lowest_score_rows, ['model_name', selected_metric]]
-    
-        # Extract the unique model names from the filtered dataframe
-        model_names = filtered_df['model_name'].unique()
-    
-        # Create a color mapping dictionary for consistent colors based on model names
-        color_schema = px.colors.qualitative.Plotly
-        color_mapping = {model_name: color_schema[i % len(color_schema)] for i, model_name in enumerate(model_names)}
-    
-        # Sort the filtered dataframe based on the selected metric in ascending or descending order
-        ascending_order = selected_metric != 'r2'  # Set ascending order unless 'r2' is selected
-        filtered_df = filtered_df.sort_values(by=selected_metric, ascending=ascending_order)
-    
-        # Create the bar chart using Plotly Express
-        fig = px.bar(
-            filtered_df,
-            x = 'model_name',
-            y = selected_metric,
-            color='model_name',
-            color_discrete_map = color_mapping,  # Use the custom color mapping
-            category_orders = {'model_name': filtered_df['model_name'].tolist()},  # Set the order of model names
-            text = filtered_df[selected_metric].round(2),  # Add labels to the bars with rounded metric values
-        )
-    
-        fig.update_layout(
-            xaxis_title='Model',
-            yaxis_title=selected_metric.upper(),
-            barmode='stack',
-            showlegend=True,
-            legend=dict(x=1, y=1),  # Adjust the position of the legend
-        )
-    
-        fig.update_traces(textposition='inside', textfont=dict(color='white'), insidetextfont=dict(color='white'))  # Adjust the position and color of the labels
-    
-        # Display the chart in Streamlit
-        st.plotly_chart(fig, use_container_width=True)
-    except:
-        st.error('FORECASTGENIE ERROR: Could not plot model performance. Please contact an administrator.')
+    # Create a copy of the DataFrame to avoid modifying the original
+    df_copy = df.copy()
+
+    # Remove percentage sign from 'mape'  column and convert to float
+    df_copy['mape'] = df_copy['mape'].str.replace('%', '').astype(float)
+    df_copy['smape'] = df_copy['smape'].str.replace('%', '').astype(float)
+
+    # Convert the selected metric column to numeric data type
+    df_copy[selected_metric] = pd.to_numeric(df_copy[selected_metric], errors='coerce')
+
+    # Group the dataframe by 'model_name' and find the row with the lowest score for each model and selected metric
+    lowest_score_rows = df_copy.groupby('model_name')[selected_metric].idxmin()
+
+    # Filter the dataframe to keep only the rows with the lowest scores for each model and selected metric
+    filtered_df = df_copy.loc[lowest_score_rows, ['model_name', selected_metric]]
+
+    # Extract the unique model names from the filtered dataframe
+    model_names = filtered_df['model_name'].unique()
+
+    # Create a color mapping dictionary for consistent colors based on model names
+    color_schema = px.colors.qualitative.Plotly
+    color_mapping = {model_name: color_schema[i % len(color_schema)] for i, model_name in enumerate(model_names)}
+
+    # Sort the filtered dataframe based on the selected metric in ascending or descending order
+    ascending_order = selected_metric != 'r2'  # Set ascending order unless 'r2' is selected
+    filtered_df = filtered_df.sort_values(by=selected_metric, ascending=ascending_order)
+
+    # Create the bar chart using Plotly Express
+    fig = px.bar(
+        filtered_df,
+        x = 'model_name',
+        y = selected_metric,
+        color='model_name',
+        color_discrete_map = color_mapping,  # Use the custom color mapping
+        category_orders = {'model_name': filtered_df['model_name'].tolist()},  # Set the order of model names
+        text = filtered_df[selected_metric].round(2),  # Add labels to the bars with rounded metric values
+    )
+
+    fig.update_layout(
+        xaxis_title='Model',
+        yaxis_title=selected_metric.upper(),
+        barmode='stack',
+        showlegend=True,
+        legend=dict(x=1, y=1),  # Adjust the position of the legend
+    )
+
+    fig.update_traces(textposition='inside', textfont=dict(color='white'), insidetextfont=dict(color='white'))  # Adjust the position and color of the labels
+
+    # Display the chart in Streamlit
+    st.plotly_chart(fig, use_container_width=True)
+# =============================================================================
+#     except:
+#         st.error('FORECASTGENIE ERROR: Could not plot model performance. Please contact an administrator.')
+# =============================================================================
     
 def social_media_links(margin_before = 30):
     vertical_spacer(margin_before)
@@ -4899,45 +4904,49 @@ def my_metrics(my_df, model_name):
             Columns:
                 - 'Actual': Actual target variable values.
                 - 'Predicted': Predicted target variable values.
-                - 'MAPE': Mean Absolute Percentage Error between predicted and actual values.
         model_name (str): Name of the model.
     
     Returns:
         mape (float): Mean Absolute Percentage Error (MAPE) for the model.
         rmse (float): Root Mean Squared Error (RMSE) for the model.
         r2 (float): R-squared (coefficient of determination) for the model.
+        smape (float): Symmetric Mean Absolute Percentage Error (SMAPE) for the model.
     
     Note:
-        - The function calculates MAPE, RMSE, and R-squared metrics based on the provided DataFrame.
+        - The function calculates MAPE, RMSE, R-squared, and SMAPE metrics based on the provided DataFrame.
         - MAPE is the average percentage difference between predicted and actual values.
         - RMSE is the square root of the mean squared error between predicted and actual values.
         - R-squared measures the proportion of the variance in the target variable explained by the model.
+        - SMAPE is the symmetric mean absolute percentage error between predicted and actual values.
         - The function updates the 'metrics_dict' dictionary with the calculated metrics for the given model.
     
     Example:
         result = my_metrics(df_preds, 'MyModel')
-        mape_value, rmse_value, r2_value = result
+        mape_value, rmse_value, r2_value, smape_value = result
     """
     # Check if not empty dataframe
     if not my_df.empty:
         # Calculate metrics
         mape = np.mean(np.abs((my_df['Actual'] - my_df['Predicted']) / my_df['Actual']))
+        smape = (1 / len(my_df)) * np.sum(np.abs(my_df['Actual'] - my_df['Predicted']) / (np.abs(my_df['Actual']) + np.abs(my_df['Predicted'])))
         mse = mean_squared_error(my_df['Actual'], my_df['Predicted'])
         rmse = np.sqrt(mse)
         r2 = r2_score(my_df['Actual'], my_df['Predicted'])
+      
     else:
         # Set metrics equal to none if df is empty
         mape = None
+        smape = None
         mse = None
         rmse = None
         r2 = None
         
     # Add the results to the dictionary
-    metrics_dict[model_name] = {'mape': mape, 'mse': mse, 'rmse': rmse, 'r2': r2}
+    metrics_dict[model_name] = {'mape': mape, 'smape': smape, 'mse': mse, 'rmse': rmse, 'r2': r2}
     
-    return mape, rmse, r2
+    return metrics_dict
 
-def display_my_metrics(my_df, model_name="", my_subtitle = None):
+def display_my_metrics(my_df, model_name = "", my_subtitle = None):
     """
     Displays the evaluation metrics for a given model using the provided dataframe of predicted and actual values.
     
@@ -4962,10 +4971,10 @@ def display_my_metrics(my_df, model_name="", my_subtitle = None):
     vertical_spacer(2)
     
     # define vertical spacings
-    col0, col1, col2, col3, col4 = st.columns([2, 3, 3, 3, 1])
+    col0, col1, col2, col3, col4, col5 = st.columns([2, 3, 3, 3, 3, 1])
     
     # Get the evaluation metrics for your model
-    mape, rmse, r2 = my_metrics(my_df, model_name)
+    metrics_dict = my_metrics(my_df, model_name)
     
     # define the font size of the st.metric
     st.markdown(
@@ -4981,11 +4990,21 @@ def display_my_metrics(my_df, model_name="", my_subtitle = None):
     
     # Show the evaluation metrics on Model Card
     with col1:  
-        st.metric(':red[MAPE:]', value = "{:.2%}".format(mape))
+        st.metric(label = ':red[MAPE]', 
+                  value = "{:.2%}".format(metrics_dict[model_name]['mape']),
+                  help = 'The `Mean Absolute Percentage Error` (MAPE) measures the average absolute percentage difference between the predicted values and the actual values. It provides a relative measure of the accuracy of a forecasting model. A lower MAPE indicates better accuracy.')
     with col2:
-        st.metric(':red[RMSE:]', value = round(rmse,2))
-    with col3: 
-        st.metric(':green[R-squared:]',  value= round(r2, 2))
+        st.metric(label = ':red[SMAPE]', 
+                  value = "{:.2%}".format(metrics_dict[model_name]['smape']),
+                  help= 'The `Symmetric Mean Absolute Percentage Error` (SMAPE) is similar to MAPE but addresses the issue of scale dependency. It calculates the average of the absolute percentage differences between the predicted values and the actual values, taking into account the magnitude of both values. SMAPE values range between 0% and 100%, where lower values indicate better accuracy.')
+    with col3:
+        st.metric(label = ':red[RMSE]', 
+                  value = round(metrics_dict[model_name]['rmse'],2),
+                  help = 'The `Root Mean Square Error` (RMSE) is a commonly used metric to evaluate the accuracy of a prediction model. It calculates the square root of the average of the squared differences between the predicted values and the actual values. RMSE is sensitive to outliers and penalizes larger errors.')
+    with col4: 
+        st.metric(label = ':green[R²]',  
+                  value= round(metrics_dict[model_name]['r2'], 2),
+                  help = '`R-squared` (R²) is a statistical measure that represents the proportion of the variance in the dependent variable that is predictable from the independent variables. It ranges from 0 to 1, where 1 indicates a perfect fit. R-squared measures how well the predicted values fit the actual values and is commonly used to assess the goodness of fit of a regression model.')
 
 def forecast_naive_model1_insample(y_test, lag=None, custom_lag_value=None):
     """
@@ -5267,7 +5286,7 @@ def evaluate_regression_model(model, X_train, y_train, X_test, y_test, **kwargs)
     df_preds.dropna(inplace=True)
     
     # Calculate the percentage difference between actual and predicted values and add it as a new column
-    df_preds['Error'] = (df_preds['Predicted'] - df_preds['Actual'])
+    df_preds['Error'] = (df_preds['Actual'] - df_preds['Predicted'])
     df_preds['Error (%)'] = df_preds['Error'] / df_preds['Actual']
     
     return df_preds, coefficients_table, equation_str
@@ -5349,10 +5368,9 @@ def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, mo
     """
     # Evaluate the insample test-set performance linear regression model
     df_preds, coefficients_table, equation_str = evaluate_regression_model(model, X_train, y_train, X_test, y_test)
-    
-    mape, rmse, r2 = my_metrics(df_preds, model_name)
-    
+
     with st.expander('📈'+ model_name, expanded=True):
+        
         display_my_metrics(my_df = df_preds, 
                            model_name = model_name)
         
@@ -5360,49 +5378,59 @@ def create_streamlit_model_card(X_train, y_train, X_test, y_test, results_df, mo
         plot_actual_vs_predicted(df_preds, 
                                  my_conf_interval)
         
-        # =============================================================================
-        #  Show/Hide Button to download dataframe                   
-        # =============================================================================
-        # have button available for user and if clicked it expands with the dataframe
-        col1, col2, col3 = st.columns([100,50,95])
-        with col2:    
-            # create empty placeholder for button show/hide
-            placeholder = st.empty()
-            
-            # create button (enabled to click e.g. disabled=false with unique key)
-            btn = placeholder.button('Show Details', disabled=False,  key = "show_linreg_model_btn")
-        
-        # if button is clicked run below code
-        if btn == True:                       
-            # display button with text "click me again", with unique key
-            placeholder.button('Hide Details', disabled=False, key = "hide_linreg_model_btn")
-            
-            st.markdown('---')
-            my_text_paragraph('In-sample Forecast', my_font_size='24px')
-            # show the dataframe
-            st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), 
-                         use_container_width = True)
-           
+# =============================================================================
+#         # =============================================================================
+#         #  Show/Hide Button to download dataframe                   
+#         # =============================================================================
+#         # have button available for user and if clicked it expands with the dataframe
+#         col1, col2, col3 = st.columns([100,50,95])
+#         with col2:    
+#             
+#             # create empty placeholder for button show/hide
+#             placeholder = st.empty()
+#             
+#             # create button (enabled to click e.g. disabled=false with unique key)
+#             btn = placeholder.button('Show Details', disabled=False,  key = "show_linreg_model_btn")
+#         
+#         # if button is clicked run below code
+#         if btn == True:                       
+#             
+#             # display button with text "click me again", with unique key
+#             placeholder.button('Hide Details', disabled=False, key = "hide_linreg_model_btn")
+#             
+#             st.markdown('---')
+# =============================================================================
+                    
+        # show the dataframe
+        st.dataframe(df_preds.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Percentage_Diff': '{:.2%}', 'MAPE': '{:.2%}'}), 
+                     use_container_width = True)
+       
 
-            # create download button for forecast results to .csv
-            download_csv_button(
-                                df_preds, 
-                                my_file = "insample_forecast_linear_regression_results.csv", 
-                                help_message = f'Download your **{model_name}** model results to .CSV',
-                                my_key = 'download_btn_linreg_df_preds'
-                                )
-
-            st.markdown('---')
-            my_text_paragraph('Coefficients Table', my_font_size='24px')
-            vertical_spacer(1)
-            st.dataframe(coefficients_table, use_container_width=True)
-            st.markdown('---')
-            my_text_paragraph('Regression Equation', my_font_size='24px')
-            vertical_spacer(1)
-            st.write(equation_str)
-            # INTERCEPT ROUNDING SEEMS OFF?
-
+        # create download button for forecast results to .csv
+        download_csv_button(df_preds, 
+                            my_file = "insample_forecast_linear_regression_results.csv", 
+                            help_message = f'Download your **{model_name}** model results to .CSV',
+                            my_key = 'download_btn_linreg_df_preds')
+                   
+        st.markdown('---')
+       
+        my_text_paragraph('Coefficients Table', my_font_size='24px')
+       
         vertical_spacer(1)
+        
+        st.dataframe(coefficients_table, use_container_width=True)
+        
+        st.markdown('---')
+        
+        my_text_paragraph('Regression Equation', my_font_size='24px')
+        
+        vertical_spacer(1)
+       
+        st.write(equation_str)
+        # INTERCEPT ROUNDING SEEMS OFF? # TEST
+
+    vertical_spacer(1)
+    
     return df_preds
  
 def preprocess_X_prophet(X):
@@ -6989,7 +7017,7 @@ def initiate_global_variables():
                                                 ("yearly_seasonality", True),           #key23_train
                                                 ("weekly_seasonality", True),           #key24_train
                                                 ("daily_seasonality", True),            #key25_train
-                                                ("results_df", pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model settings'])), #key26_train
+                                                ("results_df", pd.DataFrame(columns=['model_name', 'predicted', 'mape', 'smape', 'rmse', 'r2', 'features', 'model_settings'])), #key26_train
                                                 ("prophet_holidays", True),             #key27_train
                                                 ("include_feature_selection", 'Yes'),   #key28_train
                                                 ("size_rolling_window_naive_model", 7), #key29_train
@@ -7004,10 +7032,10 @@ def initiate_global_variables():
     metrics_dict = {}
         
     # Initialize results_df in global scope that has model test evaluation results 
-    results_df = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model_settings', 'prediction'])
+    results_df =  pd.DataFrame(columns=['model_name', 'predicted', 'mape', 'smape', 'rmse', 'r2', 'features', 'model_settings'])
     
     if 'results_df' not in st.session_state:
-        st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'mape', 'rmse', 'r2', 'features', 'model_settings', 'prediction'])  
+        st.session_state['results_df'] = pd.DataFrame(columns=['model_name', 'predicted', 'mape', 'smape', 'rmse', 'r2', 'features', 'model_settings'])  
    
     # save user's chosen metric in persistent session state - initiate default metric (MAPE)
     key1_evaluate, key2_evaluate = create_store("EVALUATE_PAGE", [
@@ -10594,12 +10622,14 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                 #  NAIVE MODELS                   
                 # =============================================================================
                 try:         
-
                     if model_name == "Naive Model":
                         with st.expander('📈' + model_name, expanded=True):
                             # =============================================================================
                             # Naive Model I
                             # =============================================================================
+                            # set model name
+                            model_name = 'Naive Model I'
+                            
                             df_preds_naive_model1 = forecast_naive_model1_insample(y_test, 
                                                                                    lag = lag, 
                                                                                    custom_lag_value = custom_lag_value)
@@ -10627,21 +10657,22 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                             # =============================================================================
                             # SAVE TEST RESULTS FOR EVALUATION PAGE BY ADDING ROW TO RESULTS_DF                
                             # =============================================================================
-                            mape, rmse, r2 = my_metrics(df_preds_naive_model1, model_name = "Naive Model I")
-                            
+                            metrics_dict = my_metrics(df_preds_naive_model1, model_name = "Naive Model I")
+                                                        
                             # Retrieve the feature for Naive Model for results_df 'features' column
                             lag_int = {'day': '1', 'week': '7', 'month': '30', 'year': '-365'}.get(lag)
                           
                             naive_model1_feature_str = f"t-{custom_lag_value}" if custom_lag_value else f"yt-{lag_int}"
                             
                             # Create new row with test result details
-                            new_row = {'model_name': 'Naive Model I',
-                                       'mape': '{:.2%}'.format(metrics_dict['Naive Model I']['mape']),
-                                       'rmse': '{:.2f}'.format(metrics_dict['Naive Model I']['rmse']),
-                                       'r2': '{:.2f}'.format(metrics_dict['Naive Model I']['r2']),
+                            new_row = {'model_name': model_name,
+                                       'mape': '{:.2%}'.format(metrics_dict[model_name]['mape']),
+                                       'smape': '{:.2%}'.format(metrics_dict[model_name]['smape']),
+                                       'rmse': round(metrics_dict[model_name]['rmse'], 2),
+                                       'r2': round(metrics_dict[model_name]['r2'], 2),
                                        'features': naive_model1_feature_str,
                                        'model_settings': f"lag: {lag}",
-                                       'prediction':  np.ravel(df_preds_naive_model1['Predicted'])
+                                       'predicted':  np.ravel(df_preds_naive_model1['Predicted'])
                                       }
                             
                             # Turn new row into a dataframe
@@ -10656,6 +10687,9 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                             # =============================================================================
                             # Naive Model II
                             # =============================================================================
+                            # set model name
+                            model_name = 'Naive Model II'
+                            
                             st.markdown('---')
                             
                             df_preds_naive_model2 = forecast_naive_model2_insample(y_test, 
@@ -10681,7 +10715,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                             # =============================================================================
                             # SAVE TEST RESULTS FOR EVALUATION PAGE BY ADDING ROW TO RESULTS_DF                
                             # =============================================================================
-                            mape, rmse, r2 = my_metrics(df_preds_naive_model2, model_name = "Naive Model II")
+                            metrics_dict = my_metrics(df_preds_naive_model2, model_name = model_name)
                             
                             # Get a scientific notation for the rolling window (Note: Latex not supported in Streamlit st.dataframe() so not currently possible)
                             if agg_method_rolling_window_naive_model == 'Mean':      
@@ -10695,12 +10729,13 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                 
                             # Create new row with test result details
                             new_row = {'model_name': 'Naive Model II',
-                                       'mape': '{:.2%}'.format(metrics_dict['Naive Model II']['mape']),
-                                       'rmse': '{:.2f}'.format(metrics_dict['Naive Model II']['rmse']),
-                                       'r2': '{:.2f}'.format(metrics_dict['Naive Model II']['r2']),
+                                       'mape': '{:.2%}'.format(metrics_dict[model_name]['mape']),
+                                       'smape': '{:.2%}'.format(metrics_dict[model_name]['smape']),
+                                       'rmse': round(metrics_dict[model_name]['rmse'], 2),
+                                       'r2': round(metrics_dict[model_name]['r2'], 2),
                                        'features': naive_model2_feature_str,
                                        'model_settings': f"rolling window: {size_rolling_window_naive_model}, aggregation method: {agg_method_rolling_window_naive_model}",
-                                       'prediction':  np.ravel(df_preds_naive_model2['Predicted'])}
+                                       'predicted':  np.ravel(df_preds_naive_model2['Predicted'])}
                                       
                             # Turn new row into a dataframe
                             new_row_df = pd.DataFrame([new_row])
@@ -10713,7 +10748,10 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                             
                             # =============================================================================
                             # Naive Model III
-                            # =============================================================================                        
+                            # =============================================================================    
+                            # set model name
+                            model_name = 'Naive Model III'
+                            
                             st.markdown('---')
                             
                             # retrieve dataframe with insample prediction results from train/test of naive model III
@@ -10741,7 +10779,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                             # =============================================================================
                             # SAVE TEST RESULTS FOR EVALUATION PAGE BY ADDING ROW TO RESULTS_DF                
                             # =============================================================================
-                            mape, rmse, r2 = my_metrics(df_preds_naive_model3, model_name = "Naive Model III")
+                            metrics_dict = my_metrics(df_preds_naive_model3, model_name = "Naive Model III")
                             
                             # Get a scientific notation for the rolling window (Note: Latex not supported in Streamlit st.dataframe() so not currently possible)
                             if agg_method_baseline_naive_model == 'Mean':      
@@ -10752,15 +10790,16 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                 naive_model3_feature_str = f"mode(yt, ..., yt-{len(y_train)})"
                             else:
                                 naive_model3_feature_str = '-'
-                                
+    
                             # Create new row with test result details
-                            new_row = {'model_name': 'Naive Model III',
-                                       'mape': '{:.2%}'.format(metrics_dict['Naive Model III']['mape']),
-                                       'rmse': '{:.2f}'.format(metrics_dict['Naive Model III']['rmse']),
-                                       'r2': '{:.2f}'.format(metrics_dict['Naive Model III']['r2']),
+                            new_row = {'model_name': model_name,
+                                       'mape': '{:.2%}'.format(metrics_dict[model_name]['mape']),
+                                       'smape': '{:.2%}'.format(metrics_dict[model_name]['smape']),
+                                       'rmse': round(metrics_dict[model_name]['rmse'], 2),
+                                       'r2': round(metrics_dict[model_name]['r2'], 2),
                                        'features': naive_model3_feature_str,
                                        'model_settings': f"aggregation method: {agg_method_baseline_naive_model.lower()}",
-                                       'prediction':  np.ravel(df_preds_naive_model3['Predicted'])}
+                                       'predicted':  np.ravel(df_preds_naive_model3['Predicted'])}
                                       
                             # Turn new row into a dataframe
                             new_row_df = pd.DataFrame([new_row])
@@ -10770,15 +10809,14 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                             
                             # Update session state with latest results with new row added
                             set_state("TRAIN_PAGE", ("results_df", results_df))
-                            
                 except:
                     st.warning(f'Naive Model(s) failed to train, please check parameters...!')
-                
                 try:
                     # =============================================================================
                     # LINEAR REGRESSION MODEL
                     # =============================================================================
-                    if model_name == "Linear Regression":                 
+                    if model_name == "Linear Regression":        
+                        
                          # create card with model insample prediction with linear regression model
                          df_preds_linreg = create_streamlit_model_card(X_train = X_train, 
                                                                        y_train = y_train, 
@@ -10793,12 +10831,13 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                         # =============================================================================
                          # Define new row of train/test results
                          new_row = {'model_name': 'Linear Regression',
-                                    'mape': '{:.2%}'.format(metrics_dict['Linear Regression']['mape']),
-                                    'rmse': '{:.2f}'.format(metrics_dict['Linear Regression']['rmse']),
+                                    'mape': '{:.2%}'.format(metrics_dict[model_name]['mape']),
+                                    'smape': '{:.2%}'.format(metrics_dict[model_name]['smape']),
+                                    'rmse': round(metrics_dict[model_name]['rmse'], 2),
+                                    'r2': round(metrics_dict[model_name]['r2'], 2),
                                     'features': features_str,
                                     'model_settings': '-',
-                                    'r2': '{:.2f}'.format(metrics_dict['Linear Regression']['r2']),
-                                    'prediction':  np.ravel(df_preds_linreg['Predicted']),
+                                    'predicted':  np.ravel(df_preds_linreg['Predicted']),
                                     }
                          
                          # Turn new row into a dataframe
@@ -10853,16 +10892,17 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                 # SAVE TEST RESULTS FOR EVALUATION PAGE BY ADDING ROW TO RESULTS_DF                
                                 # =============================================================================
                                 # Define metrics for sarimax model
-                                mape, rmse, r2 = my_metrics(preds_df_sarimax, model_name=model_name)
+                                metrics_dict = my_metrics(preds_df_sarimax, model_name=model_name)
                                 
                                 # Create new row
                                 new_row = {'model_name': 'SARIMAX', 
-                                           'mape': '{:.2%}'.format(metrics_dict['SARIMAX']['mape']),
-                                           'rmse': '{:.2f}'.format(metrics_dict['SARIMAX']['rmse']), 
-                                           'r2': '{:.2f}'.format(metrics_dict['SARIMAX']['r2']),
+                                           'mape': '{:.2%}'.format(metrics_dict[model_name]['mape']),
+                                           'smape': '{:.2%}'.format(metrics_dict[model_name]['smape']),
+                                           'rmse': round(metrics_dict[model_name]['rmse'], 2),
+                                           'r2': round(metrics_dict[model_name]['r2'], 2),
                                            'features': features_str,
                                            'model_settings': f'({p},{d},{q})({P},{D},{Q},{s})',
-                                           'prediction':  np.ravel(preds_df_sarimax['Predicted'])}
+                                           'predicted':  np.ravel(preds_df_sarimax['Predicted'])}
                                 
                                 # turn new row into a dataframe
                                 new_row_df = pd.DataFrame([new_row])
@@ -10880,7 +10920,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                 # =============================================================================
                 if model_name == "Prophet":
                     with st.expander('📈' + model_name, expanded=True):
-                        
+
                         # Use custom function that creates in-sample prediction and return a dataframe with 'Actual', 'Predicted', 'Percentage_Diff', 'MAPE' 
                         preds_df_prophet = predict_prophet(y_train,
                                                            y_test, 
@@ -10893,46 +10933,46 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                                            daily_seasonality = daily_seasonality,
                                                            interval_width = interval_width,
                                                            X = X) #TO EXTRACT FEUATURE(S) AND HOLIDAYS BASED ON USER FEATURE SELECTOIN TRUE/FALSE
-                                                           
+
                         display_my_metrics(preds_df_prophet, "Prophet")
                         
                         # Plot graph with actual versus insample predictions
                         plot_actual_vs_predicted(preds_df_prophet, my_conf_interval)
-                        
+
                         # Show the dataframe
                         st.dataframe(preds_df_prophet.style.format({'Actual': '{:.2f}', 'Predicted': '{:.2f}', 'Error': '{:.2f}', 'Error (%)': '{:.2%}'}), use_container_width=True)
-                            
-                        
+
                         # Create download button for forecast results to .csv
                         download_csv_button(preds_df_prophet, 
                                             my_file = "insample_forecast_prophet_results.csv", 
                                             help_message = "Download your **Prophet** model results to .CSV",
                                             my_key = 'download_btn_prophet_df_preds')
-                        
+
                         # =============================================================================
                         # SAVE TEST RESULTS FOR EVALUATION PAGE BY ADDING ROW TO RESULTS_DF                
                         # =============================================================================
                         # define metrics for prophet model
-                        mape, rmse, r2 = my_metrics(preds_df_prophet, model_name=model_name)
+                        metrics_dict = my_metrics(preds_df_prophet, model_name = model_name)
                         
                         # display evaluation results on sidebar of streamlit_model_card
                         new_row = {'model_name': 'Prophet', 
-                                   'mape': '{:.2%}'.format(metrics_dict['Prophet']['mape']),
-                                   'rmse': '{:.2f}'.format(metrics_dict['Prophet']['rmse']), 
-                                   'r2': '{:.2f}'.format(metrics_dict['Prophet']['r2']),
+                                   'mape': '{:.2%}'.format(metrics_dict[model_name]['mape']),
+                                   'smape': '{:.2%}'.format(metrics_dict[model_name]['smape']),
+                                   'rmse': round(metrics_dict[model_name]['rmse'], 2),
+                                   'r2': round(metrics_dict[model_name]['r2'], 2),
                                    'features': features_str,
-                                   'prediction':  np.ravel(preds_df_prophet['Predicted']),
+                                   'predicted':  np.ravel(preds_df_prophet['Predicted']),
                                    'model_settings': f' changepoint_prior_scale: {changepoint_prior_scale}, seasonality_prior_scale: {seasonality_prior_scale}, country_holidays: {country_holidays}, holidays_prior_scale: {holidays_prior_scale}, yearly_seasonality: {yearly_seasonality}, weekly_seasonality: {weekly_seasonality}, daily_seasonality: {daily_seasonality}, interval_width: {interval_width}'}
-                        
+
                         # turn new row into a dataframe
                         new_row_df = pd.DataFrame([new_row])
-                        
+
                         # Concatenate new row DataFrame with results_df
                         results_df = pd.concat([results_df, new_row_df], ignore_index=True)
-                        
+
                         # update session state with latest results with new row added
                         set_state("TRAIN_PAGE", ("results_df", results_df))
-                                    
+
             # show friendly user reminder message they can compare results on the evaluation page
             st.markdown(f'<h2 style="text-align:center; font-family: Ysabeau SC, sans-serif; font-size: 18px ; color: black; border: 1px solid #d7d8d8; padding: 10px; border-radius: 5px;">💡 Vist the Evaluation Page for a comparison of your test results! </h2>', unsafe_allow_html=True)
 
@@ -10967,7 +11007,7 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
             with col2:
                 
                 # define list of metrics user can choose from in drop-down selectbox                
-                metrics_list = ['Mean Absolute Percentage Error', 'Root Mean Square Error', 'R-squared']
+                metrics_list = ['Mean Absolute Percentage Error', 'Symmetric Mean Absolute Percentage Error', 'Root Mean Square Error', 'R-squared']
                 
                 selected_metric = st.selectbox(label = "*Select evaluation metric to sort by:*", 
                                                options = metrics_list,
@@ -10975,6 +11015,8 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
                                                help = '''Choose which evaluation metric is used to sort the top score of each model by:  
                                                 \n- `Mean Absolute Percentage Error` (MAPE):  
                                                 \nThe Mean Absolute Percentage Error measures the average absolute percentage difference between the predicted values and the actual values. It provides a relative measure of the accuracy of a forecasting model. A lower MAPE indicates better accuracy.
+                                                \n- `Symmetric Mean Absolute Percentage Error` (SMAPE):
+                                                \n The `Symmetric Mean Absolute Percentage Error` (SMAPE) is similar to MAPE but addresses the issue of scale dependency. It calculates the average of the absolute percentage differences between the predicted values and the actual values, taking into account the magnitude of both values. SMAPE values range between 0% and 100%, where lower values indicate better accuracy.
                                                 \n- `Root Mean Square Error` (RMSE):
                                                 \n The Root Mean Square Error is a commonly used metric to evaluate the accuracy of a prediction model. It calculates the square root of the average of the squared differences between the predicted values and the actual values. RMSE is sensitive to outliers and penalizes larger errors.
                                                 \n- `R-squared` (R2):
@@ -11003,7 +11045,9 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
             # =============================================================================
             # 1. Show Last Test Run Results in a Dataframe                    
             # =============================================================================
-            st.dataframe(get_state("TRAIN_PAGE", "results_df"))
+            st.dataframe(data = get_state("TRAIN_PAGE", "results_df"),
+                         column_config = {"predicted": st.column_config.LineChartColumn("predicted", width = "small", help = "insample prediction", y_min = None, y_max = None)},
+                         hide_index = True)
            
             my_text_paragraph('Top 3 Test Results')
             
@@ -11013,7 +11057,10 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
             # =============================================================================
             # 2. Show Top 3 test Results in Dataframe
             # =============================================================================
-            st.dataframe(test_df, use_container_width=True)
+            st.dataframe(data = test_df,  
+                         column_config = {"predicted": st.column_config.LineChartColumn("predicted", width = "small", help = "insample prediction", y_min = None, y_max = None)}, 
+                         use_container_width=True,
+                         hide_index = True)
     
     # =============================================================================
     # MAIN PAGE OF EVALUATE PAGE
@@ -11038,18 +11085,10 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
         # 3. Show Historical Test Runs Dataframe
         # =============================================================================
         # see for line-chart: https://docs.streamlit.io/library/api-reference/data/st.column_config/st.column_config.linechartcolumn
-        st.dataframe(st.session_state['results_df'], 
-                     column_config={
-                                    "prediction": st.column_config.LineChartColumn(
-                                                                                   "predicted",
-                                                                                   width = "medium",
-                                                                                   help = "The sales volume in the last 6 months",
-                                                                                   y_min = None,
-                                                                                   y_max = None,
-                                                                                  ),
-                                  }, 
-                    hide_index=False, 
-                    use_container_width=True)
+        st.dataframe(data = st.session_state['results_df'], 
+                     column_config = {"predicted": st.column_config.LineChartColumn("predicted", width = "small", help = "insample prediction", y_min = None, y_max = None)}, 
+                     hide_index=False, 
+                     use_container_width=True)
         
         # Download Button for test results to .csv
         download_csv_button(my_df = st.session_state['results_df'], 
@@ -11377,19 +11416,20 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                                                                                custom_lag_value = None)
                         
                         # retrieve metrics from difference actual - predicted    
-                        mape, rmse, r2 = my_metrics(my_df = df_preds_naive_model1, model_name = None)
+                        mape, smape, rmse, r2 = my_metrics(my_df = df_preds_naive_model1, model_name = None)
                         
-                        # Append a new row to the dataframe with the parameter values and AIC score
+                        # Append a new row to the dataframe with the parameter values and scores
                         naive_model1_tuning_results = naive_model1_tuning_results.append({'parameters': f'lag: {lag_option}', 
-                                                                                          'MAPE':  mape}, ignore_index=True)
-
+                                                                                          'MAPE':  mape,
+                                                                                          'SMAPE': smape,
+                                                                                          'RMSE': rmse,
+                                                                                          'R2': r2}, ignore_index=True)
                         # Add rank column to dataframe and order by metric column
                         ranked_naive_model1_tuning_results = rank_dataframe(naive_model1_tuning_results, 'MAPE')
                         
                         # convert mape to %
                         ranked_naive_model1_tuning_results['MAPE'] = ranked_naive_model1_tuning_results['MAPE'].map(lambda x: f'{x*100:.2f}%' if not np.isnan(x) else x)
 
-                        
                     st.dataframe(ranked_naive_model1_tuning_results, use_container_width = True, hide_index = True)
                     
                     #########################################################################################################
@@ -11411,7 +11451,7 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                          df_preds_naive_model2 = forecast_naive_model2_insample(y_test, size_rolling_window = rolling_window_value, agg_method_rolling_window = rolling_window_option)
                          
                          # retrieve metrics from difference actual - predicted
-                         mape, rmse, r2 = my_metrics(my_df = df_preds_naive_model2, model_name = None)
+                         mape, smape, rmse, r2 = my_metrics(my_df = df_preds_naive_model2, model_name = None)
                          
 # =============================================================================
 #                          # Append a new row to the dataframe with the parameter values and MAPE score
@@ -11421,10 +11461,11 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
 #                                                                                            ignore_index=True)
 # =============================================================================
                          # Create a new DataFrame with the row to append
-                         new_row = pd.DataFrame({
-                                                   'parameters': [f'rolling_window_size: {rolling_window_value}, aggregation_method: {rolling_window_option}'],
-                                                   'MAPE': [mape]
-                                                })
+                         new_row = pd.DataFrame({'parameters': [f'rolling_window_size: {rolling_window_value}, aggregation_method: {rolling_window_option}'],
+                                                 'MAPE':  mape,
+                                                 'SMAPE': smape,
+                                                 'RMSE': rmse,
+                                                 'R2': r2})
                         
                          # Concatenate the original DataFrame with the new row DataFrame
                          naive_model2_tuning_results = pd.concat([naive_model2_tuning_results, new_row], ignore_index=True)
