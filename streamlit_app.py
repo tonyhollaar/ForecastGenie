@@ -35,6 +35,7 @@ import streamlit as st
 import json
 
 import base64
+
 #**************************
 # Streamlit add-on packages
 #**************************
@@ -79,6 +80,11 @@ import sympy as sp
 # Image Processing 
 #**************************
 #from PIL import Image
+
+#**************************
+# Text manipulation
+#**************************
+import re
 
 #***********************************
 # Data Visualization 
@@ -130,11 +136,12 @@ from pandas.tseries.holiday import(
                                     EasterMonday, GoodFriday, Easter
                                   )
     
-# =============================================================================
+#********************************
 # Hyperparameter tuning framework
-# =============================================================================
+#********************************
 import optuna
 from optuna import visualization as ov
+
 # =============================================================================
 #   _____        _____ ______    _____ ______ _______ _    _ _____  
 #  |  __ \ /\   / ____|  ____|  / ____|  ____|__   __| |  | |  __ \ 
@@ -149,19 +156,37 @@ st.set_page_config(page_title = "ForecastGenie™️",
                    layout = "centered", # "centered" or "wide"
                    page_icon = "🌀", 
                    initial_sidebar_state = "expanded") # "auto" or "expanded" or "collapsed"
-# SET FONT STYLE
-# SOURCE: https://fonts.google.com/specimen/Ysabeau+SC?query=Ysabeau
-font_style = f"""
+
+# SET FONT STYLES
+font_style = """
             <style>
             @import url('https://fonts.googleapis.com/css2?family=Ysabeau+SC:wght@200&display=swap');
             @import url('https://fonts.googleapis.com/css2?family=Rubik+Dirt&display=swap');
             @import url('https://fonts.googleapis.com/css2?family=Rock+Salt&display=swap');
             @import url('https://fonts.googleapis.com/css2?family=Josefin+Slab:wght@200&display=swap');
-            p {{
-               font-family: 'Ysabeau SC', sans-serif; /* Specify the desired font family */
-            }}
+            
+            /* Set the font family for paragraph elements */
+            p {
+               font-family: 'Ysabeau SC', sans-serif;
+            }
+            
+            /* Set the font family, size, and weight for unordered list and ordered list elements */
+            ul, ol {
+                font-family: 'Ysabeau SC', sans-serif;
+                font-size: 16px;
+                font-weight: normal;
+            }
+            
+            /* Set the font family, size, weight, and margin for list item elements */
+            li {
+                font-family: 'Ysabeau SC', sans-serif;
+                font-size: 16px;
+                font-weight: normal;
+                margin-top: 5px;
+            }
             </style>
             """
+
 # =============================================================================
 # # Render the font styles in Streamlit
 # =============================================================================
@@ -214,6 +239,115 @@ st.markdown(font_style, unsafe_allow_html=True)
 #   ____) | |____| | \ \  / ____ \| |    | |_) | |__| | |__| | . \ 
 #  |_____/ \_____|_|  \_\/_/    \_\_|    |____/ \____/ \____/|_|\_\
 #                                                                  
+# =============================================================================
+
+# TEST
+# =============================================================================
+# def create_flipcards_model_cards(num_cards, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back):
+#     # note removing display: flex; inside the css code for .flashcard -> puts cards below eachother
+#     # create empty list that will keep the html code needed for each card with header+text
+#     card_html = []
+#     # iterate over cards specified by user and join the headers and text of the lists
+#     for i in range(num_cards):
+#         card_html.append(f"""<div class="flashcard">                     
+#                                 <div class='front'>
+#                                     <h1 style='text-align:center;'>{header_list[i]}</h1>
+#                                     <p style='text-align:center; font-size: {font_size_front};'>{paragraph_list_front[i]}</p>
+#                                 </div>
+#                                 <div class="back">
+#                                     <p style='text-align:justify; word-spacing: 1px; font-size: {font_size_back}; margin-right: 60px; margin-left: 60px'>{paragraph_list_back[i]}</p>
+#                                 </div>
+#                             </div>
+#                             """)
+#     # join all the html code for each card and join it into single html code with carousel wrapper
+#     carousel_html = "<div class='carousel'>" + "".join(card_html) + "</div>"
+#     
+#     # Display the carousel in streamlit
+#     st.markdown(carousel_html, unsafe_allow_html=True)
+#     
+#     # Create the CSS styling for the carousel
+#     st.markdown(
+#         f"""
+#         <style>
+#         /* Carousel Styling */
+#         .carousel {{
+#           grid-gap: 0px; /* Reduce the gap between cards */
+#           justify-content: center; /* Center horizontally */
+#           align-items: center; /* Center vertically */
+#           overflow-x: auto;
+#           scroll-snap-type: x mandatory;
+#           scroll-behavior: smooth;
+#           -webkit-overflow-scrolling: touch;
+#           width: 500px;
+#           margin: 0 auto; /* Center horizontally by setting left and right margins to auto */
+#           background-color: transparent; /* Remove the background color */
+#           padding: 0px; /* Remove padding */
+#           border-radius: 0px; /* Add border-radius for rounded edges */
+#         }}
+#         .flashcard {{
+#           display: inline-block; /* Display cards inline */
+#           width: 500px;
+#           height: 200px;
+#           background-color: transparent; /* Remove the background color */
+#           border-radius: 0px;
+#           border: 2px solid black; /* Add black border */
+#           perspective: 0px;
+#           margin-bottom: 0px; /* Remove space between cards */
+#           padding: 0px;
+#           scroll-snap-align: center;
+#         }}
+#         .front, .back {{
+#           position: absolute;
+#           top: 0;
+#           left: 0;
+#           width: 500px;
+#           height: 200px;
+#           border-radius: 0px;
+#           backface-visibility: hidden;
+#           font-family: 'Ysabeau SC', sans-serif; /* font-family: font-family: 'Ysabeau SC', sans-serif; */
+#           text-align: center;
+#           margin: 0px;
+#           background: white;
+#         }}
+#         .back {{
+#             /* ... other styles ... */
+#             background: none; /* Remove the background */
+#             color: transparent; /* Make the text transparent */
+#             background-clip: text; /* Apply the background gradient to the text */
+#             -webkit-background-clip: text; /* For Safari */
+#             -webkit-text-fill-color: transparent; /* For Safari */
+#             background-image: linear-gradient(to bottom left, #941c8e, #763a9a, #4e62a3, #2e81ad, #12a9b4); /* Set the background gradient */
+#             transform: rotateY(180deg);
+#             display: flex;
+#             justify-content: center;
+#             align-items: center;
+#             flex-direction: column;
+#         }}                               
+#         .flashcard:hover .front {{
+#           transform: rotateY(180deg);
+#         }}
+#         .flashcard:hover .back {{
+#           transform: rotateY(0deg);
+#           cursor: default; /* Change cursor to pointer on hover */
+#         }}
+#         .front h1, .back p {{
+#           color: black;
+#           text-align: center;
+#           margin: 0;
+#           font-family: {font_family};
+#           font-size: {font_size_front}px;
+#         }}
+#         .back p {{
+#           line-height: 1.5;
+#           margin: 0;
+#         }}
+#         /* Carousel Navigation Styling */
+#         .carousel-nav {{
+#           margin: 0px 0px;
+#           text-align: center;
+#         }}
+#         </style>
+#         """, unsafe_allow_html=True)
 # =============================================================================
 
 # =============================================================================
@@ -508,6 +642,267 @@ st.markdown(font_style, unsafe_allow_html=True)
 #  |_|     \____/|_| \_|\_____|  |_|  |_____\____/|_| \_|_____/ 
 #                                                               
 # =============================================================================
+def run_naive_model_1(lag_options = None, validation_set = None):
+    """
+    Run the grid search for Naive Model I using different lag options.
+    
+    Parameters:
+        lag_options (list or None): List of lag options to be tuned during grid search.
+                                   Each lag option represents a specific configuration for Naive Model I.
+                                   Default is None.
+        total_options (int or None): Total number of options in the grid search.
+                                     Default is None.
+        validation_set (pd.DataFrame or None): Validation dataset used for forecasting and performance evaluation.
+                                               It should contain the target variable.
+                                               Default is None.
+    
+    Returns:
+        None
+    
+    This function performs a grid search to tune Naive Model I by trying different lag options and
+    evaluating their performance using the provided validation dataset. The results are displayed as a DataFrame
+    with the rankings of different lag options based on their MAPE (Mean Absolute Percentage Error) metric.
+    
+    Note: The function expects a progress bar named `progress_bar` to be initialized in the Streamlit app.
+    
+    Example:
+    run_naive_model_1(lag_options=[1, 2, 3], total_options=9, validation_set=validation_data)
+    
+    """
+    # Set title
+    my_text_paragraph('Naive Model I: Lag')
+    
+    # Define model name 
+    model_name = 'Naive Model I'
+    
+    # Set start time when grid-search is kicked-off to define total time it takes as computationaly intensive
+    start_time_naive_model_1 = time.time()
+    
+    naive_model1_tuning_results = pd.DataFrame() # results with lag
+    
+    # iterate over grid of all possible combinations of hyperparameters
+    for i, lag_option in enumerate(lag_options):
+
+        # Check if the maximum waiting time has been exceeded
+        elapsed_time_seconds = time.time() - start_time
+            
+        if elapsed_time_seconds > max_wait_time_seconds:
+            st.warning("Maximum waiting time exceeded. The grid search has been stopped.")
+            # exit the loop once maximum time is exceeded defined by user or default = 5 minutes
+            break
+        
+        # Update the progress bar
+        progress_percentage = i / total_options * 100
+        progress_bar.progress(value = (i / total_options), 
+                              text = f'''Please wait up to {max_wait_time_minutes} minute(s) while parameters of Naive Models are being tuned!  
+                                         \n{progress_percentage:.2f}% of total options within the search space reviewed ({i} out of {total_options} total options).''')
+                                         
+        # Create a model with the current parameter values
+        df_preds_naive_model1 = forecast_naive_model1_insample(validation_set, lag = lag_option.lower(), custom_lag_value = None)
+        
+        # Retrieve metrics from difference actual - predicted    
+        metrics_dict = my_metrics(my_df = df_preds_naive_model1, model_name = model_name)
+                                                       
+        # Create a new DataFrame with the row to append
+        new_row = pd.DataFrame({'parameters': [f'lag: {lag_option}'],
+                                'MAPE':  metrics_dict[model_name]['mape'],
+                                'SMAPE': metrics_dict[model_name]['smape'],
+                                'RMSE': metrics_dict[model_name]['rmse'],
+                                'R2': metrics_dict[model_name]['r2']})
+                                 
+        # Concatenate the original DataFrame with the new row DataFrame
+        naive_model1_tuning_results = pd.concat([naive_model1_tuning_results, new_row], ignore_index=True)
+
+        # Add rank column to dataframe and order by metric column
+        ranked_naive_model1_tuning_results = rank_dataframe(naive_model1_tuning_results, 'MAPE')
+        
+        # Convert MAPE and SMAPE metrics to string with '%' percentage-sign
+        ranked_naive_model1_tuning_results[['MAPE', 'SMAPE']] = ranked_naive_model1_tuning_results[['MAPE', 'SMAPE']].applymap(lambda x: f'{x*100:.2f}%' if not np.isnan(x) else x)
+
+    st.dataframe(ranked_naive_model1_tuning_results, use_container_width = True, hide_index = True)
+   
+    # set the end of runtime
+    end_time_naive_model_1 = time.time()
+    
+    text = str(ranked_naive_model1_tuning_results.iloc[0, 1])
+    formatted_text = re.sub(r'([^:]+): ([^,]+)', r'`\1`: **\2**', text)
+    final_text = re.sub(r',\s*', ', ', formatted_text)
+    
+    st.write(f'''💬**Naive Model I** parameter with the lowest MAPE of {ranked_naive_model1_tuning_results["MAPE"][0]} found in **{end_time_naive_model_1 - start_time_naive_model_1:.2f}** seconds is:  
+             {final_text}''')
+
+def run_naive_model_2(rolling_window_range = None, rolling_window_options = None, validation_set = None):
+    """
+    Run the grid search for Naive Model II using different rolling window configurations.
+    
+    Parameters:
+        rolling_window_range (tuple or None): A tuple (start, end) representing the range of rolling window sizes
+                                              to be considered during the grid search for Naive Model II.
+                                              Default is None.
+        rolling_window_options (list or None): List of aggregation methods to be considered for the rolling window.
+                                               Each method represents a specific configuration for Naive Model II.
+                                               Default is None.
+        validation_set (pd.DataFrame or None): Validation dataset used for forecasting and performance evaluation.
+                                               It should contain the target variable.
+                                               Default is None.
+    
+    Returns:
+        None
+    
+    This function performs a grid search to tune Naive Model II by trying different combinations of rolling window
+    sizes and aggregation methods, and evaluating their performance using the provided validation dataset. The results
+    are displayed as a DataFrame with the rankings of different configurations based on their MAPE (Mean Absolute
+    Percentage Error) metric.
+    
+    Note: The function expects a progress bar named `progress_bar` to be initialized in the Streamlit app.
+    
+    Example:
+    run_naive_model_2(rolling_window_range=(3, 5), rolling_window_options=['mean', 'median'], validation_set=validation_data)
+    
+    """
+    # Define title
+    my_text_paragraph('Naive Model II: Rolling Window')
+    
+    # Define model name
+    model_name = 'Naive Model II'
+    
+    # save evaluation results to dataframe
+    naive_model2_tuning_results = pd.DataFrame()
+    
+    # Iterate over grid of all possible combinations of hyperparameters
+    param_grid = {'rolling_window_range': list(range(rolling_window_range[0], rolling_window_range[1] + 1)),
+                  'rolling_window_options': rolling_window_options}
+              
+    start_time_naive_model_2 = time.time()
+    
+    for i, (rolling_window_value, rolling_window_option) in enumerate(itertools.product(param_grid['rolling_window_range'], param_grid['rolling_window_options']), 0):
+        
+        # Check if the maximum waiting time has been exceeded
+        elapsed_time_seconds = time.time() - start_time
+            
+        if elapsed_time_seconds > max_wait_time_seconds:
+            st.warning("Maximum waiting time exceeded. The grid search has been stopped.")
+            # exit the loop once maximum time is exceeded defined by user or default = 5 minutes
+            break  
+        
+        # Update the progress bar
+        progress_percentage = (i + len(lag_options)) / total_options * 100
+        progress_bar.progress(value = ((i  + len(lag_options) ) / total_options), 
+                               text = f'''Please wait up to {max_wait_time_minutes} minute(s) while parameters of Naive Models are being tuned!  
+                                         \n{progress_percentage:.2f}% of total options within the search space reviewed ({i + len(lag_options)} out of {total_options} total options).''')
+
+        # Return a prediction dataframe 
+        df_preds_naive_model2 = forecast_naive_model2_insample(y_test, size_rolling_window = rolling_window_value, agg_method_rolling_window = rolling_window_option)
+         
+        # Retrieve metrics from difference actual - predicted
+        metrics_dict = my_metrics(my_df = df_preds_naive_model2, model_name = model_name)
+         
+        # Create a new DataFrame with the row to append
+        new_row = pd.DataFrame({'parameters': [f'rolling_window_size: {rolling_window_value}, aggregation_method: {rolling_window_option}'],
+                                'MAPE':  metrics_dict[model_name]['mape'],
+                                'SMAPE': metrics_dict[model_name]['smape'],
+                                'RMSE': metrics_dict[model_name]['rmse'],
+                                'R2': metrics_dict[model_name]['r2']})
+                                 
+        # Concatenate the original DataFrame with the new row DataFrame
+        naive_model2_tuning_results = pd.concat([naive_model2_tuning_results, new_row], ignore_index=True)
+
+        # Add rank column to dataframe and order by metric column
+        ranked_naive_model2_tuning_results = rank_dataframe(naive_model2_tuning_results, 'MAPE')
+   
+        # Convert MAPE and SMAPE evaluation metrics to '%' percentage-sign
+        ranked_naive_model2_tuning_results[['MAPE', 'SMAPE']] = ranked_naive_model2_tuning_results[['MAPE', 'SMAPE']].applymap(lambda x: f'{x*100:.2f}%' if not np.isnan(x) else x)
+    
+    st.dataframe(ranked_naive_model2_tuning_results, use_container_width=True, hide_index = True)
+    
+    # Set the end of runtime
+    end_time_naive_model_2 = time.time()
+    
+    # Clear progress bar in streamlit for user as process is completed
+    progress_bar.empty()
+    
+    # Text formatting for model parameters style in user message:
+    text = str(ranked_naive_model2_tuning_results.iloc[0, 1])
+    formatted_text = re.sub(r'([^:]+): ([^,]+)', r'`\1`: **\2**', text)
+    final_text = re.sub(r',\s*', ', ', formatted_text)
+    
+    st.write(f'''💬**Naive Model II** parameters with the lowest MAPE of {ranked_naive_model2_tuning_results["MAPE"][0]} found in **{end_time_naive_model_2 - start_time_naive_model_2:.2f}** seconds is:  
+             {final_text}''')
+                
+def run_naive_model_3(agg_options = None, train_set = None, validation_set = None):
+
+    # Define Title
+    my_text_paragraph('Naive Model III: Constant Value')
+    
+    # Define Model Name    
+    model_name = 'Naive Model III'
+    
+    # Initiate dataframe to save results to with constant (mean/median/mode)
+    naive_model3_tuning_results = pd.DataFrame() 
+    
+    # Iterate over grid of all possible combinations of hyperparameters
+    param_grid = {'agg_options': agg_options}
+
+    # set the end of runtime
+    start_time_naive_model_3 = time.time()
+                                    
+    for i, agg_option in enumerate(param_grid['agg_options']):
+        
+        # Check if the maximum waiting time has been exceeded
+        elapsed_time_seconds = time.time() - start_time
+       
+        # If maximum time is exceeded, stop running loop
+        if elapsed_time_seconds > max_wait_time_seconds:
+            st.warning("Maximum waiting time exceeded. The grid search has been stopped.")
+            # exit the loop once maximum time is exceeded defined by user or default = 5 minutes
+            break  
+        
+        # Update the progress bar
+        progress_percentage = (i + len(agg_options) + (len(list(range(rolling_window_range[0], rolling_window_range[1] + 1)))*len(rolling_window_options))) / total_options * 100
+        progress_bar.progress(value = ((i  + len(agg_options) + (len(list(range(rolling_window_range[0], rolling_window_range[1] + 1)))*len(rolling_window_options))) / total_options), 
+                              text = f'''Please wait up to {max_wait_time_minutes} minute(s) while parameters of Naive Models are being tuned!  
+                                        \n{progress_percentage:.2f}% of total options within the search space reviewed ({i + len(agg_options) + (len(list(range(rolling_window_range[0], rolling_window_range[1] + 1)))*len(rolling_window_options))} out of {total_options} total options).''')                         
+        
+        # return dataframe with the predictions e.g. constant of mean/median/mode of training dataset for length of validation set
+        df_preds_naive_model3 = forecast_naive_model3_insample(train_set, 
+                                                               validation_set, 
+                                                               agg_method = agg_option)
+        
+        # retrieve metrics from difference actual - predicted
+        metrics_dict = my_metrics(my_df = df_preds_naive_model3, model_name = model_name)
+        
+        # Create a new DataFrame with the row to append
+        new_row = pd.DataFrame({'parameters': [f'aggregation method: {agg_option}'],
+                                'MAPE':  metrics_dict[model_name]['mape'],
+                                'SMAPE': metrics_dict[model_name]['smape'],
+                                'RMSE': metrics_dict[model_name]['rmse'],
+                                'R2': metrics_dict[model_name]['r2']})
+                                
+        # Concatenate the original DataFrame with the new row DataFrame
+        naive_model3_tuning_results = pd.concat([naive_model3_tuning_results, new_row], ignore_index=True)
+
+        # add rank column to dataframe and order by metric column
+        ranked_naive_model3_tuning_results = rank_dataframe(naive_model3_tuning_results, 'MAPE')
+  
+        # convert mape to %
+        ranked_naive_model3_tuning_results[['MAPE', 'SMAPE']] = ranked_naive_model3_tuning_results[['MAPE', 'SMAPE']].applymap(lambda x: f'{x*100:.2f}%' if not np.isnan(x) else x)
+
+    st.dataframe(ranked_naive_model3_tuning_results, use_container_width=True, hide_index = True)
+    
+    # set the end of runtime
+    end_time_naive_model_3 = time.time()
+    
+    # clear progress bar in streamlit for user as process is completed
+    progress_bar.empty()
+    
+    # text formatting for model parameters style in user message:
+    text = str(ranked_naive_model3_tuning_results.iloc[0, 1])
+    formatted_text = re.sub(r'([^:]+): ([^,]+)', r'`\1`: **\2**', text)
+    final_text = re.sub(r',\s*', ', ', formatted_text)
+    
+    st.write(f'''💬**Naive Model III** parameter with the lowest MAPE of {ranked_naive_model3_tuning_results["MAPE"][0]} found in **{end_time_naive_model_3 - start_time_naive_model_3:.2f}** seconds is:  
+             {final_text}''')
+
 def create_hyperparameter_importance_plot(data, plot_type='param_importances', grid_search=False):
     """
     Create a hyperparameter importance plot.
@@ -986,6 +1381,7 @@ def show_rfe_plot(rfecv, selected_features):
         None
 
     """
+    #############################################################
     # Scatterplot the results
     #############################################################
     # Get the feature ranking
@@ -1528,9 +1924,6 @@ def vertical_spacer(n):
 #         vertical_spacer(1)
 # =============================================================================
 
-# =============================================================================
-#         
-# =============================================================================
 def create_flipcard_quick_insights(num_cards, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back, image_path_front_card = None, df = None, my_string_column = 'Label', **kwargs):    
     
     col1, col2, col3 = st.columns([20,40,20])
@@ -1687,9 +2080,6 @@ def create_flipcard_quick_insights(num_cards, header_list, paragraph_list_front,
         </style>
         """, unsafe_allow_html=True)        
 
-# =============================================================================
-# Quick Summary Flipcard
-# =============================================================================
 def create_flipcard_quick_summary(header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back, image_path_front_card = None, **kwargs):    
    
     # Compute and display the metrics for the first column
@@ -2210,7 +2600,6 @@ def train_models_carousel(my_title= ''):
 # =============================================================================
 #     # set gradient color of letters of title
 #     gradient = '-webkit-linear-gradient(left, #0072B2, #673ab7, #3f51b5, #2196f3, #03a9f4)'
-#     
 # =============================================================================
     col1, col2, col3 = st.columns([1,8,1])
     with col2:
@@ -2521,115 +2910,6 @@ def create_carousel_cards_v2(num_cards, header_list, paragraph_list_front, parag
         </style>
         """, unsafe_allow_html=True)
  
-# TEST
-# =============================================================================
-# def create_flipcards_model_cards(num_cards, header_list, paragraph_list_front, paragraph_list_back, font_family, font_size_front, font_size_back):
-#     # note removing display: flex; inside the css code for .flashcard -> puts cards below eachother
-#     # create empty list that will keep the html code needed for each card with header+text
-#     card_html = []
-#     # iterate over cards specified by user and join the headers and text of the lists
-#     for i in range(num_cards):
-#         card_html.append(f"""<div class="flashcard">                     
-#                                 <div class='front'>
-#                                     <h1 style='text-align:center;'>{header_list[i]}</h1>
-#                                     <p style='text-align:center; font-size: {font_size_front};'>{paragraph_list_front[i]}</p>
-#                                 </div>
-#                                 <div class="back">
-#                                     <p style='text-align:justify; word-spacing: 1px; font-size: {font_size_back}; margin-right: 60px; margin-left: 60px'>{paragraph_list_back[i]}</p>
-#                                 </div>
-#                             </div>
-#                             """)
-#     # join all the html code for each card and join it into single html code with carousel wrapper
-#     carousel_html = "<div class='carousel'>" + "".join(card_html) + "</div>"
-#     
-#     # Display the carousel in streamlit
-#     st.markdown(carousel_html, unsafe_allow_html=True)
-#     
-#     # Create the CSS styling for the carousel
-#     st.markdown(
-#         f"""
-#         <style>
-#         /* Carousel Styling */
-#         .carousel {{
-#           grid-gap: 0px; /* Reduce the gap between cards */
-#           justify-content: center; /* Center horizontally */
-#           align-items: center; /* Center vertically */
-#           overflow-x: auto;
-#           scroll-snap-type: x mandatory;
-#           scroll-behavior: smooth;
-#           -webkit-overflow-scrolling: touch;
-#           width: 500px;
-#           margin: 0 auto; /* Center horizontally by setting left and right margins to auto */
-#           background-color: transparent; /* Remove the background color */
-#           padding: 0px; /* Remove padding */
-#           border-radius: 0px; /* Add border-radius for rounded edges */
-#         }}
-#         .flashcard {{
-#           display: inline-block; /* Display cards inline */
-#           width: 500px;
-#           height: 200px;
-#           background-color: transparent; /* Remove the background color */
-#           border-radius: 0px;
-#           border: 2px solid black; /* Add black border */
-#           perspective: 0px;
-#           margin-bottom: 0px; /* Remove space between cards */
-#           padding: 0px;
-#           scroll-snap-align: center;
-#         }}
-#         .front, .back {{
-#           position: absolute;
-#           top: 0;
-#           left: 0;
-#           width: 500px;
-#           height: 200px;
-#           border-radius: 0px;
-#           backface-visibility: hidden;
-#           font-family: 'Ysabeau SC', sans-serif; /* font-family: font-family: 'Ysabeau SC', sans-serif; */
-#           text-align: center;
-#           margin: 0px;
-#           background: white;
-#         }}
-#         .back {{
-#             /* ... other styles ... */
-#             background: none; /* Remove the background */
-#             color: transparent; /* Make the text transparent */
-#             background-clip: text; /* Apply the background gradient to the text */
-#             -webkit-background-clip: text; /* For Safari */
-#             -webkit-text-fill-color: transparent; /* For Safari */
-#             background-image: linear-gradient(to bottom left, #941c8e, #763a9a, #4e62a3, #2e81ad, #12a9b4); /* Set the background gradient */
-#             transform: rotateY(180deg);
-#             display: flex;
-#             justify-content: center;
-#             align-items: center;
-#             flex-direction: column;
-#         }}                               
-#         .flashcard:hover .front {{
-#           transform: rotateY(180deg);
-#         }}
-#         .flashcard:hover .back {{
-#           transform: rotateY(0deg);
-#           cursor: default; /* Change cursor to pointer on hover */
-#         }}
-#         .front h1, .back p {{
-#           color: black;
-#           text-align: center;
-#           margin: 0;
-#           font-family: {font_family};
-#           font-size: {font_size_front}px;
-#         }}
-#         .back p {{
-#           line-height: 1.5;
-#           margin: 0;
-#         }}
-#         /* Carousel Navigation Styling */
-#         .carousel-nav {{
-#           margin: 0px 0px;
-#           text-align: center;
-#         }}
-#         </style>
-#         """, unsafe_allow_html=True)
-# =============================================================================
-
 #******************************************************************************
 # STATISTICAL TEST FUNCTIONS
 #******************************************************************************
@@ -3912,7 +4192,7 @@ def correlation_heatmap(X, correlation_threshold=0.8):
 #******************************************************************************
 def model_documentation():
     ''' SHOW MODEL DOCUMENTATION
-        - Naive Model
+        - Naive Models
         - Linear Regression
         - SARIMAX
         - Prophet
@@ -10310,13 +10590,13 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
             my_text_paragraph('Model Selection')
             
             # *****************************************************************************
-            # 1. NAIVE MODEL         
+            # 1. NAIVE MODELS         
             # *****************************************************************************
-            naive_model_checkbox = st.checkbox(label = 'Naive Model', 
+            naive_model_checkbox = st.checkbox(label = 'Naive Models', 
                                                key = key2_train)
             
             # *****************************************************************************
-            # NAIVE MODEL PARAMETERS        
+            # NAIVE MODELS PARAMETERS        
             # *****************************************************************************  
             custom_lag_value = None  # initiate custom lag value
             
@@ -10530,18 +10810,16 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                                          )
                 # update session_state 
                 st.session_state['train_models_btn'] = train_models_btn
-          
+
         # *****************************************************************************
         # ALL MODELS
         # *****************************************************************************
         # Define all models you want user to choose from (<model_name>, <actual model to be called when fitting the model>)
-        models = [
-                  ('Naive Model', None),
+        models = [('Naive Models', None),
                   ('Linear Regression', LinearRegression(fit_intercept=True)), 
                   ('SARIMAX', SARIMAX(y_train)),
-                  ('Prophet', Prophet())
-                 ]
-      
+                  ('Prophet', Prophet())]
+
         # initiate empty list to hold user's checked model names and models from selectboxes
         selected_models = []
         
@@ -10551,7 +10829,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
             for model_name, model in models:
     
                 # Add model name and model if checkbox of model is checked into a list
-                if model_name == 'Naive Model' and naive_model_checkbox == True:
+                if model_name == 'Naive Models' and naive_model_checkbox == True:
                    selected_models.append((model_name, model))
                    
                 # Add model name and model if checkbox of model is checked into a list
@@ -10622,7 +10900,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                 #  NAIVE MODELS                   
                 # =============================================================================
                 try:         
-                    if model_name == "Naive Model":
+                    if model_name == "Naive Models":
                         with st.expander('📈' + model_name, expanded=True):
                             # =============================================================================
                             # Naive Model I
@@ -10640,7 +10918,7 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                             # Show metrics on model card
                             display_my_metrics(df_preds_naive_model1, 
                                                model_name = "Naive Model I",
-                                               my_subtitle = f'{lag_word} lag')
+                                               my_subtitle= f'custom lag: {custom_lag_value}' if custom_lag_value is not None else f'{lag_word} lag')
                            
                             # Plot graph with actual versus insample predictions
                             plot_actual_vs_predicted(df_preds_naive_model1, my_conf_interval)
@@ -10877,7 +11155,10 @@ if menu_item == 'Train' and sidebar_menu_item == 'Home':
                                                                           endog_test = y_test)
                                 
                                 # Show metrics on Model Card
-                                display_my_metrics(preds_df_sarimax, "SARIMAX")
+                                display_my_metrics(preds_df_sarimax, 
+                                                   model_name = "SARIMAX",
+                                                   my_subtitle = f'(p, d, q)(P, D, Q) = ({p}, {d}, {q})({P}, {D}, {Q})')
+                                                   
                                 
                                 # Plot graph with actual versus insample predictions on Model Card
                                 plot_actual_vs_predicted(preds_df_sarimax, my_conf_interval)
@@ -11016,7 +11297,7 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
                                                 \n- `Mean Absolute Percentage Error` (MAPE):  
                                                 \nThe Mean Absolute Percentage Error measures the average absolute percentage difference between the predicted values and the actual values. It provides a relative measure of the accuracy of a forecasting model. A lower MAPE indicates better accuracy.
                                                 \n- `Symmetric Mean Absolute Percentage Error` (SMAPE):
-                                                \n The `Symmetric Mean Absolute Percentage Error` (SMAPE) is similar to MAPE but addresses the issue of scale dependency. It calculates the average of the absolute percentage differences between the predicted values and the actual values, taking into account the magnitude of both values. SMAPE values range between 0% and 100%, where lower values indicate better accuracy.
+                                                \n The Symmetric Mean Absolute Percentage Error (SMAPE) is similar to MAPE but addresses the issue of scale dependency. It calculates the average of the absolute percentage differences between the predicted values and the actual values, taking into account the magnitude of both values. SMAPE values range between 0% and 100%, where lower values indicate better accuracy.
                                                 \n- `Root Mean Square Error` (RMSE):
                                                 \n The Root Mean Square Error is a commonly used metric to evaluate the accuracy of a prediction model. It calculates the square root of the average of the squared differences between the predicted values and the actual values. RMSE is sensitive to outliers and penalizes larger errors.
                                                 \n- `R-squared` (R2):
@@ -11053,6 +11334,8 @@ if menu_item == 'Evaluate' and sidebar_menu_item == 'Home':
             
             # Convert the 'mape' column to floats, removes duplicates based on the 'model_name' and 'mape' columns, sorts the unique DataFrame by ascending 'mape' values, selects the top 3 rows, and displays the resulting DataFrame in Streamlit.
             test_df = st.session_state['results_df'].assign(mape = st.session_state.results_df['mape'].str.rstrip('%').astype(float)).drop_duplicates(subset=['model_name', 'mape']).sort_values(by='mape', ascending=True).iloc[:3]
+            
+            test_df['mape'] = test_df['mape'].astype(str) + '%'
             
             # =============================================================================
             # 2. Show Top 3 test Results in Dataframe
@@ -11103,7 +11386,7 @@ def hyperparameter_tuning_form():
     with st.form("hyper_parameter_tuning"):
         
         # create option for user to early stop the hyper-parameter tuning process based on time
-        max_wait_time = st.time_input(label = 'Set the maximum time per model optimization (in minutes)', 
+        max_wait_time = st.time_input(label = 'Set the maximum time allowed for tuning (in minutes)', 
                           value = datetime.time(0, 5),
                           step = 60) # seconds /  You can also pass a datetime.timedelta object.
         
@@ -11159,8 +11442,6 @@ def hyperparameter_tuning_form():
                                              options = ['Day', 'Week', 'Month', 'Year'],
                                              default = ['Day', 'Week', 'Month', 'Year'])
                 
-            #lag_options = lag_options.lower() # make lag name lowercase e.g. 'Week' becomes 'week'  
-            
             vertical_spacer(1)
             
             # =============================================================================
@@ -11180,7 +11461,7 @@ def hyperparameter_tuning_form():
                                                                                options = ['Mean', 'Median', 'Mode'],
                                                                                default = ['Mean', 'Median', 'Mode'],
                                                                                key = 'tune_options_naivemodelii')
-
+                
             # =============================================================================
             # Naive Model III                    
             # =============================================================================
@@ -11194,7 +11475,6 @@ def hyperparameter_tuning_form():
                                                                          default = ['Mean', 'Median', 'Mode'],
                                                                          key = 'tune_options_naivemodeliii')
             vertical_spacer(1)
-        
         
         with st.expander('◾ SARIMAX Hyperparameters'):
             
@@ -11335,11 +11615,10 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
     # =============================================================================
     # Initiate Variables Required
     # =============================================================================
-    # Define tuples of (model name, model)
     selected_models = [('Naive Model', None),
                       ('Linear Regression', LinearRegression(fit_intercept=True)), 
                       ('SARIMAX', SARIMAX(y_train)),
-                      ('Prophet', Prophet())]
+                      ('Prophet', Prophet())] # Define tuples of (model name, model)
 
     # =============================================================================
     # CREATE USER FORM FOR HYPERPARAMETER TUNING
@@ -11357,151 +11636,38 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
     # =============================================================================
     sarimax_tuning_results = pd.DataFrame()
     prophet_tuning_results = pd.DataFrame()
-    naive_model1_tuning_results = pd.DataFrame() # results with lag
-    naive_model2_tuning_results = pd.DataFrame() # results with rolling window
-    naive_model3_tuning_results = pd.DataFrame() # results with constant  (mean/median/mode)
-    naive_models_tuning_results = pd.DataFrame() # total results
     
     # if user clicks the hyper-parameter tuning button start hyperparameter tuning code below for selected models
     if hp_tuning_btn == True and selected_model_names:
 
         # iterate over user selected models from multi-selectbox when user pressed SUBMIT button for hyperparameter tuning
         for model_name in selected_model_names:
+            
+            # Set start time when grid-search is kicked-off to define total time it takes as computationaly intensive
+            start_time = time.time()
 
             if model_name == 'Naive Model':
-
-                with st.expander('⚙️ Naive Model', expanded = True):
-                    
-                    # Set start time when grid-search is kicked-off to define total time it takes as computationaly intensive
-                    start_time = time.time()
-                    
-                    # Initiate progress bar for SARIMAX Grid Search runtime
+                with st.expander('⚙️ Naive Models', expanded = True):
+                    #########################################################################################################
+                    # INITIATE VARIABLES                    
+                    #########################################################################################################
                     progress_bar = st.progress(0)
-                    
-                    # Convert max_wait_time to an integer
                     max_wait_time_minutes = int(str(max_wait_time.minute))
-                    
-                    # Convert the maximum waiting time from minutes to seconds
                     max_wait_time_seconds = max_wait_time_minutes * 60
-                    
-                    # Store total number of combinations in the parameter grid for progress bar
-                    #total_combinations = len(param_grid['order']) * len(param_grid['seasonal_order']) * len(param_grid['trend'])
-                    total_options = len(lag_options) + (len(list(range(rolling_window_range[0], rolling_window_range[1] + 1)))*len(rolling_window_options))
+                    total_options = len(lag_options) + (len(list(range(rolling_window_range[0], rolling_window_range[1] + 1)))*len(rolling_window_options)) + len(agg_options)  # Store total number of combinations in the parameter grid for progress bar
                     
                     #########################################################################################################
-                    # Naive Model I: Lag                    
+                    # Run Naive Models: I (LAG), II (ROLLING WINDOW), III (CONSTANT: MEAN/MEDIAN/MODE)
                     #########################################################################################################
-                    my_text_paragraph('Naive Model I: Lag')
+                    run_naive_model_1(lag_options = lag_options, validation_set = y_test)
+                    run_naive_model_2(rolling_window_range = rolling_window_range, rolling_window_options = rolling_window_options, validation_set = y_test)
+                    run_naive_model_3(agg_options = agg_options, train_set = y_train, validation_set = y_test)
                     
-                    # iterate over grid of all possible combinations of hyperparameters
-                    for i, lag_option in enumerate(lag_options):
-
-                        # Check if the maximum waiting time has been exceeded
-                        elapsed_time_seconds = time.time() - start_time
-                            
-                        if elapsed_time_seconds > max_wait_time_seconds:
-                            st.warning("Maximum waiting time exceeded. The grid search has been stopped.")
-                            # exit the loop once maximum time is exceeded defined by user or default = 5 minutes
-                            break
-                        
-                        # Update the progress bar
-                        progress_percentage = i / total_options * 100
-                        progress_bar.progress(value = (i / total_options), 
-                                              text = f'''Please wait up to {max_wait_time_minutes} minute(s) while parameters of Naive Model I are being tuned!  
-                                                         \n{progress_percentage:.2f}% of total options within the search space reviewed ({i} out of {total_options} total options).''')
-                                                         
-                        # Create a model with the current parameter values
-                        df_preds_naive_model1 = forecast_naive_model1_insample(y_test, 
-                                                                               lag = lag_option.lower(), 
-                                                                               custom_lag_value = None)
-                        
-                        # retrieve metrics from difference actual - predicted    
-                        mape, smape, rmse, r2 = my_metrics(my_df = df_preds_naive_model1, model_name = None)
-                        
-                        # Append a new row to the dataframe with the parameter values and scores
-                        naive_model1_tuning_results = naive_model1_tuning_results.append({'parameters': f'lag: {lag_option}', 
-                                                                                          'MAPE':  mape,
-                                                                                          'SMAPE': smape,
-                                                                                          'RMSE': rmse,
-                                                                                          'R2': r2}, ignore_index=True)
-                        # Add rank column to dataframe and order by metric column
-                        ranked_naive_model1_tuning_results = rank_dataframe(naive_model1_tuning_results, 'MAPE')
-                        
-                        # convert mape to %
-                        ranked_naive_model1_tuning_results['MAPE'] = ranked_naive_model1_tuning_results['MAPE'].map(lambda x: f'{x*100:.2f}%' if not np.isnan(x) else x)
-
-                    st.dataframe(ranked_naive_model1_tuning_results, use_container_width = True, hide_index = True)
-                    
-                    #########################################################################################################
-                    # Naive Model II: Rolling Window
-                    #########################################################################################################
-                    my_text_paragraph('Naive Model II: Rolling Window')
-                    
-                    # Iterate over grid of all possible combinations of hyperparameters
-                    param_grid = {'rolling_window_range': list(range(rolling_window_range[0], rolling_window_range[1] + 1)),
-                                  'rolling_window_options': rolling_window_options}
-                                
-                    for i, (rolling_window_value, rolling_window_option) in enumerate(itertools.product(param_grid['rolling_window_range'], param_grid['rolling_window_options']), 0):
-                         # Update the progress bar
-                         progress_percentage = (i + len(lag_options)) / total_options * 100
-                         progress_bar.progress(value = ((i  + len(lag_options) ) / total_options), 
-                                               text = f'''Please wait up to {max_wait_time_minutes} minute(s) while parameters of Naive Model II are being tuned!  
-                                                         \n{progress_percentage:.2f}% of total options within the search space reviewed ({i + len(lag_options)} out of {total_options} total options).''')
-                         # model 
-                         df_preds_naive_model2 = forecast_naive_model2_insample(y_test, size_rolling_window = rolling_window_value, agg_method_rolling_window = rolling_window_option)
-                         
-                         # retrieve metrics from difference actual - predicted
-                         mape, smape, rmse, r2 = my_metrics(my_df = df_preds_naive_model2, model_name = None)
-                         
-# =============================================================================
-#                          # Append a new row to the dataframe with the parameter values and MAPE score
-#                          naive_model2_tuning_results = naive_model2_tuning_results.append({
-#                                                                                            'parameters': f'rolling_window_size: {rolling_window_value}, aggregation_method: {rolling_window_option}', 
-#                                                                                            'MAPE': mape},
-#                                                                                            ignore_index=True)
-# =============================================================================
-                         # Create a new DataFrame with the row to append
-                         new_row = pd.DataFrame({'parameters': [f'rolling_window_size: {rolling_window_value}, aggregation_method: {rolling_window_option}'],
-                                                 'MAPE':  mape,
-                                                 'SMAPE': smape,
-                                                 'RMSE': rmse,
-                                                 'R2': r2})
-                        
-                         # Concatenate the original DataFrame with the new row DataFrame
-                         naive_model2_tuning_results = pd.concat([naive_model2_tuning_results, new_row], ignore_index=True)
-
-                         # add rank column to dataframe and order by metric column
-                         ranked_naive_model2_tuning_results = rank_dataframe(naive_model2_tuning_results, 'MAPE')
-                   
-                         # convert mape to %
-                         ranked_naive_model2_tuning_results['MAPE'] = ranked_naive_model2_tuning_results['MAPE'].map(lambda x: f'{x*100:.2f}%' if not np.isnan(x) else x)
-
-                    
-                    st.dataframe(ranked_naive_model2_tuning_results, use_container_width=True, hide_index = True)
-                    
-                    # set the end of runtime
-                    end_time_naive_models = time.time()
-                    
-                    # clear progress bar in streamlit for user as process is completed
-                    progress_bar.empty()
-                    
-                    # text formatting:
-                    import re
-                    text = str(ranked_naive_model2_tuning_results.iloc[0, 1])
-
-                    formatted_text = re.sub(r'([^:]+): ([^,]+)', r'`\1`: **\2**', text)
-                    final_text = re.sub(r',\s*', ', ', formatted_text)
-                    
-                    st.write(f'🏆 **Naive Model II** parameters with the lowest MAPE of {ranked_naive_model2_tuning_results["MAPE"][0]} found in **{end_time_naive_models - start_time:.2f}** seconds is: {final_text}')
-
             if model_name == "SARIMAX":
-
                 if search_algorithm == 'Grid Search':
-                    # set start time when grid-search is kicked-off to define total time it takes as computationaly intensive
-                    start_time = time.time()
 
-                    # initiate progress bar for SARIMAX Grid Search runtime
-                    progress_bar = st.progress(0)
+                    start_time = time.time() # set start time when grid-search is kicked-off to define total time it takes as computationaly intensive
+                    progress_bar = st.progress(0) # initiate progress bar for SARIMAX Grid Search runtime
                     
                     # =============================================================================
                     # Define Parameter Grid for Grid Search             
@@ -11590,7 +11756,6 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                         # Hyperparameter Importance                    
                         # =============================================================================
                         # Step 1: Perform the grid search and store the evaluation metric values for each combination of hyperparameters.
-
                         columns = ['p', 'd', 'q', 'P', 'D', 'Q', 's', 'trend', 'AIC', 'BIC', 'RMSE']
                         df_gridsearch = pd.DataFrame(columns=columns)
                         
@@ -11605,8 +11770,6 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                             df_gridsearch = df_gridsearch.append({'p': order[0], 'd': order[1], 'q': order[2],
                                                       'P': seasonal_order[0], 'D': seasonal_order[1], 'Q': seasonal_order[2], 's': seasonal_order[3],
                                                       'trend': trend, 'AIC': aic, 'BIC': bic, 'RMSE': rmse}, ignore_index=True)
-                        
-                        #st.write(df_gridsearch) # TEST
                         
                         # =============================================================================
                         # Step 2: Calculate the baseline metric as the minimum value of the evaluation metric.
@@ -11836,10 +11999,10 @@ if menu_item == 'Tune' and sidebar_menu_item == 'Home':
                     aic = -2 * loglik + 2 * k
                     bic = 2 * loglik + k * np.log(nobs)
                     
-                    # add AIC score to list
+                    # Add AIC score to list
                     aics.append(aic)
                     
-                    # add BIC score to list
+                    # Add BIC score to list
                     bics.append(bic)
                 
                 # create dataframe with parameter combinations
@@ -11936,10 +12099,14 @@ if menu_item == 'Forecast':
                 for model_name in selected_model_names:
                     # if model is linear regression max out the time horizon to maximum possible
                     if model_name == "Linear Regression":
+                        
                         # max value is it depends on the length of the input data and the forecasting method used. Linear regression can only forecast as much as the input data if you're using it for time series forecasting.
                         max_value_calendar = end_date_calendar + timedelta(days=len(df))
+                        
                     if model_name == "SARIMAX":
+                        
                         max_value_calendar = None
+                        
                 # create user input box for entering date in a streamlit calendar widget
                 end_date_forecast = st.date_input(label = "input forecast date", 
                                                   value = start_date_forecast,
@@ -11949,6 +12116,7 @@ if menu_item == 'Forecast':
             with col5: 
                 # set text information for dropdown frequency
                 st.markdown(f'<h5 style="color: #48466D; background-color: #F0F2F6; padding: 12px; border-radius: 5px;"><center> Frequency:</center></h5>', unsafe_allow_html=True)
+           
             with col6:
                 # Define a dictionary of possible frequencies and their corresponding offsets
                 forecast_freq_dict = {'Daily': 'D', 'Weekly': 'W', 'Monthly': 'M', 'Quarterly': 'Q', 'Yearly': 'Y'}
