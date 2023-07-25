@@ -7358,9 +7358,7 @@ def initiate_global_variables():
 # show in streamlit the session state variables that are stored cache for the user session
 st.write(st.session_state)
 #///////////////////////////////////////////////////////////////////
-    
-
-    
+        
 # =============================================================================
 #   _____ _   _ _____ _______ _____       _______ ______ 
 #  |_   _| \ | |_   _|__   __|_   _|   /\|__   __|  ____|
