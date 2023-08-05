@@ -33,7 +33,6 @@ import numpy as np
 import streamlit as st
        
 import json
-
 import base64
 
 #**************************
@@ -7512,6 +7511,7 @@ train_icon, evaluate_icon, tune_icon, forecast_icon, arrow_down_icon, arrow_righ
 # =============================================================================
 with st.sidebar:
     st.image('./images/forecastgenie_logo.png')
+    
 
 # =============================================================================
 #    _____ _____ _____  ______ ____          _____    __  __ ______ _   _ _    _ 
@@ -8439,7 +8439,8 @@ if menu_item == 'Load' and sidebar_menu_item == 'Home':
                     set_state("LOAD_PAGE", ("my_data_choice", data_option))
     
                     vertical_spacer(1)
-                
+                    
+                st.image('./images/under_construction.png') #UNDER CONSTRUCTION
                 # =============================================================================
                 # STEP 2: IF UPLOADED FILE THEN SHOW FILE-UPLOADER WIDGET
                 # =============================================================================
