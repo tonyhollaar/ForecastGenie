@@ -7,8 +7,6 @@ seaborn
 plotly
 statsmodels
 scikit-learn
-<<<<<<< HEAD
-prophet==1.1.2
 pywavelets
 openpyxl
 holidays==0.24
