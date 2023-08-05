@@ -1,6 +1,7 @@
 streamlit
 streamlit_extras
 streamlit_option_menu
+st_click_detector 
 pandas
 numpy
 matplotlib
