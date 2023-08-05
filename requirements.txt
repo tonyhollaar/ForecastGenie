@@ -7,8 +7,9 @@ seaborn
 plotly
 statsmodels
 scikit-learn
-#prophet
-pywavelets
-holidays
-holidays==0.24
+<<<<<<< HEAD
 prophet==1.1.2
+pywavelets
+openpyxl
+holidays==0.24
+optuna
