@@ -14,6 +14,7 @@ matplotlib
 seaborn
 altair
 plotly
+numerize
 
 # Statistical Analysis
 statsmodels
