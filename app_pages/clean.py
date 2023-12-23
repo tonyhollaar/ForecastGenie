@@ -10,7 +10,7 @@ from typing import Union
 from fire_state import get_state, set_state, form_update
 
 # local packages
-from functions import determine_df_frequency, copy_df_date_index, download_csv_button, highlight_cols
+from functions import determine_df_frequency, copy_df_date_index, download_csv_button
 from style.text import my_title, my_text_header, my_text_paragraph, my_subheader, vertical_spacer
 from style.icons import load_icons
 
@@ -34,12 +34,12 @@ class CleanPage:
         - key3_missing (str): Key for frequency selection.
         - random_state (int): Random state for reproducibility.
         """
+        self.my_bar = None
         self.state = state
         self.key1_missing = key1_missing
         self.key2_missing = key2_missing
         self.key3_missing = key3_missing
         self.random_state = random_state
-
         self.key1_outlier = key1_outlier
         self.key2_outlier = key2_outlier
         self.key3_outlier = key3_outlier
@@ -47,12 +47,8 @@ class CleanPage:
         self.key5_outlier = key5_outlier
         self.key6_outlier = key6_outlier
         self.key7_outlier = key7_outlier
-
         self.fill_method = get_state("CLEAN_PAGE_MISSING", "missing_fill_method")
         self.custom_fill_value = get_state("CLEAN_PAGE_MISSING", "missing_custom_fill_value")
-
-        self.my_bar = st.progress(0, text="Dusting off cleaning methods... Please wait!")
-        self.my_bar.progress(10, text='10%')
 
         # infer and return the original data frequency e.g. 'M' and name e.g. 'Monthly'
         self.original_freq, self.original_freq_name = determine_df_frequency(self.state['df_raw'], column_name='date')
@@ -63,16 +59,20 @@ class CleanPage:
         # initialize the variable before using it
         self.outliers = None
 
+        # Initialize df_cleaned_outliers as an empty DataFrame
+        self.df_cleaned_outliers = pd.DataFrame()
+
+        self.freq = st.session_state['freq']
+
     def render(self):
         """
         Renders the CleanPage interface.
         """
+        self.my_bar = st.progress(0, text="Dusting off cleaning methods... Please wait!")
+
         self.render_sidebar()  # Renders the sidebar for user input.
-        self.impute_missing_dates()  # Applies function to resample missing dates based on the user-set frequency.
-        self.impute_missing_values()  # Applies the selected method to impute missing values.
-        self.retrieve_parameters() # Retrieves the parameters from the state dictionary.
-        self.execute_outlier_handling() # Handles outliers in the dataset.
-        self.deal_with_outliers()
+
+        self.my_bar.progress(10, text='10%')
 
         # create user tabs
         tab1_clean, tab2_clean = st.tabs(['missing data', 'outliers'])
@@ -85,6 +85,16 @@ class CleanPage:
 
         self.my_bar.progress(100, text='100%')
         self.my_bar.empty()
+
+    def perform_data_cleaning(self):
+        """
+        Performs data cleaning on the dataset.
+        """
+        self.impute_missing_dates()  # Applies function to resample missing dates based on the user-set frequency.
+        self.impute_missing_values()  # Applies the selected method to impute missing values.
+        self.retrieve_parameters() # Retrieves the parameters from the state dictionary.
+        #self.execute_outlier_handling() # Handles outliers in the dataset.
+        self.deal_with_outliers()
 
     def render_sidebar(self):
         """
@@ -99,6 +109,27 @@ class CleanPage:
         my_title(f"""{icons["clean_icon"]}""",
                  "#3b3b3b",
                  gradient_colors="#440154, #2C2A6B, #FDE725")
+
+    def highlight_cols(self, s):
+        """
+        A function that highlights the cells of a DataFrame based on their values.
+
+        Args:
+        s (pd.Series): A Pandas Series object representing the columns of a DataFrame.
+
+        Returns:
+        list: A list of CSS styles to be applied to each cell in the input Series object.
+        """
+        if isinstance(s, pd.Series):
+            if s.name == self.outliers_df.columns[0]:
+                return ['background-color: lavender'] * len(s)
+            elif s.name == self.outliers_df.columns[1]:
+                return ['background-color: lightyellow'] * len(s)
+            else:
+                return [''] * len(s)
+        else:
+            return [''] * len(s)
+
 
     def render_data_cleaning_form(self):
         with st.form('data_cleaning'):
@@ -147,7 +178,7 @@ class CleanPage:
         self.outlier_iqr_multiplier = get_state("CLEAN_PAGE", "outlier_iqr_multiplier")
 
     def execute_outlier_handling(self):
-        df_cleaned_outliers, self.outliers = self.handle_outliers(data=self.df_clean_show,
+        self.df_cleaned_outliers, self.outliers = self.handle_outliers(data=self.df_clean_show,
                                                                   method=self.outlier_detection_method,
                                                                   outlier_threshold=self.outlier_zscore_threshold,
                                                                   q1=self.outlier_iqr_q1,
@@ -183,7 +214,7 @@ class CleanPage:
         """
         Handles outliers in the dataset.
         """
-        df_cleaned_outliers, self.outliers = self.handle_outliers(data=self.df_clean_show ,
+        self.df_cleaned_outliers, self.outliers = self.handle_outliers(data=self.df_clean_show ,
                                                         method=get_state('CLEAN_PAGE', 'outlier_detection_method'),
                                                         outlier_threshold=get_state('CLEAN_PAGE',
                                                                                     'outlier_zscore_threshold'),
@@ -196,9 +227,16 @@ class CleanPage:
                                                         random_state=self.random_state,
                                                         iqr_multiplier=get_state('CLEAN_PAGE', 'outlier_iqr_multiplier'))
 
-        df_cleaned_outliers_with_index = df_cleaned_outliers.copy(deep=True)
+        # create a copy of df_cleaned_outliers with index
+        df_cleaned_outliers_with_index = self.df_cleaned_outliers.copy(deep=True)
+
+        # reset index
         df_cleaned_outliers_with_index.reset_index(inplace=True)
+
+        # change date column to datetime
         df_cleaned_outliers_with_index['date'] = pd.to_datetime(df_cleaned_outliers_with_index['date'])
+
+        # save to session state
         st.session_state['df_cleaned_outliers_with_index'] = df_cleaned_outliers_with_index
 
     def my_fill_method(self, df, fill_method, custom_fill_value=None):
@@ -424,10 +462,11 @@ class CleanPage:
 
                     # Display the dates and the number of missing values associated with them
                     my_subheader('Missing Values', my_style="#333333", my_size=6)
+
                     # Filter the DataFrame to include only rows with missing values
-                    missing_df = copy_df_date_index(st.session_state.df_raw.loc[st.session_state.df_raw.iloc[:,
-                                                                                1].isna(), st.session_state.df_raw.columns],
-                                                    datetime_to_date=True, date_to_index=True)
+                    missing_df = copy_df_date_index(st.session_state.df_raw.loc[st.session_state.df_raw.iloc[:, 1].isna(), st.session_state.df_raw.columns],
+                                                    datetime_to_date=True,
+                                                    date_to_index=True)
                     st.write(missing_df)
 
                 with col4:
@@ -475,13 +514,13 @@ class CleanPage:
                 my_text_paragraph('Outlier Plot')
                 if self.outliers is not None and any(self.outliers):
 
-                    outliers_df = copy_df_date_index(self.df_clean[self.outliers], datetime_to_date=True,
+                    self.outliers_df = copy_df_date_index(self.df_clean[self.outliers], datetime_to_date=True,
                                                      date_to_index=True).add_suffix('_outliers')
 
-                    df_cleaned_outliers = self.df_cleaned_outliers.add_suffix('_outliers_replaced')
+                    self.df_cleaned_outliers = self.df_cleaned_outliers.add_suffix('_outliers_replaced')
 
                     # inner join two dataframes of outliers and imputed values
-                    outliers_df = outliers_df.join(df_cleaned_outliers, how='inner', rsuffix='_outliers_replaced')
+                    self.outliers_df = self.outliers_df.join(self.df_cleaned_outliers, how='inner', rsuffix='_outliers_replaced')
 
                     ## OUTLIER FIGURE CODE
                     fig_outliers = go.Figure()
@@ -497,15 +536,15 @@ class CleanPage:
                     # add scatterplot
                     fig_outliers.add_trace(
                         go.Scatter(
-                            x=df_cleaned_outliers.index,
-                            y=df_cleaned_outliers.iloc[:, 0],
+                            x=self.df_cleaned_outliers.index,
+                            y=self.df_cleaned_outliers.iloc[:, 0],
                             mode='markers',
                             name='After',
                             marker=dict(color='#45B8AC'), opacity=1
                         )
                     )
 
-                    df_diff = df_cleaned_outliers.loc[self.outliers]
+                    df_diff = self.df_cleaned_outliers.loc[self.outliers]
                     # add scatterplot
                     fig_outliers.add_trace(go.Scatter(
                         x=df_diff.index,
@@ -522,14 +561,13 @@ class CleanPage:
 
                     #  show the dataframe of outliers
                     st.info(
-                        f'ℹ️ You replaced **{len(outliers_df)} outlier(s)** with their respective **{self.outlier_replacement_method}(s)** utilizing **{self.outlier_detection_method}**.')
+                        f'ℹ️ You replaced **{len(self.outliers_df)} outlier(s)** with their respective **{self.outlier_replacement_method}(s)** utilizing **{self.outlier_detection_method}**.')
 
                     # Apply the color scheme to the dataframe, round values by 2 decimals and display it in streamlit using full size of expander window
-                    st.dataframe(outliers_df.style.format("{:.2f}").apply(highlight_cols, axis=0),
-                                 use_container_width=True)
+                    st.dataframe(self.outliers_df.style.format("{:.2f}").apply(self.highlight_cols, axis=0), use_container_width=True)
 
                     # add download button for user to be able to download outliers
-                    download_csv_button(outliers_df, my_file="df_outliers.csv", set_index=True,
+                    download_csv_button(self.outliers_df, my_file="df_outliers.csv", set_index=True,
                                         help_message='Download outlier dataframe to .CSV', my_key='df_outliers')
 
                 # if outliers are NOT found or None is selected as outlier detection method
@@ -669,3 +707,4 @@ class CleanPage:
                 st.form_submit_button(label='Submit',
                                       on_click=form_update,
                                       args=("CLEAN_PAGE",))
+

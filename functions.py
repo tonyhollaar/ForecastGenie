@@ -14,13 +14,11 @@ import streamlit as st
 import sympy as sp
 
 import altair as alt
-import holidays
 
 from fire_state import create_store, form_update, get_state, set_state
-from pandas.tseries.holiday import (AbstractHolidayCalendar, Holiday, SU, FR, SA)
+
 # from sklearn.neighbors import NearestNeighbors
-from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
-from pandas.tseries.offsets import BDay
+
 from plotly.subplots import make_subplots
 from prophet import Prophet
 from prophet.diagnostics import cross_validation, performance_metrics
@@ -50,7 +48,6 @@ from st_click_detector import click_detector
 from statsmodels.tsa.stattools import pacf, adfuller
 from streamlit_extras.buy_me_a_coffee import button
 
-
 # Text manipulation
 import re
 import json
@@ -64,7 +61,6 @@ from style.icons import load_icons
 
 # Load icons
 icons = load_icons()
-
 
 def rank_dataframe(df, metric):
     """
@@ -911,10 +907,6 @@ def show_model_inputs():
     else:
         pass
 
-
-
-
-
 def stock_ticker(text, speed=15):
     """
     Displays a right-to-left scrolling text e.g. ticker animation in a Markdown format using the `st.markdown` function from the Streamlit library.
@@ -967,11 +959,6 @@ def stock_ticker(text, speed=15):
         """,
         unsafe_allow_html=True
     )
-
-
-
-
-
 
 # =============================================================================
 #
@@ -1441,36 +1428,9 @@ def create_flipcard_model_input(image_path_front_card=None, font_size_back='10px
     # Join the card HTML code list and display the carousel in Streamlit
     st.markdown("".join(card_html), unsafe_allow_html=True)
 
-
-
-
 #################################
 # FORMATTING DATAFRAMES FUNCTIONS
 #################################
-def highlight_cols(s):
-    """
-    A function that highlights the cells of a DataFrame based on their values.
-
-    Args:
-    s (pd.Series): A Pandas Series object representing the columns of a DataFrame.
-
-    Returns:
-    list: A list of CSS styles to be applied to each cell in the input Series object.
-    """
-    if isinstance(s, pd.Series):
-        if s.name == outliers_df.columns[0]:
-            return ['background-color: lavender'] * len(s)
-        elif s.name == outliers_df.columns[1]:
-            return ['background-color: lightyellow'] * len(s)
-        else:
-            return [''] * len(s)
-    else:
-        return [''] * len(s)
-
-
-
-
-
 def train_models_carousel(my_title=''):
     # gradient title
     vertical_spacer(2)
@@ -2909,8 +2869,6 @@ def model_documentation():
         # ******************************************************************************
 
 
-
-
 # OTHER FUNCTIONS
 # ******************************************************************************
 def display_summary_statistics(df):
@@ -3314,369 +3272,6 @@ def plot_forecast(df_actual, df_forecast, title=''):
     # show plot in streamlit
     st.plotly_chart(fig, use_container_width=True)
 
-
-def create_date_features(df, year_dummies=True, month_dummies=True, day_dummies=True):
-    '''
-    This function creates dummy variables for year, month, and day of week from a date column in a pandas DataFrame.
-
-    Parameters:
-    df (pandas.DataFrame): Input DataFrame containing a date column.
-    year_dummies (bool): Flag to indicate if year dummy variables are needed. Default is True.
-    month_dummies (bool): Flag to indicate if month dummy variables are needed. Default is True.
-    day_dummies (bool): Flag to indicate if day of week dummy variables are needed. Default is True.
-
-    Returns:
-    pandas.DataFrame: A new DataFrame with added dummy variables.
-    '''
-    if year_dummies:
-        df['year'] = df['date'].dt.year
-        dum_year = pd.get_dummies(df['year'], columns=['year'], drop_first=True, prefix='year', prefix_sep='_')
-        df = pd.concat([df, dum_year], axis=1)
-    if month_dummies:
-        month_dict = {1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June', 7: 'July', 8: 'August',
-                      9: 'September', 10: 'October', 11: 'November', 12: 'December'}
-        df['month'] = df['date'].dt.month.apply(lambda x: month_dict.get(x))
-        dum_month = pd.get_dummies(df['month'], columns=['month'], drop_first=True, prefix='', prefix_sep='')
-        df = pd.concat([df, dum_month], axis=1)
-    if day_dummies:
-        week_dict = {0: 'Monday', 1: 'Tuesday', 2: 'Wednesday', 3: 'Thursday', 4: 'Friday', 5: 'Saturday', 6: 'Sunday'}
-        df['day'] = df['date'].dt.weekday.apply(lambda x: week_dict.get(x))
-        dum_day = pd.get_dummies(df['day'], columns=['day'], drop_first=True, prefix='', prefix_sep='')
-        df = pd.concat([df, dum_day], axis=1)
-    # Drop any duplicate columns based on their column names
-    df = df.loc[:, ~df.columns.duplicated()]
-    return df
-
-
-def create_calendar_holidays(df: pd.DataFrame, slider: bool = True):
-    """
-    Create a calendar of holidays for a given DataFrame.
-
-    Parameters:
-    - df (pandas.DataFrame): The input DataFrame containing a 'date' column.
-
-    Returns:
-    - pandas.DataFrame: The input DataFrame with additional columns 'is_holiday' (1 if the date is a holiday, 0 otherwise)
-                        and 'holiday_desc' (description of the holiday, empty string if not a holiday).
-    """
-    try:
-        # Note: create_calendar_holidays FUNCTION BUILD ON TOP OF HOLIDAY PACKAGE
-        # some countries like Algeria have issues therefore if/else statement to catch it
-        # Define variables
-        start_date = df['date'].min()
-        end_date = df['date'].max()
-
-        # Available countries and their country codes
-        country_data = [
-            ('Albania', 'AL'),
-            ('Algeria', 'DZ'),
-            ('American Samoa', 'AS'),
-            ('Andorra', 'AD'),
-            ('Angola', 'AO'),
-            ('Argentina', 'AR'),
-            ('Armenia', 'AM'),
-            ('Aruba', 'AW'),
-            ('Australia', 'AU'),
-            ('Austria', 'AT'),
-            ('Azerbaijan', 'AZ'),
-            ('Bahrain', 'BH'),
-            ('Bangladesh', 'BD'),
-            ('Belarus', 'BY'),
-            ('Belgium', 'BE'),
-            ('Bolivia', 'BO'),
-            ('Bosnia and Herzegovina', 'BA'),
-            ('Botswana', 'BW'),
-            ('Brazil', 'BR'),
-            ('Bulgaria', 'BG'),
-            ('Burundi', 'BI'),
-            ('Canada', 'CA'),
-            ('Chile', 'CL'),
-            ('China', 'CN'),
-            ('Colombia', 'CO'),
-            ('Costa Rica', 'CR'),
-            ('Croatia', 'HR'),
-            ('Cuba', 'CU'),
-            ('Curacao', 'CW'),
-            ('Cyprus', 'CY'),
-            ('Czechia', 'CZ'),
-            ('Denmark', 'DK'),
-            ('Djibouti', 'DJ'),
-            ('Dominican Republic', 'DO'),
-            ('Ecuador', 'EC'),
-            ('Egypt', 'EG'),
-            ('Estonia', 'EE'),
-            ('Eswatini', 'SZ'),
-            ('Ethiopia', 'ET'),
-            ('Finland', 'FI'),
-            ('France', 'FR'),
-            ('Georgia', 'GE'),
-            ('Germany', 'DE'),
-            ('Greece', 'GR'),
-            ('Guam', 'GU'),
-            ('Honduras', 'HN'),
-            ('Hong Kong', 'HK'),
-            ('Hungary', 'HU'),
-            ('Iceland', 'IS'),
-            ('India', 'IN'),
-            ('Indonesia', 'ID'),
-            ('Ireland', 'IE'),
-            ('Isle of Man', 'IM'),
-            ('Israel', 'IL'),
-            ('Italy', 'IT'),
-            ('Jamaica', 'JM'),
-            ('Japan', 'JP'),
-            ('Kazakhstan', 'KZ'),
-            ('Kenya', 'KE'),
-            ('Kyrgyzstan', 'KG'),
-            ('Latvia', 'LV'),
-            ('Lesotho', 'LS'),
-            ('Liechtenstein', 'LI'),
-            ('Lithuania', 'LT'),
-            ('Luxembourg', 'LU'),
-            ('Madagascar', 'MG'),
-            ('Malawi', 'MW'),
-            ('Malaysia', 'MY'),
-            ('Malta', 'MT'),
-            ('Marshall Islands', 'MH'),
-            ('Mexico', 'MX'),
-            ('Moldova', 'MD'),
-            ('Monaco', 'MC'),
-            ('Montenegro', 'ME'),
-            ('Morocco', 'MA'),
-            ('Mozambique', 'MZ'),
-            ('Namibia', 'NA'),
-            ('Netherlands', 'NL'),
-            ('New Zealand', 'NZ'),
-            ('Nicaragua', 'NI'),
-            ('Nigeria', 'NG'),
-            ('Northern Mariana Islands', 'MP'),
-            ('North Macedonia', 'MK'),
-            ('Norway', 'NO'),
-            ('Pakistan', 'PK'),
-            ('Panama', 'PA'),
-            ('Paraguay', 'PY'),
-            ('Peru', 'PE'),
-            ('Philippines', 'PH'),
-            ('Poland', 'PL'),
-            ('Portugal', 'PT'),
-            ('Puerto Rico', 'PR'),
-            ('Romania', 'RO'),
-            ('Russia', 'RU'),
-            ('San Marino', 'SM'),
-            ('Saudi Arabia', 'SA'),
-            ('Serbia', 'RS'),
-            ('Singapore', 'SG'),
-            ('Slovakia', 'SK'),
-            ('Slovenia', 'SI'),
-            ('South Africa', 'ZA'),
-            ('South Korea', 'KR'),
-            ('Spain', 'ES'),
-            ('Sweden', 'SE'),
-            ('Switzerland', 'CH'),
-            ('Taiwan', 'TW'),
-            ('Thailand', 'TH'),
-            ('Tunisia', 'TN'),
-            ('Turkey', 'TR'),
-            ('Ukraine', 'UA'),
-            ('United Arab Emirates', 'AE'),
-            ('United Kingdom', 'GB'),
-            ('United States Minor Outlying Islands', 'UM'),
-            ('United States of America', 'US'),
-            ('United States Virgin Islands', 'VI'),
-            ('Uruguay', 'UY'),
-            ('Uzbekistan', 'UZ'),
-            ('Vatican City', 'VA'),
-            ('Venezuela', 'VE'),
-            ('Vietnam', 'VN'),
-            ('Virgin Islands (U.S.)', 'VI'),
-            ('Zambia', 'ZM'),
-            ('Zimbabwe', 'ZW')
-        ]
-        # retrieve index of default country e.g. 'United States of America'
-        us_index = country_data.index(('United States of America', 'US'))
-
-        # add slider if user on the page with menu_item = 'Engineer' otherwise do not show selectbox
-        if slider == True:
-
-            col1, col2, col3 = st.columns([1, 3, 1])
-            with col2:
-
-                with st.form('country_holiday'):
-                    selected_country_name = st.selectbox(label="Select a country",
-                                                         options=[country[0] for country in country_data],
-                                                         key=key1_engineer_page_country,
-                                                         label_visibility='collapsed')
-
-                    col1, col2, col3 = st.columns([5, 4, 4])
-                    with col2:
-                        country_holiday_btn = st.form_submit_button('Apply', on_click=form_update,
-                                                                    args=("ENGINEER_PAGE_COUNTRY_HOLIDAY",))
-
-                        # update country code as well in session state - which is used for prophet model holiday feature as well
-                        set_state("ENGINEER_PAGE_COUNTRY_HOLIDAY",
-                                  ("country_code", dict(country_data).get(selected_country_name)))
-
-        # else do not add selectbox in if function is called when user not on page
-        else:
-            selected_country_name = get_state("ENGINEER_PAGE_COUNTRY_HOLIDAY", "country_name")
-
-        # create empty container for the calendar
-        country_calendars = {}
-
-        # iterate over all countries and try-except block for if holiday for country is not found in holiday python package
-        for name, code in country_data:
-            try:
-                country_calendars[name] = getattr(holidays, code)()
-            except AttributeError:
-                col1, col2, col3 = st.columns([1, 2, 1])
-                with col2:
-                    print(f"No holiday calendar found for country: {name}")
-                continue
-
-        # Retrieve the country code for the selected country
-        selected_country_code = dict(country_data).get(get_state("ENGINEER_PAGE_COUNTRY_HOLIDAY", "country_name"))
-        # st.write(selected_country_code, selected_country_name) # TEST
-
-        # Check if the selected country has a holiday calendar
-        if selected_country_name in country_calendars.keys():
-
-            country_holidays = holidays.country_holidays(selected_country_code)
-            # Set the start and end date for the date range
-            range_of_dates = pd.date_range(start_date, end_date)
-
-            # create a dataframe for the date range
-            df_country_holidays = pd.DataFrame(index=range_of_dates)
-            # add boolean (1 if holiday date else 0)
-            df_country_holidays['is_holiday'] = [1 if date in country_holidays else 0 for date in range_of_dates]
-            # add holiday description
-            df_country_holidays['holiday_desc'] = [country_holidays.get(date, '') for date in range_of_dates]
-
-            # st.write(df_country_holidays) # TEST IF TWO COLUMNS ARE CREATED CORRECTLY FOR COUNTRY HOLIDAYS
-
-            # merge dataframe of index with dates, is_holiday, holiday_desc with original df
-            df = pd.merge(df, df_country_holidays, left_on='date', right_index=True, how='left')
-            # st.write(df) # TEST IF MERGE WAS SUCCESFULL
-            return df
-
-        else:
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                return st.error(f"⚠️No holiday calendar found for country: **{selected_country_name}**")
-    except:
-        st.error(
-            'Forecastgenie Error: the function create_calendar_holidays() could not execute correctly, please contact the administrator...')
-
-
-def create_calendar_special_days(df, start_date_calendar=None, end_date_calendar=None, special_calendar_days_checkbox=True):
-    """
-    # source: https://practicaldatascience.co.uk/data-science/how-to-create-an-ecommerce-trading-calendar-using-pandas
-    Create a trading calendar for an ecommerce business in the UK.
-
-    Parameters:
-    df (pd.DataFrame): Cleaned DataFrame containing order data with index
-    special_calendar_days_checkbox (bool): Whether to select all days or only specific special days
-
-    Returns:
-    df_exogenous_vars (pd.DataFrame): DataFrame containing trading calendar with holiday and event columns
-    """
-    ###############################################
-    # Define variables
-    ###############################################
-    if start_date_calendar == None:
-        start_date_calendar = df['date'].min()
-    else:
-        start_date_calendar = start_date_calendar
-    if end_date_calendar == None:
-        end_date_calendar = df['date'].max()
-    else:
-        end_date_calendar = end_date_calendar
-    df_exogenous_vars = pd.DataFrame({'date': pd.date_range(start=start_date_calendar, end=end_date_calendar)})
-
-    class UKEcommerceTradingCalendar(AbstractHolidayCalendar):
-        rules = []
-        # Seasonal trading events
-        # only add Holiday if user checkmarked checkbox (e.g. equals True)
-        if get_state("ENGINEER_PAGE_VARS", "jan_sales"):
-            rules.append(Holiday('January sale', month=1, day=1))
-        if get_state("ENGINEER_PAGE_VARS", "val_day_lod"):
-            rules.append(Holiday('Valentine\'s Day [last order date]', month=2, day=14, offset=BDay(-2)))
-        if get_state("ENGINEER_PAGE_VARS", "val_day"):
-            rules.append(Holiday('Valentine\'s Day', month=2, day=14))
-        if get_state("ENGINEER_PAGE_VARS", "mother_day_lod"):
-            rules.append(Holiday('Mother\'s Day [last order date]', month=5, day=1, offset=BDay(-2)))
-        if get_state("ENGINEER_PAGE_VARS", "mother_day"):
-            rules.append(Holiday('Mother\'s Day', month=5, day=1, offset=pd.DateOffset(weekday=SU(2))))
-        if get_state("ENGINEER_PAGE_VARS", "father_day_lod"):
-            rules.append(Holiday('Father\'s Day [last order date]', month=6, day=1, offset=BDay(-2)))
-        if get_state("ENGINEER_PAGE_VARS", "father_day"):
-            rules.append(Holiday('Father\'s Day', month=6, day=1, offset=pd.DateOffset(weekday=SU(3))))
-        if get_state("ENGINEER_PAGE_VARS", "black_friday_lod"):
-            rules.append(
-                Holiday("Black Friday [sale starts]", month=11, day=1, offset=[pd.DateOffset(weekday=SA(4)), BDay(-5)]))
-        if get_state("ENGINEER_PAGE_VARS", "black_friday"):
-            rules.append(Holiday('Black Friday', month=11, day=1, offset=pd.DateOffset(weekday=FR(4))))
-        if get_state("ENGINEER_PAGE_VARS", "cyber_monday"):
-            rules.append(
-                Holiday("Cyber Monday", month=11, day=1, offset=[pd.DateOffset(weekday=SA(4)), pd.DateOffset(2)]))
-        if get_state("ENGINEER_PAGE_VARS", "christmas_day"):
-            rules.append(Holiday('Christmas Day [last order date]', month=12, day=25, offset=BDay(-2)))
-        if get_state("ENGINEER_PAGE_VARS", "boxing_day"):
-            rules.append(Holiday('Boxing Day sale', month=12, day=26))
-
-    calendar = UKEcommerceTradingCalendar()
-    start = df_exogenous_vars.date.min()
-    end = df_exogenous_vars.date.max()
-    events = calendar.holidays(start=start, end=end, return_name=True)
-    events = events.reset_index(name='calendar_event_desc').rename(columns={'index': 'date'})
-    df_exogenous_vars = df_exogenous_vars.merge(events, on='date', how='left').fillna('')
-
-    # source: https://splunktool.com/holiday-calendar-in-pandas-dataframe
-
-    ###############################################
-    # Create Pay Days
-    ###############################################
-    class UKEcommerceTradingCalendar(AbstractHolidayCalendar):
-        rules = []
-        # Pay days(based on fourth Friday of the month)
-        if get_state("ENGINEER_PAGE_VARS", "pay_days") == True:
-            rules = [
-                Holiday('January Pay Day', month=1, day=31, offset=BDay(-1)),
-                Holiday('February Pay Day', month=2, day=28, offset=BDay(-1)),
-                Holiday('March Pay Day', month=3, day=31, offset=BDay(-1)),
-                Holiday('April Pay Day', month=4, day=30, offset=BDay(-1)),
-                Holiday('May Pay Day', month=5, day=31, offset=BDay(-1)),
-                Holiday('June Pay Day', month=6, day=30, offset=BDay(-1)),
-                Holiday('July Pay Day', month=7, day=31, offset=BDay(-1)),
-                Holiday('August Pay Day', month=8, day=31, offset=BDay(-1)),
-                Holiday('September Pay Day', month=9, day=30, offset=BDay(-1)),
-                Holiday('October Pay Day', month=10, day=31, offset=BDay(-1)),
-                Holiday('November Pay Day', month=11, day=30, offset=BDay(-1)),
-                Holiday('December Pay Day', month=12, day=31, offset=BDay(-1))
-            ]
-
-    calendar = UKEcommerceTradingCalendar()
-    start = df_exogenous_vars.date.min()
-    end = df_exogenous_vars.date.max()
-    events = calendar.holidays(start=start, end=end, return_name=True)
-    events = events.reset_index(name='pay_day_desc').rename(columns={'index': 'date'})
-    df_exogenous_vars = df_exogenous_vars.merge(events, on='date', how='left').fillna('')
-    df_exogenous_vars['pay_day'] = df_exogenous_vars['pay_day_desc'].apply(lambda x: 1 if len(x) > 1 else 0)
-    df_exogenous_vars['calendar_event'] = df_exogenous_vars['calendar_event_desc'].apply(
-        lambda x: 1 if len(x) > 1 else 0)
-
-    ###############################################################################
-    # Reorder Columns to logical order e.g. value | description of value
-    ###############################################################################
-    df_exogenous_vars = df_exogenous_vars[['date', 'calendar_event', 'calendar_event_desc', 'pay_day', 'pay_day_desc']]
-
-    ###############################################################################
-    # combine exogenous vars with df
-    ###############################################################################
-    df_total_incl_exogenous = pd.merge(df, df_exogenous_vars, on='date', how='left')
-    df = df_total_incl_exogenous.copy(deep=True)
-    return df
-
-
 def my_subheader_metric(string1, color1="#cfd7c2", metric=0, color2="#FF0000", my_style="#000000", my_size=5):
     metric_rounded = "{:.2%}".format(metric)
     metric_formatted = f"<span style='color:{color2}'>{metric_rounded}</span>"
@@ -3691,35 +3286,35 @@ def wait(seconds):
         time.sleep(seconds)
 
 
-def my_holiday_name_func(my_date):
-    """
-    This function takes a date as input and returns the name of the holiday that falls on that date.
-
-    Parameters:
-    -----------
-    my_date : str
-        The date for which the holiday name is to be returned. The date should be in the format 'YYYY-MM-DD'.
-
-    Returns:
-    --------
-    str:
-        The name of the holiday that falls on the given date. If there is no holiday on that date, an empty string is returned.
-
-    Examples:
-    ---------
-    >>> my_holiday_name_func('2022-07-04')
-    'Independence Day'
-    >>> my_holiday_name_func('2022-12-25')
-    'Christmas Day'
-    >>> my_holiday_name_func('2022-09-05')
-    'Labor Day'
-    """
-    holiday_name = calendar().holidays(start=my_date, end=my_date, return_name=True)
-    if len(holiday_name) < 1:
-        holiday_name = ""
-        return holiday_name
-    else:
-        return holiday_name[0]
+# def my_holiday_name_func(my_date):
+#     """
+#     This function takes a date as input and returns the name of the holiday that falls on that date.
+#
+#     Parameters:
+#     -----------
+#     my_date : str
+#         The date for which the holiday name is to be returned. The date should be in the format 'YYYY-MM-DD'.
+#
+#     Returns:
+#     --------
+#     str:
+#         The name of the holiday that falls on the given date. If there is no holiday on that date, an empty string is returned.
+#
+#     Examples:
+#     ---------
+#     >>> my_holiday_name_func('2022-07-04')
+#     'Independence Day'
+#     >>> my_holiday_name_func('2022-12-25')
+#     'Christmas Day'
+#     >>> my_holiday_name_func('2022-09-05')
+#     'Labor Day'
+#     """
+#     holiday_name = calendar().holidays(start=my_date, end=my_date, return_name=True)
+#     if len(holiday_name) < 1:
+#         holiday_name = ""
+#         return holiday_name
+#     else:
+#         return holiday_name[0]
 
 
 def my_metrics(my_df, model_name, metrics_dict):
