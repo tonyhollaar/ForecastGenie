@@ -10,6 +10,9 @@ from app_pages.load import generate_demo_data
 class SessionState:
     @staticmethod
     def initiate_global_variables():
+        # ================================ TEST GLOBAL DATAFRAME AS VARIABLES ====================================
+        create_store("DATAFRAMES", [("df_cleaned_outliers_with_index", pd.DataFrame())])
+
         # ================================ COLORS =====================================
         # store color scheme for app
         key1_chart_color, key2_chart_patterns, key3_run = create_store("COLORS", [("chart_color", "#F900EC"), ("chart_patterns", "#4d5466"), ("run", 0)])

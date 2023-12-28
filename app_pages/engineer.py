@@ -8,11 +8,11 @@ from pandas.tseries.offsets import BDay
 import plotly.express as px
 
 # third-party libraries
-from fire_state import get_state, set_state, form_update
+from fire_state import get_state, set_state, form_update, create_store
 
 # local packages
-from functions import my_title, my_text_header, my_text_paragraph, vertical_spacer, download_csv_button, \
-    copy_df_date_index
+from functions import download_csv_button, copy_df_date_index
+from style.text import my_title, my_text_header, my_text_paragraph, vertical_spacer
 from style.animations import show_lottie_animation
 from style.icons import load_icons
 import pywt
@@ -22,8 +22,152 @@ icons = load_icons()
 
 
 class EngineerPage:
+    # CONSTANTS
+
+    # Available countries and their country codes
+    COUNTRY_DATA = [
+        ('Albania', 'AL'),
+        # ('Algeria', 'DZ'), -> Algeria has issues with holiday package
+        ('American Samoa', 'AS'),
+        ('Andorra', 'AD'),
+        ('Angola', 'AO'),
+        ('Argentina', 'AR'),
+        ('Armenia', 'AM'),
+        ('Aruba', 'AW'),
+        ('Australia', 'AU'),
+        ('Austria', 'AT'),
+        ('Azerbaijan', 'AZ'),
+        ('Bahrain', 'BH'),
+        ('Bangladesh', 'BD'),
+        ('Belarus', 'BY'),
+        ('Belgium', 'BE'),
+        ('Bolivia', 'BO'),
+        ('Bosnia and Herzegovina', 'BA'),
+        ('Botswana', 'BW'),
+        ('Brazil', 'BR'),
+        ('Bulgaria', 'BG'),
+        ('Burundi', 'BI'),
+        ('Canada', 'CA'),
+        ('Chile', 'CL'),
+        ('China', 'CN'),
+        ('Colombia', 'CO'),
+        ('Costa Rica', 'CR'),
+        ('Croatia', 'HR'),
+        ('Cuba', 'CU'),
+        ('Curacao', 'CW'),
+        ('Cyprus', 'CY'),
+        ('Czechia', 'CZ'),
+        ('Denmark', 'DK'),
+        ('Djibouti', 'DJ'),
+        ('Dominican Republic', 'DO'),
+        ('Ecuador', 'EC'),
+        ('Egypt', 'EG'),
+        ('Estonia', 'EE'),
+        ('Eswatini', 'SZ'),
+        ('Ethiopia', 'ET'),
+        ('Finland', 'FI'),
+        ('France', 'FR'),
+        ('Georgia', 'GE'),
+        ('Germany', 'DE'),
+        ('Greece', 'GR'),
+        ('Guam', 'GU'),
+        ('Honduras', 'HN'),
+        ('Hong Kong', 'HK'),
+        ('Hungary', 'HU'),
+        ('Iceland', 'IS'),
+        ('India', 'IN'),
+        ('Indonesia', 'ID'),
+        ('Ireland', 'IE'),
+        ('Isle of Man', 'IM'),
+        ('Israel', 'IL'),
+        ('Italy', 'IT'),
+        ('Jamaica', 'JM'),
+        ('Japan', 'JP'),
+        ('Kazakhstan', 'KZ'),
+        ('Kenya', 'KE'),
+        ('Kyrgyzstan', 'KG'),
+        ('Latvia', 'LV'),
+        ('Lesotho', 'LS'),
+        ('Liechtenstein', 'LI'),
+        ('Lithuania', 'LT'),
+        ('Luxembourg', 'LU'),
+        ('Madagascar', 'MG'),
+        ('Malawi', 'MW'),
+        ('Malaysia', 'MY'),
+        ('Malta', 'MT'),
+        ('Marshall Islands', 'MH'),
+        ('Mexico', 'MX'),
+        ('Moldova', 'MD'),
+        ('Monaco', 'MC'),
+        ('Montenegro', 'ME'),
+        ('Morocco', 'MA'),
+        ('Mozambique', 'MZ'),
+        ('Namibia', 'NA'),
+        ('Netherlands', 'NL'),
+        ('New Zealand', 'NZ'),
+        ('Nicaragua', 'NI'),
+        ('Nigeria', 'NG'),
+        ('Northern Mariana Islands', 'MP'),
+        ('North Macedonia', 'MK'),
+        ('Norway', 'NO'),
+        ('Pakistan', 'PK'),
+        ('Panama', 'PA'),
+        ('Paraguay', 'PY'),
+        ('Peru', 'PE'),
+        ('Philippines', 'PH'),
+        ('Poland', 'PL'),
+        ('Portugal', 'PT'),
+        ('Puerto Rico', 'PR'),
+        ('Romania', 'RO'),
+        ('Russia', 'RU'),
+        ('San Marino', 'SM'),
+        ('Saudi Arabia', 'SA'),
+        ('Serbia', 'RS'),
+        ('Singapore', 'SG'),
+        ('Slovakia', 'SK'),
+        ('Slovenia', 'SI'),
+        ('South Africa', 'ZA'),
+        ('South Korea', 'KR'),
+        ('Spain', 'ES'),
+        ('Sweden', 'SE'),
+        ('Switzerland', 'CH'),
+        ('Taiwan', 'TW'),
+        ('Thailand', 'TH'),
+        ('Tunisia', 'TN'),
+        ('Turkey', 'TR'),
+        ('Ukraine', 'UA'),
+        ('United Arab Emirates', 'AE'),
+        ('United Kingdom', 'GB'),
+        ('United States Minor Outlying Islands', 'UM'),
+        ('United States of America', 'US'),
+        ('United States Virgin Islands', 'VI'),
+        ('Uruguay', 'UY'),
+        ('Uzbekistan', 'UZ'),
+        ('Vatican City', 'VA'),
+        ('Venezuela', 'VE'),
+        ('Vietnam', 'VN'),
+        ('Virgin Islands (U.S.)', 'VI'),
+        ('Zambia', 'ZM'),
+        ('Zimbabwe', 'ZW')
+    ]
+
     def __init__(self, state, key1_engineer, key2_engineer, key3_engineer, key4_engineer, key5_engineer, key6_engineer,
                  key7_engineer, key1_engineer_page_country, key2_engineer_page_country, key3_engineer_page_country, ):
+        self.my_bar = None
+        self.state = state
+
+        self.key1_engineer = key1_engineer
+        self.key2_engineer = key2_engineer
+        self.key3_engineer = key3_engineer
+        self.key4_engineer = key4_engineer
+        self.key5_engineer = key5_engineer
+        self.key6_engineer = key6_engineer
+        self.key7_engineer = key7_engineer
+
+        self.key1_engineer_page_country = key1_engineer_page_country
+        self.key2_engineer_page_country = key2_engineer_page_country
+        self.key3_engineer_page_country = key3_engineer_page_country
+
         self.dwt_features_checkbox = None
         self.special_calendar_days_checkbox = None
         self.calendar_holidays_checkbox = None
@@ -35,23 +179,12 @@ class EngineerPage:
         self.wavelet_family_selectbox = None
         self.year_dummies_checkbox = None
         self.calendar_dummies_checkbox = None
-        self.my_bar = None
-        self.state = state
-        self.key1_engineer = key1_engineer
-        self.key2_engineer = key2_engineer
-        self.key3_engineer = key3_engineer
-        self.key4_engineer = key4_engineer
-        self.key5_engineer = key5_engineer
-        self.key6_engineer = key6_engineer
-        self.key7_engineer = key7_engineer
-        self.key1_engineer_page_country = key1_engineer_page_country
-        self.key2_engineer_page_country = key2_engineer_page_country
-        self.key3_engineer_page_country = key3_engineer_page_country
 
         self.df = pd.DataFrame()  # Initialize df as an empty DataFrame
 
     def render(self):
         self.my_bar = st.progress(0, text="Loading tabs... Please wait!")
+
         self.render_sidebar()
         self.render_tabs()
 
@@ -84,6 +217,18 @@ class EngineerPage:
         with tab2_engineer:
             with st.expander("", expanded=True):
                 self.render_tab2_content()
+
+    def render_tab1_content(self):
+        show_lottie_animation(url="./images/aJ7Ra5vpQB.json", key="robot_engineering", width=350, height=350, speed=1,
+                              col_sizes=[1, 3, 1])
+
+        self.add_dummy_variables_section()
+        self.add_country_holidays_section()
+        self.add_special_calendar_days_checkboxes()
+        self.add_special_calendar_days_section()
+        self.add_numeric_date_feature()
+
+
 
     def render_tab2_content(self):
         my_text_header('Engineered Features')
@@ -233,94 +378,88 @@ class EngineerPage:
             "*🎁 All Special Calendar Days*" if self.special_calendar_days_checkbox else "*🎁 No Special Calendar Days*")
         st.write("*🌊 All Wavelet Features*" if self.dwt_features_checkbox else "*🌊 No Wavelet Features*")
 
-    def render_tab1_content(self):
-        show_lottie_animation(url="./images/aJ7Ra5vpQB.json", key="robot_engineering", width=350, height=350,
-                              speed=1, col_sizes=[1, 3, 1])
-
-        ##############################
-        # Add Day/Month/Year Features
-        # create checkboxes for user to checkmark if to include features
-        ##############################
+    def add_dummy_variables_section(self):
         my_text_header('Dummy Variables')
-        my_text_paragraph('🌓 Pick your time-based features to include: ')
+        my_text_paragraph('🌓 Pick your time-based features to include:')
         vertical_spacer(1)
 
-        # select all or none of the individual dummy variable checkboxes based on sidebar checkbox
         if not self.calendar_dummies_checkbox:
-            # update the individual variables checkboxes if not true
-            set_state("ENGINEER_PAGE_VARS", ('year_dummies_checkbox', False))
-            set_state("ENGINEER_PAGE_VARS", ('month_dummies_checkbox', False))
-            set_state("ENGINEER_PAGE_VARS", ('day_dummies_checkbox', False))
+            self.update_dummy_variables_checkboxes(False)
         else:
-            # update the individual variables checkboxes if calendar_dummies_checkbox is True
-            set_state("ENGINEER_PAGE_VARS", ('year_dummies_checkbox', True))
-            set_state("ENGINEER_PAGE_VARS", ('month_dummies_checkbox', True))
-            set_state("ENGINEER_PAGE_VARS", ('day_dummies_checkbox', True))
+            self.update_dummy_variables_checkboxes(True)
 
-        if not self.special_calendar_days_checkbox:
-            set_state("ENGINEER_PAGE_VARS", ('jan_sales', False))
-            set_state("ENGINEER_PAGE_VARS", ('val_day_lod', False))
-            set_state("ENGINEER_PAGE_VARS", ('val_day', False))
-            set_state("ENGINEER_PAGE_VARS", ('mother_day_lod', False))
-            set_state("ENGINEER_PAGE_VARS", ('mother_day', False))
-            set_state("ENGINEER_PAGE_VARS", ('father_day_lod', False))
-            set_state("ENGINEER_PAGE_VARS", ('pay_days', False))
-            set_state("ENGINEER_PAGE_VARS", ('father_day', False))
-            set_state("ENGINEER_PAGE_VARS", ('black_friday_lod', False))
-            set_state("ENGINEER_PAGE_VARS", ('black_friday', False))
-            set_state("ENGINEER_PAGE_VARS", ('cyber_monday', False))
-            set_state("ENGINEER_PAGE_VARS", ('christmas_day', False))
-            set_state("ENGINEER_PAGE_VARS", ('boxing_day', False))
-        else:
-            # update the individual variables checkboxes if special_calendar_days_checkbox is True
-            set_state("ENGINEER_PAGE_VARS", ('jan_sales', True))
-            set_state("ENGINEER_PAGE_VARS", ('val_day_lod', True))
-            set_state("ENGINEER_PAGE_VARS", ('val_day', True))
-            set_state("ENGINEER_PAGE_VARS", ('mother_day_lod', True))
-            set_state("ENGINEER_PAGE_VARS", ('mother_day', True))
-            set_state("ENGINEER_PAGE_VARS", ('father_day_lod', True))
-            set_state("ENGINEER_PAGE_VARS", ('pay_days', True))
-            set_state("ENGINEER_PAGE_VARS", ('father_day', True))
-            set_state("ENGINEER_PAGE_VARS", ('black_friday_lod', True))
-            set_state("ENGINEER_PAGE_VARS", ('black_friday', True))
-            set_state("ENGINEER_PAGE_VARS", ('cyber_monday', True))
-            set_state("ENGINEER_PAGE_VARS", ('christmas_day', True))
-            set_state("ENGINEER_PAGE_VARS", ('boxing_day', True))
-
-        # create columns for aligning in middle the checkboxes
+        # create checkboxes for user to checkmark if to include features
         col0, col1, col2, col3, col4 = st.columns([2, 2, 2, 2, 1])
         with col1:
             self.year_dummies_checkbox = st.checkbox(label='Year',
                                                      value=get_state("ENGINEER_PAGE_VARS", "year_dummies_checkbox"))
+
+            # add year dummies checkbox to session state
             set_state("ENGINEER_PAGE_VARS", ("year_dummies_checkbox", self.year_dummies_checkbox))
+
         with col2:
-            self.month_dummies_checkbox = st.checkbox('Month',
-                                                      value=get_state("ENGINEER_PAGE_VARS", "month_dummies_checkbox"))
+            self.month_dummies_checkbox = st.checkbox('Month', value=get_state("ENGINEER_PAGE_VARS",
+                                                                               "month_dummies_checkbox"))
+            # add month dummies checkbox to session state
             set_state("ENGINEER_PAGE_VARS", ("year_dummies_checkbox", self.month_dummies_checkbox))
+
         with col3:
             self.day_dummies_checkbox = st.checkbox('Day',
                                                     value=get_state("ENGINEER_PAGE_VARS", "day_dummies_checkbox"))
+
+            # add day dummies checkbox to session state
             set_state("ENGINEER_PAGE_VARS", ("year_dummies_checkbox", self.day_dummies_checkbox))
 
-        ###############################################
-        # create selectbox for country holidays
-        ###############################################
+    def update_dummy_variables_checkboxes(self, value):
+        set_state("ENGINEER_PAGE_VARS", ('year_dummies_checkbox', value))
+        set_state("ENGINEER_PAGE_VARS", ('month_dummies_checkbox', value))
+        set_state("ENGINEER_PAGE_VARS", ('day_dummies_checkbox', value))
+
+    def add_special_calendar_days_checkboxes(self):
+        # Your existing logic for special calendar days checkboxes
+        if not self.special_calendar_days_checkbox:
+            self.update_special_calendar_days_checkboxes(False)
+        else:
+            self.update_special_calendar_days_checkboxes(True)
+
+    def update_special_calendar_days_checkboxes(self, value):
+        set_state("ENGINEER_PAGE_VARS", ('jan_sales', value))
+        set_state("ENGINEER_PAGE_VARS", ('val_day_lod', value))
+        set_state("ENGINEER_PAGE_VARS", ('val_day', value))
+        set_state("ENGINEER_PAGE_VARS", ('mother_day_lod', value))
+        set_state("ENGINEER_PAGE_VARS", ('mother_day', value))
+        set_state("ENGINEER_PAGE_VARS", ('father_day_lod', value))
+        set_state("ENGINEER_PAGE_VARS", ('pay_days', value))
+        set_state("ENGINEER_PAGE_VARS", ('father_day', value))
+        set_state("ENGINEER_PAGE_VARS", ('black_friday_lod', value))
+        set_state("ENGINEER_PAGE_VARS", ('black_friday', value))
+        set_state("ENGINEER_PAGE_VARS", ('cyber_monday', value))
+        set_state("ENGINEER_PAGE_VARS", ('christmas_day', value))
+        set_state("ENGINEER_PAGE_VARS", ('boxing_day', value))
+
+    def add_country_holidays_section(self):
         vertical_spacer(1)
         my_text_header('Holidays')
         my_text_paragraph('⛱️ Select country-specific holidays to include:')
 
+        selected_country_name = self.render_country_holiday_form(self.COUNTRY_DATA)
+
         if self.calendar_holidays_checkbox:
-
-            # apply function to create country specific holidays in columns is_holiday (boolean 1 if holiday
-            # otherwise 0) and holiday_desc for holiday_name
-            self.df = self.create_calendar_holidays(df=st.session_state['df_cleaned_outliers_with_index'])
-
-            # update the session_state
-            st.session_state['df_cleaned_outliers_with_index'] = self.df
-
+            self.apply_country_holidays()
         else:
             my_text_paragraph('<i> no country-specific holiday selected </i>')
 
+    def apply_country_holidays(self):
+        # apply function to create country-specific holidays in columns
+        # is_holiday (boolean 1 if holiday otherwise 0) and holiday_desc for holiday_name
+        self.df = self.create_calendar_holidays(df=self.state['df_cleaned_outliers_with_index'])
+
+        # update the session_state
+        #self.state['df_cleaned_outliers_with_index'] = self.df
+
+        return self.df
+
+    def add_special_calendar_days_section(self):
         ###############################################
         # create checkboxes for special days on page
         ###############################################
@@ -330,85 +469,28 @@ class EngineerPage:
 
         col0, col1, col2, col3 = st.columns([6, 12, 12, 1])
         with col1:
-            jan_sales = st.checkbox(label='January Sale',
-                                    value=get_state("ENGINEER_PAGE_VARS", "jan_sales"))
-
-            set_state("ENGINEER_PAGE_VARS", ("jan_sales", jan_sales))
-
-            val_day_lod = st.checkbox(label="Valentine's Day [last order date]",
-                                      value=get_state("ENGINEER_PAGE_VARS", "val_day_lod"))
-
-            set_state("ENGINEER_PAGE_VARS", ("val_day_lod", val_day_lod))
-
-            val_day = st.checkbox(label="Valentine's Day",
-                                  value=get_state("ENGINEER_PAGE_VARS", "val_day"))
-
-            set_state("ENGINEER_PAGE_VARS", ("val_day", val_day))
-
-            mother_day_lod = st.checkbox(label="Mother's Day [last order date]",
-                                         value=get_state("ENGINEER_PAGE_VARS", "mother_day_lod"))
-
-            set_state("ENGINEER_PAGE_VARS", ("mother_day_lod", mother_day_lod))
-
-            mother_day = st.checkbox(label="Mother's Day",
-                                     value=get_state("ENGINEER_PAGE_VARS", "mother_day"))
-
-            set_state("ENGINEER_PAGE_VARS", ("mother_day", mother_day))
-
-            father_day_lod = st.checkbox(label="Father's Day [last order date]",
-                                         value=get_state("ENGINEER_PAGE_VARS", "father_day_lod"))
-
-            set_state("ENGINEER_PAGE_VARS", ("father_day_lod", father_day_lod))
-
-            pay_days = st.checkbox(label='Monthly Pay Days (4th Friday of month)',
-                                   value=get_state("ENGINEER_PAGE_VARS", "pay_days"))
-
-            set_state("ENGINEER_PAGE_VARS", ("pay_days", pay_days))
+            self.add_special_checkbox("jan_sales", "January Sale")
+            self.add_special_checkbox("val_day_lod", "Valentine's Day [last order date]")
+            self.add_special_checkbox("val_day", "Valentine's Day")
+            self.add_special_checkbox("mother_day_lod", "Mother's Day [last order date]")
+            self.add_special_checkbox("mother_day", "Mother's Day")
+            self.add_special_checkbox("father_day_lod", "Father's Day [last order date]")
+            self.add_special_checkbox("pay_days", "Monthly Pay Days (4th Friday of month)")
 
         with col2:
-            father_day = st.checkbox(label="Father's Day",
-                                     value=get_state("ENGINEER_PAGE_VARS", "father_day"))
-
-            set_state("ENGINEER_PAGE_VARS", ("father_day", father_day))
-
-            black_friday_lod = st.checkbox(label='Black Friday [sale starts]',
-                                           value=get_state("ENGINEER_PAGE_VARS", "black_friday_lod"))
-
-            set_state("ENGINEER_PAGE_VARS", ("black_friday_lod", black_friday_lod))
-
-            black_friday = st.checkbox(label='Black Friday',
-                                       value=get_state("ENGINEER_PAGE_VARS", "black_friday"))
-
-            set_state("ENGINEER_PAGE_VARS", ("black_friday", black_friday))
-
-            cyber_monday = st.checkbox('Cyber Monday',
-                                       value=get_state("ENGINEER_PAGE_VARS", "cyber_monday"))
-
-            set_state("ENGINEER_PAGE_VARS", ("cyber_monday", cyber_monday))
-
-            christmas_day = st.checkbox(label='Christmas Day [last order date]',
-                                        value=get_state("ENGINEER_PAGE_VARS", "christmas_day"))
-
-            set_state("ENGINEER_PAGE_VARS", ("christmas_day", christmas_day))
-
-            boxing_day = st.checkbox(label='Boxing Day sale',
-                                     value=get_state("ENGINEER_PAGE_VARS", "boxing_day"))
-            set_state("ENGINEER_PAGE_VARS", ("boxing_day", boxing_day))
-
+            self.add_special_checkbox("father_day", "Father's Day")
+            self.add_special_checkbox("black_friday_lod", "Black Friday [sale starts]")
+            self.add_special_checkbox("black_friday", "Black Friday")
+            self.add_special_checkbox("cyber_monday", "Cyber Monday")
+            self.add_special_checkbox("christmas_day", "Christmas Day [last order date]")
+            self.add_special_checkbox("boxing_day", "Boxing Day sale")
             vertical_spacer(3)
 
         # user checkmarked the box for all seasonal periods
         if self.special_calendar_days_checkbox:
-
-            # call very extensive function to create all days selected by users as features
-            self.df = self.create_calendar_special_days(st.session_state['df_cleaned_outliers_with_index'])
-
-            # update the session_state
-            st.session_state['df_cleaned_outliers_with_index'] = self.df
-
+            self.apply_special_calendar_days()
         else:
-
-            self.df = st.session_state['df_cleaned_outliers_with_index']
+            self.df = self.state['df_cleaned_outliers_with_index']
 
         # if user check-marked the box for all seasonal periods
         if self.calendar_dummies_checkbox:
@@ -418,14 +500,35 @@ class EngineerPage:
                                                 month_dummies=self.month_dummies_checkbox,
                                                 day_dummies=self.day_dummies_checkbox)
             # update the session_state
-            st.session_state['df_cleaned_outliers_with_index'] = self.df
+            self.state['df_cleaned_outliers_with_index'] = self.df
         else:
             pass
 
-        # =============================================================================
-        # Add the date column but only as numeric feature
-        # =============================================================================
+    def add_special_checkbox(self, state_key, label):
+        # create checkbox for special days in streamlit
+        checkbox_value = st.checkbox(label=label,
+                                     value=get_state("ENGINEER_PAGE_VARS", state_key),
+                                     key=state_key)  # use state_key as the unique key for the checkbox
+
+        # add checkbox value to session state e.g. True or False
+        set_state("ENGINEER_PAGE_VARS", (state_key, checkbox_value))
+
+    def apply_special_calendar_days(self):
+        # call very extensive function to create all days selected by users as features
+        self.df = self.create_calendar_special_days(self.state['df_cleaned_outliers_with_index'])
+
+        # # update the session_state
+        # self.state['df_cleaned_outliers_with_index'] = self.df
+        set_state("DATAFRAMES", ("df_cleaned_outliers_with_index", self.df))
+
+        return self.df
+
+    def add_numeric_date_feature(self):
+        """
+        Returns: Add the date column but only as numeric feature
+        """
         self.df['date_numeric'] = (self.df['date'] - self.df['date'].min()).dt.days
+        set_state("DATAFRAMES", ("df_cleaned_outliers_with_index", self.df))
 
     def create_wavelet_features(self):
         """
@@ -501,13 +604,14 @@ class EngineerPage:
 
             st.plotly_chart(fig, use_container_width=True)
 
-            # SHOW WAVELETE FEATURES DATAFRAME
+            # SHOW WAVELET FEATURES DATAFRAME
             # Show Dataframe with features
             my_text_paragraph('Wavelet Features Dataframe')
             st.dataframe(features_df_wavelet, use_container_width=True)
 
             # update the session state
-            st.session_state['df_cleaned_outliers_with_index'] = self.df
+            # self.state['df_cleaned_outliers_with_index'] = self.df
+            set_state("DATAFRAMES", ("df_cleaned_outliers_with_index", self.df))
         else:
             pass
 
@@ -546,6 +650,35 @@ class EngineerPage:
         df = df.loc[:, ~df.columns.duplicated()]
         return df
 
+    def render_country_holiday_form(self, country_data):
+        """
+
+        Args:
+            country_data: a list of tuples of country name and country 2-letter code
+
+        Returns:
+
+        """
+        col1, col2, col3 = st.columns([1, 3, 1])
+        with col2:
+            with st.form('country_holiday'):
+                selected_country_name = st.selectbox(label="Select a country",
+                                                     options=[country[0] for country in country_data],
+                                                     key=self.key1_engineer_page_country,
+                                                     label_visibility='collapsed')
+
+                col1, col2, col3 = st.columns([5, 4, 4])
+                with col2:
+                    country_holiday_btn = st.form_submit_button('Apply', on_click=form_update,
+                                                                args=("ENGINEER_PAGE_COUNTRY_HOLIDAY",))
+
+                    # update country code as well in session state -
+                    # which is used for prophet model holiday feature as well
+                    set_state("ENGINEER_PAGE_COUNTRY_HOLIDAY",
+                              ("country_code", dict(country_data).get(selected_country_name)))
+
+        return selected_country_name
+
     def create_calendar_holidays(self, df: pd.DataFrame, slider: bool = True):
         """
         Create a calendar of holidays for a given DataFrame.
@@ -563,167 +696,17 @@ class EngineerPage:
         start_date = df['date'].min()
         end_date = df['date'].max()
 
-        # Available countries and their country codes
-        country_data = [
-            ('Albania', 'AL'),
-            ('Algeria', 'DZ'),
-            ('American Samoa', 'AS'),
-            ('Andorra', 'AD'),
-            ('Angola', 'AO'),
-            ('Argentina', 'AR'),
-            ('Armenia', 'AM'),
-            ('Aruba', 'AW'),
-            ('Australia', 'AU'),
-            ('Austria', 'AT'),
-            ('Azerbaijan', 'AZ'),
-            ('Bahrain', 'BH'),
-            ('Bangladesh', 'BD'),
-            ('Belarus', 'BY'),
-            ('Belgium', 'BE'),
-            ('Bolivia', 'BO'),
-            ('Bosnia and Herzegovina', 'BA'),
-            ('Botswana', 'BW'),
-            ('Brazil', 'BR'),
-            ('Bulgaria', 'BG'),
-            ('Burundi', 'BI'),
-            ('Canada', 'CA'),
-            ('Chile', 'CL'),
-            ('China', 'CN'),
-            ('Colombia', 'CO'),
-            ('Costa Rica', 'CR'),
-            ('Croatia', 'HR'),
-            ('Cuba', 'CU'),
-            ('Curacao', 'CW'),
-            ('Cyprus', 'CY'),
-            ('Czechia', 'CZ'),
-            ('Denmark', 'DK'),
-            ('Djibouti', 'DJ'),
-            ('Dominican Republic', 'DO'),
-            ('Ecuador', 'EC'),
-            ('Egypt', 'EG'),
-            ('Estonia', 'EE'),
-            ('Eswatini', 'SZ'),
-            ('Ethiopia', 'ET'),
-            ('Finland', 'FI'),
-            ('France', 'FR'),
-            ('Georgia', 'GE'),
-            ('Germany', 'DE'),
-            ('Greece', 'GR'),
-            ('Guam', 'GU'),
-            ('Honduras', 'HN'),
-            ('Hong Kong', 'HK'),
-            ('Hungary', 'HU'),
-            ('Iceland', 'IS'),
-            ('India', 'IN'),
-            ('Indonesia', 'ID'),
-            ('Ireland', 'IE'),
-            ('Isle of Man', 'IM'),
-            ('Israel', 'IL'),
-            ('Italy', 'IT'),
-            ('Jamaica', 'JM'),
-            ('Japan', 'JP'),
-            ('Kazakhstan', 'KZ'),
-            ('Kenya', 'KE'),
-            ('Kyrgyzstan', 'KG'),
-            ('Latvia', 'LV'),
-            ('Lesotho', 'LS'),
-            ('Liechtenstein', 'LI'),
-            ('Lithuania', 'LT'),
-            ('Luxembourg', 'LU'),
-            ('Madagascar', 'MG'),
-            ('Malawi', 'MW'),
-            ('Malaysia', 'MY'),
-            ('Malta', 'MT'),
-            ('Marshall Islands', 'MH'),
-            ('Mexico', 'MX'),
-            ('Moldova', 'MD'),
-            ('Monaco', 'MC'),
-            ('Montenegro', 'ME'),
-            ('Morocco', 'MA'),
-            ('Mozambique', 'MZ'),
-            ('Namibia', 'NA'),
-            ('Netherlands', 'NL'),
-            ('New Zealand', 'NZ'),
-            ('Nicaragua', 'NI'),
-            ('Nigeria', 'NG'),
-            ('Northern Mariana Islands', 'MP'),
-            ('North Macedonia', 'MK'),
-            ('Norway', 'NO'),
-            ('Pakistan', 'PK'),
-            ('Panama', 'PA'),
-            ('Paraguay', 'PY'),
-            ('Peru', 'PE'),
-            ('Philippines', 'PH'),
-            ('Poland', 'PL'),
-            ('Portugal', 'PT'),
-            ('Puerto Rico', 'PR'),
-            ('Romania', 'RO'),
-            ('Russia', 'RU'),
-            ('San Marino', 'SM'),
-            ('Saudi Arabia', 'SA'),
-            ('Serbia', 'RS'),
-            ('Singapore', 'SG'),
-            ('Slovakia', 'SK'),
-            ('Slovenia', 'SI'),
-            ('South Africa', 'ZA'),
-            ('South Korea', 'KR'),
-            ('Spain', 'ES'),
-            ('Sweden', 'SE'),
-            ('Switzerland', 'CH'),
-            ('Taiwan', 'TW'),
-            ('Thailand', 'TH'),
-            ('Tunisia', 'TN'),
-            ('Turkey', 'TR'),
-            ('Ukraine', 'UA'),
-            ('United Arab Emirates', 'AE'),
-            ('United Kingdom', 'GB'),
-            ('United States Minor Outlying Islands', 'UM'),
-            ('United States of America', 'US'),
-            ('United States Virgin Islands', 'VI'),
-            ('Uruguay', 'UY'),
-            ('Uzbekistan', 'UZ'),
-            ('Vatican City', 'VA'),
-            ('Venezuela', 'VE'),
-            ('Vietnam', 'VN'),
-            ('Virgin Islands (U.S.)', 'VI'),
-            ('Zambia', 'ZM'),
-            ('Zimbabwe', 'ZW')
-        ]
         # retrieve index of default country e.g. 'United States of America'
-        us_index = country_data.index(('United States of America', 'US'))
+        us_index = self.COUNTRY_DATA.index(('United States of America', 'US'))
 
-        # add slider if user on the page with menu_item = 'Engineer' otherwise do not show select-box
-        if slider:
-
-            col1, col2, col3 = st.columns([1, 3, 1])
-            with col2:
-
-                with st.form('country_holiday'):
-                    selected_country_name = st.selectbox(label="Select a country",
-                                                         options=[country[0] for country in country_data],
-                                                         key=self.key1_engineer_page_country,
-                                                         label_visibility='collapsed')
-
-                    col1, col2, col3 = st.columns([5, 4, 4])
-                    with col2:
-                        country_holiday_btn = st.form_submit_button('Apply', on_click=form_update,
-                                                                    args=("ENGINEER_PAGE_COUNTRY_HOLIDAY",))
-
-                        # update country code as well in session state -
-                        # which is used for prophet model holiday feature as well
-                        set_state("ENGINEER_PAGE_COUNTRY_HOLIDAY",
-                                  ("country_code", dict(country_data).get(selected_country_name)))
-
-        # else do not add selectbox in if function is called when user not on page
-        else:
-            selected_country_name = get_state("ENGINEER_PAGE_COUNTRY_HOLIDAY", "country_name")
+        selected_country_name = get_state("ENGINEER_PAGE_COUNTRY_HOLIDAY", "country_name")
 
         # create empty container for the calendar
         country_calendars = {}
 
         # iterate over all countries and try-except block for if holiday for country is not found
         # in holiday python package
-        for name, code in country_data:
+        for name, code in self.COUNTRY_DATA:
             try:
                 country_calendars[name] = getattr(holidays, code)()
             except AttributeError:
@@ -733,7 +716,7 @@ class EngineerPage:
                 continue
 
         # Retrieve the country code for the selected country
-        selected_country_code = dict(country_data).get(get_state("ENGINEER_PAGE_COUNTRY_HOLIDAY", "country_name"))
+        selected_country_code = dict(self.COUNTRY_DATA).get(get_state("ENGINEER_PAGE_COUNTRY_HOLIDAY", "country_name"))
         # st.write(selected_country_code, selected_country_name) # TEST
 
         # Check if the selected country has a holiday calendar
@@ -764,7 +747,6 @@ class EngineerPage:
         # except:
         #     st.error(
         #         'Forecastgenie Error: the function create_calendar_holidays() could not execute correctly, please contact the administrator...')
-        #
 
     def create_calendar_special_days(self, df, start_date_calendar=None, end_date_calendar=None):
         """
@@ -888,3 +870,26 @@ class EngineerPage:
         df = df_total_incl_exogenous.copy(deep=True)
 
         return df
+
+    def perform_data_engineering(self):
+        # TODO - create conditionals
+
+        # Apply special calendar days if checkbox is checked
+        self.df = self.apply_special_calendar_days()
+        self.state['df_cleaned_outliers_with_index'] = self.df  # update the session_state
+
+        # Apply country holidays if checkbox is checked
+        self.df = self.apply_country_holidays()
+        self.state['df_cleaned_outliers_with_index'] = self.df  # update the session_state
+
+        # Create dummy variables if checkbox is checked
+        self.df = self.create_date_features(self.state['df_cleaned_outliers_with_index'],
+                                            year_dummies=self.year_dummies_checkbox,
+                                            month_dummies=self.month_dummies_checkbox,
+                                            day_dummies=self.day_dummies_checkbox)
+        self.state['df_cleaned_outliers_with_index'] = self.df # update the session_state
+
+        # Create Wavelet features
+        #self.create_wavelet_features()
+
+        #set_state("DATAFRAMES", ("df_cleaned_outliers_with_index", self.df))
