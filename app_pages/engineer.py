@@ -27,7 +27,7 @@ class EngineerPage:
     # Available countries and their country codes
     COUNTRY_DATA = [
         ('Albania', 'AL'),
-        # ('Algeria', 'DZ'), -> Algeria has issues with holiday package
+        # ('Algeria', 'DZ'), -> Algeria has issues with holiday package although listed as option in the documentation
         ('American Samoa', 'AS'),
         ('Andorra', 'AD'),
         ('Angola', 'AO'),
@@ -171,13 +171,16 @@ class EngineerPage:
         self.dwt_features_checkbox = None
         self.special_calendar_days_checkbox = None
         self.calendar_holidays_checkbox = None
+
+        self.year_dummies_checkbox = None
         self.day_dummies_checkbox = None
         self.month_dummies_checkbox = None
+
         self.engineering_form_submit_btn = None
         self.wavelet_window_size_slider = None
         self.wavelet_level_decomposition_selectbox = None
         self.wavelet_family_selectbox = None
-        self.year_dummies_checkbox = None
+
         self.calendar_dummies_checkbox = None
 
         self.df = pd.DataFrame()  # Initialize df as an empty DataFrame
@@ -281,37 +284,37 @@ class EngineerPage:
                                                                       [1, 2, 3, 4, 5],
                                                                       label_visibility='visible',
                                                                       key=self.key6_engineer,
-                                                                      help='The level of decomposition refers to the '
-                                                                           'number of times the signal is decomposed '
-                                                                           'recursively into its approximation '
-                                                                           'coefficients and detail coefficients.  \ '
-                                                                           '\nIn wavelet decomposition, the signal is '
-                                                                           'first decomposed into two components: a '
-                                                                           'approximation component and a detail '
-                                                                           'component.\ The approximation component '
-                                                                           'represents the coarsest level of detail '
-                                                                           'in the signal, while the detail component '
-                                                                           'represents the finer details.  \ \nAt '
-                                                                           'each subsequent level of decomposition, '
-                                                                           'the approximation component from the '
-                                                                           'previous level is decomposed again into '
-                                                                           'its own approximation and detail '
-                                                                           'components.\ This process is repeated '
-                                                                           'until the desired level of decomposition '
-                                                                           'is reached.  \ \nEach level of '
-                                                                           'decomposition captures different '
-                                                                           'frequency bands and details in the '
-                                                                           'signal, with higher levels of '
-                                                                           'decomposition capturing finer and more '
-                                                                           'subtle details.  \ However, higher levels '
-                                                                           'of decomposition also require more '
-                                                                           'computation and may introduce more noise '
-                                                                           'or artifacts in the resulting '
-                                                                           'representation of the signal.  \ \nThe '
-                                                                           'choice of the level of decomposition '
-                                                                           'depends on the specific application and '
-                                                                           'the desired balance between accuracy and '
-                                                                           'computational efficiency.')
+                                                                      help='''The level of decomposition refers to the
+                                                                           number of times the signal is decomposed
+                                                                           recursively into its approximation
+                                                                           coefficients and detail coefficients.
+                                                                           \nIn wavelet decomposition, the signal is
+                                                                           first decomposed into two components: a
+                                                                           approximation component and a detail
+                                                                           component. The approximation component
+                                                                           represents the coarsest level of detail
+                                                                           in the signal, while the detail component
+                                                                           represents the finer details. \n At
+                                                                           each subsequent level of decomposition,
+                                                                           the approximation component from the
+                                                                           previous level is decomposed again into
+                                                                           its own approximation and detail
+                                                                           components. This process is repeated
+                                                                           until the desired level of decomposition
+                                                                           is reached. \n Each level of
+                                                                           decomposition captures different
+                                                                           frequency bands and details in the
+                                                                           signal, with higher levels of
+                                                                           decomposition capturing finer and more
+                                                                           subtle details. However, higher levels
+                                                                           of decomposition also require more
+                                                                           computation and may introduce more noise
+                                                                           or artifacts in the resulting
+                                                                           representation of the signal. \nThe
+                                                                           choice of the level of decomposition
+                                                                           depends on the specific application and
+                                                                           the desired balance between accuracy and
+                                                                           computational efficiency.''')
 
             # add slider or text input to choose window size
             self.wavelet_window_size_slider = st.slider(label='*Select Window Size (in days)*',
@@ -456,6 +459,7 @@ class EngineerPage:
 
         # update the session_state
         #self.state['df_cleaned_outliers_with_index'] = self.df
+        set_state("DATAFRAMES", ("df_cleaned_outliers_with_index", self.df))
 
         return self.df
 
@@ -500,7 +504,8 @@ class EngineerPage:
                                                 month_dummies=self.month_dummies_checkbox,
                                                 day_dummies=self.day_dummies_checkbox)
             # update the session_state
-            self.state['df_cleaned_outliers_with_index'] = self.df
+            #self.state['df_cleaned_outliers_with_index'] = self.df
+            set_state("DATAFRAMES", ("df_cleaned_outliers_with_index", self.df))
         else:
             pass
 
@@ -539,14 +544,6 @@ class EngineerPage:
             my_text_paragraph('Feature Extraction')
 
             # CREATE WAVELET FEATURES
-            # define wavelet and level of decomposition
-
-            # TEST REPLACE WITH SESSION STATES THE USER CHOICES
-            # =============================================================================
-            #             wavelet = wavelet_family_selectbox
-            #             level = wavelet_level_decomposition_selectbox
-            #             window_size = wavelet_window_size_slider
-            # =============================================================================
             wavelet = get_state("ENGINEER_PAGE", "wavelet_family_selectbox")
             level = get_state("ENGINEER_PAGE", "wavelet_level_decomposition_selectbox")
             window_size = get_state("ENGINEER_PAGE", "wavelet_window_size_slider")
@@ -588,24 +585,10 @@ class EngineerPage:
             # merge features dataframe with original data
             self.df = pd.merge(self.df, features_df_wavelet, left_index=True, right_index=True)
 
-            # PLOT WAVELET FEATURES
-            #######################
-            # create a dataframe again with the index set as the first column
-            # assumption used: the 'date' column is the first column of the dataframe
-            features_df_plot = pd.DataFrame(feature_vectors, columns=feature_cols, index=self.df.iloc[:, 0])
-
-            fig = px.line(features_df_plot,
-                          x=features_df_plot.index,
-                          y=['approx_mean'] + [f'detail{i + 1}_mean' for i in range(level)],
-                          title='',
-                          labels={'value': 'Coefficient Mean', 'variable': 'Subband'})
-
-            fig.update_layout(xaxis_title='Date')
-
-            st.plotly_chart(fig, use_container_width=True)
+            # SHOW WAVELET FEATURES PLOT
+            self.plot_wavelet_features(feature_vectors, feature_cols, level)
 
             # SHOW WAVELET FEATURES DATAFRAME
-            # Show Dataframe with features
             my_text_paragraph('Wavelet Features Dataframe')
             st.dataframe(features_df_wavelet, use_container_width=True)
 
@@ -615,8 +598,25 @@ class EngineerPage:
         else:
             pass
 
-    @staticmethod
-    def create_date_features(df, year_dummies=True, month_dummies=True, day_dummies=True):
+    def plot_wavelet_features(self, feature_vectors, feature_cols, level):
+        """
+        Plot wavelet features.
+        """
+        # Create a dataframe for plotting
+        features_df_plot = pd.DataFrame(feature_vectors, columns=feature_cols, index=self.df.iloc[:, 0])
+
+        # Create plot
+        fig = px.line(features_df_plot,
+                      x=features_df_plot.index,
+                      y=['approx_mean'] + [f'detail{i + 1}_mean' for i in range(level)],
+                      title='',
+                      labels={'value': 'Coefficient Mean', 'variable': 'Subband'})
+
+        fig.update_layout(xaxis_title='Date')
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    def create_date_features(self, df, year_dummies=True, month_dummies=True, day_dummies=True):
         """
         This function creates dummy variables for year, month, and day of week from a date column in a pandas DataFrame.
 
@@ -760,6 +760,11 @@ class EngineerPage:
         Returns:
         df_exogenous_vars (pd.DataFrame): DataFrame containing trading calendar with holiday and event columns
         """
+        # Check if the dataframe already contains the columns
+        required_columns = ['date', 'calendar_event', 'calendar_event_desc', 'pay_day', 'pay_day_desc']
+        if all(column in df.columns for column in required_columns):
+            return df
+
         ###############################################
         # Define variables
         ###############################################
@@ -872,7 +877,7 @@ class EngineerPage:
         return df
 
     def perform_data_engineering(self):
-        # TODO - create conditionals
+        # TODO - test if I need to create conditionals for if user checkmarked the box for all seasonal periods
 
         # Apply special calendar days if checkbox is checked
         self.df = self.apply_special_calendar_days()
@@ -880,16 +885,18 @@ class EngineerPage:
 
         # Apply country holidays if checkbox is checked
         self.df = self.apply_country_holidays()
-        self.state['df_cleaned_outliers_with_index'] = self.df  # update the session_state
 
-        # Create dummy variables if checkbox is checked
+        # Create date features
         self.df = self.create_date_features(self.state['df_cleaned_outliers_with_index'],
-                                            year_dummies=self.year_dummies_checkbox,
-                                            month_dummies=self.month_dummies_checkbox,
-                                            day_dummies=self.day_dummies_checkbox)
-        self.state['df_cleaned_outliers_with_index'] = self.df # update the session_state
+                                                     year_dummies=get_state("ENGINEER_PAGE_VARS", "year_dummies_checkbox"),
+                                                     month_dummies=get_state("ENGINEER_PAGE_VARS", "month_dummies_checkbox"),
+                                                     day_dummies=get_state("ENGINEER_PAGE_VARS", "day_dummies_checkbox"))
+        # Add numeric date feature
+        self.add_numeric_date_feature()
+
+        set_state("DATAFRAMES", ("df_cleaned_outliers_with_index", self.df))
 
         # Create Wavelet features
-        #self.create_wavelet_features()
-
-        #set_state("DATAFRAMES", ("df_cleaned_outliers_with_index", self.df))
+        # TODO - include wavelet features in the dataframe to be used for next page e.g. Prepare Page
+        self.create_wavelet_features()
+        set_state("DATAFRAMES", ("df_cleaned_outliers_with_index", self.df))

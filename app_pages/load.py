@@ -419,5 +419,8 @@ class LoadPage:
             'Day of Week Old Date': day_of_week_old_date
         })
 
+        # Sort the DataFrame in descending order based on 'Date'
+        results_df = results_df.sort_values(by='Date', ascending=False)
+
         # Display the DataFrame
         st.dataframe(results_df, hide_index=True, use_container_width=True)

@@ -35,15 +35,16 @@ class PreparePage:
         # create copy of dataframe not altering original
         # self.local_df = state['df'].copy(deep=True)
         self.local_df = get_state("DATAFRAMES", "df_cleaned_outliers_with_index")
-        st.write('self.local_df ja', get_state("DATAFRAMES", "df_cleaned_outliers_with_index"))
+        #st.write('self.local_df ja', get_state("DATAFRAMES", "df_cleaned_outliers_with_index"))
 
-        self.df = st.session_state['df']
+        #self.df = st.session_state['df']
+        self.df = get_state("DATAFRAMES", "df_cleaned_outliers_with_index")
         #st.write('self df', self.df)
 
         # Assumption: date column and y column are at index 0 and index 1 so start from column 3 e.g. index 2 to
         # count potential numerical_features e.g. changed float64 to float to include other floats such as float32
         # and float16 data types
-        self.numerical_features = list(st.session_state['df'].iloc[:, 2:].select_dtypes(include=['float', 'int']).columns)
+        self.numerical_features = list(self.df.iloc[:, 2:].select_dtypes(include=['float', 'int']).columns)
         st.write('test numerical features', self.numerical_features)
 
     def render(self):

@@ -11,8 +11,8 @@ _____ _____ _____ _____ _____ _____ _____ _____ _____ _____
 Streamlit App: ForecastGenie
 Forecast y based on X timeseries data
 @author: Tony Hollaar
-Date: 06/30/2023
-Version 2.0
+Date: 12/26/2023
+Version 2.1
 """
 # import standard libraries
 import streamlit as st
@@ -134,8 +134,8 @@ clean_page.perform_data_cleaning()
 engineer_page.perform_data_engineering()
 
 # this df is available and needs to be used in prepare
-#st.write('dataframes - df', get_state("DATAFRAMES", "df_cleaned_outliers_with_index"))
-
+st.write('dataframes - df', get_state("DATAFRAMES", "df_cleaned_outliers_with_index"))
+st.write(f'dataframes - df: {get_state("DATAFRAMES", "df_cleaned_outliers_with_index").shape[0]} rows x {get_state("DATAFRAMES", "df_cleaned_outliers_with_index").shape[1]} columns')
 # =============================================================================
 # MAIN MENU PAGES
 # =============================================================================
@@ -154,7 +154,8 @@ if menu_item == 'Engineer' and sidebar_menu_item == 'HOME':
     engineer_page.render()
 
 if menu_item == 'Prepare' and sidebar_menu_item == 'HOME':
-    prepare_page = PreparePage(get_state("DATAFRAMES", "df_cleaned_outliers_with_index"), key1_prepare_normalization, key2_prepare_standardization)
+    prepare_page = PreparePage(get_state("DATAFRAMES", "df_cleaned_outliers_with_index"),
+                               key1_prepare_normalization, key2_prepare_standardization)
     prepare_page.render()
 
 #st.write('dataframes - df', get_state("DATAFRAMES", "df_cleaned_outliers_with_index"))
