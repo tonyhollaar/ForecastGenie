@@ -19,8 +19,7 @@ plotly
 statsmodels
 scikit-learn
 
-# Time Series and Forecasting
-np.float_ = np.float64
+# Time Series 
 prophet
 
 # Signal Processing
