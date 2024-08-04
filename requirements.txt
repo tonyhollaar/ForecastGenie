@@ -20,6 +20,7 @@ statsmodels
 scikit-learn
 
 # Time Series and Forecasting
+np.float_ = np.float64
 prophet
 
 # Signal Processing
