@@ -30,6 +30,7 @@ source ASCII ART: http://patorjk.com/software/taag/#p=display&f=Graffiti&t=Type%
 #**************************
 import pandas as pd
 import numpy as np
+np.float_ = np.float64
 import streamlit as st
        
 import json
